@@ -94,7 +94,7 @@ export function appendToolUseDisplayLine(
   input: unknown
 ): void {
   const line = formatToolUseForDisplay(name, input);
-  ctx.appendAssistantText(`\n\n${line}\n\n`);
+  ctx.appendAssistantText(`\n\n<think>\n${line}\n</think>\n\n`);
 }
 
 /** Join all text blocks from provider content arrays. */

@@ -338,26 +338,21 @@ function extractThinkingBlocks(content: string): { thinking: string[]; rest: str
     thinking.push(inner.trim());
     return "";
   });
-  return { thinking, rest: rest.replace(/\n{3,}/g, "\n\n").trim() };
+  return {
+    thinking: thinking.length > 0 ? [thinking.join("\n\n")] : [],
+    rest: rest.replace(/\n{3,}/g, "\n\n").trim(),
+  };
 }
 
 /** Collapsible "Thinking" / "Show reasoning" block. Default collapsed, 44px min touch target, muted background. */
 function CollapsibleThinkingBlock({
   content,
   theme,
-  markdownStyles,
-  markdownRules,
-  onLinkPress,
-  wrapBareUrls,
-  replaceHighlight,
+  renderContent,
 }: {
   content: string;
   theme: { textMuted: string; accent: string };
-  markdownStyles: React.ComponentProps<typeof Markdown>["style"];
-  markdownRules: React.ComponentProps<typeof Markdown>["rules"];
-  onLinkPress: (url: string) => boolean;
-  wrapBareUrls: (s: string) => string;
-  replaceHighlight: (s: string, c: string) => string;
+  renderContent: (content: string) => React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   const MIN_TOUCH = 44;
@@ -395,14 +390,7 @@ function CollapsibleThinkingBlock({
       </Pressable>
       {expanded && (
         <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
-          <Markdown
-            style={markdownStyles}
-            mergeStyle
-            rules={markdownRules}
-            onLinkPress={onLinkPress}
-          >
-            {wrapBareUrls(replaceHighlight(content, theme.accent))}
-          </Markdown>
+          {renderContent(content)}
         </View>
       )}
     </View>
@@ -751,31 +739,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     const { thinking, rest } = extractThinkingBlocks(sanitizedContent);
     return { thinkingBlocks: thinking, contentWithoutThinking: thinking.length > 0 ? rest : sanitizedContent };
   }, [sanitizedContent]);
-  const commandRunSegments = useMemo(
-    () => parseCommandRunSegments(contentWithoutThinking),
-    [contentWithoutThinking]
-  );
-  const hasCommandRunSegments = useMemo(
-    () => commandRunSegments.some((s) => (s as { kind?: string }).kind === "command"),
-    [commandRunSegments]
-  );
-  const markdownContent = useMemo(() => {
-    let out = replaceHighlightWithTextColor(contentWithoutThinking, theme.accent);
-    for (let i = 0; i < 8; i++) {
-      const next = fillEmptyBashBlocks(out);
-      if (next === out) break;
-      out = next;
-    }
-    return out;
-  }, [contentWithoutThinking, theme.accent]);
-  const fileActivitySegments = useMemo(
-    () => parseFileActivitySegments(contentWithoutThinking),
-    [contentWithoutThinking]
-  );
-  const hasRawFileActivityLinks = useMemo(
-    () => fileActivitySegments.some((seg) => seg.kind === "file"),
-    [fileActivitySegments]
-  );
+
   const markdownRules = useMemo(() => {
     const base: Record<string, unknown> = {};
     if (!isUser && !isSystem) {
@@ -881,8 +845,8 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
       const p = prefix.toLowerCase();
       const color =
         p.includes("reading") ? "#3B82F6"
-        : p.includes("editing") ? "#F59E0B"
-        : "#10B981";
+          : p.includes("editing") ? "#F59E0B"
+            : "#10B981";
       if (p.includes("reading")) return <BookOpenIcon color={color} />;
       if (p.includes("editing")) return <PencilIcon color={color} />;
       return <FilePenIcon color={color} />;
@@ -890,14 +854,14 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     []
   );
 
-  const renderFileActivityContent = useCallback(
-    () => (
-      <View style={styles.fileActivityContainer}>
-        {fileActivitySegments.map((seg, index) => {
+  const renderActivitySegmentsContent = useCallback(
+    (segments: FileActivitySegment[], keyPrefix: string = "root") => (
+      <View key={keyPrefix} style={styles.fileActivityContainer}>
+        {segments.map((seg, index) => {
           if (seg.kind === "file") {
             const actionLabel = seg.prefix.replace(/^[📖✏️📝]\s*/, "") || "File";
             return (
-              <View key={`file-activity-${index}`} style={getFileActivityRowStyle(seg.prefix)}>
+              <View key={`${keyPrefix}-file-activity-${index}`} style={getFileActivityRowStyle(seg.prefix)}>
                 <FileActivityIcon prefix={seg.prefix} />
                 <Text style={[styles.fileActivityActionLabel, getFileActivityActionStyle(seg.prefix)]}>
                   {actionLabel}
@@ -920,12 +884,12 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
             );
           }
           if (!seg.text.trim()) {
-            return <View key={`file-activity-space-${index}`} style={styles.fileActivityLine} />;
+            return <View key={`${keyPrefix}-file-activity-space-${index}`} style={styles.fileActivityLine} />;
           }
           if (seg.text.length > MAX_READ_RESULT_PREVIEW) {
             return (
               <CollapsibleReadResult
-                key={`file-activity-text-${index}`}
+                key={`${keyPrefix}-file-activity-text-${index}`}
                 content={seg.text}
                 previewLength={MAX_READ_RESULT_PREVIEW}
                 markdownStyles={markdownStyles}
@@ -939,7 +903,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           }
           return (
             <Markdown
-              key={`file-activity-text-${index}`}
+              key={`${keyPrefix}-file-activity-text-${index}`}
               style={markdownStyles}
               mergeStyle
               rules={markdownRules}
@@ -952,7 +916,6 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
       </View>
     ),
     [
-      fileActivitySegments,
       FileActivityIcon,
       getFileActivityRowStyle,
       getFileActivityActionStyle,
@@ -965,98 +928,132 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     ]
   );
 
-  const renderCommandRunSegmentsContent = useCallback(
-    () => {
-      const nodes: React.ReactNode[] = [];
-      let commandGroup: CommandRunSegment[] = [];
-      const COMMAND_LINE_HEIGHT = 32;
-      const flushCommandGroup = (key: string) => {
-        if (commandGroup.length === 0) return;
-        const cmds = [...commandGroup];
-        commandGroup = [];
-        const visibleLines = Math.min(Math.max(cmds.length, 3), 6);
-        const scrollHeight = visibleLines * COMMAND_LINE_HEIGHT;
-        nodes.push(
-          <View
-            key={key}
-            style={styles.commandTerminalContainer}
-          >
-            <View style={styles.commandTerminalHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <TerminalIcon color={terminalPrompt} size={14} strokeWidth={1.8} />
-                <Text style={styles.commandTerminalTitle}>
-                  Commands ({cmds.length})
-                </Text>
-              </View>
-            </View>
-            <ScrollView
-              style={[styles.commandTerminalScrollBase, { height: scrollHeight }]}
-              contentContainerStyle={styles.commandTerminalContent}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-              {cmds.map((cmd, i) => (
-                <View
-                  key={`line-${i}`}
-                  style={styles.commandTerminalLine}
-                >
-                  <Text style={styles.commandTerminalPrompt} selectable={false}>
-                    $
-                  </Text>
-                  <Text style={styles.commandTerminalText} selectable numberOfLines={1} ellipsizeMode="tail">
-                    {cmd.command}
-                  </Text>
-                  {cmd.status && (
-                    <Text
-                      style={[
-                        styles.commandTerminalStatus,
-                        { color: cmd.status === "Failed" ? "#ef4444" : "#22c55e" },
-                      ]}
-                    >
-                      {cmd.status}
-                      {cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        );
-      };
-      let cmdKey = 0;
-      commandRunSegments.forEach((seg, index) => {
-        if ((seg as CommandRunSegment).kind === "command") {
-          commandGroup.push(seg as CommandRunSegment);
-        } else {
-          flushCommandGroup(`terminal-${cmdKey++}`);
+  const renderRichContent = useCallback(
+    (textContent: string) => {
+      const commandRunSegments = parseCommandRunSegments(textContent);
+      const hasCommandRunSegments = commandRunSegments.some((s) => (s as { kind?: string }).kind === "command");
+      const fileActivitySegments = parseFileActivitySegments(textContent);
+      const hasRawFileActivityLinks = fileActivitySegments.some((seg) => seg.kind === "file");
+
+      let markdownContent = replaceHighlightWithTextColor(textContent, theme.accent);
+      for (let i = 0; i < 8; i++) {
+        const next = fillEmptyBashBlocks(markdownContent);
+        if (next === markdownContent) break;
+        markdownContent = next;
+      }
+
+      if (hasCommandRunSegments) {
+        const nodes: React.ReactNode[] = [];
+        let commandGroup: CommandRunSegment[] = [];
+        const COMMAND_LINE_HEIGHT = 32;
+        const flushCommandGroup = (key: string) => {
+          if (commandGroup.length === 0) return;
+          const cmds = [...commandGroup];
+          commandGroup = [];
+          const visibleLines = Math.min(Math.max(cmds.length, 3), 6);
+          const scrollHeight = visibleLines * COMMAND_LINE_HEIGHT;
           nodes.push(
-            <Markdown
-              key={`md-${index}`}
-              style={markdownStyles}
-              mergeStyle
-              rules={markdownRules}
-              onLinkPress={handleMarkdownLinkPress}
+            <View
+              key={key}
+              style={styles.commandTerminalContainer}
             >
-              {wrapBareUrlsInMarkdown(
-                replaceHighlightWithTextColor((seg as { type: "markdown"; content: string }).content, theme.accent)
-              )}
-            </Markdown>
+              <View style={styles.commandTerminalHeader}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <TerminalIcon color={terminalPrompt} size={14} strokeWidth={1.8} />
+                  <Text style={styles.commandTerminalTitle}>
+                    Commands ({cmds.length})
+                  </Text>
+                </View>
+              </View>
+              <ScrollView
+                style={[styles.commandTerminalScrollBase, { height: scrollHeight }]}
+                contentContainerStyle={styles.commandTerminalContent}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+              >
+                {cmds.map((cmd, i) => (
+                  <View
+                    key={`line-${i}`}
+                    style={styles.commandTerminalLine}
+                  >
+                    <Text style={styles.commandTerminalPrompt} selectable={false}>
+                      $
+                    </Text>
+                    <Text style={styles.commandTerminalText} selectable numberOfLines={1} ellipsizeMode="tail">
+                      {cmd.command}
+                    </Text>
+                    {cmd.status && (
+                      <Text
+                        style={[
+                          styles.commandTerminalStatus,
+                          { color: cmd.status === "Failed" ? "#ef4444" : "#22c55e" },
+                        ]}
+                      >
+                        {cmd.status}
+                        {cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
           );
-        }
-      });
-      flushCommandGroup(`terminal-${cmdKey}`);
-      return <View style={styles.commandRunSection}>{nodes}</View>;
+        };
+        let cmdKey = 0;
+        commandRunSegments.forEach((seg, index) => {
+          if ((seg as CommandRunSegment).kind === "command") {
+            commandGroup.push(seg as CommandRunSegment);
+          } else {
+            flushCommandGroup(`terminal-${cmdKey++}`);
+            const textSection = (seg as { type: "markdown"; content: string }).content;
+            const subSegments = parseFileActivitySegments(textSection);
+            if (subSegments.some((s) => s.kind === "file")) {
+              nodes.push(renderActivitySegmentsContent(subSegments, `mixed-file-${index}`));
+            } else {
+              nodes.push(
+                <Markdown
+                  key={`md-${index}`}
+                  style={markdownStyles}
+                  mergeStyle
+                  rules={markdownRules}
+                  onLinkPress={handleMarkdownLinkPress}
+                >
+                  {wrapBareUrlsInMarkdown(
+                    replaceHighlightWithTextColor(textSection, theme.accent)
+                  )}
+                </Markdown>
+              );
+            }
+          }
+        });
+        flushCommandGroup(`terminal-${cmdKey}`);
+        return <View style={styles.commandRunSection}>{nodes}</View>;
+      } else if (hasRawFileActivityLinks) {
+        return renderActivitySegmentsContent(fileActivitySegments, "root");
+      } else {
+        return (
+          <Markdown
+            style={markdownStyles}
+            mergeStyle
+            rules={markdownRules}
+            onLinkPress={handleMarkdownLinkPress}
+          >
+            {wrapBareUrlsInMarkdown(markdownContent)}
+          </Markdown>
+        );
+      }
     },
     [
-      commandRunSegments,
+      renderActivitySegmentsContent,
       handleMarkdownLinkPress,
       markdownRules,
       markdownStyles,
       styles,
+      terminalPrompt,
+      terminalText,
       theme.accent,
     ]
   );
-
   const showProviderIcon = !isUser && !isSystem && provider;
   const ProviderIcon =
     provider === "claude" ? ClaudeIcon : provider === "codex" || provider === "pi" ? CodexIcon : GeminiIcon;
@@ -1081,61 +1078,6 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           >
             {message.content}
           </Text>
-        ) : showAsTailBox ? (
-          <View style={{ maxHeight: tailBoxMaxHeight }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 6,
-                paddingBottom: 8,
-                marginBottom: 4,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.borderColor,
-              }}
-            >
-              <ChevronDownIcon size={12} color={theme.textMuted} strokeWidth={2} />
-              <Text style={{ fontSize: 12, fontWeight: "600", color: theme.textMuted }}>
-                Latest output
-              </Text>
-            </View>
-            <ScrollView
-              ref={tailScrollRef}
-              style={[styles.tailBoxScroll, { maxHeight: Math.max(120, tailBoxMaxHeight - 40) }]}
-              contentContainerStyle={[styles.tailBoxContent, { flexGrow: 0 }]}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-              nestedScrollEnabled
-            >
-            {thinkingBlocks.map((t, i) => (
-              <CollapsibleThinkingBlock
-                key={`thinking-${i}`}
-                content={t}
-                theme={theme}
-                markdownStyles={markdownStyles}
-                markdownRules={markdownRules ?? {}}
-                onLinkPress={handleMarkdownLinkPress}
-                wrapBareUrls={wrapBareUrlsInMarkdown}
-                replaceHighlight={replaceHighlightWithTextColor}
-              />
-            ))}
-            {hasCommandRunSegments ? (
-              renderCommandRunSegmentsContent()
-            ) : hasRawFileActivityLinks ? (
-              renderFileActivityContent()
-            ) : (
-              <Markdown
-                style={markdownStyles}
-                mergeStyle
-                rules={markdownRules}
-                onLinkPress={handleMarkdownLinkPress}
-              >
-                {wrapBareUrlsInMarkdown(markdownContent)}
-              </Markdown>
-            )}
-            </ScrollView>
-          </View>
         ) : (
           <>
             {thinkingBlocks.map((t, i) => (
@@ -1143,27 +1085,10 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 key={`thinking-${i}`}
                 content={t}
                 theme={theme}
-                markdownStyles={markdownStyles}
-                markdownRules={markdownRules ?? {}}
-                onLinkPress={handleMarkdownLinkPress}
-                wrapBareUrls={wrapBareUrlsInMarkdown}
-                replaceHighlight={replaceHighlightWithTextColor}
+                renderContent={renderRichContent}
               />
             ))}
-            {hasCommandRunSegments ? (
-              renderCommandRunSegmentsContent()
-            ) : hasRawFileActivityLinks ? (
-              renderFileActivityContent()
-            ) : (
-              <Markdown
-                style={markdownStyles}
-                mergeStyle
-                rules={markdownRules}
-                onLinkPress={handleMarkdownLinkPress}
-              >
-                {wrapBareUrlsInMarkdown(markdownContent)}
-              </Markdown>
-            )}
+            {renderRichContent(contentWithoutThinking)}
           </>
         )
       ) : !isUser && !isSystem ? (
@@ -1202,16 +1127,16 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         </View>
       )}
       <View
-          style={[
-            styles.bubble,
-            isUser && styles.bubbleUser,
-            isSystem && styles.bubbleSystem,
-            !isUser && !isSystem && styles.bubbleAssistant,
-          ]}
-          {...bubbleLayoutProps}
-        >
-          {bubbleContent}
-        </View>
+        style={[
+          styles.bubble,
+          isUser && styles.bubbleUser,
+          isSystem && styles.bubbleSystem,
+          !isUser && !isSystem && styles.bubbleAssistant,
+        ]}
+        {...bubbleLayoutProps}
+      >
+        {bubbleContent}
+      </View>
     </View>
   );
 }

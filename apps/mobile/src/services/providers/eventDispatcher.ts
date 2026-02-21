@@ -71,6 +71,15 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     if (ev.type === "text_delta" && typeof ev.delta === "string" && ev.delta) {
       ctx.appendAssistantText(ev.delta);
     }
+    if (ev.type === "thinking_start") {
+      ctx.appendAssistantText("<think>\n");
+    }
+    if (ev.type === "thinking_delta" && typeof ev.delta === "string" && ev.delta) {
+      ctx.appendAssistantText(ev.delta);
+    }
+    if (ev.type === "thinking_end") {
+      ctx.appendAssistantText("\n</think>\n\n");
+    }
     if (ev.type === "toolcall_end" && ev.toolCall?.name) {
       appendToolUseDisplayLine(ctx, ev.toolCall.name, ev.toolCall.arguments ?? {});
     }
@@ -79,7 +88,6 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     const toolName = data.toolName as string | undefined;
     const args = data.args as Record<string, unknown> | undefined;
     if (toolName) {
-      appendToolUseDisplayLine(ctx, toolName, args ?? {});
       ctx.setCurrentActivity(formatToolUseForDisplay(toolName, args ?? {}));
     }
   });
@@ -95,10 +103,19 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
       if (text) appendSnapshotTextDelta(ctx, text);
     }
   });
+  registry.set("turn_start", () => {});
   registry.set("agent_start", () => {});
   registry.set("agent_end", () => {});
+  registry.set("message_start", () => {});
+  registry.set("message_end", () => {});
   registry.set("response", () => {});
   registry.set("extension_error", () => {});
+  
+  // Advanced Pi CLI feature events
+  registry.set("auto_compaction_start", () => ctx.setCurrentActivity("Compacting context..."));
+  registry.set("auto_compaction_end", () => ctx.setCurrentActivity(null));
+  registry.set("auto_retry_start", () => ctx.setCurrentActivity("Retrying..."));
+  registry.set("auto_retry_end", () => ctx.setCurrentActivity(null));
 
   // Shared handlers (used by Pi and other providers)
   const inputLikeHandler: EventHandler = (data) => {
@@ -127,7 +144,7 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     fetch('http://127.0.0.1:7648/ingest/90b82ca6-2c33-4285-83a2-301e58d458f5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'90f72f'},body:JSON.stringify({sessionId:'90f72f',location:'eventDispatcher.ts:result',message:'result event',data:{resultLen:resultText.length,willAppend},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
     // #endregion
     if (willAppend) {
-      ctx.appendAssistantText("\n\n---\n\n" + resultText);
+      ctx.appendAssistantText("\n\n<think>\n---\n\n" + resultText + "\n</think>\n\n");
     }
   });
 
