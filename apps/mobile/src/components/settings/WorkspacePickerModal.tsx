@@ -14,43 +14,9 @@ import {
 import { AppButton } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { triggerHaptic } from "../../design-system";
+import { basename, getRelativePath, getDirname, getParentPath } from "../../utils/path";
 
 type WorkspaceChild = { name: string; path: string };
-
-/** Get the last segment of a path. */
-function basename(p: string): string {
-  const s = p.replace(/\/$/, "").split("/").filter(Boolean);
-  return (s[s.length - 1] ?? p) || ".";
-}
-
-/** Get relative path from root to fullPath. */
-function getRelativePath(fullPath: string, root: string): string {
-  const rootNorm = root.replace(/\/$/, "");
-  if (fullPath === rootNorm || fullPath === root) return "";
-  if (fullPath.startsWith(rootNorm + "/")) {
-    return fullPath.slice(rootNorm.length + 1);
-  }
-  return fullPath;
-}
-
-/** Get directory containing path (parent folder). */
-function getDirname(p: string): string {
-  const norm = p.replace(/\/$/, "");
-  const lastSlash = norm.lastIndexOf("/");
-  if (lastSlash <= 0) return lastSlash === 0 ? "/" : "";
-  return norm.slice(0, lastSlash) || "/";
-}
-
-/** Get parent path; returns "" if already at root (use "" for root in state). */
-function getParentPath(path: string, root: string): string {
-  const rootNorm = root.replace(/\/$/, "");
-  if (!path || path === rootNorm || path.length <= rootNorm.length) return "";
-  if (!path.startsWith(rootNorm + "/")) return "";
-  const suffix = path.slice(rootNorm.length + 1);
-  const idx = suffix.lastIndexOf("/");
-  if (idx === -1) return ""; // one level deep, parent is root
-  return rootNorm + "/" + suffix.slice(0, idx);
-}
 
 export interface WorkspacePickerModalProps {
   visible: boolean;
@@ -426,7 +392,7 @@ export function WorkspacePickerModal({
                 }
               >
                 <Text style={styles.pickerRootLabel}>
-                  📁 {basename(currentPath || pickerRoot)}
+                  📁 {basename(currentPath || pickerRoot) || "."}
                 </Text>
                 <AppButton
                   label="Select"

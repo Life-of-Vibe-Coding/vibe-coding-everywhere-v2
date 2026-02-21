@@ -29,6 +29,21 @@ export function shutdown(signal) {
   process.exit(0);
 }
 
+const VALID_PROVIDERS = ["pi", "codex", "gemini", "claude"];
+
+function resolveProvider(fromPayload) {
+  if (typeof fromPayload === "string" && VALID_PROVIDERS.includes(fromPayload)) {
+    return fromPayload;
+  }
+  return DEFAULT_PROVIDER;
+}
+
+function getDefaultModelForProvider(provider) {
+  if (provider === "claude") return "sonnet4.5";
+  if (provider === "pi" || provider === "codex") return "gpt-5.1-codex-mini";
+  return "gemini-2.5-flash";
+}
+
 function emitError(socket, message) {
   socket.emit("output", `\r\n\x1b[31m[Error] ${message}\x1b[0m\r\n`);
 }
@@ -69,21 +84,10 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
       return;
     }
 
-    const provider =
-      payload?.provider === "pi"
-        ? "pi"
-        : payload?.provider === "codex"
-          ? "codex"
-          : payload?.provider === "gemini"
-            ? "gemini"
-            : payload?.provider === "claude"
-              ? "claude"
-              : DEFAULT_PROVIDER;
-
+    const provider = resolveProvider(payload?.provider);
     console.log("[submit-prompt] chat input (user prompt):", prompt, "provider:", provider);
 
-    const defaultModel =
-      provider === "claude" ? "sonnet4.5" : provider === "pi" || provider === "codex" ? "gpt-5.1-codex-mini" : "gemini-2.5-flash";
+    const defaultModel = getDefaultModelForProvider(provider);
     const model =
       typeof payload?.model === "string" && payload.model.trim()
         ? payload.model.trim()

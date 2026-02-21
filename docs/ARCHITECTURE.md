@@ -57,7 +57,6 @@ server.js (entry point)
     ├──► routes/      # HTTP request handlers
     ├──► socket/      # WebSocket event handlers
     ├──► process/     # AI provider management (Pi RPC)
-    ├──► prompts/     # System prompt loading (Pi)
     └──► utils/       # Shared utilities
 ```
 

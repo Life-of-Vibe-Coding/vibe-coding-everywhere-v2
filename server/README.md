@@ -10,8 +10,6 @@ server/
 │   └── index.js    # PORT, WORKSPACE_CWD, DEFAULT_PROVIDER, etc.
 ├── utils/          # Utility functions
 │   └── index.js    # stripAnsi, killProcessOnPort, buildWorkspaceTree, etc.
-├── prompts/        # Prompt loading (Pi system prompts)
-│   └── index.js    # loadPrompt, etc.
 ├── process/        # AI provider management (Pi RPC)
 │   ├── index.js    # createProcessManager, shutdown
 │   └── piRpcSession.js   # Pi RPC session (unified for claude/gemini/codex)

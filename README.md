@@ -87,7 +87,6 @@ The server is organized into modular components:
 server/
 ├── config/         # Environment configuration
 ├── utils/          # Utility functions (ANSI stripping, workspace tree)
-├── prompts/        # System prompt loading (Claude)
 ├── process/        # AI provider process management (Pi RPC)
 │   ├── index.js    # createProcessManager, shutdown
 │   └── piRpcSession.js  # Pi RPC (unified protocol for Claude/Gemini/Codex)

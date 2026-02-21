@@ -31,10 +31,9 @@ function getDocker() {
   const candidates = resolveSocketPath();
   for (const socketPath of candidates) {
     try {
-      if (fs.existsSync(socketPath)) {
-        const stat = fs.statSync(socketPath);
-        if (!stat.isSocket()) continue;
-      }
+      if (!fs.existsSync(socketPath)) continue;
+      const stat = fs.statSync(socketPath);
+      if (!stat.isSocket()) continue;
       const client = new Docker({ socketPath });
       docker = client;
       return docker;

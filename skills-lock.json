@@ -1,10 +1,25 @@
 {
   "version": 1,
   "skills": {
+    "component-refactoring": {
+      "source": "langgenius/dify",
+      "sourceType": "github",
+      "computedHash": "98d951503a52e094d701a15fedfe9448d1dffa7f50cc075c2e8483a3cb754c10"
+    },
     "git-advanced-workflows": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "d46ca590d97215674b986dbc8d0085739032117669483bead7eba739948abbdd"
+    },
+    "refactor": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "87789a786b96f99ba0680e89345a975106e10e7db1071c7cdc2e76d507c449d6"
+    },
+    "refactor-module": {
+      "source": "hashicorp/agent-skills",
+      "sourceType": "github",
+      "computedHash": "f506f95f84ff344a3e522f2e58069b632a5b3539d978f00c935ee8bab25b03f0"
     }
   }
 }

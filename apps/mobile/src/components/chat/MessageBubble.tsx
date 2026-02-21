@@ -7,11 +7,14 @@ import { stripTrailingIncompleteTag } from "../../services/providers/stream";
 import { TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
 import { BookOpenIcon, PencilIcon, FilePenIcon } from "../icons/FileActivityIcons";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
-
-function getFileName(path: string): string {
-  const parts = path.replace(/\/$/, "").split(/[/\\]/);
-  return parts[parts.length - 1] ?? path;
-}
+import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
+import { getFileName } from "../../utils/path";
+import {
+  fillEmptyBashBlocks,
+  stripTrailingTerminalHeaderLines,
+  extractBashCommandOnly,
+  collapseIdenticalCommandSteps,
+} from "../../utils/bashContent";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -28,140 +31,6 @@ function replaceHighlightWithTextColor(content: string, highlightColor: string):
 
 const BASH_LANGUAGES = new Set(["bash", "sh", "shell", "zsh"]);
 
-/** Lines that are prose/headings, not runnable shell commands. Full command chain must be pure commands only. */
-const NON_COMMAND_LINE_REGEX =
-  /^\s*(#{2,}\s+.*|\*\*[^*]*\*\*\s*$|Command\s+execution\s+summary\s*$|Full\s+command\s+chain\s*\(.*\)\s*$|Terminal\s+\d+:\s*.*)$/i;
-
-/** True if the trimmed line looks like prose (e.g. ends with period). Shell commands are not sentences. */
-function looksLikeProse(trimmed: string): boolean {
-  if (!trimmed) return false;
-  return trimmed.endsWith(".");
-}
-
-/** Match "Terminal N: ..." section headers that must not appear inside a code block (log has one; UI must not show twice). */
-const TERMINAL_HEADER_LINE_REGEX = /^\s*Terminal\s+\d+:\s*.+$/i;
-
-/** Opening fence for bash-like blocks (bash, sh, shell, zsh). Case-insensitive. */
-const BASH_FENCE_OPEN = /^```(bash|sh|shell|zsh)\s*$/im;
-
-/**
- * If the model outputs an empty bash code block and the commands as plain text below,
- * the markdown parser gives the fence empty content and the commands render as paragraphs.
- * This function finds such empty bash blocks and moves the following command-like lines
- * into the block so they render inside the code block.
- */
-export function fillEmptyBashBlocks(content: string): string {
-  if (!content || typeof content !== "string") return content;
-  const openMatch = content.match(BASH_FENCE_OPEN);
-  if (!openMatch) return content;
-  const openStart = content.indexOf(openMatch[0]);
-  const openEnd = openStart + openMatch[0].length;
-  const afterOpen = content.slice(openEnd);
-  let closeIdx = afterOpen.search(/\r?\n```/);
-  if (closeIdx === -1) {
-    const bareClose = afterOpen.match(/^```/);
-    if (bareClose) {
-      closeIdx = 0;
-    } else {
-      return content;
-    }
-  }
-  const blockBody = afterOpen.slice(0, closeIdx).trim();
-  if (blockBody.length > 0) return content;
-  const closeMatch = afterOpen.slice(closeIdx).match(/^(\r?\n)?```/);
-  const closeFenceLen = closeMatch ? closeMatch[0].length : 4;
-  const afterClose = afterOpen.slice(closeIdx + closeFenceLen).replace(/^\s*\r?\n?/, "");
-  const lines = afterClose.split(/\r?\n/);
-  const commandLines: string[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const t = line.trim();
-    if (t.startsWith("```")) break;
-    if (!t) {
-      if (commandLines.length > 0) commandLines.push(line);
-      continue;
-    }
-    const isNonCommand = NON_COMMAND_LINE_REGEX.test(t) || looksLikeProse(t);
-    if (isNonCommand && commandLines.length > 0) break;
-    if (!isNonCommand) commandLines.push(line);
-  }
-  let linesToFill = commandLines;
-  let beforeBlock = content.slice(0, openStart);
-  let rest = "";
-  if (commandLines.length === 0) {
-    const beforeLines = beforeBlock.split(/\r?\n/);
-    const trailingCommands: string[] = [];
-    let firstTakenIndex = beforeLines.length;
-    for (let i = beforeLines.length - 1; i >= 0; i--) {
-      const line = beforeLines[i];
-      const t = line.trim();
-      if (!t) {
-        if (trailingCommands.length > 0) trailingCommands.unshift(line);
-        continue;
-      }
-      if (t.startsWith("```") || NON_COMMAND_LINE_REGEX.test(t) || looksLikeProse(t)) {
-        firstTakenIndex = i + 1;
-        break;
-      }
-      firstTakenIndex = i;
-      trailingCommands.unshift(line);
-    }
-    if (trailingCommands.length === 0) return content;
-    linesToFill = trailingCommands;
-    beforeBlock = beforeLines.slice(0, firstTakenIndex).join("\n").replace(/\n+$/, "");
-    if (beforeBlock.length > 0) beforeBlock = beforeBlock + "\n\n";
-    else beforeBlock = "";
-  } else {
-    const restLines = lines.slice(commandLines.length);
-    rest = restLines.join("\n").replace(/^\s*\n?/, "");
-  }
-  const lang = (openMatch[1] ?? "bash").toLowerCase();
-  const filledBlock = "```" + lang + "\n" + linesToFill.join("\n").trimEnd() + "\n```";
-  return beforeBlock + filledBlock + (rest ? "\n\n" + rest : "");
-}
-
-/** Remove trailing lines that are "Terminal N: ..." from code block content so they are only shown as markdown, not inside the block. */
-function stripTrailingTerminalHeaderLines(content: string): string {
-  const lines = content.split(/\r?\n/);
-  let last = lines.length;
-  while (last > 0 && TERMINAL_HEADER_LINE_REGEX.test(lines[last - 1]?.trim() ?? "")) last--;
-  return lines.slice(0, last).join("\n").trimEnd();
-}
-
-/**
- * Extract runnable command only from a bash code block that may contain mixed content
- * (headings, "Command execution summary", or build-output prose). Ensures the full command chain
- * passed to the shell is pure commands only to avoid e.g. zsh "unmatched `" from prose with backticks.
- */
-export function extractBashCommandOnly(raw: string): string {
-  const lines = raw.split(/\r?\n/);
-  const commandLines: string[] = [];
-  let started = false;
-  for (const line of lines) {
-    const t = line.trim();
-    if (!t) {
-      if (started) commandLines.push(line);
-      continue;
-    }
-    const isNonCommand = NON_COMMAND_LINE_REGEX.test(t) || looksLikeProse(t);
-    if (!started) {
-      if (!isNonCommand) started = true;
-      else continue;
-    }
-    if (isNonCommand) break;
-    commandLines.push(line);
-  }
-  return commandLines.join("\n").trim();
-}
-
-/**
- * Match http/https URLs (exclude trailing punctuation; allow dots in path e.g. .html, and : for port e.g. :5174).
- * Renders according to output-enhancement prompt: prompts/output-enhancement/url.txt
- */
-const URL_REGEX = /https?:\/\/[^\s\]\)\}\"']+?(?=[,;)\]}\s]|$)/g;
-
-const LINK_PLACEHOLDER_PREFIX = "\u200B\u200BLINK";
-const LINK_PLACEHOLDER_SUFFIX = "\u200B\u200B";
 /** Supports both emoji (legacy) and non-emoji prefixes for backward compatibility. Groups: 1=prefix, 2=label, 3=encodedPath. */
 const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
 
@@ -173,39 +42,6 @@ const COMMAND_RUN_SECTION_REGEX = /(?:(?:🖥\s*)?Running command:(?:\r?\n)+`([^
 
 /** Status-only lines to filter out or assign to commands. */
 const STATUS_ONLY_REGEX = /^(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?\s*$/;
-
-/** Extract command base (everything before the last space-separated token). Used to detect identical command patterns. */
-function getCommandBase(cmd: string): string {
-  const t = cmd.trim();
-  const parts = t.split(/\s+/);
-  if (parts.length <= 1) return t;
-  return parts.slice(0, -1).join(" ");
-}
-
-/** Collapse consecutive identical command steps to show only the last one. */
-export function collapseIdenticalCommandSteps(content: string): string {
-  const blocks: Array<{ full: string; cmd: string }> = [];
-  let m;
-  const re = new RegExp(BASH_COMMAND_BLOCK_REGEX.source, "g");
-  while ((m = re.exec(content)) !== null) {
-    blocks.push({ full: m[0], cmd: m[1] });
-  }
-  if (blocks.length < 2) return content;
-
-  const keepIndex = new Set<number>();
-  let i = 0;
-  while (i < blocks.length) {
-    const base = getCommandBase(blocks[i].cmd);
-    let j = i + 1;
-    while (j < blocks.length && getCommandBase(blocks[j].cmd) === base) j++;
-    keepIndex.add(j - 1);
-    i = j;
-  }
-
-  let idx = 0;
-  const collapsed = content.replace(re, (match) => (keepIndex.has(idx++) ? match : ""));
-  return collapsed.replace(/\n{4,}/g, "\n\n\n");
-}
 
 /** Segment for compact command list: one row per command with optional status (mobile-friendly). */
 export type CommandRunSegment = {
@@ -321,25 +157,6 @@ function parseFileActivitySegments(content: string): FileActivitySegment[] {
   }
   flushText();
   return merged;
-}
-
-/** Wrap bare URLs in markdown link syntax so they render underlined and tappable. Preserves existing [text](url) links. */
-function wrapBareUrlsInMarkdown(content: string): string {
-  const existingLinks: Array<{ text: string; url: string }> = [];
-  // Replace entire [text](url) so the link text (which may be a URL) is not wrapped again as a bare URL.
-  const stripped = content.replace(/\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, (_, text, url) => {
-    const idx = existingLinks.length;
-    existingLinks.push({ text, url });
-    return LINK_PLACEHOLDER_PREFIX + idx + LINK_PLACEHOLDER_SUFFIX;
-  });
-  const withWrapped = stripped.replace(URL_REGEX, (url) => `[${url}](${url})`);
-  return withWrapped.replace(
-    new RegExp(LINK_PLACEHOLDER_PREFIX + "(\\d+)" + LINK_PLACEHOLDER_SUFFIX, "g"),
-    (_, i) => {
-      const { text, url } = existingLinks[Number(i)];
-      return `[${text}](${url})`;
-    }
-  );
 }
 
 /** Max chars to show for read-result content (e.g. skill files) before collapsing. */

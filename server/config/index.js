@@ -5,7 +5,6 @@
  * - Port configuration
  * - Workspace directory resolution (from CLI args or env vars)
  * - AI output logging paths
- * - System prompt directory location
  */
 import path from "path";
 import fs from "fs";
@@ -172,9 +171,6 @@ export function getLlmCliIoTurnPaths(provider, sessionId, turnId) {
     turnDir,
   };
 }
-
-/** Directory for system prompt files (prompts/). Loaded and sent to Pi on each session. */
-export const PROMPTS_DIR = path.join(projectRoot, "prompts");
 
 /**
  * Directory for Pi agent skills. ONLY skills from this folder are loaded.

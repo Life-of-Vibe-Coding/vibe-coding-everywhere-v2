@@ -61,13 +61,22 @@ import { InputPanel } from "./src/components/chat/InputPanel";
 import { PreviewWebViewModal } from "./src/components/preview/PreviewWebViewModal";
 import { WorkspaceSidebar } from "./src/components/file/WorkspaceSidebar";
 import { FileViewerModal, type CodeRefPayload } from "./src/components/file/FileViewerModal";
-import { SettingsModal, type PermissionModeUI } from "./src/components/settings/SettingsModal";
+import { SettingsModal } from "./src/components/settings/SettingsModal";
+import type { PermissionModeUI } from "./src/utils/permission";
 import { WorkspacePickerModal } from "./src/components/settings/WorkspacePickerModal";
 import { SkillConfigurationModal } from "./src/components/settings/SkillConfigurationModal";
 import { DockerManagerModal } from "./src/components/docker/DockerManagerModal";
 import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDashboardModal";
 import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
+import {
+  normalizePathSeparators,
+  isAbsolutePath,
+  dirname,
+  basename,
+  toWorkspaceRelativePath,
+} from "./src/utils/path";
+import { getBackendPermissionMode } from "./src/utils/permission";
 
 // ============================================================================
 // Constants
@@ -92,72 +101,6 @@ const PI_MODELS: { value: string; label: string }[] = [
 const DEFAULT_CLAUDE_MODEL = "sonnet4.5";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_PI_MODEL = "gpt-5.1-codex-mini";
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-function getBackendPermissionMode(
-  ui: PermissionModeUI,
-  provider: BrandProvider
-): {
-  permissionMode?: string;
-  approvalMode?: string;
-  askForApproval?: string;
-  fullAuto?: boolean;
-  yolo?: boolean;
-} {
-  if (provider === "pi" || provider === "codex") {
-    if (ui === "yolo") return { yolo: true };
-    if (ui === "always_ask") return { askForApproval: "untrusted" };
-    return { askForApproval: "on-request" };
-  }
-  if (ui === "yolo") {
-    return provider === "claude"
-      ? { permissionMode: "bypassPermissions" }
-      : { approvalMode: "auto_edit" };
-  }
-  if (ui === "always_ask") {
-    return provider === "claude"
-      ? { permissionMode: "acceptEdits" }
-      : { approvalMode: "plan" };
-  }
-  // ask_once_per_session: Claude "default" = prompts on first use of each tool per session
-  return provider === "claude"
-    ? { permissionMode: "default" }
-    : { approvalMode: "default" };
-}
-
-function normalizePathSeparators(input: string): string {
-  return input.replace(/\\/g, "/");
-}
-
-function isAbsolutePath(input: string): boolean {
-  const p = normalizePathSeparators(input.trim());
-  return p.startsWith("/") || /^[A-Za-z]:\//.test(p);
-}
-
-function dirnamePath(input: string): string {
-  const p = normalizePathSeparators(input).replace(/\/+$/, "");
-  const idx = p.lastIndexOf("/");
-  if (idx <= 0) return p.startsWith("/") ? "/" : ".";
-  return p.slice(0, idx);
-}
-
-function basenamePath(input: string): string {
-  const p = normalizePathSeparators(input).replace(/\/+$/, "");
-  const idx = p.lastIndexOf("/");
-  return idx >= 0 ? p.slice(idx + 1) : p;
-}
-
-function toWorkspaceRelativePath(inputPath: string, workspaceRoot: string): string | null {
-  const file = normalizePathSeparators(inputPath).trim();
-  const root = normalizePathSeparators(workspaceRoot).replace(/\/$/, "");
-  if (!file || !root) return null;
-  if (file === root) return "";
-  if (!file.startsWith(root + "/")) return null;
-  return file.slice(root.length + 1);
-}
 
 // ============================================================================
 // Enhanced Header Button Component
@@ -377,13 +320,13 @@ export default function App() {
           setWorkspacePath(wsData.path);
           const rel = toWorkspaceRelativePath(normalized, wsData.path);
           if (rel != null) {
-            setSelectedFilePath(rel || basenamePath(normalized));
+            setSelectedFilePath(rel || basename(normalized));
             return;
           }
         }
 
         // Absolute path outside current workspace: switch workspace to file directory first.
-        const targetWorkspace = dirnamePath(normalized);
+        const targetWorkspace = dirname(normalized);
         const switchRes = await fetch(`${baseUrl}/api/workspace-path`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -392,7 +335,7 @@ export default function App() {
         if (switchRes.ok) {
           const switched = (await switchRes.json()) as { path?: string };
           if (typeof switched?.path === "string") setWorkspacePath(switched.path);
-          setSelectedFilePath(basenamePath(normalized));
+          setSelectedFilePath(basename(normalized));
           return;
         }
       } catch {

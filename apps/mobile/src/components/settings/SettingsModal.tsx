@@ -13,8 +13,9 @@ import { AppButton, AppPressable, AppText } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
 import type { Provider } from "../../theme/index";
+import type { PermissionModeUI } from "../../utils/permission";
 
-export type PermissionModeUI = "always_ask" | "ask_once_per_session" | "yolo";
+export type { PermissionModeUI };
 
 const PERMISSION_OPTIONS: { value: PermissionModeUI; label: string }[] = [
   { value: "always_ask", label: "Always ask" },

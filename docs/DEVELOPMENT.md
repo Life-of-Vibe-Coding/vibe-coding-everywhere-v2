@@ -92,7 +92,6 @@ vibe-coding-everywhere/
 ├── server/             # Server modules
 ├── apps/
 │   └── mobile/         # React Native app
-├── prompts/            # System prompts
 ├── scripts/            # Build/utility scripts
 ├── docs/               # Documentation
 └── package.json
@@ -106,7 +105,6 @@ server/
 ├── routes/       # HTTP endpoints
 ├── socket/       # WebSocket handlers
 ├── process/      # AI provider (piRpcSession.js)
-├── prompts/      # Pi system prompt loading
 └── utils/        # Shared utilities
 ```
 

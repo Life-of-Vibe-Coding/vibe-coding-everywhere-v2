@@ -1,0 +1,111 @@
+/**
+ * Git routes (commits, tree, status, diff, actions).
+ */
+import path from "path";
+import { spawnSync } from "child_process";
+import { getWorkspaceCwd } from "../config/index.js";
+import {
+  getGitCommits,
+  getGitTree,
+  getGitStatus,
+  gitAdd,
+  gitCommit,
+  gitPush,
+  gitInit,
+} from "../utils/git.js";
+import { normalizeRelativePath } from "../utils/index.js";
+
+export function registerGitRoutes(app) {
+  app.get("/api/git/commits", handleGitCommits);
+  app.get("/api/git/tree", handleGitTree);
+  app.get("/api/git/status", handleGitStatus);
+  app.get("/api/git/diff", handleGitDiff);
+  app.post("/api/git/action", handleGitAction);
+}
+
+function handleGitCommits(req, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+    const commits = getGitCommits(cwd, limit);
+    res.json({ commits });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to get git commits" });
+  }
+}
+
+function handleGitTree(req, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const relPath = typeof req.query.path === "string" ? req.query.path : "";
+    const normalized = normalizeRelativePath(relPath);
+    const tree = getGitTree(cwd, normalized);
+    res.json({ tree });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to get git tree" });
+  }
+}
+
+function handleGitStatus(_, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const status = getGitStatus(cwd);
+    res.json({ status });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to get git status" });
+  }
+}
+
+async function handleGitDiff(req, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const file = typeof req.query.file === "string" ? req.query.file : "";
+    const isStaged = req.query.staged === "true";
+
+    const args = ["diff", "--color=never"];
+    if (isStaged) args.push("--cached");
+    if (file) {
+      args.push("--");
+      args.push(file);
+    }
+
+    const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+    if (result.status !== 0 && result.status !== 1) {
+      return res.status(500).json({ error: result.stderr || "Git diff failed" });
+    }
+
+    res.json({ diff: result.stdout });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to get git diff" });
+  }
+}
+
+function handleGitAction(req, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const action = req.body?.action;
+
+    if (action === "stage") {
+      const files = req.body?.files || [];
+      const result = gitAdd(cwd, files);
+      return res.json(result);
+    }
+    if (action === "commit") {
+      const message = req.body?.message;
+      const result = gitCommit(cwd, message);
+      return res.json(result);
+    }
+    if (action === "push") {
+      const result = gitPush(cwd);
+      return res.json(result);
+    }
+    if (action === "init") {
+      const result = gitInit(cwd);
+      return res.json(result);
+    }
+
+    res.status(400).json({ error: "Invalid action" });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to execute git action" });
+  }
+}

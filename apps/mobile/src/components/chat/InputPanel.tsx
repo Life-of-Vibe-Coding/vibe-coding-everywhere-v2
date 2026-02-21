@@ -23,6 +23,7 @@ import {
   TerminalIcon,
 } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
+import { getFileName } from "../../utils/path";
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 const INPUT_PLACEHOLDER = "Type response for Claude…";
@@ -33,11 +34,6 @@ export type PendingCodeRef = {
   endLine: number;
   snippet: string;
 };
-
-function getFileName(path: string): string {
-  const parts = path.replace(/\/$/, "").split(/[/\\]/);
-  return parts[parts.length - 1] ?? path;
-}
 
 export interface InputPanelProps {
   connected: boolean;

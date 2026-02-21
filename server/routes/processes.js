@@ -1,0 +1,73 @@
+/**
+ * Process discovery and management routes.
+ */
+import path from "path";
+import { getWorkspaceCwd } from "../config/index.js";
+import { listProcessesOnPorts, killProcess, getLogTailByName, getLogTail } from "../utils/processes.js";
+import { resolveWithinRoot } from "../utils/index.js";
+
+const LOG_LINES_MIN = 10;
+const LOG_LINES_MAX = 500;
+
+export function registerProcessesRoutes(app) {
+  app.get("/api/processes", handleListProcesses);
+  app.get("/api/processes/log", handleLogTail);
+  app.post("/api/processes/:pid/kill", handleKillProcess);
+}
+
+function handleListProcesses(_, res) {
+  try {
+    const cwd = getWorkspaceCwd();
+    const processes = listProcessesOnPorts(cwd);
+    const withLogPaths = processes.map((p) => ({ ...p, logPaths: p.logPaths ?? [] }));
+    res.json({ processes: withLogPaths });
+  } catch (err) {
+    console.error("[api/processes]", err?.message ?? err);
+    res.json({ processes: [], warning: err?.message ?? "Port scan failed" });
+  }
+}
+
+function handleLogTail(req, res) {
+  const name = typeof req.query.name === "string" ? req.query.name.trim() : "";
+  const relPath = typeof req.query.path === "string" ? req.query.path.trim() : "";
+  const lines = Math.min(
+    Math.max(parseInt(req.query.lines, 10) || 200, LOG_LINES_MIN),
+    LOG_LINES_MAX
+  );
+
+  try {
+    const cwd = getWorkspaceCwd();
+    let result;
+    if (relPath) {
+      const { ok, fullPath, error } = resolveWithinRoot(cwd, relPath);
+      if (!ok || !fullPath) {
+        return res.status(403).json({ error: error || "Path outside workspace" });
+      }
+      result = getLogTail(fullPath, cwd, lines);
+    } else if (name) {
+      result = getLogTailByName(cwd, name, lines);
+    } else {
+      return res.status(400).json({ error: "Missing name or path" });
+    }
+
+    if (!result.ok) {
+      return res.status(404).json({ error: result.error });
+    }
+    res.json({ content: result.content, path: result.path });
+  } catch (err) {
+    res.status(500).json({ error: err?.message ?? "Failed to read log" });
+  }
+}
+
+function handleKillProcess(req, res) {
+  const pid = req.params?.pid;
+  if (!pid) {
+    return res.status(400).json({ error: "Missing PID" });
+  }
+  const result = killProcess(pid);
+  if (result.ok) {
+    res.json({ ok: true });
+  } else {
+    res.status(400).json({ ok: false, error: result.error });
+  }
+}
