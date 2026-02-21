@@ -92,27 +92,36 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     }
   });
   registry.set("tool_execution_update", () => {});
+  const isReadFileTool = (name: string | undefined) => {
+    if (!name || typeof name !== "string") return false;
+    const n = name.toLowerCase();
+    return n === "read_file" || n === "readfile" || n === "read" || /^read[_\-]?file/.test(n);
+  };
+
   registry.set("tool_execution_end", (data) => {
     ctx.setCurrentActivity(null);
     const result = data.result as { content?: Array<{ type?: string; text?: string }> } | undefined;
     const isError = data.isError as boolean | undefined;
+    const toolName = (data.toolName ?? data.tool_name ?? data.tool) as string | undefined;
+
     if (result && Array.isArray(result.content)) {
       const text = result.content
         .filter((c) => c.type === "text" && c.text)
         .map((c) => c.text)
         .join("");
-      const isBash = data.toolName === "bash" || data.toolName === "run_shell_command" || data.toolName === "run_command" || data.toolName === "run_shell" || data.toolName === "execute_command" || data.toolName === "execute_shell";
+      const isBash = toolName === "bash" || toolName === "run_shell_command" || toolName === "run_command" || toolName === "run_shell" || toolName === "execute_command" || toolName === "execute_shell";
+
+      if (isReadFileTool(toolName)) {
+        return;
+      }
       if (text) {
         if (isBash) {
-          ctx.appendAssistantText(`\n\n<think>\nOutput:\n\`\`\`\n${text.trim()}\n\`\`\`\n-> ${isError ? "Failed" : "Completed"}\n</think>\n\n`);
+          ctx.appendAssistantText(`\n\n<think>\nOutput:\n\`\`\`\n${text.trim()}\n\`\`\`\n</think>\n\n`);
         } else {
-          ctx.appendAssistantText(`\n\n<think>\nRead result: ${text.length} chars\n-> ${isError ? "Failed" : "Completed"}\n</think>\n\n`);
+          ctx.appendAssistantText(`\n\n<think>\nRead result: ${text.length} chars\n</think>\n\n`);
         }
-      } else {
-        ctx.appendAssistantText(`\n\n<think>\n-> ${isError ? "Failed" : "Completed"}\n</think>\n\n`);
       }
-    } else {
-      ctx.appendAssistantText(`\n\n<think>\n-> ${isError ? "Failed" : "Completed"}\n</think>\n\n`);
+      // Status line "-> Completed" / "-> Failed" intentionally omitted per UI preference
     }
   });
   registry.set("turn_end", (data) => {

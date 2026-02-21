@@ -134,6 +134,7 @@ apps/mobile/src/
 | `DEFAULT_PROVIDER` | AI provider: `claude`, `gemini`, or `codex` | `gemini` |
 | `USE_PI_RPC` | Use Pi for all providers (unified protocol). Requires Pi CLI: `npm i -g @mariozechner/pi-coding-agent` | `false` |
 | `PI_CLI_PATH` | Path to Pi CLI binary (default: `pi` on PATH) | `pi` |
+| `PI_AUTO_APPROVE_TOOL_CONFIRM` | Auto-approve Pi tool execution confirm dialogs (prevents blocking when approval modal is not shown) | unset |
 | `DEFAULT_PERMISSION_MODE` | Claude permission mode | `bypassPermissions` |
 | `DEFAULT_GEMINI_APPROVAL_MODE` | Gemini approval mode: `default`, `auto_edit`, `plan` | `auto_edit` |
 | `SIDEBAR_REFRESH_INTERVAL_MS` | File tree refresh interval | `3000` |

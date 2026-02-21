@@ -420,11 +420,9 @@ function CollapsibleThinkingBlock({
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
 
-  // Also track updates to initiallyExpanded so we can auto-expand when it streams in
+  // Track updates to initiallyExpanded so we can auto-expand/collapse as it streams
   useEffect(() => {
-    if (initiallyExpanded) {
-      setExpanded(true);
-    }
+    setExpanded(initiallyExpanded);
   }, [initiallyExpanded]);
 
   const MIN_TOUCH = 44;
@@ -726,7 +724,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         bashRunButtonPressed: { opacity: 0.85 },
         bashRunButtonText: { fontSize: 13, fontWeight: "600" as const, color: "#fff" },
         bashCodeBlock: { paddingHorizontal: 14, paddingVertical: 12 },
-        commandRunSection: { marginVertical: 6, gap: 8, alignItems: "center" as const },
+        commandRunSection: { marginVertical: 6, gap: 8, alignItems: "flex-start" as const },
         commandTerminalContainer: {
           alignSelf: "stretch" as const,
           width: "100%",
@@ -1048,7 +1046,12 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           commandGroup = [];
           const hasOutput = cmds.some((c) => !!c.output);
           const visibleLines = Math.min(Math.max(cmds.length, 3), 6);
-          const scrollHeight = hasOutput ? 320 : visibleLines * COMMAND_LINE_HEIGHT;
+          const outputLineCount = hasOutput
+            ? cmds.reduce((n, c) => n + (c.output ? c.output.trim().split(/\r?\n/).length : 0), 0)
+            : 0;
+          const scrollHeight = hasOutput
+            ? Math.min(320, Math.max(80, outputLineCount * 24 + 48))
+            : visibleLines * COMMAND_LINE_HEIGHT;
           nodes.push(
             <View
               key={key}

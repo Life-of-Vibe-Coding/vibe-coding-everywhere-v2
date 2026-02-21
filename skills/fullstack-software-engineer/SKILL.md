@@ -1,7 +1,6 @@
 ---
 name: senior-fullstack-engineer
 description: "Use this skill when the user wants production-ready, secure, and scalable code across any stack. Triggers include: building APIs, full-stack apps, backend services, database integrations, authentication systems, or any multi-file software project. Also use when debugging errors, refactoring existing code, designing system architecture, or writing tests. Apply whenever the task involves real engineering judgment — not just syntax help."
-license: Custom
 ---
 
 # Senior Full-Stack Engineer & Software Architect

@@ -17,6 +17,7 @@ import {
   PORT,
 } from "../config/index.js";
 import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
+import { getPreviewHost } from "../utils/index.js";
 
 const CLIENT_PROVIDER_TO_PI = {
   claude: "anthropic", // OAuth from auth.json
@@ -36,6 +37,34 @@ function toPiModel(clientModel, piProvider) {
     return CLIENT_MODEL_TO_PI[clientModel];
   }
   return clientModel;
+}
+
+/**
+ * Extract hostname the client used to connect (from Host header).
+ * This is the remote_host for terminal-runner and preview URLs.
+ * @param {import('socket.io').Socket} socket
+ * @returns {string} hostname, or "" if unavailable
+ */
+function getRemoteHostFromSocket(socket) {
+  const hostHeader = String(socket?.handshake?.headers?.host ?? "").trim();
+  const host = hostHeader.split(":")[0]?.trim() ?? "";
+  if (!host) return "";
+  if (/^127\.|^::1$|^localhost$/i.test(host)) return "localhost";
+  return host;
+}
+
+/**
+ * Derive connection context from socket for Pi agent awareness.
+ * @param {import('socket.io').Socket} socket
+ * @returns {string} "localhost", "Tailscale VPN remote host", or "remote"
+ */
+function getConnectionContext(socket) {
+  const addr = String(socket?.handshake?.address ?? socket?.conn?.remoteAddress ?? "");
+  const host = String((socket?.handshake?.headers?.host ?? "").split(":")[0] ?? "");
+  const raw = `${addr} ${host}`.toLowerCase();
+  if (/^100\.|tailscale|\.ts\.net/i.test(raw)) return "Tailscale VPN remote host";
+  if (/^127\.|::1|localhost/i.test(raw)) return "localhost";
+  return "remote";
 }
 
 /** Derive Pi backend provider from model when clientProvider is "pi". */
@@ -187,6 +216,13 @@ export function createPiRpcSession({
       const method = parsed.method;
       // Dialog methods (select, confirm, input, editor) need user response
       if (["select", "confirm"].includes(method)) {
+        // Auto-approve tool execution confirmations to prevent blocking when modal
+        // is not shown or user cannot respond (e.g. terminal-runner bash approval).
+        const autoApprove = process.env.PI_AUTO_APPROVE_TOOL_CONFIRM === "true" || process.env.PI_AUTO_APPROVE_TOOL_CONFIRM === "1";
+        if (autoApprove && method === "confirm") {
+          sendCommand({ type: "extension_ui_response", id: parsed.id, confirmed: true });
+          return;
+        }
         pendingExtensionUiRequest = { id: parsed.id, method, request: parsed };
         const askPayload = toAskUserQuestionPayload(parsed);
         emitOutputLine(JSON.stringify(askPayload) + "\n");
@@ -240,14 +276,50 @@ export function createPiRpcSession({
       fs.mkdirSync(path.dirname(sessionDir), { recursive: true });
     } catch (_) { }
 
+    const terminalRules =
+      "When running terminal commands: (1) use ad-hoc bash, not persistent shells; (2) long-running commands (servers, dev watchers) MUST NOT block — use run_in_background: true first; (3) if the Bash tool hangs (waits for background children), use a subshell: ( cd path && source venv/bin/activate && python run.py > server.log 2>&1 & ) then echo done — the subshell exits immediately and detaches the server from the process tree; (4) prefer run_in_background when available.";
+    const connectionType = getConnectionContext(socket);
+    const previewHost = getPreviewHost();
+    const tailscaleHint =
+      previewHost && previewHost !== "(not set)"
+        ? ` Prefer Tailscale hostname (${previewHost}) for preview URLs so the remote client can reach the server.`
+        : "";
+    const connectionContext =
+      connectionType === "Tailscale VPN remote host"
+        ? `The user is connecting via Tailscale VPN remote host.${tailscaleHint}`
+        : connectionType === "localhost"
+          ? "The user is connecting via localhost."
+          : `The user is connecting from a remote host (not localhost).${tailscaleHint}`;
+    const criticalPrompt = `CRITICAL: You are running within a process with PID ${process.pid}. The application that manages you is listening on port ${PORT}. You MUST NEVER kill this process (PID ${process.pid}) or occupy its port (${PORT}). If you kill this process, you will immediately terminate yourself.`;
+    const connectionPrompt = `Connection context: ${connectionContext}`;
+    const workspace = getWorkspaceCwd();
+    const hostFromSocket = getRemoteHostFromSocket(socket);
+    const effectiveRemoteHost =
+      hostFromSocket ||
+      (previewHost && previewHost !== "(not set)" ? previewHost : null) ||
+      (connectionType === "localhost" ? "localhost" : null);
+    const terminalRunnerContext =
+      effectiveRemoteHost != null
+        ? `When using the terminal-runner skill, REQUIRED parameters are pre-filled — use them and do NOT ask the user: workspace=${JSON.stringify(workspace)}, remote_host=${JSON.stringify(effectiveRemoteHost)}. Never prompt for workspace or remote_host.`
+        : `When using the terminal-runner skill, use workspace=${JSON.stringify(workspace)}. For remote_host, the value could not be determined — ask the user for the IP or hostname their browser will use to access exposed services.`;
+
     const args = [
       "--mode", "rpc",
       "--provider", piProvider,
       "--model", piModel,
       "--session-dir", sessionDir,
       "--no-skills",
-      "--append-system-prompt", `CRITICAL: You are running within a process with PID ${process.pid}. The application that manages you is listening on port ${PORT}. You MUST NEVER kill this process (PID ${process.pid}) or occupy its port (${PORT}). If you kill this process, you will immediately terminate yourself.`
+      "--append-system-prompt", criticalPrompt,
+      "--append-system-prompt", terminalRules,
+      "--append-system-prompt", connectionPrompt,
+      "--append-system-prompt", terminalRunnerContext,
     ];
+
+    console.log("[pi] system prompt injected:");
+    console.log("[pi]   1.", criticalPrompt);
+    console.log("[pi]   2.", terminalRules);
+    console.log("[pi]   3.", connectionPrompt);
+    console.log("[pi]   4. terminal-runner context:", terminalRunnerContext);
 
     // Register only enabled skills (from /api/skills) via --skill flags
     const skillsAgentDir = resolveAgentDir(cwd, projectRoot);
