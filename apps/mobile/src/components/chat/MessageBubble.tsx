@@ -345,21 +345,65 @@ function wrapBareUrlsInMarkdown(content: string): string {
 /** Max chars to show for read-result content (e.g. skill files) before collapsing. */
 const MAX_READ_RESULT_PREVIEW = 1800;
 
-/** Matches think-tag blocks (extended thinking from some APIs). Capturing group 1 = inner content. Handles incomplete trailing tags. */
-const THINKING_BLOCK_REGEX = /<think>([\s\S]*?)(?:<\/think>|$)/gi;
+export type ContentSegment =
+  | { type: "thinking"; content: string }
+  | { type: "text"; content: string };
 
-/** Extract thinking blocks from content. Returns { thinking: string[], rest: string }. */
-function extractThinkingBlocks(content: string): { thinking: string[]; rest: string } {
-  const thinking: string[] = [];
-  const rest = content.replace(THINKING_BLOCK_REGEX, (_, inner) => {
-    const trimmed = inner.trim();
-    if (trimmed) thinking.push(trimmed);
-    return "";
-  });
-  return {
-    thinking: thinking.length > 0 ? [thinking.join("\n\n")] : [],
-    rest: rest.replace(/\n{3,}/g, "\n\n").trim(),
-  };
+/** Parses content into alternating thinking and text segments to maintain chronological order. */
+export function parseContentSegments(content: string): ContentSegment[] {
+  const segments: ContentSegment[] = [];
+  const THINKING_BLOCK_REGEX = /<think(?:_start)?>([\s\S]*?)(?:<\/think(?:_end)?>|$)/gi;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = THINKING_BLOCK_REGEX.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      const text = content.slice(lastIndex, match.index).trim();
+      if (text) {
+        segments.push({ type: "text", content: text.replace(/\n{3,}/g, "\n\n") });
+      }
+    }
+    const thinkContent = match[1].trim();
+    if (thinkContent) {
+      segments.push({ type: "thinking", content: thinkContent });
+    }
+    if (match.index === THINKING_BLOCK_REGEX.lastIndex) {
+      THINKING_BLOCK_REGEX.lastIndex++;
+    }
+    lastIndex = THINKING_BLOCK_REGEX.lastIndex;
+  }
+
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex).trim();
+    if (text) {
+      segments.push({ type: "text", content: text.replace(/\n{3,}/g, "\n\n") });
+    }
+  }
+
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].type === "text") {
+      const hasThinkingAfter = segments.slice(i + 1).some(s => s.type === "thinking");
+      if (hasThinkingAfter) {
+        segments[i].type = "thinking";
+      }
+    }
+  }
+
+  const mergedSegments: ContentSegment[] = [];
+  for (const seg of segments) {
+    if (mergedSegments.length === 0) {
+      mergedSegments.push({ ...seg });
+    } else {
+      const last = mergedSegments[mergedSegments.length - 1];
+      if (last.type === seg.type) {
+        last.content += "\n\n" + seg.content;
+      } else {
+        mergedSegments.push({ ...seg });
+      }
+    }
+  }
+
+  return mergedSegments;
 }
 
 /** Collapsible "Thinking" / "Show reasoning" block. Default collapsed, 44px min touch target, muted background. */
@@ -367,12 +411,22 @@ function CollapsibleThinkingBlock({
   content,
   theme,
   renderContent,
+  initiallyExpanded = false,
 }: {
   content: string;
   theme: { textMuted: string; accent: string };
   renderContent: (content: string) => React.ReactNode;
+  initiallyExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
+
+  // Also track updates to initiallyExpanded so we can auto-expand when it streams in
+  useEffect(() => {
+    if (initiallyExpanded) {
+      setExpanded(true);
+    }
+  }, [initiallyExpanded]);
+
   const MIN_TOUCH = 44;
   return (
     <View
@@ -753,10 +807,10 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     () => collapseIdenticalCommandSteps(stripTrailingIncompleteTag(message.content ?? "")),
     [message.content]
   );
-  const { thinkingBlocks, contentWithoutThinking } = useMemo(() => {
-    const { thinking, rest } = extractThinkingBlocks(sanitizedContent);
-    return { thinkingBlocks: thinking, contentWithoutThinking: rest };
-  }, [sanitizedContent]);
+  const contentSegments = useMemo(
+    () => parseContentSegments(sanitizedContent),
+    [sanitizedContent]
+  );
 
   const markdownRules = useMemo(() => {
     const base: Record<string, unknown> = {};
@@ -1110,6 +1164,15 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
   const ProviderIcon =
     provider === "claude" ? ClaudeIcon : provider === "codex" || provider === "pi" ? CodexIcon : GeminiIcon;
 
+  const isLatestThinkingBlock = useCallback((index: number) => {
+    const isThinking = contentSegments[index]?.type === "thinking";
+    if (!isThinking) return false;
+
+    // It is the latest if there are no more 'thinking' blocks after it
+    const hasMoreThinking = contentSegments.slice(index + 1).some(seg => seg.type === "thinking");
+    return !hasMoreThinking;
+  }, [contentSegments]);
+
   const bubbleContent = (
     <>
       {message.content && message.content.trim() !== "" ? (
@@ -1132,15 +1195,21 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           </Text>
         ) : (
           <>
-            {thinkingBlocks.map((t, i) => (
-              <CollapsibleThinkingBlock
-                key={`thinking-${i}`}
-                content={t}
-                theme={theme}
-                renderContent={renderRichContent}
-              />
+            {contentSegments.map((seg, i) => (
+              seg.type === "thinking" ? (
+                <CollapsibleThinkingBlock
+                  key={`seg-${i}`}
+                  content={seg.content}
+                  theme={theme}
+                  renderContent={renderRichContent}
+                  initiallyExpanded={isLatestThinkingBlock(i)}
+                />
+              ) : (
+                <React.Fragment key={`seg-${i}`}>
+                  {renderRichContent(seg.content)}
+                </React.Fragment>
+              )
             ))}
-            {renderRichContent(contentWithoutThinking)}
           </>
         )
       ) : !isUser && !isSystem ? (
