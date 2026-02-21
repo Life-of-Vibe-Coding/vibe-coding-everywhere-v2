@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -92,6 +92,17 @@ export function SessionManagementModal({
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
   /** Session id being selected - shown highlighted for 1s before switching. */
   const [selectedForTransition, setSelectedForTransition] = useState<string | null>(null);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setSelectedForTransition(null);
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
+      }
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (visible && serverBaseUrl) {
@@ -122,19 +133,30 @@ export function SessionManagementModal({
   }, [visible, refresh]);
 
   const handleSelect = useCallback(
-    async (session: StoredSession) => {
+    (session: StoredSession) => {
       triggerHaptic("selection");
       if (session.id === currentSessionId) {
         onClose();
         return;
       }
-      // Persist current conversation before switching
-      if (currentMessages.length > 0) {
-        await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath);
+      // Cancel any in-flight transition
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
       }
-      await sessionStore.setLastActiveSession(session.id);
-      onSelectSession(session);
-      onClose();
+      // 1. Highlight the selected session for 1 second
+      setSelectedForTransition(session.id);
+      transitionTimeoutRef.current = setTimeout(async () => {
+        transitionTimeoutRef.current = null;
+        setSelectedForTransition(null);
+        // 2. Then switch and return to chat
+        if (currentMessages.length > 0) {
+          await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath);
+        }
+        await sessionStore.setLastActiveSession(session.id);
+        onSelectSession(session);
+        onClose();
+      }, 300);
     },
     [currentSessionId, currentMessages, workspacePath, sessionStore, onSelectSession, onClose]
   );
@@ -239,7 +261,7 @@ export function SessionManagementModal({
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
               renderItem={({ item }) => (
-                <View style={[styles.row, styles.sessionCard, item.id === currentSessionId && styles.sessionCardActive]}>
+                <View style={[styles.row, styles.sessionCard, item.id === (selectedForTransition ?? currentSessionId) && styles.sessionCardActive]}>
                   <TouchableOpacity
                     style={styles.sessionCardContent}
                     onPress={() => handleSelect(item)}

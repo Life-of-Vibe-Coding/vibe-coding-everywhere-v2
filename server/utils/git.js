@@ -140,9 +140,16 @@ export function getGitStatus(cwd) {
             continue;
         }
         if (x !== " " && x !== "?") {
+            // DEBUG staged path: trace first char to find root cause
+            if (file && process.env.DEBUG_GIT_STATUS) {
+                console.log("[DEBUG git] staged raw line:", JSON.stringify(line), "| parsed file:", JSON.stringify(file), "| firstChar:", file[0], "code:", file.charCodeAt(0));
+            }
             staged.push({ file, status: x, isDirectory: isDir(file) });
         }
         if (y !== " " && y !== "?") {
+            if (file && process.env.DEBUG_GIT_STATUS) {
+                console.log("[DEBUG git] unstaged raw line:", JSON.stringify(line), "| parsed file:", JSON.stringify(file), "| firstChar:", file[0], "code:", file.charCodeAt(0));
+            }
             unstaged.push({ file, status: y, isDirectory: isDir(file) });
         }
     }

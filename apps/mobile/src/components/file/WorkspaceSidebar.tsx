@@ -462,11 +462,11 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               {f.isDirectory ? (
                 <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
               ) : (
-                <TouchableOpacity style={{ flex: 1 }} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
+                <TouchableOpacity style={{ flex: 1, minWidth: 0 }} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
                   <Text style={styles.changeFileLabel} numberOfLines={1}>{f.file}</Text>
                 </TouchableOpacity>
               )}
-              <Text style={styles.statusLabel}>{f.status}</Text>
+              <Text style={[styles.statusLabel, styles.statusLabelRight]}>{f.status}</Text>
             </View>
           )) : <Text style={styles.emptyText}>No staged changes</Text>}
 
@@ -843,8 +843,9 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: "rgba(0,0,0,0.05)",
     },
-    changeFileLabel: { flex: 1, fontSize: 14, color: theme.textPrimary, marginRight: 8, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 14, color: theme.textPrimary, marginRight: 8, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
     statusLabel: { fontSize: 13, color: theme.accent, fontWeight: "600" },
+    statusLabelRight: { flexShrink: 0 },
     stageAllBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)" },
     stageAllBtnText: { color: theme.accent, fontSize: 13, fontWeight: "600" },
     stageBtnText: { color: theme.accent, fontSize: 14, fontWeight: "600" },
