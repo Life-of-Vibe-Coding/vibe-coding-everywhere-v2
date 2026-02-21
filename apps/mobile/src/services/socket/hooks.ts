@@ -524,6 +524,14 @@ export function useSocket(options: UseSocketOptions = {}) {
     currentAssistantContentRef.current = "";
   }, []);
 
+  /**
+   * Load an existing session's messages (e.g. from persisted storage).
+   * Replaces current messages without affecting socket/server state.
+   */
+  const loadSession = useCallback((messages: Message[]) => {
+    setMessages(messages);
+  }, []);
+
   return {
     // Connection state
     connected,
@@ -559,5 +567,6 @@ export function useSocket(options: UseSocketOptions = {}) {
     dismissPermission,
     terminateAgent,
     resetSession,
+    loadSession,
   };
 }

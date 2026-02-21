@@ -76,8 +76,8 @@ interface WorkspaceSidebarProps {
   embedded?: boolean;
   onClose: () => void;
   onFileSelect?: (path: string) => void;
-  /** When provided, replaces manual commit with "Commit by AI" flow. */
-  onCommitByAI?: (userRequest: string, gitContext: GitContextForAI) => void;
+  /** When provided, replaces manual commit with "Commit by AI" flow. Always starts a new session on current workspace. */
+  onCommitByAI?: (userRequest: string) => void;
 }
 
 const SIDE_MARGIN = 12;
@@ -537,12 +537,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                 onPress={() => {
                   const q = aiCommitQuery.trim();
                   if (!q) return;
-                  const gitContext: GitContextForAI = {
-                    staged: stagedFiles.map((f) => f.file),
-                    unstaged: unstagedFiles.map((f) => f.file),
-                    untracked: untrackedFiles.map((u) => u.file),
-                  };
-                  onCommitByAI(q, gitContext);
+                  onCommitByAI?.(q);
                   setAiCommitQuery("");
                   onClose();
                 }}

@@ -11,7 +11,7 @@ import {
   ScrollView,
   Keyboard,
 } from "react-native";
-import { GeminiIcon, ClaudeIcon, CodexIcon, GeminiSendIcon, ClaudeSendIcon, CodexSendIcon } from "../icons/ProviderIcons";
+import { GeminiIcon, ClaudeIcon, CodexIcon, CodexSendIcon } from "../icons/ProviderIcons";
 import {
   AttachPlusIcon,
   ChevronDownIcon,
@@ -56,6 +56,8 @@ export interface InputPanelProps {
   model?: string;
   /** Model options for current provider: { value, label }[]. */
   modelOptions?: { value: string; label: string }[];
+  /** Model options per provider for the picker modal. Keys: claude, gemini, codex (pi uses codex). */
+  providerModelOptions?: Record<"claude" | "gemini" | "codex", { value: string; label: string }[]>;
   /** Called when user switches provider (resets model to default). */
   onProviderChange?: (provider: "claude" | "gemini" | "codex" | "pi") => void;
   /** Called when user selects a model. */
@@ -81,6 +83,7 @@ export function InputPanel({
   provider = "pi",
   model = "gemini-2.5-flash",
   modelOptions = [],
+  providerModelOptions,
   onProviderChange,
   onModelChange,
   onOpenSkillsConfig,
@@ -160,108 +163,108 @@ export function InputPanel({
           <View style={[styles.statusDot, connected && styles.statusDotConnected]} />
         </View>
         <View style={styles.bottomRow}>
-          {(onOpenSkillsConfig || onOpenDocker) && (
-            <View style={styles.addDropdownWrap}>
+          <View style={styles.leftGroup}>
+            {(onOpenSkillsConfig || onOpenDocker) && (
+              <View style={styles.addDropdownWrap}>
+                <TouchableOpacity
+                  style={[styles.btnAttach, styles.btnAttachLight]}
+                  activeOpacity={0.7}
+                  onPress={() => setAddDropdownVisible((v) => !v)}
+                  accessibilityLabel="Add options"
+                >
+                  <AttachPlusIcon size={20} color={theme.accent} strokeWidth={2.1} />
+                </TouchableOpacity>
+                {addDropdownVisible && (
+                  <View style={styles.addDropdownCard} onStartShouldSetResponder={() => true}>
+                    {onOpenSkillsConfig && (
+                      <TouchableOpacity
+                        style={styles.addDropdownOption}
+                        onPress={() => {
+                          onOpenSkillsConfig();
+                          setAddDropdownVisible(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <SkillIcon size={18} color={theme.textPrimary} />
+                        <Text style={styles.addDropdownOptionText}>Skill</Text>
+                      </TouchableOpacity>
+                    )}
+                    {onOpenDocker && (
+                      <TouchableOpacity
+                        style={styles.addDropdownOption}
+                        onPress={() => {
+                          onOpenDocker();
+                          setAddDropdownVisible(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <DockerIcon size={18} color={theme.textPrimary} />
+                        <Text style={styles.addDropdownOptionText}>Docker</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.modelSelector}
+              onPress={() => (onModelChange ? setModelPickerVisible(true) : null)}
+              activeOpacity={0.7}
+              disabled={!onModelChange}
+              accessibilityLabel="Select model"
+            >
+              <Text style={styles.modelName} numberOfLines={1}>
+                {currentModelLabel}
+              </Text>
+              <ChevronDownIcon size={14} color={theme.textMuted} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.rightGroup}>
+            {onOpenProcesses && (
               <TouchableOpacity
-                style={[styles.btnAttach, (provider === "gemini" || provider === "codex" || provider === "pi") && styles.btnAttachLight]}
-                activeOpacity={0.8}
-                onPress={() => setAddDropdownVisible((v) => !v)}
-                accessibilityLabel="Add options"
+                style={styles.btnUtility}
+                onPress={onOpenProcesses}
+                activeOpacity={0.7}
+                accessibilityLabel="Open processes dashboard"
               >
-                <AttachPlusIcon size={18} color={provider === "gemini" || provider === "codex" || provider === "pi" ? theme.accent : "#ffffff"} strokeWidth={2.1} />
+                <TerminalIcon size={20} color={theme.textPrimary} />
               </TouchableOpacity>
-              {addDropdownVisible && (
-                <View style={styles.addDropdownCard} onStartShouldSetResponder={() => true}>
-                  {onOpenSkillsConfig && (
-                    <TouchableOpacity
-                      style={styles.addDropdownOption}
-                      onPress={() => {
-                        onOpenSkillsConfig();
-                        setAddDropdownVisible(false);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <SkillIcon size={18} color={theme.textPrimary} />
-                      <Text style={styles.addDropdownOptionText}>Skill</Text>
-                    </TouchableOpacity>
-                  )}
-                  {onOpenDocker && (
-                    <TouchableOpacity
-                      style={styles.addDropdownOption}
-                      onPress={() => {
-                        onOpenDocker();
-                        setAddDropdownVisible(false);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <DockerIcon size={18} color={theme.textPrimary} />
-                      <Text style={styles.addDropdownOptionText}>Docker</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-          <TouchableOpacity
-            style={styles.modelSelector}
-            onPress={() => (onModelChange ? setModelPickerVisible(true) : null)}
-            activeOpacity={0.8}
-            disabled={!onModelChange}
-            accessibilityLabel="Select model"
-          >
-            <Text style={styles.modelName}>{currentModelLabel}</Text>
-            <ChevronDownIcon size={14} color={theme.textMuted} />
-          </TouchableOpacity>
-          {onOpenProcesses && (
-            <TouchableOpacity
-              style={styles.btnWebPreview}
-              onPress={onOpenProcesses}
-              activeOpacity={0.8}
-              accessibilityLabel="Open processes dashboard"
-            >
-              <TerminalIcon size={18} color={theme.textPrimary} />
-            </TouchableOpacity>
-          )}
-          {onOpenWebPreview && (
-            <TouchableOpacity
-              style={styles.btnWebPreview}
-              onPress={onOpenWebPreview}
-              activeOpacity={0.8}
-              accessibilityLabel="Open web preview"
-            >
-              <GlobeIcon size={18} color={theme.textPrimary} />
-            </TouchableOpacity>
-          )}
-          {onTerminateAgent && claudeRunning && (
-            <TouchableOpacity
-              style={styles.btnTerminateAgent}
-              onPress={onTerminateAgent}
-              activeOpacity={0.8}
-              accessibilityLabel="Terminate agent response"
-            >
-              <StopCircleIcon size={14} color={theme.mode === "dark" ? "#f87171" : "#c0392b"} />
-            </TouchableOpacity>
-          )}
-          {!(claudeRunning && !waitingForUserInput) && (
-            <TouchableOpacity
-              style={[
-                styles.btnSend,
-                (provider === "gemini" || provider === "codex" || provider === "pi") ? styles.btnSendLight : styles.btnSendDark,
-                disabled && styles.btnSendDisabled,
-              ]}
-              onPress={handleSubmit}
-              disabled={disabled}
-              activeOpacity={0.8}
-            >
-              {provider === "gemini" ? (
-                <GeminiSendIcon size={20} color={theme.accent} />
-              ) : provider === "pi" || provider === "codex" ? (
-                <CodexSendIcon size={20} color={theme.accent} />
-              ) : (
-                <ClaudeSendIcon size={20} color={theme.accent} />
-              )}
-            </TouchableOpacity>
-          )}
+            )}
+            {onOpenWebPreview && (
+              <TouchableOpacity
+                style={styles.btnUtility}
+                onPress={onOpenWebPreview}
+                activeOpacity={0.7}
+                accessibilityLabel="Open web preview"
+              >
+                <GlobeIcon size={20} color={theme.textPrimary} />
+              </TouchableOpacity>
+            )}
+            {onTerminateAgent && claudeRunning && (
+              <TouchableOpacity
+                style={styles.btnTerminateAgent}
+                onPress={onTerminateAgent}
+                activeOpacity={0.7}
+                accessibilityLabel="Terminate agent response"
+              >
+                <StopCircleIcon size={16} color={theme.mode === "dark" ? "#f87171" : "#c0392b"} />
+              </TouchableOpacity>
+            )}
+            {!(claudeRunning && !waitingForUserInput) && (
+              <TouchableOpacity
+                style={[
+                  styles.btnSend,
+                  styles.btnSendLight,
+                  disabled && styles.btnSendDisabled,
+                ]}
+                onPress={handleSubmit}
+                disabled={disabled}
+                activeOpacity={0.7}
+              >
+                <CodexSendIcon size={22} color={theme.accent} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -277,22 +280,77 @@ export function InputPanel({
           onPress={() => setModelPickerVisible(false)}
         >
           <View style={styles.modelPickerCard} onStartShouldSetResponder={() => true}>
-            <Text style={styles.modelPickerTitle}>Model</Text>
-            <ScrollView style={styles.modelPickerList} keyboardShouldPersistTaps="handled">
-              {modelOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[styles.modelPickerOption, model === opt.value && styles.modelPickerOptionActive]}
-                  onPress={() => {
-                    onModelChange?.(opt.value);
-                    setModelPickerVisible(false);
-                  }}
-                  activeOpacity={0.8}
+            {providerModelOptions && onProviderChange ? (
+              <>
+                <View style={styles.modelPickerProviderRow}>
+                  {(["claude", "gemini", "codex"] as const).map((p) => {
+                    const isActive = (provider === "pi" ? "codex" : provider) === p;
+                    const Icon = p === "claude" ? ClaudeIcon : p === "gemini" ? GeminiIcon : CodexIcon;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        style={[styles.modelPickerProviderBtn, isActive && styles.modelPickerProviderBtnActive]}
+                        onPress={() => onProviderChange(p)}
+                        activeOpacity={0.8}
+                      >
+                        <Icon size={20} color={isActive ? (theme.accent ?? "#1a73e8") : theme.textMuted} />
+                        <Text style={[styles.modelPickerProviderText, isActive && styles.modelPickerProviderTextActive]}>
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <ScrollView
+                  style={styles.modelPickerList}
+                  keyboardShouldPersistTaps="handled"
+                  snapToInterval={54}
+                  snapToAlignment="start"
+                  decelerationRate="fast"
+                  contentContainerStyle={styles.modelPickerListContent}
                 >
-                  <Text style={[styles.modelPickerOptionText, model === opt.value && styles.modelPickerOptionTextActive]}>{opt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  {(providerModelOptions[provider === "pi" ? "codex" : provider] ?? []).map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.modelPickerOption, model === opt.value && styles.modelPickerOptionActive]}
+                      onPress={() => {
+                        onModelChange?.(opt.value);
+                        setModelPickerVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.modelPickerOptionText, model === opt.value && styles.modelPickerOptionTextActive]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modelPickerTitle}>Model</Text>
+                <ScrollView
+                  style={styles.modelPickerList}
+                  keyboardShouldPersistTaps="handled"
+                  snapToInterval={54}
+                  snapToAlignment="start"
+                  decelerationRate="fast"
+                  contentContainerStyle={styles.modelPickerListContent}
+                >
+                  {modelOptions.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.modelPickerOption, model === opt.value && styles.modelPickerOptionActive]}
+                      onPress={() => {
+                        onModelChange?.(opt.value);
+                        setModelPickerVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.modelPickerOptionText, model === opt.value && styles.modelPickerOptionTextActive]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -300,17 +358,20 @@ export function InputPanel({
   );
 }
 
+// Minimum touch target per Apple HIG / WCAG (44x44pt)
+const MIN_TOUCH = 44;
+
 function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   const utilityButtonBg = theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   return StyleSheet.create({
   container: {
     flexDirection: "column",
-    gap: 12,
+    gap: 10,
     borderWidth: 1,
     borderColor: theme.borderColor,
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: theme.radii?.xl ?? 20,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     backgroundColor: theme.surfaceBg,
   },
   refPills: {
@@ -336,17 +397,17 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     fontWeight: "500",
   },
   refPillRemove: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   topRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: 10,
-    minHeight: 44,
+    minHeight: MIN_TOUCH,
   },
   input: {
     flex: 1,
@@ -364,6 +425,7 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     height: 8,
     borderRadius: 4,
     backgroundColor: "#c5c5c5",
+    alignSelf: "center",
   },
   statusDotConnected: {
     backgroundColor: theme.success,
@@ -371,13 +433,28 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
+    gap: 6,
+    flexWrap: "nowrap",
+  },
+  leftGroup: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 0,
+  },
+  rightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
   },
   btnAttach: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#000",
+    width: MIN_TOUCH,
+    height: MIN_TOUCH,
+    borderRadius: theme.radii?.md ?? 12,
+    backgroundColor: theme.mode === "dark" ? "#262b36" : "#171c24",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -390,7 +467,14 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginRight: "auto",
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: theme.radii?.md ?? 12,
+    backgroundColor: utilityButtonBg,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    minHeight: MIN_TOUCH,
+    justifyContent: "center",
   },
   modelName: {
     fontSize: 14,
@@ -409,7 +493,7 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   },
   addDropdownCard: {
     position: "absolute",
-    bottom: 44,
+    bottom: MIN_TOUCH + 8,
     left: 0,
     backgroundColor: theme.surfaceBg,
     borderRadius: 12,
@@ -449,15 +533,19 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   },
   modelPickerProviderRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 16,
   },
   modelPickerProviderBtn: {
+    flex: 1,
+    minWidth: 85,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    gap: 6,
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 10,
     backgroundColor: theme.cardBg,
   },
@@ -467,6 +555,7 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   modelPickerProviderText: {
     fontSize: 15,
     color: theme.textMuted,
+    flexShrink: 0,
   },
   modelPickerProviderTextActive: {
     color: theme.accent ?? "#1a73e8",
@@ -478,14 +567,19 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   modelPickerList: {
     maxHeight: 220,
   },
+  modelPickerListContent: {
+    paddingBottom: 8,
+  },
   modelPickerOption: {
-    paddingVertical: 12,
+    height: 48,
     paddingHorizontal: 14,
     borderRadius: 10,
     marginBottom: 6,
     backgroundColor: theme.cardBg,
     borderWidth: 1,
     borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modelPickerOptionActive: {
     backgroundColor: theme.accentLight ?? "#e8f0fe",
@@ -494,15 +588,16 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   modelPickerOptionText: {
     fontSize: 15,
     color: theme.textPrimary,
+    textAlign: "center",
   },
   modelPickerOptionTextActive: {
     color: theme.accent ?? "#1a73e8",
     fontWeight: "600",
   },
-  btnWebPreview: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  btnUtility: {
+    width: MIN_TOUCH,
+    height: MIN_TOUCH,
+    borderRadius: theme.radii?.md ?? 12,
     backgroundColor: utilityButtonBg,
     borderWidth: 1,
     borderColor: theme.borderColor,
@@ -514,19 +609,26 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 10,
+    height: MIN_TOUCH,
+    borderRadius: theme.radii?.md ?? 12,
     backgroundColor: theme.mode === "dark" ? "rgba(248,113,113,0.14)" : "rgba(220,38,38,0.12)",
     borderWidth: 1,
     borderColor: theme.mode === "dark" ? "rgba(248,113,113,0.45)" : "rgba(192,57,43,0.4)",
     justifyContent: "center",
   },
   btnSend: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: MIN_TOUCH,
+    height: MIN_TOUCH,
+    borderRadius: theme.radii?.md ?? 12,
     alignItems: "center",
     justifyContent: "center",
+    ...(theme.mode === "light" && {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 3,
+      elevation: 2,
+    }),
   },
   btnSendLight: {
     backgroundColor: theme.accentLight ?? "#e8f0fe",

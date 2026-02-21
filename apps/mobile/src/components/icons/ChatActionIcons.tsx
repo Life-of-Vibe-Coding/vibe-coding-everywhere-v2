@@ -106,6 +106,32 @@ export function SkillIcon({ color = "currentColor", size = 18, strokeWidth = 2 }
   );
 }
 
+/** Session management icon (lucide:layout-list) - list of sessions/conversations. */
+export function SessionManagementIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect {...stroke} x="3" y="6" width="18" height="4" rx="1" />
+      <Rect {...stroke} x="3" y="12" width="18" height="4" rx="1" />
+      <Rect {...stroke} x="3" y="18" width="18" height="4" rx="1" />
+    </Svg>
+  );
+}
+
+/** Trash icon (lucide:trash-2) - for delete actions. */
+export function TrashIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path {...stroke} d="M3 6h18" />
+      <Path {...stroke} d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <Path {...stroke} d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <Path {...stroke} d="M10 11v6" />
+      <Path {...stroke} d="M14 11v6" />
+    </Svg>
+  );
+}
+
 /** Docker icon (mdi:docker) - for container management. */
 export function DockerIcon({ color = "currentColor", size = 18 }: Omit<IconProps, "strokeWidth">) {
   return (

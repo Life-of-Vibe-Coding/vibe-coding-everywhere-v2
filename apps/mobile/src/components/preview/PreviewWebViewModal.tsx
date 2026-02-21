@@ -9,7 +9,7 @@ import {
   Platform,
   TextInput,
   Keyboard,
-  useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -30,6 +30,10 @@ function isLocalhostUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+function genTabId(): string {
+  return "tab-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 }
 
 /** Strip our cache-bust param so storing this URL doesn't cause loadUri to change every time and trigger reload loop. */
@@ -53,6 +57,12 @@ interface PreviewWebViewModalProps {
   resolvePreviewUrl?: (url: string) => string;
 }
 
+interface TabState {
+  id: string;
+  url: string;
+  loadKey: number;
+}
+
 export function PreviewWebViewModal({
   visible,
   url,
@@ -61,25 +71,34 @@ export function PreviewWebViewModal({
   resolvePreviewUrl,
 }: PreviewWebViewModalProps) {
   const theme = useTheme();
-  const { width, height } = useWindowDimensions();
   const styles = useMemo(() => createPreviewStyles(theme), [theme]);
-  const [loading, setLoading] = useState(true);
+  const [tabs, setTabs] = useState<TabState[]>(() => []);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentUrl, setCurrentUrl] = useState(() => url?.trim() ?? "");
-  const [urlInputValue, setUrlInputValue] = useState(() => url?.trim() ?? "");
-  /** Cache-bust key so each load hits the network; avoids showing stale page when server is terminated. */
-  const [loadKey, setLoadKey] = useState(() => Date.now());
+  const [urlInputValue, setUrlInputValue] = useState("");
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const [urlChoiceVisible, setUrlChoiceVisible] = useState(false);
   const pendingUrlChoice = useRef<{ normalized: string; thenApply: (u: string) => void } | null>(null);
+  const initializedRef = useRef(false);
+
+  const currentTab = tabs[activeIndex] ?? null;
+  const currentUrl = currentTab?.url ?? "";
+  const loadKey = currentTab?.loadKey ?? 0;
 
   const applyUrl = (u: string) => {
-    setCurrentUrl(u);
+    setTabs((prev) => {
+      const next = [...prev];
+      const tab = next[activeIndex];
+      if (tab) {
+        next[activeIndex] = { ...tab, url: u, loadKey: Date.now() };
+      }
+      return next;
+    });
     setUrlInputValue(u);
     setError(null);
     setLoading(true);
-    setLoadKey(Date.now());
   };
 
   const promptLocalhostToVpn = (normalized: string, thenApply: (u: string) => void) => {
@@ -115,9 +134,48 @@ export function PreviewWebViewModal({
   };
 
   useEffect(() => {
-    if (visible && url?.trim()) {
-      const normalized = normalizeUrl(url.trim());
-      promptLocalhostToVpn(normalized, applyUrl);
+    if (!visible) {
+      initializedRef.current = false;
+      return;
+    }
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      const initialUrl = (url?.trim() ?? "") || "";
+      const normalized = initialUrl ? normalizeUrl(initialUrl) : "";
+      const willShowChoice = !!normalized && !!resolvePreviewUrl && isLocalhostUrl(normalized);
+
+      if (willShowChoice) {
+        setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
+        setActiveIndex(0);
+        setUrlInputValue(normalized);
+        setError(null);
+        setLoading(false);
+        pendingUrlChoice.current = {
+          normalized,
+          thenApply: (resolved: string) => {
+            setTabs((prev) => {
+              const next = [...prev];
+              if (next[0]) next[0] = { ...next[0], url: resolved, loadKey: Date.now() };
+              return next;
+            });
+            setUrlInputValue(resolved);
+            setLoading(true);
+          },
+        };
+        setUrlChoiceVisible(true);
+      } else if (normalized) {
+        setTabs([{ id: genTabId(), url: normalized, loadKey: Date.now() }]);
+        setActiveIndex(0);
+        setUrlInputValue(normalized);
+        setError(null);
+        setLoading(true);
+      } else {
+        setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
+        setActiveIndex(0);
+        setUrlInputValue("");
+        setError(null);
+        setLoading(false);
+      }
     }
   }, [visible, url, resolvePreviewUrl]);
 
@@ -130,23 +188,58 @@ export function PreviewWebViewModal({
   };
 
   const handleReload = () => {
+    if (!resolvedUrl) return;
     setError(null);
     setLoading(true);
-    setLoadKey(Date.now());
+    setTabs((prev) => {
+      const next = [...prev];
+      const tab = next[activeIndex];
+      if (tab) next[activeIndex] = { ...tab, loadKey: Date.now() };
+      return next;
+    });
   };
 
   const handleNavigationStateChange = (navState: { url?: string }) => {
     if (navState.url) {
       const clean = stripPreviewParam(navState.url);
-      setCurrentUrl(clean);
+      setTabs((prev) => {
+        const next = [...prev];
+        const tab = next[activeIndex];
+        if (tab) next[activeIndex] = { ...tab, url: clean };
+        return next;
+      });
       setUrlInputValue(clean);
     }
   };
 
+  const addTab = () => {
+    const newTab: TabState = { id: genTabId(), url: "", loadKey: 0 };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveIndex(tabs.length);
+    setUrlInputValue("");
+    setError(null);
+    setLoading(false);
+  };
+
+  const closeTab = (index: number) => {
+    if (tabs.length <= 1) return;
+    const nextTabs = tabs.filter((_, i) => i !== index);
+    const nextActive =
+      activeIndex === index ? (index > 0 ? index - 1 : 0) : activeIndex > index ? activeIndex - 1 : activeIndex;
+    setTabs(nextTabs);
+    setActiveIndex(nextActive);
+    setUrlInputValue(nextTabs[nextActive]?.url ?? "");
+  };
+
+  const selectTab = (index: number) => {
+    setActiveIndex(index);
+    setUrlInputValue(tabs[index]?.url ?? "");
+    setError(null);
+  };
+
   if (!visible) return null;
 
-  const resolvedUrl = currentUrl || url?.trim() || "";
-  const showWebView = resolvedUrl && !error;
+  const resolvedUrl = currentUrl || "";
   /** Base URL without our param; used for stable key so we don't remount and reload in a loop. */
   const baseUrl = stripPreviewParam(resolvedUrl) || resolvedUrl;
   /** Cache-busting URI so we always request from network; if server is down we get onError instead of cached page. */
@@ -191,17 +284,66 @@ export function PreviewWebViewModal({
             />
           </View>
           <TouchableOpacity
-            style={[styles.iconBtn, loading && styles.iconBtnDisabled]}
+            style={[styles.iconBtn, loading && !!resolvedUrl && styles.iconBtnDisabled]}
             onPress={handleReload}
-            disabled={loading}
+            disabled={loading && !!resolvedUrl}
             activeOpacity={0.8}
             accessibilityLabel="Reload"
           >
-            {loading ? (
+            {loading && resolvedUrl ? (
               <ActivityIndicator size="small" color={theme.accent} />
             ) : (
               <Text style={styles.iconBtnText}>↻</Text>
             )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab bar */}
+        <View style={styles.tabBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBarContent}
+            style={styles.tabBarScroll}
+          >
+            {tabs.map((tab, i) => {
+              const isActive = i === activeIndex;
+              let label = "New tab";
+              if (tab.url) {
+                try {
+                  label = new URL(stripPreviewParam(tab.url) || tab.url).hostname || "New tab";
+                } catch {
+                  label = "New tab";
+                }
+              }
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                  onPress={() => selectTab(i)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
+                    {label}
+                  </Text>
+                  {tabs.length > 1 && (
+                    <TouchableOpacity
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={styles.tabClose}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        closeTab(i);
+                      }}
+                    >
+                      <Text style={[styles.tabCloseText, isActive && styles.tabCloseTextActive]}>×</Text>
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <TouchableOpacity style={styles.addTabBtn} onPress={addTab} activeOpacity={0.8}>
+            <Text style={styles.addTabText}>+</Text>
           </TouchableOpacity>
         </View>
 
@@ -339,11 +481,79 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.textPrimary,
     fontWeight: "300",
   },
+  tabBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.borderColor,
+    backgroundColor: theme.surfaceBg,
+  },
+  tabBarScroll: {
+    flex: 1,
+    maxWidth: "100%",
+  },
+  tabBarContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderRadius: 8,
+    backgroundColor: theme.borderColor,
+    maxWidth: 120,
+  },
+  tabActive: {
+    backgroundColor: theme.accent,
+  },
+  tabText: {
+    fontSize: 13,
+    color: theme.textPrimary,
+    flex: 1,
+  },
+  tabTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  tabClose: {
+    marginLeft: 4,
+    padding: 2,
+  },
+  tabCloseText: {
+    fontSize: 16,
+    color: theme.textMuted,
+    lineHeight: 16,
+  },
+  tabCloseTextActive: {
+    color: "rgba(255,255,255,0.9)",
+  },
+  addTabBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.borderColor,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  addTabText: {
+    fontSize: 20,
+    color: theme.textPrimary,
+    fontWeight: "300",
+    lineHeight: 22,
+  },
   placeholder: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
+    backgroundColor: theme.surfaceBg,
   },
   placeholderText: {
     fontSize: 14,

@@ -61,14 +61,15 @@ import { InputPanel } from "./src/components/chat/InputPanel";
 import { PreviewWebViewModal } from "./src/components/preview/PreviewWebViewModal";
 import { WorkspaceSidebar } from "./src/components/file/WorkspaceSidebar";
 import { FileViewerModal, type CodeRefPayload } from "./src/components/file/FileViewerModal";
-import { SettingsModal } from "./src/components/settings/SettingsModal";
 import type { PermissionModeUI } from "./src/utils/permission";
 import { WorkspacePickerModal } from "./src/components/settings/WorkspacePickerModal";
 import { SkillConfigurationModal } from "./src/components/settings/SkillConfigurationModal";
 import { DockerManagerModal } from "./src/components/docker/DockerManagerModal";
 import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDashboardModal";
 import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
+import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
+import * as sessionStore from "./src/services/sessionStore";
 import {
   normalizePathSeparators,
   isAbsolutePath,
@@ -179,7 +180,8 @@ export default function App() {
   const [permissionModeUI, setPermissionModeUI] = useState<PermissionModeUI>(defaultPermissionModeUI);
 
   // UI State
-  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [sessionManagementVisible, setSessionManagementVisible] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [workspacePickerVisible, setWorkspacePickerVisible] = useState(false);
   const [dockerVisible, setDockerVisible] = useState(false);
   const [processesVisible, setProcessesVisible] = useState(false);
@@ -241,8 +243,38 @@ export default function App() {
     dismissPermission,
     terminateAgent,
     resetSession,
+    loadSession,
     lastSessionTerminated,
   } = useSocket({ provider, model });
+
+  // Load last active session on mount
+  const hasRestoredSession = useRef(false);
+  useEffect(() => {
+    if (hasRestoredSession.current) return;
+    hasRestoredSession.current = true;
+    sessionStore.loadLastActiveSession().then((session) => {
+      if (session && session.messages.length > 0) {
+        loadSession(session.messages);
+        setCurrentSessionId(session.id);
+      }
+    }).catch(() => {});
+  }, [loadSession]);
+
+  // Persist current session when messages change (debounced)
+  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
+    persistTimeoutRef.current = setTimeout(() => {
+      persistTimeoutRef.current = null;
+      sessionStore.saveSession(messages, currentSessionId, workspacePath).then((s) => {
+        if (s.id) setCurrentSessionId(s.id);
+      }).catch(() => {});
+    }, 1500);
+    return () => {
+      if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
+    };
+  }, [messages, currentSessionId, workspacePath]);
 
   // Performance Monitoring
   const performanceMetrics = usePerformanceMonitor(__DEV__);
@@ -415,17 +447,12 @@ export default function App() {
   }, []);
 
   const handleCommitByAI = useCallback(
-    (userRequest: string, gitContext: { staged: string[]; unstaged: string[]; untracked: string[] }) => {
-      const parts: string[] = [];
-      if (gitContext.staged.length) parts.push(`Staged: ${gitContext.staged.join(", ")}`);
-      if (gitContext.unstaged.length) parts.push(`Unstaged: ${gitContext.unstaged.join(", ")}`);
-      if (gitContext.untracked.length) parts.push(`Untracked: ${gitContext.untracked.join(", ")}`);
-      const statusSummary = parts.length ? `\n\nCurrent git status:\n${parts.join("\n")}\n\n` : "\n\n";
-      const prompt = `Using the git skill for the following request: ${userRequest}${statusSummary}Please stage files if needed and commit with an appropriate conventional message.`;
-      handleSubmit(prompt);
+    (userRequest: string) => {
+      resetSession();
+      handleSubmit(userRequest);
       setSidebarVisible(false);
     },
-    [handleSubmit]
+    [handleSubmit, resetSession]
   );
 
   const fetchWorkspacePath = useCallback(() => {
@@ -438,8 +465,8 @@ export default function App() {
   }, [serverConfig]);
 
   useEffect(() => {
-    if (settingsVisible) fetchWorkspacePath();
-  }, [settingsVisible, fetchWorkspacePath]);
+    if (sessionManagementVisible) fetchWorkspacePath();
+  }, [sessionManagementVisible, fetchWorkspacePath]);
 
   // ============================================================================
   // Render
@@ -472,13 +499,17 @@ export default function App() {
                       numberOfLines={1}
                       accessibilityLabel={sessionId != null ? `Session ${sessionId}` : "No session"}
                     >
-                      {sessionId != null ? `Session: ${sessionId.split("-")[0] ?? sessionId}` : "Start a new conversation"}
+                      {sessionId != null
+                        ? `Session: ${sessionId.split("-")[0] ?? sessionId}`
+                        : workspacePath != null
+                          ? basename(workspacePath)
+                          : "Start a new conversation"}
                     </Text>
                   </View>
                   <HeaderButton
                     icon={<SettingsIcon color={theme.colors.textPrimary} />}
-                    onPress={() => setSettingsVisible(true)}
-                    accessibilityLabel="Settings"
+                    onPress={() => setSessionManagementVisible(true)}
+                    accessibilityLabel="Manage sessions"
                     delay={200}
                   />
                 </View>
@@ -595,6 +626,12 @@ export default function App() {
                 provider={provider}
                 model={model}
                 modelOptions={modelOptions}
+                providerModelOptions={{
+                  claude: CLAUDE_MODELS,
+                  gemini: GEMINI_MODELS,
+                  codex: PI_MODELS,
+                }}
+                onProviderChange={setProviderAndModel}
                 onModelChange={setModel}
                 onOpenSkillsConfig={() => setSkillsConfigVisible(true)}
                 onOpenDocker={() => setDockerVisible(true)}
@@ -619,33 +656,6 @@ export default function App() {
             serverBaseUrl={serverConfig.getBaseUrl()}
           />
 
-          {/* Settings Modal */}
-          <SettingsModal
-            visible={settingsVisible}
-            onClose={() => setSettingsVisible(false)}
-            provider={provider}
-            setProviderAndModel={setProviderAndModel}
-            model={model}
-            setModel={setModel}
-            modelOptions={modelOptions}
-            permissionMode={permissionModeUI}
-            onPermissionModeChange={setPermissionModeUI}
-            onStopSession={terminateAgent}
-            onNewSession={() => {
-              resetSession();
-              setSettingsVisible(false);
-            }}
-            claudeRunning={claudeRunning}
-            workspacePath={workspacePath}
-            workspaceLoading={workspacePathLoading}
-            onRefreshWorkspace={fetchWorkspacePath}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-            onOpenWorkspacePicker={() => {
-              setSettingsVisible(false);
-              setWorkspacePickerVisible(true);
-            }}
-          />
-
           <WorkspacePickerModal
             visible={workspacePickerVisible}
             onClose={() => setWorkspacePickerVisible(false)}
@@ -664,6 +674,30 @@ export default function App() {
             visible={processesVisible}
             onClose={() => setProcessesVisible(false)}
             serverBaseUrl={serverConfig.getBaseUrl()}
+          />
+
+          <SessionManagementModal
+            visible={sessionManagementVisible}
+            onClose={() => setSessionManagementVisible(false)}
+            currentMessages={messages}
+            currentSessionId={currentSessionId}
+            workspacePath={workspacePath}
+            serverBaseUrl={serverConfig.getBaseUrl()}
+            workspaceLoading={workspacePathLoading}
+            onRefreshWorkspace={fetchWorkspacePath}
+            onOpenWorkspacePicker={() => {
+              setSessionManagementVisible(false);
+              setWorkspacePickerVisible(true);
+            }}
+            onSelectSession={(s) => {
+              loadSession(s.messages);
+              setCurrentSessionId(s.id);
+            }}
+            onNewSession={() => {
+              setCurrentSessionId(null);
+              resetSession();
+            }}
+            sessionStore={sessionStore}
           />
 
           {/* Preview WebView Modal */}
