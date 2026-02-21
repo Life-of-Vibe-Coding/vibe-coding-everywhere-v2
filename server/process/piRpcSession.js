@@ -14,6 +14,7 @@ import {
   getLlmCliIoTurnPaths,
   SKILLS_DIR,
   projectRoot,
+  PORT,
 } from "../config/index.js";
 import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
 
@@ -155,7 +156,7 @@ export function createPiRpcSession({
     if (!piIoOutputStream?.writable) return;
     try {
       piIoOutputStream.end();
-    } catch (_) {}
+    } catch (_) { }
     piIoOutputStream = null;
   }
 
@@ -172,7 +173,7 @@ export function createPiRpcSession({
     globalSpawnChildren.delete(piProcess);
     try {
       piProcess.kill();
-    } catch (_) {}
+    } catch (_) { }
     piProcess = null;
     turnRunning = false;
   }
@@ -237,7 +238,7 @@ export function createPiRpcSession({
 
     try {
       fs.mkdirSync(path.dirname(sessionDir), { recursive: true });
-    } catch (_) {}
+    } catch (_) { }
 
     const args = [
       "--mode", "rpc",
@@ -245,6 +246,7 @@ export function createPiRpcSession({
       "--model", piModel,
       "--session-dir", sessionDir,
       "--no-skills",
+      "--append-system-prompt", `CRITICAL: You are running within a process with PID ${process.pid}. The application that manages you is listening on port ${PORT}. You MUST NEVER kill this process (PID ${process.pid}) or occupy its port (${PORT}). If you kill this process, you will immediately terminate yourself.`
     ];
 
     // Register only enabled skills (from /api/skills) via --skill flags

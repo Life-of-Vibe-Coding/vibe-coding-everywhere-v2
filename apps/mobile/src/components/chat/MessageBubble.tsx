@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { View, Text, StyleSheet, Linking, Pressable, Alert, ScrollView, Platform } from "react-native";
+import { View, Text, StyleSheet, Linking, Pressable, Alert, ScrollView, Platform, Dimensions } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import type { Message } from "../../services/socket/hooks";
@@ -165,8 +165,11 @@ const LINK_PLACEHOLDER_SUFFIX = "\u200B\u200B";
 /** Supports both emoji (legacy) and non-emoji prefixes for backward compatibility. Groups: 1=prefix, 2=label, 3=encodedPath. */
 const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
 
-/** Matches "Running command:" or "🖥 Running command:" followed by newlines, `cmd`, and optional status (→ or ->). */
-const BASH_COMMAND_BLOCK_REGEX = /(?:🖥\s*)?Running command:\n+`([^`]*)`(?:\n\n(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?/g;
+/** Matches "Running command:" or "🖥 Running command:" followed by newlines, `cmd`, optional Output block, and optional status (→ or ->). */
+const BASH_COMMAND_BLOCK_REGEX = /(?:🖥\s*)?Running command:(?:\r?\n)+`([^`]*)`(?:(?:\r?\n)+Output:\r?\n```(?:[a-zA-Z0-9-]*)\r?\n([\s\S]*?)\r?\n```)?(?:(?:\r?\n)+(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?/g;
+
+/** Split regex to safely parse commands and outputs even if there is interleaved text between them. */
+const COMMAND_RUN_SECTION_REGEX = /(?:(?:🖥\s*)?Running command:(?:\r?\n)+`([^`]*)`)|(?:Output:\r?\n```(?:[a-zA-Z0-9-]*)\r?\n([\s\S]*?)\r?\n```(?:(?:\r?\n)+(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?)/g;
 
 /** Status-only lines to filter out or assign to commands. */
 const STATUS_ONLY_REGEX = /^(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?\s*$/;
@@ -208,6 +211,7 @@ export function collapseIdenticalCommandSteps(content: string): string {
 export type CommandRunSegment = {
   kind: "command";
   command: string;
+  output?: string;
   status?: "Completed" | "Failed";
   exitCode?: number;
 };
@@ -218,10 +222,11 @@ type FileActivitySegment =
 
 /** Splits content into markdown and command-run segments for mixed rendering (e.g. compact command list + rest as markdown). */
 export function parseCommandRunSegments(content: string): Array<{ type: "markdown"; content: string } | CommandRunSegment> {
-  const re = new RegExp(BASH_COMMAND_BLOCK_REGEX.source, "g");
+  const re = new RegExp(COMMAND_RUN_SECTION_REGEX.source, "g");
   const segments: Array<{ type: "markdown"; content: string } | CommandRunSegment> = [];
   let lastEnd = 0;
   let m;
+  let currentCommand: CommandRunSegment | null = null;
   while ((m = re.exec(content)) !== null) {
     if (m.index > lastEnd) {
       const slice = content.slice(lastEnd, m.index).trim();
@@ -229,12 +234,24 @@ export function parseCommandRunSegments(content: string): Array<{ type: "markdow
       const isAllStatusLines = lines.length > 0 && lines.every((l) => STATUS_ONLY_REGEX.test(l));
       if (slice.length && !isAllStatusLines) segments.push({ type: "markdown", content: slice });
     }
-    segments.push({
-      kind: "command",
-      command: m[1] ?? "",
-      status: (m[2] as "Completed" | "Failed" | undefined) ?? undefined,
-      exitCode: m[3] != null ? parseInt(m[3], 10) : undefined,
-    });
+    if (m[1] !== undefined) {
+      currentCommand = {
+        kind: "command",
+        command: m[1] ?? "",
+        output: undefined,
+        status: undefined,
+        exitCode: undefined,
+      };
+      segments.push(currentCommand);
+    } else if (m[2] !== undefined) {
+      if (currentCommand) {
+        currentCommand.output = m[2];
+        currentCommand.status = (m[3] as "Completed" | "Failed" | undefined) ?? undefined;
+        currentCommand.exitCode = m[4] != null ? parseInt(m[4], 10) : undefined;
+      } else {
+        segments.push({ type: "markdown", content: m[0] ?? "" });
+      }
+    }
     lastEnd = m.index + (m[0].length ?? 0);
   }
   if (lastEnd < content.length) {
@@ -244,9 +261,9 @@ export function parseCommandRunSegments(content: string): Array<{ type: "markdow
     if (isAllStatusLines) {
       const statuses = lines
         .map((line) => {
-          const m = line.match(STATUS_ONLY_REGEX);
-          return m
-            ? { status: m[1] as "Completed" | "Failed", exitCode: m[2] != null ? parseInt(m[2], 10) : undefined }
+          const mStatus = line.match(STATUS_ONLY_REGEX);
+          return mStatus
+            ? { status: mStatus[1] as "Completed" | "Failed", exitCode: mStatus[2] != null ? parseInt(mStatus[2], 10) : undefined }
             : null;
         })
         .filter((s): s is { status: "Completed" | "Failed"; exitCode: number | undefined } => s !== null);
@@ -328,14 +345,15 @@ function wrapBareUrlsInMarkdown(content: string): string {
 /** Max chars to show for read-result content (e.g. skill files) before collapsing. */
 const MAX_READ_RESULT_PREVIEW = 1800;
 
-/** Matches think-tag blocks (extended thinking from some APIs). Capturing group 1 = inner content. */
-const THINKING_BLOCK_REGEX = /<think>([\s\S]*?)<\/think>/gi;
+/** Matches think-tag blocks (extended thinking from some APIs). Capturing group 1 = inner content. Handles incomplete trailing tags. */
+const THINKING_BLOCK_REGEX = /<think>([\s\S]*?)(?:<\/think>|$)/gi;
 
 /** Extract thinking blocks from content. Returns { thinking: string[], rest: string }. */
 function extractThinkingBlocks(content: string): { thinking: string[]; rest: string } {
   const thinking: string[] = [];
   const rest = content.replace(THINKING_BLOCK_REGEX, (_, inner) => {
-    thinking.push(inner.trim());
+    const trimmed = inner.trim();
+    if (trimmed) thinking.push(trimmed);
     return "";
   });
   return {
@@ -737,7 +755,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
   );
   const { thinkingBlocks, contentWithoutThinking } = useMemo(() => {
     const { thinking, rest } = extractThinkingBlocks(sanitizedContent);
-    return { thinkingBlocks: thinking, contentWithoutThinking: thinking.length > 0 ? rest : sanitizedContent };
+    return { thinkingBlocks: thinking, contentWithoutThinking: rest };
   }, [sanitizedContent]);
 
   const markdownRules = useMemo(() => {
@@ -787,11 +805,26 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         const displayContent = isBash
           ? (extractBashCommandOnly(content) || content)
           : stripTrailingTerminalHeaderLines(content);
+
+        const { height: screenHeight } = Dimensions.get("window");
+        const maxHeight = screenHeight * 0.75;
+
         const codeBlock = (
-          <Text key={node.key} style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
-            {displayContent}
-          </Text>
+          <ScrollView
+            key={node.key}
+            style={[styles.bashCodeBlockWrapper, { maxHeight }]}
+            nestedScrollEnabled
+          >
+            <ScrollView horizontal nestedScrollEnabled>
+              <View style={styles.bashCodeBlock}>
+                <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
+                  {displayContent}
+                </Text>
+              </View>
+            </ScrollView>
+          </ScrollView>
         );
+
         if (isBash) {
           return (
             <View key={node.key} style={styles.bashCodeBlockWrapper}>
@@ -808,9 +841,18 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                   <Text style={styles.bashRunButtonText}>Run</Text>
                 </Pressable>
               </View>
-              <View style={styles.bashCodeBlock}>
-                {codeBlock}
-              </View>
+              <ScrollView
+                style={{ maxHeight }}
+                nestedScrollEnabled
+              >
+                <ScrollView horizontal nestedScrollEnabled>
+                  <View style={styles.bashCodeBlock}>
+                    <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
+                      {displayContent}
+                    </Text>
+                  </View>
+                </ScrollView>
+              </ScrollView>
             </View>
           );
         }
@@ -950,8 +992,9 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           if (commandGroup.length === 0) return;
           const cmds = [...commandGroup];
           commandGroup = [];
+          const hasOutput = cmds.some((c) => !!c.output);
           const visibleLines = Math.min(Math.max(cmds.length, 3), 6);
-          const scrollHeight = visibleLines * COMMAND_LINE_HEIGHT;
+          const scrollHeight = hasOutput ? 320 : visibleLines * COMMAND_LINE_HEIGHT;
           nodes.push(
             <View
               key={key}
@@ -966,35 +1009,44 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 </View>
               </View>
               <ScrollView
-                style={[styles.commandTerminalScrollBase, { height: scrollHeight }]}
-                contentContainerStyle={styles.commandTerminalContent}
+                style={[styles.commandTerminalScrollBase, hasOutput ? { maxHeight: scrollHeight } : { height: scrollHeight }]}
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled
               >
-                {cmds.map((cmd, i) => (
-                  <View
-                    key={`line-${i}`}
-                    style={styles.commandTerminalLine}
-                  >
-                    <Text style={styles.commandTerminalPrompt} selectable={false}>
-                      $
-                    </Text>
-                    <Text style={styles.commandTerminalText} selectable numberOfLines={1} ellipsizeMode="tail">
-                      {cmd.command}
-                    </Text>
-                    {cmd.status && (
-                      <Text
-                        style={[
-                          styles.commandTerminalStatus,
-                          { color: cmd.status === "Failed" ? "#ef4444" : "#22c55e" },
-                        ]}
-                      >
-                        {cmd.status}
-                        {cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
-                      </Text>
-                    )}
+                <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.commandTerminalContent} nestedScrollEnabled>
+                  <View style={{ flex: 1, minWidth: "100%", paddingRight: 40 }}>
+                    {cmds.map((cmd, i) => (
+                      <View key={`line-${i}`}>
+                        <View style={styles.commandTerminalLine}>
+                          <Text style={styles.commandTerminalPrompt} selectable={false}>
+                            $
+                          </Text>
+                          <Text style={[styles.commandTerminalText, { flex: 0 }]} selectable numberOfLines={cmd.output ? undefined : 1} ellipsizeMode="tail">
+                            {cmd.command}
+                          </Text>
+                          {cmd.status && (
+                            <Text
+                              style={[
+                                styles.commandTerminalStatus,
+                                { color: cmd.status === "Failed" ? "#ef4444" : "#22c55e", paddingLeft: 6 },
+                              ]}
+                            >
+                              {cmd.status}
+                              {cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
+                            </Text>
+                          )}
+                        </View>
+                        {cmd.output ? (
+                          <View style={{ marginTop: 4, marginBottom: 8, paddingLeft: 12 }}>
+                            <Text style={[styles.commandTerminalText, { color: "rgba(255,255,255,0.7)", opacity: 0.8, flex: 0 }]} selectable>
+                              {cmd.output}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    ))}
                   </View>
-                ))}
+                </ScrollView>
               </ScrollView>
             </View>
           );
