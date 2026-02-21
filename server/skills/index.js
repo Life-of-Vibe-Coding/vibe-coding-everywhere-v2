@@ -218,7 +218,8 @@ export function getEnabledIds(agentDir) {
     if (!fs.existsSync(filePath)) return [];
     const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
     const ids = data?.enabledIds;
-    return Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [];
+    const filtered = Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [];
+    return [...new Set(filtered)]; // Deduplicate to prevent same skill loading twice
   } catch (err) {
     console.warn("[skills] Failed to read", filePath, err?.message);
     return [];
@@ -285,10 +286,14 @@ export function loadEnabledSkillsContent(skillsDir, agentDir) {
 
   const skillRoot = path.resolve(skillsDir);
   const parts = [];
+  const seen = new Set(); // Avoid loading same skill twice if id appears in multiple forms
 
   for (const id of enabledIds) {
     if (!id || typeof id !== "string") continue;
     const subdir = path.basename(id);
+    if (seen.has(subdir)) continue;
+    seen.add(subdir);
+
     const skillPath = path.join(skillRoot, subdir, SKILL_FILE);
 
     if (!skillPath.startsWith(skillRoot)) continue;

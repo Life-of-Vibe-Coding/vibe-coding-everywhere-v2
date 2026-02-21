@@ -251,37 +251,14 @@ Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`
 
 **User request:** "Làm landing page cho dịch vụ chăm sóc da chuyên nghiệp"
 
-### Step 1: Analyze Requirements
-- Product type: Beauty/Spa service
-- Style keywords: elegant, professional, soft
-- Industry: Beauty/Wellness
-- Stack: html-tailwind (default)
+Follow the workflow above (Steps 1–4) with these parameters:
 
-### Step 2: Generate Design System (REQUIRED)
+- **Step 1 (Analyze):** Product: Beauty/Spa, Style: elegant/professional/soft, Industry: Beauty/Wellness, Stack: html-tailwind
+- **Step 2 (Design System):** `python3 skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service elegant" --design-system -p "Serenity Spa"`
+- **Step 3 (Supplement):** `--domain ux "animation accessibility"` and `--domain typography "elegant luxury serif"` if needed
+- **Step 4 (Stack):** `--stack html-tailwind "layout responsive form"`
 
-```bash
-python3 skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness service elegant" --design-system -p "Serenity Spa"
-```
-
-**Output:** Complete design system with pattern, style, colors, typography, effects, and anti-patterns.
-
-### Step 3: Supplement with Detailed Searches (as needed)
-
-```bash
-# Get UX guidelines for animation and accessibility
-python3 skills/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
-
-# Get alternative typography options if needed
-python3 skills/ui-ux-pro-max/scripts/search.py "elegant luxury serif" --domain typography
-```
-
-### Step 4: Stack Guidelines
-
-```bash
-python3 skills/ui-ux-pro-max/scripts/search.py "layout responsive form" --stack html-tailwind
-```
-
-**Then:** Synthesize design system + detailed searches and implement the design.
+Synthesize design system + detailed searches and implement the design.
 
 ---
 

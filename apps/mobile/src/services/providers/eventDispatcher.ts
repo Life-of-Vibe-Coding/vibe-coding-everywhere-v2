@@ -1,17 +1,13 @@
 /**
- * Shared event dispatcher that combines Claude and Gemini event handlers.
+ * Shared event dispatcher that combines provider event handlers.
  *
  * Dispatches AI stream events to the registered handler for data.type.
  * Handles permission_denials before type; falls back to appending as text for unknown types.
  */
 import type { PermissionDenial, PendingAskUserQuestion } from "../../core/types";
 import type { EventContext, EventHandler } from "./types";
-import { appendToolUseDisplayLine, formatToolUseForDisplay } from "./types";
+import { appendSnapshotTextDelta, appendToolUseDisplayLine, formatToolUseForDisplay } from "./types";
 import { isAskUserQuestionPayload } from "./stream";
-import { registerClaudeHandlers } from "./claude/eventHandlers";
-import { registerGeminiHandlers } from "./gemini/eventHandlers";
-import { registerCodexHandlers } from "./codex/eventHandlers";
-import { registerPiHandlers } from "./pi/eventHandlers";
 
 function normalizeAskUserQuestionPayload(data: Record<string, unknown>): PendingAskUserQuestion | null {
   const toolUseId = String(data.tool_use_id ?? "");
@@ -56,23 +52,58 @@ function processPermissionDenials(
 
 /**
  * Registry of AI stream event handlers (Strategy pattern).
- * Combines provider-specific handlers (Claude/Gemini) with shared handlers.
+ * Combines provider-specific handlers with shared handlers.
  * Extend by adding new entries to the map; dispatcher logic stays unchanged (Open-Closed).
  */
 function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
   const registry = new Map<string, EventHandler>();
 
-  // Register provider-specific handlers
-  registerClaudeHandlers(registry, ctx);
-  registerGeminiHandlers(registry, ctx);
-  registerCodexHandlers(registry, ctx);
-  registerPiHandlers(registry, ctx);
+  // Pi RPC handlers: message_update, tool_execution_*, agent_*, turn_end, response, extension_error
+  registry.set("message_update", (data) => {
+    const ev = data.assistantMessageEvent as {
+      type?: string;
+      delta?: string;
+      content?: string;
+      toolCall?: { id?: string; name?: string; arguments?: Record<string, unknown> };
+    } | undefined;
+    if (!ev) return;
+    if (ev.type === "text_delta" && typeof ev.delta === "string" && ev.delta) {
+      ctx.appendAssistantText(ev.delta);
+    }
+    if (ev.type === "toolcall_end" && ev.toolCall?.name) {
+      appendToolUseDisplayLine(ctx, ev.toolCall.name, ev.toolCall.arguments ?? {});
+    }
+  });
+  registry.set("tool_execution_start", (data) => {
+    const toolName = data.toolName as string | undefined;
+    const args = data.args as Record<string, unknown> | undefined;
+    if (toolName) {
+      appendToolUseDisplayLine(ctx, toolName, args ?? {});
+      ctx.setCurrentActivity(formatToolUseForDisplay(toolName, args ?? {}));
+    }
+  });
+  registry.set("tool_execution_update", () => {});
+  registry.set("tool_execution_end", () => ctx.setCurrentActivity(null));
+  registry.set("turn_end", (data) => {
+    const msg = data.message as { content?: Array<{ type?: string; text?: string }> } | undefined;
+    if (msg?.content) {
+      const text = msg.content
+        .filter((c) => c.type === "text" && c.text)
+        .map((c) => c.text)
+        .join("");
+      if (text) appendSnapshotTextDelta(ctx, text);
+    }
+  });
+  registry.set("agent_start", () => {});
+  registry.set("agent_end", () => {});
+  registry.set("response", () => {});
+  registry.set("extension_error", () => {});
 
-  // Shared handlers used by both providers
+  // Shared handlers
   const inputLikeHandler: EventHandler = (data) => {
     const tool = (data.tool_name ?? data.tool ?? "Tool") as string;
     const prompt =
-      (data.prompt ?? data.message ?? data.description ?? "Claude needs your input.") as string;
+      (data.prompt ?? data.message ?? data.description ?? "AI needs your input.") as string;
     ctx.setWaitingForUserInput(true);
     ctx.addMessage("system", `${tool} request:\n${prompt}\n(Type a response and press Enter)`);
   };
