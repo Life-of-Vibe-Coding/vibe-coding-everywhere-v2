@@ -65,18 +65,26 @@ const ATOM_ONE_LIGHT = {
   grey: "#696C77",
 };
 
+export type GitContextForAI = {
+  staged: string[];
+  unstaged: string[];
+  untracked: string[];
+};
+
 interface WorkspaceSidebarProps {
   visible: boolean;
   embedded?: boolean;
   onClose: () => void;
   onFileSelect?: (path: string) => void;
+  /** When provided, replaces manual commit with "Commit by AI" flow. */
+  onCommitByAI?: (userRequest: string, gitContext: GitContextForAI) => void;
 }
 
 const SIDE_MARGIN = 12;
 const RESERVED_BOTTOM = 100;
 const IGNORED_FILES = new Set([".gitignore", ".env", ".env.example", ".env.local"]);
 
-export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI }: WorkspaceSidebarProps) {
   const theme = useTheme();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [data, setData] = useState<WorkspaceData | null>(null);
@@ -98,6 +106,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect }: W
 
   // Changes State
   const [commitMessage, setCommitMessage] = useState("");
+  const [aiCommitQuery, setAiCommitQuery] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
   const baseUrl = getDefaultServerConfig().getBaseUrl();
@@ -509,22 +518,61 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect }: W
 
         </ScrollView>
         <View style={styles.commitForm}>
-          <TextInput
-            style={styles.commitInput}
-            placeholder="Commit message..."
-            placeholderTextColor={theme.textMuted}
-            value={commitMessage}
-            onChangeText={setCommitMessage}
-            multiline
-            editable={!actionLoading}
-          />
-          <TouchableOpacity
-            style={[styles.commitBtn, (!hasStaged || !commitMessage.trim()) && { opacity: 0.5 }]}
-            onPress={handleCommit}
-            disabled={!hasStaged || !commitMessage.trim() || actionLoading}
-          >
-            <Text style={styles.commitBtnText}>{actionLoading ? "Committing..." : "Commit"}</Text>
-          </TouchableOpacity>
+          {onCommitByAI ? (
+            <>
+              <TextInput
+                style={styles.commitInput}
+                placeholder="Describe what to commit (e.g. fix typo, add feature). AI will use the git skill."
+                placeholderTextColor={theme.textMuted}
+                value={aiCommitQuery}
+                onChangeText={setAiCommitQuery}
+                multiline
+                editable={!actionLoading}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.commitBtn,
+                  (!aiCommitQuery.trim() || (!hasStaged && !hasUnstaged && !hasUntracked)) && { opacity: 0.5 },
+                ]}
+                onPress={() => {
+                  const q = aiCommitQuery.trim();
+                  if (!q) return;
+                  const gitContext: GitContextForAI = {
+                    staged: stagedFiles.map((f) => f.file),
+                    unstaged: unstagedFiles.map((f) => f.file),
+                    untracked: untrackedFiles.map((u) => u.file),
+                  };
+                  onCommitByAI(q, gitContext);
+                  setAiCommitQuery("");
+                  onClose();
+                }}
+                disabled={
+                  !aiCommitQuery.trim() || (!hasStaged && !hasUnstaged && !hasUntracked) || actionLoading
+                }
+              >
+                <Text style={styles.commitBtnText}>Commit by AI</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TextInput
+                style={styles.commitInput}
+                placeholder="Commit message..."
+                placeholderTextColor={theme.textMuted}
+                value={commitMessage}
+                onChangeText={setCommitMessage}
+                multiline
+                editable={!actionLoading}
+              />
+              <TouchableOpacity
+                style={[styles.commitBtn, (!hasStaged || !commitMessage.trim()) && { opacity: 0.5 }]}
+                onPress={handleCommit}
+                disabled={!hasStaged || !commitMessage.trim() || actionLoading}
+              >
+                <Text style={styles.commitBtnText}>{actionLoading ? "Committing..." : "Commit"}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );

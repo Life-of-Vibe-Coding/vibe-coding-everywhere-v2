@@ -471,6 +471,20 @@ export default function App() {
     setPreviewUrl(null);
   }, []);
 
+  const handleCommitByAI = useCallback(
+    (userRequest: string, gitContext: { staged: string[]; unstaged: string[]; untracked: string[] }) => {
+      const parts: string[] = [];
+      if (gitContext.staged.length) parts.push(`Staged: ${gitContext.staged.join(", ")}`);
+      if (gitContext.unstaged.length) parts.push(`Unstaged: ${gitContext.unstaged.join(", ")}`);
+      if (gitContext.untracked.length) parts.push(`Untracked: ${gitContext.untracked.join(", ")}`);
+      const statusSummary = parts.length ? `\n\nCurrent git status:\n${parts.join("\n")}\n\n` : "\n\n";
+      const prompt = `Using the git skill for the following request: ${userRequest}${statusSummary}Please stage files if needed and commit with an appropriate conventional message.`;
+      handleSubmit(prompt);
+      setSidebarVisible(false);
+    },
+    [handleSubmit]
+  );
+
   const fetchWorkspacePath = useCallback(() => {
     setWorkspacePathLoading(true);
     fetch(`${serverConfig.getBaseUrl()}/api/workspace-path`)
@@ -596,6 +610,7 @@ export default function App() {
                   embedded
                   onClose={() => setSidebarVisible(false)}
                   onFileSelect={handleFileSelect}
+                  onCommitByAI={handleCommitByAI}
                 />
               </View>
 
