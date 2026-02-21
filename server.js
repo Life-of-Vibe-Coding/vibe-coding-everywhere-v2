@@ -7,7 +7,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import { PORT, ensureLlmCliIoRunDir } from "./server/config/index.js";
+import { PORT, SKILLS_DIR, ensureLlmCliIoRunDir } from "./server/config/index.js";
 import { getPreviewHost } from "./server/utils/index.js";
 import { shutdown } from "./server/process/index.js";
 import { setupRoutes } from "./server/routes/index.js";
@@ -36,6 +36,7 @@ ensureLlmCliIoRunDir();
 
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Terminal server at http://localhost:${PORT}`);
+  console.log(`Skills dir: ${SKILLS_DIR}`);
   console.log(`Tailscale host: ${getPreviewHost()}`);
   console.log(`Listening on 0.0.0.0 for Tailscale access`);
   console.log(`Working directory: ${process.env.WORKSPACE_CWD || "(using default)"}`);

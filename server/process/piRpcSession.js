@@ -321,12 +321,12 @@ export function createPiRpcSession({
     console.log("[pi]   3.", connectionPrompt);
     console.log("[pi]   4. terminal-runner context:", terminalRunnerContext);
 
-    // Register only enabled skills (from /api/skills) via --skill flags
+    // Register enabled skills: sync symlinks, then pass single --skill path to skills-enabled dir
     const skillsAgentDir = resolveAgentDir(cwd, projectRoot);
     const skillsEnabledDir = path.join(cwd, ".pi", "skills-enabled");
     const skillPaths = syncEnabledSkillsFolder(SKILLS_DIR, skillsAgentDir, skillsEnabledDir);
-    for (const p of skillPaths) {
-      args.push("--skill", p);
+    if (skillPaths.length > 0) {
+      args.push("--skill", skillsEnabledDir);
     }
 
     const commandStr = [PI_CLI_PATH, ...args].join(" ");

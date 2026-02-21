@@ -178,10 +178,12 @@ export const PROMPTS_DIR = path.join(projectRoot, "prompts");
 
 /**
  * Directory for Pi agent skills. ONLY skills from this folder are loaded.
- * Default: <projectRoot>/skills. Override with SKILLS_DIR env to pin explicitly.
+ * Always resolves to <projectRoot>/skills so the canonical source is the project's skills/ folder.
+ * Override with SKILLS_DIR env only when necessary (e.g. explicit path override).
  */
-export const SKILLS_DIR = process.env.SKILLS_DIR
-  ? path.resolve(process.env.SKILLS_DIR)
+const _skillsDirFromEnv = process.env.SKILLS_DIR?.trim();
+export const SKILLS_DIR = _skillsDirFromEnv
+  ? path.resolve(_skillsDirFromEnv)
   : path.join(projectRoot, "skills");
 
 /** Path to pi CLI binary. Defaults to "pi" (must be on PATH). */

@@ -862,24 +862,29 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         const maxHeight = screenHeight * 0.75;
 
         const codeBlock = (
-          <ScrollView
+          <View
             key={node.key}
             style={[styles.bashCodeBlockWrapper, { maxHeight }]}
-            nestedScrollEnabled
           >
-            <ScrollView horizontal nestedScrollEnabled>
-              <View style={styles.bashCodeBlock}>
-                <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
-                  {displayContent}
-                </Text>
-              </View>
+            <ScrollView
+              nestedScrollEnabled
+              bounces={false}
+              style={{ flexGrow: 0 }}
+            >
+              <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
+                <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
+                  <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
+                    {displayContent}
+                  </Text>
+                </View>
+              </ScrollView>
             </ScrollView>
-          </ScrollView>
+          </View>
         );
 
         if (isBash) {
           return (
-            <View key={node.key} style={styles.bashCodeBlockWrapper}>
+            <View key={node.key} style={[styles.bashCodeBlockWrapper, { maxHeight }]}>
               <View style={styles.bashCodeBlockHeader}>
                 <View style={styles.bashCodeBlockHeaderSpacer} />
                 <Pressable
@@ -894,11 +899,12 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 </Pressable>
               </View>
               <ScrollView
-                style={{ maxHeight }}
                 nestedScrollEnabled
+                bounces={false}
+                style={{ flexGrow: 0 }}
               >
-                <ScrollView horizontal nestedScrollEnabled>
-                  <View style={styles.bashCodeBlock}>
+                <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
+                  <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
                     <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
                       {displayContent}
                     </Text>
