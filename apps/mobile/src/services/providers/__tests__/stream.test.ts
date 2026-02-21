@@ -166,16 +166,21 @@ describe("filterBashNoise", () => {
 });
 
 describe("isProviderStream", () => {
-  it("returns true for known event types", () => {
-    expect(isProviderStream({ type: "assistant" })).toBe(true);
-    expect(isProviderStream({ type: "message" })).toBe(true);
-    expect(isProviderStream({ type: "tool_use" })).toBe(true);
+  it("returns true for Pi RPC event types", () => {
+    expect(isProviderStream({ type: "agent_start" })).toBe(true);
+    expect(isProviderStream({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "hi" } })).toBe(true);
+    expect(isProviderStream({ type: "turn_end", message: {} })).toBe(true);
+    expect(isProviderStream({ type: "tool_execution_start", toolName: "bash" })).toBe(true);
   });
 
-  it("returns true for Codex event types", () => {
-    expect(isProviderStream({ type: "thread.started", thread_id: "0199a213-81c0-7800-8aa1-bbab2a035a53" })).toBe(true);
-    expect(isProviderStream({ type: "item.completed", item: { type: "agent_message", text: "Done." } })).toBe(true);
-    expect(isProviderStream({ type: "turn.failed", error: { message: "error" } })).toBe(true);
+  it("returns true for permission_denials and AskUserQuestion", () => {
+    expect(isProviderStream({ permission_denials: [{ tool_name: "Read" }] })).toBe(true);
+    expect(isProviderStream({ tool_name: "AskUserQuestion", tool_use_id: "x", tool_input: { questions: [{ header: "Choose", options: [] }] } })).toBe(true);
+  });
+
+  it("returns false for non-Pi event types", () => {
+    expect(isProviderStream({ type: "assistant" })).toBe(false);
+    expect(isProviderStream({ type: "thread.started" })).toBe(false);
   });
 
   it("returns false for plain text", () => {

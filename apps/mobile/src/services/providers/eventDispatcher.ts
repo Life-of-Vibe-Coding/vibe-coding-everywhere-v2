@@ -1,8 +1,9 @@
 /**
- * Shared event dispatcher that combines provider event handlers.
+ * Pi-native event dispatcher for AI stream output.
  *
- * Dispatches AI stream events to the registered handler for data.type.
- * Handles permission_denials before type; falls back to appending as text for unknown types.
+ * Consumes Pi RPC protocol events (message_update, turn_end, tool_execution_*, etc.)
+ * and routes them to the appropriate handler. Handles permission_denials and
+ * AskUserQuestion before type; falls back to appending as text for unknown types.
  */
 import type { PermissionDenial, PendingAskUserQuestion } from "../../core/types";
 import type { EventContext, EventHandler } from "./types";
@@ -99,7 +100,7 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
   registry.set("response", () => {});
   registry.set("extension_error", () => {});
 
-  // Shared handlers
+  // Shared handlers (used by Pi and other providers)
   const inputLikeHandler: EventHandler = (data) => {
     const tool = (data.tool_name ?? data.tool ?? "Tool") as string;
     const prompt =
@@ -130,43 +131,11 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     }
   });
 
-  // Gemini (and any provider) standalone tool_use: record for tool_result lookup and show in chat
-  registry.set("tool_use", (data) => {
-    const toolId = data.tool_id as string | undefined;
-    const toolName = (data.tool_name ?? data.tool) as string | undefined;
-    const toolInput = (data.parameters ?? data.tool_input ?? data.input) as Record<string, unknown> | undefined;
-    if (toolId && toolName) {
-      ctx.recordToolUse?.(toolId, { tool_name: toolName, tool_input: toolInput });
-      appendToolUseDisplayLine(ctx, toolName, toolInput);
-      ctx.setCurrentActivity(formatToolUseForDisplay(toolName, toolInput));
-    }
-  });
-
-  // Gemini tool_result with policy_violation → show permission denial banner
-  registry.set("tool_result", (data) => {
-    ctx.setCurrentActivity(null);
-    const status = data.status as string | undefined;
-    const error = data.error as { type?: string; message?: string } | undefined;
-    if (status !== "error" || error?.type !== "policy_violation") return;
-    const toolId = data.tool_id as string | undefined;
-    if (!toolId) return;
-    const record = ctx.getAndClearToolUse?.(toolId);
-    const toolName = record?.tool_name ?? (data.tool_name as string) ?? "tool";
-    const toolInput = record?.tool_input;
-    const denial: PermissionDenial = {
-      tool_name: toolName,
-      tool: toolName,
-      tool_input: toolInput?.file_path != null ? { file_path: String(toolInput.file_path) } : toolInput?.path != null ? { path: String(toolInput.path) } : undefined,
-    };
-    ctx.addPermissionDenial?.(denial);
-  });
-
   return registry;
 }
 
 /**
- * Create a dispatcher that routes AI stream events to the appropriate handler.
- * Works with both Claude and Gemini event formats.
+ * Create a dispatcher that routes Pi RPC stream events to the appropriate handler.
  */
 export function createEventDispatcher(ctx: EventContext): (data: Record<string, unknown>) => void {
   const registry = createHandlerRegistry(ctx);

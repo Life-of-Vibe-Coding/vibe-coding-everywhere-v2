@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Highlight, themes } from "prism-react-renderer";
 import Markdown from "react-native-markdown-display";
+import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
 import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
 
@@ -86,6 +87,13 @@ function isMarkdownFile(path: string | null): boolean {
   if (!path || !path.includes(".")) return false;
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   return ext === "md" || ext === "mdx";
+}
+
+/** True if path suggests an HTML file that should be rendered. */
+function isHtmlFile(path: string | null): boolean {
+  if (!path || !path.includes(".")) return false;
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  return ext === "html" || ext === "htm";
 }
 
 export type CodeRefPayload = {
@@ -315,7 +323,20 @@ export function FileViewerModal({
           </View>
         )}
 
-        {content !== null && !loading && !error && !isImage && !isMarkdownFile(path) && (
+        {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
+          <View style={styles.htmlWrap}>
+            <WebView
+              source={{ html: content }}
+              style={styles.htmlWebView}
+              originWhitelist={["*"]}
+              javaScriptEnabled
+              domStorageEnabled
+              scalesPageToFit
+            />
+          </View>
+        )}
+
+        {content !== null && !loading && !error && !isImage && !isMarkdownFile(path) && !isHtmlFile(path) && (
           <View style={styles.codeWrap}>
             {truncated && (
               <View style={styles.truncatedBanner}>
@@ -512,6 +533,13 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 32,
+  },
+  htmlWrap: {
+    flex: 1,
+  },
+  htmlWebView: {
+    flex: 1,
+    backgroundColor: theme.surfaceBg,
   },
   codeWrap: {
     flex: 1,

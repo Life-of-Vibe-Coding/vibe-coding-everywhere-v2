@@ -213,7 +213,6 @@ export function InputPanel({
               accessibilityLabel="Terminate agent response"
             >
               <StopCircleIcon size={14} color={theme.mode === "dark" ? "#f87171" : "#c0392b"} />
-              <Text style={styles.btnTerminateAgentText}>Stop</Text>
             </TouchableOpacity>
           )}
           {!(claudeRunning && !waitingForUserInput) && (
@@ -276,7 +275,6 @@ export function InputPanel({
 
 function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
   const utilityButtonBg = theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const terminateTextColor = theme.mode === "dark" ? "#f87171" : "#c0392b";
   return StyleSheet.create({
   container: {
     flexDirection: "column",
@@ -495,11 +493,6 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     borderWidth: 1,
     borderColor: theme.mode === "dark" ? "rgba(248,113,113,0.45)" : "rgba(192,57,43,0.4)",
     justifyContent: "center",
-  },
-  btnTerminateAgentText: {
-    fontSize: 14,
-    color: terminateTextColor,
-    fontWeight: "600",
   },
   btnSend: {
     width: 36,

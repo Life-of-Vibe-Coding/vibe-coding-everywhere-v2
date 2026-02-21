@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
 import { View, Text, StyleSheet, Linking, Pressable, Alert, ScrollView, Platform } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import type { Message } from "../../services/socket/hooks";
 import { stripTrailingIncompleteTag } from "../../services/providers/stream";
-import { PlayIcon } from "../icons/ChatActionIcons";
+import { PlayIcon, TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
 import { BookOpenIcon, PencilIcon, FilePenIcon } from "../icons/FileActivityIcons";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
 
@@ -162,10 +162,11 @@ const URL_REGEX = /https?:\/\/[^\s\]\)\}\"']+?(?=[,;)\]}\s]|$)/g;
 
 const LINK_PLACEHOLDER_PREFIX = "\u200B\u200BLINK";
 const LINK_PLACEHOLDER_SUFFIX = "\u200B\u200B";
-const FILE_ACTIVITY_LINK_REGEX = /^(📝\s*Writing|✏️\s*Editing|📖\s*Reading)\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
+/** Supports both emoji (legacy) and non-emoji prefixes for backward compatibility. Groups: 1=prefix, 2=label, 3=encodedPath. */
+const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
 
-/** Matches "🖥 Running command:" followed by newlines, `cmd`, and optional status (→ or ->). */
-const BASH_COMMAND_BLOCK_REGEX = /🖥 Running command:\n+`([^`]*)`(?:\n\n(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?/g;
+/** Matches "Running command:" or "🖥 Running command:" followed by newlines, `cmd`, and optional status (→ or ->). */
+const BASH_COMMAND_BLOCK_REGEX = /(?:🖥\s*)?Running command:\n+`([^`]*)`(?:\n\n(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?/g;
 
 /** Status-only lines to filter out or assign to commands. */
 const STATUS_ONLY_REGEX = /^(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?\s*$/;
@@ -248,14 +249,15 @@ export function parseCommandRunSegments(content: string): Array<{ type: "markdow
             ? { status: m[1] as "Completed" | "Failed", exitCode: m[2] != null ? parseInt(m[2], 10) : undefined }
             : null;
         })
-        .filter((s): s is { status: "Completed" | "Failed"; exitCode?: number } => s != null);
+        .filter((s): s is { status: "Completed" | "Failed"; exitCode: number | undefined } => s !== null);
       const cmdIndices: number[] = [];
       for (let i = segments.length - 1; i >= 0; i--) {
         if ((segments[i] as CommandRunSegment).kind === "command") cmdIndices.unshift(i);
       }
       for (let i = 0; i < statuses.length && i < cmdIndices.length; i++) {
-        const cmd = segments[cmdIndices[i]] as CommandRunSegment;
         const s = statuses[i];
+        if (!s) continue;
+        const cmd = segments[cmdIndices[i]] as CommandRunSegment;
         cmd.status = s.status;
         cmd.exitCode = s.exitCode;
       }
@@ -268,9 +270,9 @@ export function parseCommandRunSegments(content: string): Array<{ type: "markdow
 
 function parseFileActivitySegments(content: string): FileActivitySegment[] {
   const lines = content.split(/\r?\n/);
-  return lines.map((line) => {
+  const raw: FileActivitySegment[] = lines.map((line) => {
     const match = line.match(FILE_ACTIVITY_LINK_REGEX);
-    if (!match) return { kind: "text", text: line };
+    if (!match) return { kind: "text" as const, text: line };
     const prefix = match[1] ?? "";
     const rawName = (match[2] ?? "").trim();
     const fileName = rawName.replace(/^`(.+)`$/, "$1");
@@ -281,8 +283,27 @@ function parseFileActivitySegments(content: string): FileActivitySegment[] {
     } catch {
       // Keep original path when decode fails for malformed legacy links.
     }
-    return { kind: "file", prefix, fileName, path };
+    return { kind: "file" as const, prefix, fileName, path };
   });
+  // Merge consecutive text segments so long read-result blocks (e.g. skill files) become one segment for collapse
+  const merged: FileActivitySegment[] = [];
+  let textAccum: string[] = [];
+  const flushText = () => {
+    if (textAccum.length > 0) {
+      merged.push({ kind: "text", text: textAccum.join("\n") });
+      textAccum = [];
+    }
+  };
+  for (const seg of raw) {
+    if (seg.kind === "file") {
+      flushText();
+      merged.push(seg);
+    } else {
+      textAccum.push(seg.text);
+    }
+  }
+  flushText();
+  return merged;
 }
 
 /** Wrap bare URLs in markdown link syntax so they render underlined and tappable. Preserves existing [text](url) links. */
@@ -304,13 +325,151 @@ function wrapBareUrlsInMarkdown(content: string): string {
   );
 }
 
-/** Matches file-activity lines from formatToolUseForDisplay (Writing, Reading, Editing). */
+/** Max chars to show for read-result content (e.g. skill files) before collapsing. */
+const MAX_READ_RESULT_PREVIEW = 1800;
+
+/** Matches think-tag blocks (extended thinking from some APIs). Capturing group 1 = inner content. */
+const THINKING_BLOCK_REGEX = /<think>([\s\S]*?)<\/think>/gi;
+
+/** Extract thinking blocks from content. Returns { thinking: string[], rest: string }. */
+function extractThinkingBlocks(content: string): { thinking: string[]; rest: string } {
+  const thinking: string[] = [];
+  const rest = content.replace(THINKING_BLOCK_REGEX, (_, inner) => {
+    thinking.push(inner.trim());
+    return "";
+  });
+  return { thinking, rest: rest.replace(/\n{3,}/g, "\n\n").trim() };
+}
+
+/** Collapsible "Thinking" / "Show reasoning" block. Default collapsed, 44px min touch target, muted background. */
+function CollapsibleThinkingBlock({
+  content,
+  theme,
+  markdownStyles,
+  markdownRules,
+  onLinkPress,
+  wrapBareUrls,
+  replaceHighlight,
+}: {
+  content: string;
+  theme: { textMuted: string; accent: string };
+  markdownStyles: React.ComponentProps<typeof Markdown>["style"];
+  markdownRules: React.ComponentProps<typeof Markdown>["rules"];
+  onLinkPress: (url: string) => boolean;
+  wrapBareUrls: (s: string) => string;
+  replaceHighlight: (s: string, c: string) => string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const MIN_TOUCH = 44;
+  return (
+    <View
+      style={{
+        marginVertical: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "transparent",
+        backgroundColor: theme.textMuted + "15",
+        overflow: "hidden",
+      }}
+    >
+      <Pressable
+        onPress={() => setExpanded((e) => !e)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          minHeight: MIN_TOUCH,
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={expanded ? "Hide reasoning" : "Show reasoning"}
+        accessibilityState={{ expanded }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: "600", color: theme.textMuted }}>
+          {expanded ? "Reasoning" : "Show reasoning"}
+        </Text>
+        <View style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}>
+          <ChevronDownIcon size={14} color={theme.textMuted} strokeWidth={2} />
+        </View>
+      </Pressable>
+      {expanded && (
+        <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+          <Markdown
+            style={markdownStyles}
+            mergeStyle
+            rules={markdownRules}
+            onLinkPress={onLinkPress}
+          >
+            {wrapBareUrls(replaceHighlight(content, theme.accent))}
+          </Markdown>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Collapsible block for long read results (skill files, etc.). Shows preview + "Show more" / "Show less". */
+function CollapsibleReadResult({
+  content,
+  previewLength,
+  markdownStyles,
+  theme,
+  markdownRules,
+  onLinkPress,
+  wrapBareUrls,
+  replaceHighlight,
+}: {
+  content: string;
+  previewLength: number;
+  markdownStyles: React.ComponentProps<typeof Markdown>["style"];
+  theme: { textMuted: string; accent: string };
+  markdownRules: React.ComponentProps<typeof Markdown>["rules"];
+  onLinkPress: (url: string) => boolean;
+  wrapBareUrls: (s: string) => string;
+  replaceHighlight: (s: string, c: string) => string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = content.length > previewLength;
+  const preview = isLong ? content.slice(0, previewLength).trimEnd() + "\n\n…" : content;
+  const moreChars = content.length - previewLength;
+  const displayContent = expanded ? content : preview;
+
+  return (
+    <View style={isLong && !expanded ? { minHeight: 80 } : undefined}>
+      <Markdown style={markdownStyles} mergeStyle rules={markdownRules ?? undefined} onLinkPress={onLinkPress}>
+        {wrapBareUrls(replaceHighlight(displayContent, theme.accent))}
+      </Markdown>
+      {isLong && (
+        <Pressable
+          onPress={() => setExpanded((e) => !e)}
+          style={{ paddingVertical: 12, paddingRight: 12, alignSelf: "flex-start", minHeight: 44, justifyContent: "center" }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={expanded ? "Show less" : `Show more, ${moreChars.toLocaleString()} more characters`}
+        >
+          <Text style={{ fontSize: 13, color: theme.accent, fontWeight: "500" }}>
+            {expanded ? "Show less" : `Show more (${moreChars.toLocaleString()} more characters)`}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/** Matches file-activity lines from formatToolUseForDisplay (Writing, Reading, Editing). Supports emoji and non-emoji prefixes. */
 export function hasFileActivityContent(content: string | null | undefined): boolean {
   if (!content || typeof content !== "string") return false;
   return (
-    /📝\s*Writing|✏️\s*Editing|📖\s*Reading/.test(content) ||
+    /(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading/.test(content) ||
     /Writing\s*`|Editing\s*`|Reading\s*`/.test(content)
   );
+}
+
+/** True if content contains markdown fenced code blocks (```). */
+export function hasCodeBlockContent(content: string | null | undefined): boolean {
+  if (!content || typeof content !== "string") return false;
+  return /```/.test(content);
 }
 
 interface MessageBubbleProps {
@@ -353,7 +512,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
   const markdownStyles = useMemo(
     () => ({
       body: { color: theme.textPrimary },
-      text: { fontSize: 15, lineHeight: 24, color: theme.textPrimary },
+      text: { fontSize: 16, lineHeight: 26, color: theme.textPrimary },
       paragraph: { marginTop: 4, marginBottom: 4 },
       heading1: { fontSize: 20, lineHeight: 28 },
       heading2: { fontSize: 18, lineHeight: 26 },
@@ -421,7 +580,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           backgroundColor: theme.mode === "dark" ? "#2a2e38" : "#e8e9ef",
         },
         bubbleSystem: {},
-        bubbleText: { fontSize: 15, lineHeight: 24, color: theme.textPrimary },
+        bubbleText: { fontSize: 16, lineHeight: 26, color: theme.textPrimary },
         bubbleTextSystem: { fontSize: 13, color: theme.textMuted },
         bubbleTextTerminated: { color: theme.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.textMuted, fontStyle: "italic" as const },
@@ -435,9 +594,10 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         fileActivityRow: {
           flexDirection: "row" as const,
           alignItems: "center",
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          marginBottom: 6,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          marginBottom: 10,
+          minHeight: 44,
           borderRadius: 8,
           borderLeftWidth: 4,
           gap: 10,
@@ -587,26 +747,30 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     () => collapseIdenticalCommandSteps(stripTrailingIncompleteTag(message.content ?? "")),
     [message.content]
   );
+  const { thinkingBlocks, contentWithoutThinking } = useMemo(() => {
+    const { thinking, rest } = extractThinkingBlocks(sanitizedContent);
+    return { thinkingBlocks: thinking, contentWithoutThinking: thinking.length > 0 ? rest : sanitizedContent };
+  }, [sanitizedContent]);
   const commandRunSegments = useMemo(
-    () => parseCommandRunSegments(sanitizedContent),
-    [sanitizedContent]
+    () => parseCommandRunSegments(contentWithoutThinking),
+    [contentWithoutThinking]
   );
   const hasCommandRunSegments = useMemo(
     () => commandRunSegments.some((s) => (s as { kind?: string }).kind === "command"),
     [commandRunSegments]
   );
   const markdownContent = useMemo(() => {
-    let out = replaceHighlightWithTextColor(sanitizedContent, theme.accent);
+    let out = replaceHighlightWithTextColor(contentWithoutThinking, theme.accent);
     for (let i = 0; i < 8; i++) {
       const next = fillEmptyBashBlocks(out);
       if (next === out) break;
       out = next;
     }
     return out;
-  }, [sanitizedContent, theme.accent]);
+  }, [contentWithoutThinking, theme.accent]);
   const fileActivitySegments = useMemo(
-    () => parseFileActivitySegments(sanitizedContent),
-    [sanitizedContent]
+    () => parseFileActivitySegments(contentWithoutThinking),
+    [contentWithoutThinking]
   );
   const hasRawFileActivityLinks = useMemo(
     () => fileActivitySegments.some((seg) => seg.kind === "file"),
@@ -672,7 +836,9 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 <Pressable
                   onPress={handleRunPress}
                   style={({ pressed }) => [styles.bashRunButton, pressed && styles.bashRunButtonPressed]}
-                  hitSlop={8}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Run command"
                 >
                   <PlayIcon size={11} color="#fff" />
                   <Text style={styles.bashRunButtonText}>Run</Text>
@@ -736,21 +902,40 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 <Text style={[styles.fileActivityActionLabel, getFileActivityActionStyle(seg.prefix)]}>
                   {actionLabel}
                 </Text>
-                <View style={{ flex: 1, minWidth: 0 }}>
+                <Pressable
+                  style={{ flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" }}
+                  onPress={() => onFileSelect?.(seg.path)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open file ${seg.fileName}`}
+                >
                   <Text
                     style={styles.fileActivityFileName}
-                    onPress={() => onFileSelect?.(seg.path)}
                     numberOfLines={1}
                     ellipsizeMode="middle"
                   >
                     {seg.fileName}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             );
           }
           if (!seg.text.trim()) {
             return <View key={`file-activity-space-${index}`} style={styles.fileActivityLine} />;
+          }
+          if (seg.text.length > MAX_READ_RESULT_PREVIEW) {
+            return (
+              <CollapsibleReadResult
+                key={`file-activity-text-${index}`}
+                content={seg.text}
+                previewLength={MAX_READ_RESULT_PREVIEW}
+                markdownStyles={markdownStyles}
+                theme={theme}
+                markdownRules={markdownRules ?? undefined}
+                onLinkPress={handleMarkdownLinkPress}
+                wrapBareUrls={wrapBareUrlsInMarkdown}
+                replaceHighlight={replaceHighlightWithTextColor}
+              />
+            );
           }
           return (
             <Markdown
@@ -797,9 +982,12 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
             style={styles.commandTerminalContainer}
           >
             <View style={styles.commandTerminalHeader}>
-              <Text style={styles.commandTerminalTitle}>
-                Commands ({cmds.length})
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <TerminalIcon color={terminalPrompt} size={14} strokeWidth={1.8} />
+                <Text style={styles.commandTerminalTitle}>
+                  Commands ({cmds.length})
+                </Text>
+              </View>
             </View>
             <ScrollView
               style={[styles.commandTerminalScrollBase, { height: scrollHeight }]}
@@ -818,6 +1006,17 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                   <Text style={styles.commandTerminalText} selectable numberOfLines={1} ellipsizeMode="tail">
                     {cmd.command}
                   </Text>
+                  {cmd.status && (
+                    <Text
+                      style={[
+                        styles.commandTerminalStatus,
+                        { color: cmd.status === "Failed" ? "#ef4444" : "#22c55e" },
+                      ]}
+                    >
+                      {cmd.status}
+                      {cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
+                    </Text>
+                  )}
                 </View>
               ))}
             </ScrollView>
@@ -883,14 +1082,44 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
             {message.content}
           </Text>
         ) : showAsTailBox ? (
-          <ScrollView
-            ref={tailScrollRef}
-            style={[styles.tailBoxScroll, { maxHeight: tailBoxMaxHeight }]}
-            contentContainerStyle={styles.tailBoxContent}
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-          >
+          <View style={{ maxHeight: tailBoxMaxHeight }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                paddingVertical: 6,
+                paddingBottom: 8,
+                marginBottom: 4,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.borderColor,
+              }}
+            >
+              <ChevronDownIcon size={12} color={theme.textMuted} strokeWidth={2} />
+              <Text style={{ fontSize: 12, fontWeight: "600", color: theme.textMuted }}>
+                Latest output
+              </Text>
+            </View>
+            <ScrollView
+              ref={tailScrollRef}
+              style={[styles.tailBoxScroll, { maxHeight: Math.max(120, tailBoxMaxHeight - 40) }]}
+              contentContainerStyle={[styles.tailBoxContent, { flexGrow: 0 }]}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+            {thinkingBlocks.map((t, i) => (
+              <CollapsibleThinkingBlock
+                key={`thinking-${i}`}
+                content={t}
+                theme={theme}
+                markdownStyles={markdownStyles}
+                markdownRules={markdownRules ?? {}}
+                onLinkPress={handleMarkdownLinkPress}
+                wrapBareUrls={wrapBareUrlsInMarkdown}
+                replaceHighlight={replaceHighlightWithTextColor}
+              />
+            ))}
             {hasCommandRunSegments ? (
               renderCommandRunSegmentsContent()
             ) : hasRawFileActivityLinks ? (
@@ -905,20 +1134,37 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
                 {wrapBareUrlsInMarkdown(markdownContent)}
               </Markdown>
             )}
-          </ScrollView>
-        ) : hasCommandRunSegments ? (
-          renderCommandRunSegmentsContent()
-        ) : hasRawFileActivityLinks ? (
-          renderFileActivityContent()
+            </ScrollView>
+          </View>
         ) : (
-          <Markdown
-            style={markdownStyles}
-            mergeStyle
-            rules={markdownRules}
-            onLinkPress={handleMarkdownLinkPress}
-          >
-            {wrapBareUrlsInMarkdown(markdownContent)}
-          </Markdown>
+          <>
+            {thinkingBlocks.map((t, i) => (
+              <CollapsibleThinkingBlock
+                key={`thinking-${i}`}
+                content={t}
+                theme={theme}
+                markdownStyles={markdownStyles}
+                markdownRules={markdownRules ?? {}}
+                onLinkPress={handleMarkdownLinkPress}
+                wrapBareUrls={wrapBareUrlsInMarkdown}
+                replaceHighlight={replaceHighlightWithTextColor}
+              />
+            ))}
+            {hasCommandRunSegments ? (
+              renderCommandRunSegmentsContent()
+            ) : hasRawFileActivityLinks ? (
+              renderFileActivityContent()
+            ) : (
+              <Markdown
+                style={markdownStyles}
+                mergeStyle
+                rules={markdownRules}
+                onLinkPress={handleMarkdownLinkPress}
+              >
+                {wrapBareUrlsInMarkdown(markdownContent)}
+              </Markdown>
+            )}
+          </>
         )
       ) : !isUser && !isSystem ? (
         <Text style={[styles.bubbleText, styles.bubbleTextPlaceholder]} selectable={false}>

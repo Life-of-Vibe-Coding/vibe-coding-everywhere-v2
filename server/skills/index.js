@@ -274,6 +274,62 @@ export function getSkillsRoster(skillsDir, agentDir) {
 }
 
 /**
+ * Sync a folder with symlinks to only the enabled skills. Used for Pi --skill loading.
+ * Creates targetDir/id -> skillsDir/id for each enabled skill that exists.
+ * @param {string} skillsDir - Absolute path to skills/ (from /api/skills)
+ * @param {string} agentDir - Resolved agent directory (for getEnabledIds)
+ * @param {string} targetDir - Where to create symlinks, e.g. workspaceCwd/.pi/skills-enabled
+ * @returns {string[]} Absolute paths to each enabled skill (for --skill flags)
+ */
+export function syncEnabledSkillsFolder(skillsDir, agentDir, targetDir) {
+  const enabledIds = getEnabledIds(agentDir);
+  if (enabledIds.length === 0) return [];
+
+  const skillRoot = path.resolve(skillsDir);
+  const paths = [];
+
+  try {
+    if (fs.existsSync(targetDir)) {
+      const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+      for (const ent of entries) {
+        if (!ent.name.startsWith(".")) {
+          const p = path.join(targetDir, ent.name);
+          try {
+            fs.unlinkSync(p); // symlinks are removed with unlink
+          } catch (_) {}
+          try {
+            fs.rmSync(p, { recursive: true, force: true });
+          } catch (_) {}
+        }
+      }
+    } else {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    for (const id of enabledIds) {
+      if (!id || typeof id !== "string") continue;
+      const subdir = path.basename(id);
+      const srcPath = path.join(skillRoot, subdir);
+      const skillFile = path.join(srcPath, SKILL_FILE);
+      if (!srcPath.startsWith(skillRoot) || !fs.existsSync(skillFile) || !fs.statSync(skillFile).isFile()) continue;
+
+      const linkPath = path.join(targetDir, subdir);
+      try {
+        fs.symlinkSync(srcPath, linkPath, "dir");
+      } catch (err) {
+        console.warn("[skills] Failed to symlink", subdir, err?.message);
+        continue;
+      }
+      paths.push(linkPath);
+    }
+  } catch (err) {
+    console.warn("[skills] Failed to sync enabled-skills folder:", err?.message);
+  }
+
+  return paths;
+}
+
+/**
  * Load full SKILL.md content for enabled skills, for prompt injection.
  * Only loads skills that exist and are under skillsDir (security).
  * @param {string} skillsDir - Absolute path to skills/

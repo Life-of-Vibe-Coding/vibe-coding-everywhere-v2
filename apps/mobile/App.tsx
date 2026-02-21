@@ -56,7 +56,7 @@ import {
 } from "./src/core";
 
 // Component Imports
-import { MessageBubble, hasFileActivityContent } from "./src/components/chat/MessageBubble";
+import { MessageBubble, hasFileActivityContent, hasCodeBlockContent } from "./src/components/chat/MessageBubble";
 import { TypingIndicator } from "./src/components/chat/TypingIndicator";
 import { PermissionDenialBanner } from "./src/components/common/PermissionDenialBanner";
 import { AskQuestionModal } from "./src/components/chat/AskQuestionModal";
@@ -636,10 +636,13 @@ export default function App() {
                     const messageToShow = showTerminated
                       ? { ...item, content: "Terminated" }
                       : item;
+                    const hasCodeOrFileContent =
+                      hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
                     const showTailBox =
                       isLast &&
                       item.role === "assistant" &&
-                      hasFileActivityContent(item.content);
+                      !!(item.content && item.content.trim()) &&
+                      hasCodeOrFileContent;
                     return (
                       <MessageBubble
                         message={messageToShow}

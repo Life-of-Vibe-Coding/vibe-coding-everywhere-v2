@@ -389,17 +389,14 @@ export function isAskUserQuestionPayload(data: unknown): boolean {
   return Array.isArray(input?.questions) && (input.questions as unknown[]).length > 0;
 }
 
-/** Union of all provider stream output types (for typing dispatcher input). */
-export type ProviderStreamOutput = ClaudeStreamOutput | GeminiStreamOutput | CodexStreamOutput | PiStreamOutput;
+/** Union of provider stream output types. Pi is the mono provider; legacy types kept for typing only. */
+export type ProviderStreamOutput = PiStreamOutput | ClaudeStreamOutput | GeminiStreamOutput | CodexStreamOutput;
 
-/** Check if data matches known AI stream event format (works for Claude, Gemini, Codex, and Pi). */
+/** Check if data is a Pi RPC stream event (or permission/AskUserQuestion payload). Pi is the native output format. */
 export function isProviderStream(data: unknown): data is ProviderStreamOutput | (Record<string, unknown> & { permission_denials: unknown[] }) {
   if (typeof data !== "object" || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
-    isClaudeStreamOutput(obj) ||
-    isGeminiStreamOutput(obj) ||
-    isCodexStreamOutput(obj) ||
     isPiStreamOutput(obj) ||
     Array.isArray(obj.permission_denials) ||
     isAskUserQuestionPayload(obj)

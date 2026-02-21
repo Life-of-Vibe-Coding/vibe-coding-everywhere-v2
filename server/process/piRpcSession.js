@@ -12,7 +12,10 @@ import {
   getWorkspaceCwd,
   PI_CLI_PATH,
   getLlmCliIoTurnPaths,
+  SKILLS_DIR,
+  projectRoot,
 } from "../config/index.js";
+import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
 
 const CLIENT_PROVIDER_TO_PI = {
   claude: "anthropic", // OAuth from auth.json
@@ -121,10 +124,30 @@ export function createPiRpcSession({
   let pendingExtensionUiRequest = null;
   let piIoOutputStream = null;
 
+  /** Emit full event to client; write slim event to log for message_update to avoid O(n²) growth. */
   function emitOutputLine(line) {
     socket.emit("output", line);
-    if (piIoOutputStream?.writable) {
-      piIoOutputStream.write(typeof line === "string" ? line : JSON.stringify(line) + "\n");
+    if (!piIoOutputStream?.writable) return;
+    const str = typeof line === "string" ? line : JSON.stringify(line);
+    const trimmed = str.trimEnd();
+    if (trimmed.startsWith('{"type":"message_update"')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const ev = parsed.assistantMessageEvent ?? {};
+        const slim = {
+          type: "message_update",
+          assistantMessageEvent: {
+            type: ev.type,
+            contentIndex: ev.contentIndex,
+            delta: ev.delta ?? ev.content,
+          },
+        };
+        piIoOutputStream.write(JSON.stringify(slim) + "\n");
+      } catch {
+        piIoOutputStream.write(str + (str.endsWith("\n") ? "" : "\n"));
+      }
+    } else {
+      piIoOutputStream.write(str + (str.endsWith("\n") ? "" : "\n"));
     }
   }
 
@@ -221,8 +244,16 @@ export function createPiRpcSession({
       "--provider", piProvider,
       "--model", piModel,
       "--session-dir", sessionDir,
-      "--no-skills", // Disable Pi's skill discovery; we inject skills from project skills/ via prompt
+      "--no-skills",
     ];
+
+    // Register only enabled skills (from /api/skills) via --skill flags
+    const skillsAgentDir = resolveAgentDir(cwd, projectRoot);
+    const skillsEnabledDir = path.join(cwd, ".pi", "skills-enabled");
+    const skillPaths = syncEnabledSkillsFolder(SKILLS_DIR, skillsAgentDir, skillsEnabledDir);
+    for (const p of skillPaths) {
+      args.push("--skill", p);
+    }
 
     const commandStr = [PI_CLI_PATH, ...args].join(" ");
     console.log("[pi] command:", commandStr);

@@ -6,13 +6,11 @@ import {
   getWorkspaceCwd,
   getLlmCliIoTurnPaths,
   projectRoot,
-  SKILLS_DIR,
   DEFAULT_PERMISSION_MODE,
   DEFAULT_PROVIDER,
 } from "../config/index.js";
 
 import { createPiRpcSession } from "./piRpcSession.js";
-import { getSkillsRoster, loadEnabledSkillsContent, resolveAgentDir } from "../skills/index.js";
 
 export const globalSpawnChildren = new Set();
 
@@ -125,14 +123,7 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
       session_management.model = model;
     }
 
-    const cwd = getWorkspaceCwd();
-    const agentDir = resolveAgentDir(cwd, projectRoot);
-    const roster = getSkillsRoster(SKILLS_DIR, agentDir);
-    const enabledContent = loadEnabledSkillsContent(SKILLS_DIR, agentDir);
-    const skillsContext = [roster, enabledContent].filter(Boolean).join("");
-    const finalPrompt = skillsContext ? skillsContext + prompt : prompt;
-
-    piRpcSession.startTurn({ prompt: finalPrompt, options }).catch((err) => {
+    piRpcSession.startTurn({ prompt, options }).catch((err) => {
       emitError(socket, err?.message || "Failed to start Pi RPC.");
       socket.emit("exit", { exitCode: 1 });
     });

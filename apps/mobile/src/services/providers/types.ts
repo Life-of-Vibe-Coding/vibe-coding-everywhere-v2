@@ -105,15 +105,26 @@ export function collectTextFromContentBlocks(contents: ProviderContentBlock[]): 
     .join("");
 }
 
-/** Append only delta when provider sends a full accumulated assistant snapshot. */
+/** Append only delta when provider sends a full accumulated assistant snapshot.
+ * Avoids duplicate display when fullText is already contained in current (e.g. turn_end
+ * snapshot differs slightly from streamed text_delta content). */
 export function appendSnapshotTextDelta(ctx: EventContext, fullText: string): void {
   if (!fullText) return;
   const current = ctx.getCurrentAssistantContent();
-  const delta =
-    current.length > 0 && fullText.startsWith(current)
-      ? fullText.slice(current.length)
-      : fullText;
-  if (delta) ctx.appendAssistantText(delta);
+  // fullText already fully in current → nothing to append (prevents duplicate)
+  if (current.length >= fullText.length && (current.startsWith(fullText) || current === fullText)) {
+    return;
+  }
+  // current is prefix of fullText → append only the new part
+  if (current.length > 0 && fullText.startsWith(current)) {
+    const delta = fullText.slice(current.length);
+    if (delta) ctx.appendAssistantText(delta);
+    return;
+  }
+  // Unrelated/partial overlap: append fullText only when current is empty (fresh message)
+  if (current.length === 0) {
+    ctx.appendAssistantText(fullText);
+  }
 }
 
 /**
@@ -154,11 +165,11 @@ export function formatToolUseForDisplay(name: string, input: unknown): string {
 
   switch (n) {
     case "Read":
-      return file && pathStr ? fileActivityLine("📖 Reading", file, pathStr) : "📖 Reading file";
+      return file && pathStr ? fileActivityLine("Reading", file, pathStr) : "Reading file";
     case "Edit":
-      return file && pathStr ? fileActivityLine("✏️ Editing", file, pathStr) : "✏️ Editing file";
+      return file && pathStr ? fileActivityLine("Editing", file, pathStr) : "Editing file";
     case "Write":
-      return file && pathStr ? fileActivityLine("📝 Writing", file, pathStr) : "📝 Writing file";
+      return file && pathStr ? fileActivityLine("Writing", file, pathStr) : "Writing file";
     case "Bash": {
       // Support obj.command (Claude/Codex) and obj.args?.command (Pi/OpenAI schema)
       const args = obj.args && typeof obj.args === "object" ? (obj.args as Record<string, unknown>) : null;
@@ -172,21 +183,21 @@ export function formatToolUseForDisplay(name: string, input: unknown): string {
         cmd.length <= maxLen
           ? cmd
           : cmd.slice(0, maxLen - 20) + " … " + cmd.slice(-16);
-      return displayCmd ? `🖥 Running command:\n\n\`${displayCmd}\`` : "🖥 Running command";
+      return displayCmd ? `Running command:\n\n\`${displayCmd}\`` : "Running command";
     }
     case "TodoWrite":
-      return "📋 Updating tasks";
+      return "Updating tasks";
     case "AskUserQuestion": {
       const questions = obj.questions as Array<{ question?: string; header?: string; options?: Array<{ label?: string }> }> | undefined;
       const q = Array.isArray(questions) && questions[0] ? questions[0] : null;
       const header = q?.header ? `${q.header}: ` : "";
       const question = (q?.question ?? "Question").slice(0, 80);
       const opts = q?.options?.map((o) => o.label ?? "").filter(Boolean).slice(0, 4).join(", ");
-      return opts ? `❓ **${header}**${question} — _${opts}_` : `❓ **${header}**${question}`;
+      return opts ? `**${header}**${question} — _${opts}_` : `**${header}**${question}`;
     }
     case "Grep":
     case "Glob":
-      return file ? `🔍 \`${n}\` in \`${file}\`` : `🔍 ${n}`;
+      return file ? `\`${n}\` in \`${file}\`` : `${n}`;
     default:
       return file ? `**${n}** \`${file}\`` : `**${n}**`;
   }
