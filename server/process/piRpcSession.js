@@ -1,0 +1,365 @@
+/**
+ * Pi RPC session manager.
+ *
+ * Spawns `pi --mode rpc` and forwards events to the socket.
+ * Uses native Pi RPC protocol; extension_ui_request is transformed to AskUserQuestion
+ * for compatibility with the client's approval modal.
+ */
+import fs from "fs";
+import path from "path";
+import { spawn } from "child_process";
+import {
+  getWorkspaceCwd,
+  PI_CLI_PATH,
+  getLlmCliIoTurnPaths,
+} from "../config/index.js";
+
+const CLIENT_PROVIDER_TO_PI = {
+  claude: "anthropic", // OAuth from auth.json
+  codex: "openai-codex", // OAuth from auth.json
+  pi: "openai-codex", // fallback; for "pi" we derive from model in ensurePiProcess
+  gemini: "google-gemini-cli", // OAuth from auth.json
+};
+
+/** Map client short model names to Pi CLI model IDs (Pi expects anthropic/claude-sonnet-4-5, not anthropic/sonnet4.5). */
+const CLIENT_MODEL_TO_PI = {
+  "sonnet4.5": "claude-sonnet-4-5",
+  "opus4.5": "claude-opus-4-5",
+};
+
+function toPiModel(clientModel, piProvider) {
+  if (piProvider === "anthropic" && clientModel && CLIENT_MODEL_TO_PI[clientModel]) {
+    return CLIENT_MODEL_TO_PI[clientModel];
+  }
+  return clientModel;
+}
+
+/** Derive Pi backend provider from model when clientProvider is "pi". */
+function getPiProviderForModel(clientProvider, model) {
+  if (clientProvider !== "pi") {
+    return CLIENT_PROVIDER_TO_PI[clientProvider] ?? "anthropic";
+  }
+  if (typeof model === "string" && /^gemini-/.test(model)) return "google-gemini-cli";
+  if (typeof model === "string" && /^gpt-/.test(model)) return "openai-codex";
+  if (typeof model === "string" && (/^claude-/.test(model) || /^(sonnet4\.5|opus4\.5|claude-haiku)/.test(model))) return "anthropic";
+  return "google-gemini-cli"; // default pi to gemini (OAuth)
+}
+
+function parseAskQuestionAnswersFromInput(raw) {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    const top = JSON.parse(raw);
+    const content = top?.message?.content;
+    if (!Array.isArray(content) || content.length === 0) return null;
+    const first = content[0];
+    const inner = typeof first?.content === "string" ? first.content : null;
+    if (!inner) return null;
+    const parsed = JSON.parse(inner);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function decideApprovalFromAnswers(answers, fallbackRaw) {
+  const selected = Array.isArray(answers)
+    ? answers.flatMap((a) => (Array.isArray(a?.selected) ? a.selected : []))
+    : [];
+  const normalized = selected.map((s) => String(s).trim().toLowerCase());
+  const hasAccept = normalized.some((s) => /approve|accept|allow|run/.test(s));
+  const hasDeny = normalized.some((s) => /deny|decline|reject|cancel|block/.test(s));
+  if (hasAccept && !hasDeny) return true;
+  if (hasDeny && !hasAccept) return false;
+  const raw = typeof fallbackRaw === "string" ? fallbackRaw.trim().toLowerCase() : "";
+  if (["y", "yes", "approve", "accept", "allow", "run"].includes(raw)) return true;
+  if (["n", "no", "deny", "decline", "reject", "cancel", "block"].includes(raw)) return false;
+  return false;
+}
+
+/**
+ * Transform Pi extension_ui_request to AskUserQuestion format for client modal.
+ */
+function toAskUserQuestionPayload(request) {
+  const id = request.id;
+  const method = request.method;
+  const title = request.title ?? "Approval";
+  const message = request.message ?? title;
+  const options = request.options ?? ["Allow", "Deny"];
+
+  const questions = [
+    {
+      header: String(title),
+      question: String(message),
+      options: options.map((o) => ({
+        label: typeof o === "string" ? o : String(o?.label ?? o),
+        description: typeof o === "object" && o != null ? o.description : undefined,
+      })),
+      multiSelect: false,
+    },
+  ];
+
+  return {
+    tool_name: "AskUserQuestion",
+    tool_use_id: id,
+    uuid: id,
+    tool_input: { questions },
+  };
+}
+
+export function createPiRpcSession({
+  socket,
+  hasCompletedFirstRunRef,
+  sessionManagement,
+  globalSpawnChildren,
+  getWorkspaceCwd,
+  projectRoot,
+  getLlmCliIoTurnPaths,
+}) {
+  let piProcess = null;
+  let stdoutBuffer = "";
+  let turnRunning = false;
+  let pendingExtensionUiRequest = null;
+  let piIoOutputStream = null;
+
+  function emitOutputLine(line) {
+    socket.emit("output", line);
+    if (piIoOutputStream?.writable) {
+      piIoOutputStream.write(typeof line === "string" ? line : JSON.stringify(line) + "\n");
+    }
+  }
+
+  function closeIoOutputStream() {
+    if (!piIoOutputStream?.writable) return;
+    try {
+      piIoOutputStream.end();
+    } catch (_) {}
+    piIoOutputStream = null;
+  }
+
+  function sendCommand(cmd) {
+    if (!piProcess?.stdin?.writable) return;
+    const line = JSON.stringify(cmd) + "\n";
+    piProcess.stdin.write(line);
+  }
+
+  function close() {
+    closeIoOutputStream();
+    pendingExtensionUiRequest = null;
+    if (!piProcess) return;
+    globalSpawnChildren.delete(piProcess);
+    try {
+      piProcess.kill();
+    } catch (_) {}
+    piProcess = null;
+    turnRunning = false;
+  }
+
+  function handlePiEvent(parsed) {
+    if (!parsed || typeof parsed !== "object") return;
+    const type = String(parsed.type ?? "");
+
+    // Forward most events as-is (native Pi RPC protocol)
+    if (type === "extension_ui_request") {
+      const method = parsed.method;
+      // Dialog methods (select, confirm, input, editor) need user response
+      if (["select", "confirm"].includes(method)) {
+        pendingExtensionUiRequest = { id: parsed.id, method, request: parsed };
+        const askPayload = toAskUserQuestionPayload(parsed);
+        emitOutputLine(JSON.stringify(askPayload) + "\n");
+      }
+      // Fire-and-forget methods (notify, setStatus, etc.) - no response needed
+      return;
+    }
+
+    if (type === "agent_start") {
+      turnRunning = true;
+    }
+
+    if (type === "agent_end") {
+      turnRunning = false;
+      hasCompletedFirstRunRef.value = true;
+      closeIoOutputStream();
+      socket.emit("exit", { exitCode: 0 });
+    }
+
+    if (type === "response" && parsed.success === false) {
+      const err = parsed.error ?? "Pi request failed";
+      emitOutputLine(`\r\n\x1b[31m[Error] ${err}\x1b[0m\r\n`);
+      if (parsed.command === "prompt") {
+        turnRunning = false;
+        closeIoOutputStream();
+        socket.emit("exit", { exitCode: 1 });
+      }
+      return;
+    }
+
+    if (type === "extension_error") {
+      const err = parsed.error ?? "Extension error";
+      emitOutputLine(`\r\n\x1b[31m[Error] ${err}\x1b[0m\r\n`);
+      return;
+    }
+
+    // Forward all events to client (native Pi protocol)
+    emitOutputLine(JSON.stringify(parsed) + "\n");
+  }
+
+  async function ensurePiProcess(options) {
+    if (piProcess) return;
+
+    const piProvider = getPiProviderForModel(options.clientProvider ?? "claude", options.model);
+    const rawModel = options.model ?? (piProvider === "anthropic" ? "claude-sonnet-4-5" : piProvider === "openai" || piProvider === "openai-codex" ? "gpt-4o" : "gemini-2.0-flash");
+    const piModel = toPiModel(rawModel, piProvider);
+    const cwd = getWorkspaceCwd();
+    const sessionDir = path.join(cwd, ".pi", "sessions");
+
+    try {
+      fs.mkdirSync(path.dirname(sessionDir), { recursive: true });
+    } catch (_) {}
+
+    const args = [
+      "--mode", "rpc",
+      "--provider", piProvider,
+      "--model", piModel,
+      "--session-dir", sessionDir,
+      "--no-skills", // Disable Pi's skill discovery; we inject skills from project skills/ via prompt
+    ];
+
+    const commandStr = [PI_CLI_PATH, ...args].join(" ");
+    console.log("[pi] command:", commandStr);
+
+    // Resolve agent dir: workspace .pi/agent first, then project root .pi/agent.
+    // Auth in project root (.pi/agent/auth.json) is used when workspace has no auth.
+    const workspaceAgentDir = path.join(cwd, ".pi", "agent");
+    const workspaceAuthPath = path.join(workspaceAgentDir, "auth.json");
+    const projectAgentDir = projectRoot ? path.join(projectRoot, ".pi", "agent") : null;
+    const projectAuthPath = projectAgentDir ? path.join(projectAgentDir, "auth.json") : null;
+
+    const agentDir =
+      fs.existsSync(workspaceAuthPath)
+        ? workspaceAgentDir
+        : projectAuthPath && fs.existsSync(projectAuthPath)
+          ? projectAgentDir
+          : null;
+
+    const spawnEnv = { ...process.env };
+    if (agentDir) {
+      spawnEnv.PI_CODING_AGENT_DIR = agentDir;
+    }
+
+    const child = spawn(PI_CLI_PATH, args, {
+      cwd,
+      env: spawnEnv,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    piProcess = child;
+    globalSpawnChildren.add(child);
+
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      const text = String(chunk ?? "");
+      stdoutBuffer += text;
+      const lines = stdoutBuffer.split("\n");
+      stdoutBuffer = lines.pop() ?? "";
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const jsonStart = line.indexOf("{");
+        const candidate = jsonStart >= 0 ? line.slice(jsonStart) : line;
+        try {
+          const parsed = JSON.parse(candidate);
+          handlePiEvent(parsed);
+        } catch (_) {
+          emitOutputLine(line + "\n");
+        }
+      }
+    });
+
+    child.stderr.on("data", (chunk) => {
+      const text = String(chunk ?? "");
+      if (text) socket.emit("output", text);
+    });
+
+    child.on("exit", (code) => {
+      globalSpawnChildren.delete(child);
+      if (piProcess === child) piProcess = null;
+      turnRunning = false;
+      pendingExtensionUiRequest = null;
+      closeIoOutputStream();
+      socket.emit("exit", { exitCode: Number.isInteger(code) ? code : 0 });
+    });
+  }
+
+  async function startTurn({ prompt, options }) {
+    await ensurePiProcess({
+      clientProvider: options.clientProvider,
+      model: options.model,
+    });
+
+    const sessionId = options.sessionLogTimestamp ?? options.conversationSessionId ?? "unknown";
+    const turnId = options.turnId ?? 1;
+    try {
+      const { inputPath, outputPath } = getLlmCliIoTurnPaths("pi", sessionId, turnId);
+      const ioInputStream = fs.createWriteStream(inputPath, { flags: "a" });
+      ioInputStream.write(`pi --mode rpc ...\n`);
+      ioInputStream.write(`${prompt}\n`);
+      ioInputStream.end();
+      closeIoOutputStream();
+      piIoOutputStream = fs.createWriteStream(outputPath, { flags: "a" });
+    } catch (err) {
+      console.warn("[llm-cli-io] Failed to create Pi turn log files:", err?.message);
+    }
+
+    socket.emit("claude-started", {
+      provider: options.clientProvider ?? sessionManagement?.provider ?? "claude",
+      session_id: null,
+      permissionMode: null,
+      allowedTools: [],
+      useContinue: !!hasCompletedFirstRunRef?.value,
+      approvalMode: null,
+    });
+
+    sendCommand({ type: "prompt", message: prompt });
+  }
+
+  function handleInput(data) {
+    if (!piProcess || !pendingExtensionUiRequest) return false;
+
+    const raw = typeof data === "string" ? data : JSON.stringify(data);
+    const answers = parseAskQuestionAnswersFromInput(raw);
+    const pending = pendingExtensionUiRequest;
+    pendingExtensionUiRequest = null;
+
+    const response = { type: "extension_ui_response", id: pending.id };
+
+    if (pending.method === "confirm") {
+      const approved = decideApprovalFromAnswers(answers, typeof data === "string" ? data : "");
+      response.confirmed = approved;
+    } else if (pending.method === "select") {
+      const selected = Array.isArray(answers) && answers[0]?.selected?.[0];
+      if (selected != null) {
+        response.value = String(selected);
+      } else {
+        response.cancelled = true;
+      }
+    }
+
+    sendCommand(response);
+    return true;
+  }
+
+  function hasProcess() {
+    return piProcess !== null;
+  }
+
+  function isTurnRunning() {
+    return turnRunning;
+  }
+
+  return {
+    hasProcess,
+    isTurnRunning,
+    close,
+    startTurn,
+    handleInput,
+  };
+}

@@ -1,0 +1,29 @@
+{
+  "name": "terminal-pty",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper 2>/dev/null || chmod +x node_modules/node-pty/prebuilds/darwin-x64/spawn-helper 2>/dev/null || true && patch-package",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "dev:mobile": "EXPO_PUBLIC_SERVER_URL=http://localhost:3456 npm run -w mobile start",
+    "dev:mobile:funnel": "node scripts/start-mobile-funnel.mjs",
+    "icons:convert": "node scripts/convert-atom-icons.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "node-pty": "^1.0.0",
+    "socket.io": "^4.8.1",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "patch-package": "^8.0.0",
+    "sharp": "^0.34.5"
+  }
+}

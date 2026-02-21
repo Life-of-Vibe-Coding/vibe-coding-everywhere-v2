@@ -1,0 +1,181 @@
+/**
+ * Shared event dispatcher that combines Claude and Gemini event handlers.
+ *
+ * Dispatches AI stream events to the registered handler for data.type.
+ * Handles permission_denials before type; falls back to appending as text for unknown types.
+ */
+import type { PermissionDenial, PendingAskUserQuestion } from "../../core/types";
+import type { EventContext, EventHandler } from "./types";
+import { appendToolUseDisplayLine, formatToolUseForDisplay } from "./types";
+import { isAskUserQuestionPayload } from "./stream";
+import { registerClaudeHandlers } from "./claude/eventHandlers";
+import { registerGeminiHandlers } from "./gemini/eventHandlers";
+import { registerCodexHandlers } from "./codex/eventHandlers";
+import { registerPiHandlers } from "./pi/eventHandlers";
+
+function normalizeAskUserQuestionPayload(data: Record<string, unknown>): PendingAskUserQuestion | null {
+  const toolUseId = String(data.tool_use_id ?? "");
+  const input = data.tool_input as Record<string, unknown> | undefined;
+  const questions = input?.questions as Array<{ question?: string; header: string; options: Array<{ label: string; description?: string }>; multiSelect?: boolean }> | undefined;
+  if (!toolUseId || !Array.isArray(questions) || questions.length === 0) return null;
+  const uuid = data.uuid ?? input?.uuid;
+  return {
+    tool_use_id: toolUseId,
+    uuid: uuid != null ? String(uuid) : undefined,
+    questions: questions.map((q) => ({
+      question: q.question,
+      header: q.header ?? "",
+      options: Array.isArray(q.options) ? q.options.map((o) => ({ label: String(o?.label ?? ""), description: o?.description != null ? String(o.description) : undefined })) : [],
+      multiSelect: !!q.multiSelect,
+    })),
+  };
+}
+
+/** AskUserQuestion is handled by the question modal. Returns filtered list and extracted AskUserQuestion payload if any. */
+function processPermissionDenials(
+  denials: PermissionDenial[],
+  topLevelData: Record<string, unknown>
+): { filteredDenials: PermissionDenial[]; askUserQuestionPayload: Record<string, unknown> | null } {
+  let askPayload: Record<string, unknown> | null = null;
+  const filtered = denials.filter((d) => {
+    const tool = d.tool_name ?? d.tool ?? "";
+    if (String(tool).trim() !== "AskUserQuestion") return true;
+    const input = (d as Record<string, unknown>).tool_input as Record<string, unknown> | undefined;
+    if (input && Array.isArray(input.questions) && input.questions.length > 0) {
+      askPayload = {
+        tool_name: "AskUserQuestion",
+        tool_use_id: (d as Record<string, unknown>).tool_use_id,
+        tool_input: input,
+        uuid: topLevelData.uuid ?? input.uuid,
+      };
+    }
+    return false;
+  });
+  return { filteredDenials: filtered, askUserQuestionPayload: askPayload };
+}
+
+/**
+ * Registry of AI stream event handlers (Strategy pattern).
+ * Combines provider-specific handlers (Claude/Gemini) with shared handlers.
+ * Extend by adding new entries to the map; dispatcher logic stays unchanged (Open-Closed).
+ */
+function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
+  const registry = new Map<string, EventHandler>();
+
+  // Register provider-specific handlers
+  registerClaudeHandlers(registry, ctx);
+  registerGeminiHandlers(registry, ctx);
+  registerCodexHandlers(registry, ctx);
+  registerPiHandlers(registry, ctx);
+
+  // Shared handlers used by both providers
+  const inputLikeHandler: EventHandler = (data) => {
+    const tool = (data.tool_name ?? data.tool ?? "Tool") as string;
+    const prompt =
+      (data.prompt ?? data.message ?? data.description ?? "Claude needs your input.") as string;
+    ctx.setWaitingForUserInput(true);
+    ctx.addMessage("system", `${tool} request:\n${prompt}\n(Type a response and press Enter)`);
+  };
+  registry.set("input", inputLikeHandler);
+  registry.set("permission_request", inputLikeHandler);
+
+  registry.set("user", () => {});
+
+  registry.set("result", (data) => {
+    const resultText = typeof (data as { result?: string }).result === "string"
+      ? (data as { result: string }).result.trim()
+      : "";
+    if (!resultText) return;
+    const current = ctx.getCurrentAssistantContent();
+    // Append result summary only when it's not already the same as current content (avoid duplicate).
+    const curTrim = current.trim();
+    const resultTrim = resultText.trim();
+    const willAppend = !curTrim.endsWith(resultTrim) && resultTrim.length > 0;
+    // #region agent log
+    fetch('http://127.0.0.1:7648/ingest/90b82ca6-2c33-4285-83a2-301e58d458f5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'90f72f'},body:JSON.stringify({sessionId:'90f72f',location:'eventDispatcher.ts:result',message:'result event',data:{resultLen:resultText.length,willAppend},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
+    if (willAppend) {
+      ctx.appendAssistantText("\n\n---\n\n" + resultText);
+    }
+  });
+
+  // Gemini (and any provider) standalone tool_use: record for tool_result lookup and show in chat
+  registry.set("tool_use", (data) => {
+    const toolId = data.tool_id as string | undefined;
+    const toolName = (data.tool_name ?? data.tool) as string | undefined;
+    const toolInput = (data.parameters ?? data.tool_input ?? data.input) as Record<string, unknown> | undefined;
+    if (toolId && toolName) {
+      ctx.recordToolUse?.(toolId, { tool_name: toolName, tool_input: toolInput });
+      appendToolUseDisplayLine(ctx, toolName, toolInput);
+      ctx.setCurrentActivity(formatToolUseForDisplay(toolName, toolInput));
+    }
+  });
+
+  // Gemini tool_result with policy_violation → show permission denial banner
+  registry.set("tool_result", (data) => {
+    ctx.setCurrentActivity(null);
+    const status = data.status as string | undefined;
+    const error = data.error as { type?: string; message?: string } | undefined;
+    if (status !== "error" || error?.type !== "policy_violation") return;
+    const toolId = data.tool_id as string | undefined;
+    if (!toolId) return;
+    const record = ctx.getAndClearToolUse?.(toolId);
+    const toolName = record?.tool_name ?? (data.tool_name as string) ?? "tool";
+    const toolInput = record?.tool_input;
+    const denial: PermissionDenial = {
+      tool_name: toolName,
+      tool: toolName,
+      tool_input: toolInput?.file_path != null ? { file_path: String(toolInput.file_path) } : toolInput?.path != null ? { path: String(toolInput.path) } : undefined,
+    };
+    ctx.addPermissionDenial?.(denial);
+  });
+
+  return registry;
+}
+
+/**
+ * Create a dispatcher that routes AI stream events to the appropriate handler.
+ * Works with both Claude and Gemini event formats.
+ */
+export function createEventDispatcher(ctx: EventContext): (data: Record<string, unknown>) => void {
+  const registry = createHandlerRegistry(ctx);
+  return (data: Record<string, unknown>) => {
+    if (Array.isArray(data.permission_denials) && data.permission_denials.length) {
+      const list = data.permission_denials as PermissionDenial[];
+      const deduped = ctx.deduplicateDenials(list);
+      const { filteredDenials, askUserQuestionPayload } = processPermissionDenials(deduped, data);
+      ctx.setPermissionDenials(filteredDenials.length > 0 ? filteredDenials : null);
+      if (askUserQuestionPayload) {
+        const pending = normalizeAskUserQuestionPayload(askUserQuestionPayload);
+        if (pending) {
+          ctx.setPendingAskQuestion(pending);
+          ctx.setWaitingForUserInput(true);
+        }
+      }
+    }
+    if (isAskUserQuestionPayload(data)) {
+      if (__DEV__) {
+        console.log("[eventDispatcher] AskUserQuestion received", {
+          tool_use_id: (data as Record<string, unknown>).tool_use_id,
+          questionsCount: ((data as Record<string, unknown>).tool_input as { questions?: unknown[] })?.questions?.length,
+        });
+      }
+      const pending = normalizeAskUserQuestionPayload(data);
+      if (pending) {
+        ctx.setPendingAskQuestion(pending);
+        ctx.setWaitingForUserInput(true);
+      }
+      return;
+    }
+    const type = String(data.type ?? "");
+    const handler = registry.get(type);
+    if (handler) {
+      handler(data, ctx);
+    } else {
+      if (typeof data === "string") ctx.appendAssistantText(`${data}\n`);
+    }
+  };
+}
+
+/** @deprecated Use createEventDispatcher */
+export const createClaudeEventDispatcher = createEventDispatcher;

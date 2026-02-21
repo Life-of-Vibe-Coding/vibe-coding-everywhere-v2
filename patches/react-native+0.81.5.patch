@@ -1,0 +1,17 @@
+diff --git a/node_modules/react-native/Libraries/Utilities/PolyfillFunctions.js b/node_modules/react-native/Libraries/Utilities/PolyfillFunctions.js
+index 5731a3f..dcb0e88 100644
+--- a/node_modules/react-native/Libraries/Utilities/PolyfillFunctions.js
++++ b/node_modules/react-native/Libraries/Utilities/PolyfillFunctions.js
+@@ -33,7 +33,11 @@ export function polyfillObjectProperty<T>(
+   const descriptor = Object.getOwnPropertyDescriptor<$FlowFixMe>(object, name);
+   if (__DEV__ && descriptor) {
+     const backupName = `original${name[0].toUpperCase()}${name.slice(1)}`;
+-    Object.defineProperty(object, backupName, descriptor);
++    try {
++      Object.defineProperty(object, backupName, descriptor);
++    } catch {
++      // Skip backup if property is non-configurable (e.g. Hermes built-ins with New Arch)
++    }
+   }
+ 
+   const {enumerable, writable, configurable = false} = descriptor || {};

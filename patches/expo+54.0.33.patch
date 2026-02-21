@@ -1,0 +1,60 @@
+diff --git a/node_modules/expo/src/winter/installGlobal.ts b/node_modules/expo/src/winter/installGlobal.ts
+index 810e1fc..58dc7cd 100644
+--- a/node_modules/expo/src/winter/installGlobal.ts
++++ b/node_modules/expo/src/winter/installGlobal.ts
+@@ -83,7 +83,11 @@ export function installGlobal<T extends object>(name: string, getValue: () => T)
+   const descriptor = Object.getOwnPropertyDescriptor(object, name);
+   if (__DEV__ && descriptor) {
+     const backupName = `original${name[0].toUpperCase()}${name.slice(1)}`;
+-    Object.defineProperty(object, backupName, descriptor);
++    try {
++      Object.defineProperty(object, backupName, descriptor);
++    } catch {
++      // Skip backup if engine disallows (e.g. non-configurable); continue to install polyfill
++    }
+   }
+ 
+   const { enumerable, writable, configurable = false } = descriptor || {};
+@@ -92,18 +96,29 @@ export function installGlobal<T extends object>(name: string, getValue: () => T)
+     return;
+   }
+ 
+-  defineLazyObjectProperty(object, name, {
+-    get() {
+-      const value = getValue();
+-      Object.defineProperty(value, BUILTIN_SYMBOL, {
+-        value: true,
+-        enumerable: false,
+-        configurable: false,
+-      });
++  try {
++    defineLazyObjectProperty(object, name, {
++      get() {
++        const value = getValue();
++        Object.defineProperty(value, BUILTIN_SYMBOL, {
++          value: true,
++          enumerable: false,
++          configurable: false,
++        });
+ 
+-      return value;
+-    },
+-    enumerable: enumerable !== false,
+-    writable: writable !== false,
+-  });
++        return value;
++      },
++      enumerable: enumerable !== false,
++      writable: writable !== false,
++    });
++  } catch (err: any) {
++    // Hermes / New Arch may pre-define globals as non-configurable; skip polyfill on any TypeError (message format can vary)
++    if (err instanceof TypeError) {
++      if (__DEV__) {
++        console.warn('[expo winter] Skipping polyfill for global "' + name + '":', err?.message ?? err);
++      }
++      return;
++    }
++    throw err;
++  }
+ }

@@ -1,0 +1,552 @@
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  ScrollView,
+  Keyboard,
+} from "react-native";
+import { GeminiIcon, ClaudeIcon, CodexIcon, GeminiSendIcon, ClaudeSendIcon, CodexSendIcon } from "../icons/ProviderIcons";
+import {
+  AttachPlusIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  GlobeIcon,
+  StopCircleIcon,
+  TerminalIcon,
+} from "../icons/ChatActionIcons";
+import { useTheme } from "../../theme/index";
+
+const DEFAULT_PLACEHOLDER = "How can I help you today?";
+const INPUT_PLACEHOLDER = "Type response for Claude…";
+
+export type PendingCodeRef = {
+  path: string;
+  startLine: number;
+  endLine: number;
+  snippet: string;
+};
+
+function getFileName(path: string): string {
+  const parts = path.replace(/\/$/, "").split(/[/\\]/);
+  return parts[parts.length - 1] ?? path;
+}
+
+export interface InputPanelProps {
+  connected: boolean;
+  claudeRunning: boolean;
+  waitingForUserInput: boolean;
+  permissionMode: string | null;
+  onPermissionModeChange: (mode: string) => void;
+  onSubmit: (prompt: string, permissionMode?: string) => void;
+  pendingCodeRefs?: PendingCodeRef[];
+  onRemoveCodeRef?: (index: number) => void;
+  /** When true, show green dot on terminal button (run output exists). */
+  showTerminalButton?: boolean;
+  /** Running state: show green dot on terminal button. */
+  runProcessActive?: boolean;
+  onShowTerminal?: () => void;
+  /** Open full-screen terminal. Button is shown beside model name (Sonnet 4.5). */
+  onOpenTerminal?: () => void;
+  /** When agent is running, show a control to terminate the response. */
+  onTerminateAgent?: () => void;
+  /** Open web preview modal. */
+  onOpenWebPreview?: () => void;
+  /** Current AI provider (for model selector in input bar). */
+  provider?: "claude" | "gemini" | "codex" | "pi";
+  /** Current model value (e.g. "sonnet", "gemini-2.5-flash"). */
+  model?: string;
+  /** Model options for current provider: { value, label }[]. */
+  modelOptions?: { value: string; label: string }[];
+  /** Called when user switches provider (resets model to default). */
+  onProviderChange?: (provider: "claude" | "gemini" | "codex" | "pi") => void;
+  /** Called when user selects a model. */
+  onModelChange?: (model: string) => void;
+  /** Open skill configuration modal. Tapping the + button invokes this. */
+  onOpenSkillsConfig?: () => void;
+}
+
+export function InputPanel({
+  connected,
+  claudeRunning,
+  waitingForUserInput,
+  permissionMode,
+  onPermissionModeChange,
+  onSubmit,
+  pendingCodeRefs = [],
+  onRemoveCodeRef,
+  showTerminalButton = false,
+  runProcessActive = false,
+  onShowTerminal,
+  onOpenTerminal,
+  onTerminateAgent,
+  onOpenWebPreview,
+  provider = "pi",
+  model = "gemini-2.5-flash",
+  modelOptions = [],
+  onProviderChange,
+  onModelChange,
+  onOpenSkillsConfig,
+}: InputPanelProps) {
+  const theme = useTheme();
+  const [prompt, setPrompt] = useState("");
+  const [modelPickerVisible, setModelPickerVisible] = useState(false);
+
+  const currentModelLabel = modelOptions.find((m) => m.value === model)?.label ?? model;
+
+  const disabled = !waitingForUserInput && claudeRunning;
+  const placeholder = waitingForUserInput ? INPUT_PLACEHOLDER : DEFAULT_PLACEHOLDER;
+
+  const handleSubmit = useCallback(() => {
+    const trimmed = prompt.trim();
+    if (!trimmed && !pendingCodeRefs.length) return;
+    Keyboard.dismiss();
+    if (waitingForUserInput && claudeRunning) {
+      onSubmit(trimmed, permissionMode ?? undefined);
+      setPrompt("");
+      return;
+    }
+    if (claudeRunning) return;
+    onSubmit(trimmed || "See code references below.", permissionMode ?? undefined);
+    setPrompt("");
+  }, [prompt, pendingCodeRefs.length, waitingForUserInput, claudeRunning, permissionMode, onSubmit]);
+
+  const styles = useMemo(() => createInputPanelStyles(theme), [theme]);
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <View style={styles.container}>
+        {pendingCodeRefs.length > 0 && (
+          <View style={styles.refPills}>
+            {pendingCodeRefs.map((ref, index) => (
+              <View key={`${ref.path}-${ref.startLine}-${index}`} style={styles.refPill}>
+                <Text style={styles.refPillText} numberOfLines={1}>
+                  {getFileName(ref.path)} ({ref.startLine === ref.endLine ? ref.startLine : `${ref.startLine}-${ref.endLine}`})
+                </Text>
+                {onRemoveCodeRef && (
+                  <TouchableOpacity
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={() => onRemoveCodeRef(index)}
+                    style={styles.refPillRemove}
+                  >
+                    <CloseIcon size={12} color={theme.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+        <View style={styles.topRow}>
+          <TextInput
+            style={styles.input}
+            placeholder={placeholder}
+            placeholderTextColor={theme.textMuted}
+            value={prompt}
+            onChangeText={setPrompt}
+            editable={!disabled}
+            multiline
+            maxLength={8000}
+            blurOnSubmit={false}
+            onSubmitEditing={handleSubmit}
+            returnKeyType="default"
+            autoCapitalize="sentences"
+            autoCorrect
+            autoComplete="off"
+            textAlignVertical={Platform.OS === "android" ? "top" : "center"}
+            scrollEnabled
+          />
+          <View style={[styles.statusDot, connected && styles.statusDotConnected]} />
+        </View>
+        <View style={styles.bottomRow}>
+          <TouchableOpacity
+            style={[styles.btnAttach, (provider === "gemini" || provider === "codex" || provider === "pi") && styles.btnAttachLight]}
+            activeOpacity={0.8}
+            onPress={onOpenSkillsConfig}
+            accessibilityLabel={onOpenSkillsConfig ? "Skill configuration" : "Attach file"}
+          >
+            <AttachPlusIcon size={18} color={provider === "gemini" || provider === "codex" || provider === "pi" ? theme.accent : "#ffffff"} strokeWidth={2.1} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.modelSelector}
+            onPress={() => (onModelChange ? setModelPickerVisible(true) : null)}
+            activeOpacity={0.8}
+            disabled={!onModelChange}
+            accessibilityLabel="Select model"
+          >
+            <Text style={styles.modelName}>{currentModelLabel}</Text>
+            <ChevronDownIcon size={14} color={theme.textMuted} />
+          </TouchableOpacity>
+          {onOpenWebPreview && (
+            <TouchableOpacity
+              style={styles.btnWebPreview}
+              onPress={onOpenWebPreview}
+              activeOpacity={0.8}
+              accessibilityLabel="Open web preview"
+            >
+              <GlobeIcon size={18} color={theme.textPrimary} />
+            </TouchableOpacity>
+          )}
+          {onOpenTerminal && (
+            <TouchableOpacity
+              style={[styles.btnTerminal, runProcessActive && styles.btnTerminalActive]}
+              onPress={onOpenTerminal}
+              activeOpacity={0.8}
+              accessibilityLabel="Open terminal"
+            >
+              <TerminalIcon size={18} color={theme.textPrimary} />
+              {runProcessActive && <View style={styles.terminalRunningDot} />}
+            </TouchableOpacity>
+          )}
+          {onTerminateAgent && claudeRunning && (
+            <TouchableOpacity
+              style={styles.btnTerminateAgent}
+              onPress={onTerminateAgent}
+              activeOpacity={0.8}
+              accessibilityLabel="Terminate agent response"
+            >
+              <StopCircleIcon size={14} color={theme.mode === "dark" ? "#f87171" : "#c0392b"} />
+              <Text style={styles.btnTerminateAgentText}>Stop</Text>
+            </TouchableOpacity>
+          )}
+          {!(claudeRunning && !waitingForUserInput) && (
+            <TouchableOpacity
+              style={[
+                styles.btnSend,
+                (provider === "gemini" || provider === "codex" || provider === "pi") ? styles.btnSendLight : styles.btnSendDark,
+                disabled && styles.btnSendDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={disabled}
+              activeOpacity={0.8}
+            >
+              {provider === "gemini" ? (
+                <GeminiSendIcon size={20} color={theme.accent} />
+              ) : provider === "pi" || provider === "codex" ? (
+                <CodexSendIcon size={20} color={theme.accent} />
+              ) : (
+                <ClaudeSendIcon size={20} color={theme.accent} />
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      <Modal
+        visible={modelPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModelPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modelPickerBackdrop}
+          activeOpacity={1}
+          onPress={() => setModelPickerVisible(false)}
+        >
+          <View style={styles.modelPickerCard} onStartShouldSetResponder={() => true}>
+            <Text style={styles.modelPickerTitle}>Model</Text>
+            <ScrollView style={styles.modelPickerList} keyboardShouldPersistTaps="handled">
+              {modelOptions.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.modelPickerOption, model === opt.value && styles.modelPickerOptionActive]}
+                  onPress={() => {
+                    onModelChange?.(opt.value);
+                    setModelPickerVisible(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modelPickerOptionText, model === opt.value && styles.modelPickerOptionTextActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </KeyboardAvoidingView>
+  );
+}
+
+function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
+  const utilityButtonBg = theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const terminateTextColor = theme.mode === "dark" ? "#f87171" : "#c0392b";
+  return StyleSheet.create({
+  container: {
+    flexDirection: "column",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: theme.surfaceBg,
+  },
+  refPills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  refPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingVertical: 6,
+    paddingLeft: 10,
+    paddingRight: 4,
+    borderRadius: 12,
+    backgroundColor: theme.accentLight ?? "#e8f0fe",
+    maxWidth: "100%",
+  },
+  refPillText: {
+    fontSize: 13,
+    color: theme.textPrimary,
+    fontWeight: "500",
+  },
+  refPillRemove: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+    minHeight: 44,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.textPrimary,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: 0,
+    paddingRight: 0,
+    maxHeight: 120,
+    minHeight: 24,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#c5c5c5",
+  },
+  statusDotConnected: {
+    backgroundColor: theme.success,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  btnAttach: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnAttachLight: {
+    backgroundColor: theme.accentLight ?? "#e8f0fe",
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+  },
+  modelSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginRight: "auto",
+  },
+  modelName: {
+    fontSize: 14,
+    color: theme.textMuted,
+    fontWeight: "500",
+  },
+  modelPickerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modelPickerCard: {
+    width: "100%",
+    maxWidth: 320,
+    maxHeight: "80%",
+    backgroundColor: theme.surfaceBg,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+  },
+  modelPickerTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.textMuted,
+    marginBottom: 8,
+  },
+  modelPickerProviderRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  modelPickerProviderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: theme.cardBg,
+  },
+  modelPickerProviderBtnActive: {
+    backgroundColor: theme.accentLight ?? "#e8f0fe",
+  },
+  modelPickerProviderText: {
+    fontSize: 15,
+    color: theme.textMuted,
+  },
+  modelPickerProviderTextActive: {
+    color: theme.accent ?? "#1a73e8",
+    fontWeight: "600",
+  },
+  providerIconMuted: {
+    opacity: 0.56,
+  },
+  modelPickerList: {
+    maxHeight: 220,
+  },
+  modelPickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 6,
+    backgroundColor: theme.cardBg,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  modelPickerOptionActive: {
+    backgroundColor: theme.accentLight ?? "#e8f0fe",
+    borderColor: theme.accent ?? "#1a73e8",
+  },
+  modelPickerOptionText: {
+    fontSize: 15,
+    color: theme.textPrimary,
+  },
+  modelPickerOptionTextActive: {
+    color: theme.accent ?? "#1a73e8",
+    fontWeight: "600",
+  },
+  btnWebPreview: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: utilityButtonBg,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnTerminal: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: utilityButtonBg,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  btnTerminalActive: {
+    borderColor: theme.success,
+  },
+  btnTerminalText: {
+    fontSize: 18,
+    color: theme.textPrimary,
+  },
+  terminalRunningDot: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.success,
+  },
+  btnTerminateAgent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.mode === "dark" ? "rgba(248,113,113,0.14)" : "rgba(220,38,38,0.12)",
+    borderWidth: 1,
+    borderColor: theme.mode === "dark" ? "rgba(248,113,113,0.45)" : "rgba(192,57,43,0.4)",
+    justifyContent: "center",
+  },
+  btnTerminateAgentText: {
+    fontSize: 14,
+    color: terminateTextColor,
+    fontWeight: "600",
+  },
+  btnSend: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnSendLight: {
+    backgroundColor: theme.accentLight ?? "#e8f0fe",
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+  },
+  btnSendDark: {
+    backgroundColor: theme.mode === "dark" ? "#171c24" : "#12131a",
+  },
+  btnSendDisabled: {
+    opacity: 0.4,
+  },
+  sendButtonIcon: {
+    width: 36,
+    height: 36,
+  },
+  waveformIcon: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 3,
+    height: 16,
+  },
+  waveformBar: {
+    width: 3,
+    backgroundColor: theme.textMuted,
+    borderRadius: 2,
+  },
+  waveformBarShort: {
+    height: 8,
+  },
+  waveformBarMid: {
+    height: 12,
+  },
+  waveformBarTall: {
+    height: 14,
+  },
+  btnSendText: {
+    color: theme.textMuted,
+    fontSize: 14,
+  },
+});
+}
