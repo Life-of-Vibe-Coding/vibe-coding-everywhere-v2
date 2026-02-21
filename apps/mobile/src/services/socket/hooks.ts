@@ -12,7 +12,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import {
-  filterBashNoise,
   stripAnsi,
   stripTrailingIncompleteTag,
   isProviderStream,
@@ -27,7 +26,6 @@ import type {
   PermissionDenial,
   PendingAskUserQuestion,
   LastRunOptions,
-  TerminalState,
   IServerConfig,
 } from "../../core/types";
 import { getDefaultServerConfig } from "../server/config";
@@ -36,7 +34,7 @@ import type { Provider } from "../../theme/index";
 import type { CodeRefPayload } from "../../components/file/FileViewerModal";
 
 // Re-export types for consumers that import from useSocket
-export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions, TerminalState };
+export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };
 
 /**
  * Normalize file path to use forward slashes.
@@ -53,14 +51,6 @@ function toWorkspaceRelativePath(filePath: string, workspaceRoot: string | null)
   if (root === "" || (!normalized.startsWith(root + "/") && normalized !== root)) return normalized;
   const rel = normalized === root ? "" : normalized.slice(root.length).replace(/^\//, "");
   return rel || normalized;
-}
-
-/** Try to extract a preview URL (e.g. http://localhost:8000) from a command for port cleanup. */
-function tryExtractPreviewUrl(command: string): string | null {
-  const match = command.match(/https?:\/\/(?:localhost|0\.0\.0\.0)(?::(\d+))?/i);
-  if (!match) return null;
-  const port = match[1] ?? "80";
-  return match[0].includes(":") ? match[0] : `${match[0]}:${port}`;
 }
 
 /** Options for useSocket hook */
@@ -112,13 +102,6 @@ export function useSocket(options: UseSocketOptions = {}) {
   // ===== Question Modal State =====
   const [pendingAskQuestion, setPendingAskQuestion] = useState<PendingAskUserQuestion | null>(null);
   
-  // ===== Terminal State =====
-  const [terminals, setTerminals] = useState<TerminalState[]>([]);
-  const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
-  const [runOutputLines, setRunOutputLines] = useState<{ type: "stdout" | "stderr"; text: string }[]>([]);
-  const [runCommand, setRunCommand] = useState<string | null>(null);
-  const [runProcessActive, setRunProcessActive] = useState(false);
-  
   // ===== Model Info =====
   const [modelName, setModelName] = useState("Sonnet 4.5");
   
@@ -134,9 +117,6 @@ export function useSocket(options: UseSocketOptions = {}) {
   const hasCompletedFirstRunRef = useRef(false);
   const nextIdRef = useRef(0);
   const workspaceRootRef = useRef<string | null>(null);
-  const pendingRunCommandRef = useRef<string | null>(null);
-  const pendingCommandAfterNewTerminalRef = useRef<string | null>(null);
-  const lastStartedViaRunCommandRef = useRef(false);
   const toolUseByIdRef = useRef<Map<string, { tool_name: string; tool_input?: Record<string, unknown> }>>(new Map());
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -399,83 +379,6 @@ export function useSocket(options: UseSocketOptions = {}) {
       }
     });
 
-    // Terminal/run-render events
-    socket.on(
-      "run-render-started",
-      ({ terminalId, pid, command: serverCommand }: { terminalId: string; pid: number | null; command?: string }) => {
-        // Prefer command from server so each terminal gets the right command when user runs multiple in quick succession
-        const cmd =
-          ((typeof serverCommand === "string" ? serverCommand.trim() : null) || pendingRunCommandRef.current) ?? null;
-        const isSingleCommand = lastStartedViaRunCommandRef.current;
-        const initialLines =
-          cmd && cmd.trim() !== ""
-            ? [{ type: "stdout" as const, text: `$ ${cmd.trim()}\n` }]
-            : [];
-        setTerminals((prev) => [
-          ...prev,
-          { id: terminalId, pid, lines: initialLines, active: true, lastCommand: cmd, isSingleCommand },
-        ]);
-        setSelectedTerminalId(terminalId);
-        setRunProcessActive(true);
-
-        if (cmd && cmd.trim() !== "") {
-          const echoLine = `$ ${cmd.trim()}\n`;
-          setRunOutputLines((prev) => [...prev, { type: "stdout", text: echoLine }]);
-        }
-
-        // Only write to stdin when we opened an interactive new terminal (not run-render-command)
-        if (pendingCommandAfterNewTerminalRef.current) {
-          socket.emit("run-render-write", { terminalId, data: pendingCommandAfterNewTerminalRef.current + "\n" });
-          pendingCommandAfterNewTerminalRef.current = null;
-        }
-        lastStartedViaRunCommandRef.current = false;
-      }
-    );
-
-    socket.on("run-render-stdout", ({ terminalId, chunk }: { terminalId: string; chunk: string }) => {
-      const filtered = filterBashNoise(chunk);
-      if (!filtered) return;
-
-      setTerminals((prev) => {
-        const idx = prev.findIndex((t) => t.id === terminalId);
-        if (idx === -1) return prev;
-        const next = [...prev];
-        next[idx] = { ...next[idx], lines: [...next[idx].lines, { type: "stdout", text: filtered }] };
-        return next;
-      });
-      
-      setRunOutputLines((prev) => [...prev, { type: "stdout", text: filtered }]);
-    });
-
-    socket.on("run-render-stderr", ({ terminalId, chunk }: { terminalId: string; chunk: string }) => {
-      const cleaned = stripTrailingIncompleteTag(stripAnsi(chunk));
-      const filtered = filterBashNoise(cleaned);
-      if (!filtered) return;
-      setTerminals((prev) => {
-        const idx = prev.findIndex((t) => t.id === terminalId);
-        if (idx === -1) return prev;
-        const next = [...prev];
-        next[idx] = { ...next[idx], lines: [...next[idx].lines, { type: "stderr", text: filtered }] };
-        return next;
-      });
-      setRunOutputLines((prev) => [...prev, { type: "stderr", text: filtered }]);
-    });
-
-    socket.on("run-render-exit", ({ terminalId, code }: { terminalId: string; code: number | null }) => {
-      setTerminals((prev) => {
-        const idx = prev.findIndex((t) => t.id === terminalId);
-        if (idx === -1) return prev;
-        const next = [...prev];
-        next[idx] = { ...next[idx], active: false };
-        return next;
-      });
-      setRunProcessActive(false);
-    });
-
-    socket.on("run-render-result", () => {
-      // Result acknowledged; terminal list is updated via run-render-started/stdout/exit
-    });
-
     // Cleanup on unmount
     return () => {
       socket.disconnect();
@@ -599,65 +502,6 @@ export function useSocket(options: UseSocketOptions = {}) {
   }, []);
 
   /**
-   * Create a new interactive terminal (bash/zsh); no command is run until user types or runs one.
-   */
-  const runNewTerminal = useCallback(() => {
-    if (!socketRef.current) return;
-    lastStartedViaRunCommandRef.current = false;
-    pendingRunCommandRef.current = null;
-    pendingCommandAfterNewTerminalRef.current = null;
-    socketRef.current.emit("run-render-new-terminal");
-    setRunCommand(null);
-    setRunOutputLines([]);
-  }, []);
-
-  /**
-   * Run a command in a new terminal (executes via run-render-command on server).
-   * Uses a dedicated process with proper shell env so the command actually runs
-   * (avoids interactive bash where e.g. python may not be in PATH).
-   * @param command - Shell command to execute
-   */
-  const runCommandInNewTerminal = useCallback(
-    (command: string) => {
-      if (!socketRef.current) return;
-      const trimmed = command.trim();
-      if (!trimmed) return;
-      lastStartedViaRunCommandRef.current = true;
-      pendingRunCommandRef.current = trimmed;
-      // Do not set pendingCommandAfterNewTerminalRef — we use run-render-command, not new-terminal + write
-      setRunCommand(trimmed);
-      setRunOutputLines([]); // Show only this command's output
-      const url = tryExtractPreviewUrl(trimmed);
-      socketRef.current.emit("run-render-command", { command: trimmed, url: url ?? undefined });
-    },
-    []
-  );
-
-  /**
-   * Run a user command in the currently selected terminal.
-   * @param command - Shell command to execute
-   */
-  const runUserCommand = useCallback(
-    (command: string) => {
-      if (!socketRef.current || !selectedTerminalId) return;
-      socketRef.current.emit("run-render-write", { terminalId: selectedTerminalId, data: command + "\n" });
-    },
-    [selectedTerminalId]
-  );
-
-  /**
-   * Terminate a terminal process.
-   * @param terminalId - Terminal to terminate
-   */
-  const terminateRunProcess = useCallback(
-    (terminalId: string) => {
-      if (!socketRef.current) return;
-      socketRef.current.emit("run-render-terminate", { terminalId });
-    },
-    []
-  );
-
-  /**
    * Terminate the current Claude session.
    */
   const terminateAgent = useCallback(() => {
@@ -667,7 +511,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   }, []);
 
   /**
-   * New session: clear chat and reset permission state; optionally terminate running agent.
+   * New session: clear chat and reset permission state.
    */
   const resetSession = useCallback(() => {
     if (socketRef.current) socketRef.current.emit("claude-terminate", { resetSession: true });
@@ -679,11 +523,6 @@ export function useSocket(options: UseSocketOptions = {}) {
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
   }, []);
-
-  // Compute whether user can run commands in selected terminal
-  const canRunInSelectedTerminal = selectedTerminalId
-    ? terminals.find((t) => t.id === selectedTerminalId)?.active ?? false
-    : false;
 
   return {
     // Connection state
@@ -703,15 +542,6 @@ export function useSocket(options: UseSocketOptions = {}) {
     // Question modal state
     pendingAskQuestion,
     
-    // Terminal state
-    terminals,
-    selectedTerminalId,
-    setSelectedTerminalId,
-    runOutputLines,
-    runCommand,
-    runProcessActive,
-    canRunInSelectedTerminal,
-    
     // Mock sequences
     mockSequences,
     selectedSequence,
@@ -727,10 +557,6 @@ export function useSocket(options: UseSocketOptions = {}) {
     dismissAskQuestion,
     retryAfterPermission,
     dismissPermission,
-    runNewTerminal,
-    runCommandInNewTerminal,
-    runUserCommand,
-    terminateRunProcess,
     terminateAgent,
     resetSession,
   };

@@ -75,25 +75,6 @@ export type LastRunOptions = {
   useContinue: boolean;
 };
 
-/**
- * State of a terminal process.
- * Used for run-render and interactive terminals.
- */
-export type TerminalState = {
-  /** Unique terminal identifier */
-  id: string;
-  /** Process ID (null if not available) */
-  pid: number | null;
-  /** Output lines from the terminal */
-  lines: { type: "stdout" | "stderr"; text: string }[];
-  /** Last command executed */
-  lastCommand: string | null;
-  /** Whether the process is still running */
-  active: boolean;
-  /** Whether this is a single command (vs interactive shell) */
-  isSingleCommand: boolean;
-};
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Interface Segregation: Small, focused interfaces
 // ═══════════════════════════════════════════════════════════════════════════
@@ -154,33 +135,7 @@ export interface IPermissionState {
   lastRunOptions: LastRunOptions;
 }
 
-/** Terminal list and selection state. Used by terminal management UI. */
-export interface ITerminalState {
-  /** All active terminals */
-  terminals: TerminalState[];
-  /** Currently selected terminal ID */
-  selectedTerminalId: string | null;
-  /** Function to set selected terminal */
-  setSelectedTerminalId: (id: string | null) => void;
-  /** Output lines for display */
-  runOutputLines: { type: "stdout" | "stderr"; text: string }[];
-  /** Current or last run command */
-  runCommand: string | null;
-  /** Whether a process is currently active */
-  runProcessActive: boolean;
-  /** Whether user can run commands in selected terminal */
-  canRunInSelectedTerminal: boolean;
-}
-
-/** Run-render (preview) state. Used by render preview components. */
-export interface IRunRenderState {
-  /** Pending render command (null if none) */
-  pendingRender: PendingRender | null;
-  /** Result of last run-render command */
-  runRenderResult: { ok: boolean; message: string } | null;
-}
-
-/**
+/** 
  * Server configuration interface.
  * Provides base URL and preview URL resolution.
  * Injected for testability.

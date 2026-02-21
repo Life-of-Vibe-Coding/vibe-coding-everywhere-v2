@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { View, Text, StyleSheet, Linking, Pressable, Alert, ScrollView, Platform, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Linking, Pressable, ScrollView, Platform, Dimensions } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import type { Message } from "../../services/socket/hooks";
 import { stripTrailingIncompleteTag } from "../../services/providers/stream";
-import { PlayIcon, TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
+import { TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
 import { BookOpenIcon, PencilIcon, FilePenIcon } from "../icons/FileActivityIcons";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
 
@@ -540,8 +540,6 @@ interface MessageBubbleProps {
   tailBoxMaxHeight?: number;
   /** AI provider for assistant messages; shows Gemini, Claude, or Codex icon when set. */
   provider?: "claude" | "gemini" | "codex" | "pi";
-  /** When provided, bash code blocks are tappable; user can choose to run the command in a new terminal. */
-  onRunBashCommand?: (command: string) => void;
   /** When provided, links (including bare URLs) open in the app's internal browser instead of external. */
   onOpenUrl?: (url: string) => void;
   /** When provided, file: links (from Writing/Editing/Reading) open the file in explorer. */
@@ -553,7 +551,7 @@ const TERMINAL_BG = "#1e293b";
 const TERMINAL_TEXT = "rgba(255,255,255,0.9)";
 const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 
-export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onRunBashCommand, onOpenUrl, onFileSelect }: MessageBubbleProps) {
+export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.surfaceBg;
   const codeTextColor = theme.accent;
@@ -825,100 +823,48 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
         </Text>
       );
     }
-    if (!onRunBashCommand && Object.keys(base).length === 0) return undefined;
+    if (Object.keys(base).length === 0) return undefined;
     const rules: Record<string, unknown> = { ...base };
-    if (onRunBashCommand) {
-      rules.fence = (
-        node: { key?: string; content?: string; sourceInfo?: string },
-        _children: React.ReactNode,
-        _parent: unknown,
-        mdStyles: Record<string, unknown>,
-        inheritedStyles: Record<string, unknown> = {}
-      ) => {
-        let content = node.content ?? "";
-        if (typeof content === "string" && content.charAt(content.length - 1) === "\n") {
-          content = content.substring(0, content.length - 1);
-        }
-        const lang = (node.sourceInfo ?? "").trim().toLowerCase().split(/\s/)[0] ?? "";
-        const isBash = BASH_LANGUAGES.has(lang);
-        const handleRunPress = () => {
-          const trimmed = String(content).trim();
-          if (!trimmed || !onRunBashCommand) return;
-          const command = extractBashCommandOnly(trimmed) || trimmed;
-          Alert.alert(
-            "Run command",
-            "Open a new terminal and run this command?",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Run", onPress: () => onRunBashCommand(command) },
-            ]
-          );
-        };
-        const displayContent = isBash
-          ? (extractBashCommandOnly(content) || content)
-          : stripTrailingTerminalHeaderLines(content);
+    rules.fence = (
+      node: { key?: string; content?: string; sourceInfo?: string },
+      _children: React.ReactNode,
+      _parent: unknown,
+      mdStyles: Record<string, unknown>,
+      inheritedStyles: Record<string, unknown> = {}
+    ) => {
+      let content = node.content ?? "";
+      if (typeof content === "string" && content.charAt(content.length - 1) === "\n") {
+        content = content.substring(0, content.length - 1);
+      }
+      const lang = (node.sourceInfo ?? "").trim().toLowerCase().split(/\s/)[0] ?? "";
+      const isBash = BASH_LANGUAGES.has(lang);
+      const displayContent = isBash
+        ? (extractBashCommandOnly(content) || content)
+        : stripTrailingTerminalHeaderLines(content);
 
-        const { height: screenHeight } = Dimensions.get("window");
-        const maxHeight = screenHeight * 0.75;
+      const { height: screenHeight } = Dimensions.get("window");
+      const maxHeight = screenHeight * 0.75;
 
-        const codeBlock = (
-          <View
-            key={node.key}
-            style={[styles.bashCodeBlockWrapper, { maxHeight }]}
+      return (
+        <View key={node.key} style={[styles.bashCodeBlockWrapper, { maxHeight }]}>
+          <ScrollView
+            nestedScrollEnabled
+            bounces={false}
+            style={{ flexGrow: 0 }}
           >
-            <ScrollView
-              nestedScrollEnabled
-              bounces={false}
-              style={{ flexGrow: 0 }}
-            >
-              <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
-                <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
-                  <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
-                    {displayContent}
-                  </Text>
-                </View>
-              </ScrollView>
-            </ScrollView>
-          </View>
-        );
-
-        if (isBash) {
-          return (
-            <View key={node.key} style={[styles.bashCodeBlockWrapper, { maxHeight }]}>
-              <View style={styles.bashCodeBlockHeader}>
-                <View style={styles.bashCodeBlockHeaderSpacer} />
-                <Pressable
-                  onPress={handleRunPress}
-                  style={({ pressed }) => [styles.bashRunButton, pressed && styles.bashRunButtonPressed]}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Run command"
-                >
-                  <PlayIcon size={11} color="#fff" />
-                  <Text style={styles.bashRunButtonText}>Run</Text>
-                </Pressable>
+            <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
+              <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
+                <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
+                  {displayContent}
+                </Text>
               </View>
-              <ScrollView
-                nestedScrollEnabled
-                bounces={false}
-                style={{ flexGrow: 0 }}
-              >
-                <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
-                  <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
-                    <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]}>
-                      {displayContent}
-                    </Text>
-                  </View>
-                </ScrollView>
-              </ScrollView>
-            </View>
-          );
-        }
-        return codeBlock;
-      };
-    }
+            </ScrollView>
+          </ScrollView>
+        </View>
+      );
+    };
     return rules as React.ComponentProps<typeof Markdown>["rules"];
-  }, [onRunBashCommand, markdownStyles, styles, isUser, isSystem]);
+  }, [markdownStyles, styles, isUser, isSystem]);
 
   const getFileActivityRowStyle = useCallback(
     (prefix: string) => {

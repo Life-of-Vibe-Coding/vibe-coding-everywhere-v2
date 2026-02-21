@@ -189,5 +189,8 @@ export const SKILLS_DIR = _skillsDirFromEnv
 /** Path to pi CLI binary. Defaults to "pi" (must be on PATH). */
 export const PI_CLI_PATH = process.env.PI_CLI_PATH || "pi";
 
+/** Enable Docker manager page and API. Set to "1" or "true" to enable. */
+export const ENABLE_DOCKER_MANAGER = process.env.ENABLE_DOCKER_MANAGER === "1" || process.env.ENABLE_DOCKER_MANAGER === "true";
+
 // Export project paths for use in other modules
 export { projectRoot, __dirname };

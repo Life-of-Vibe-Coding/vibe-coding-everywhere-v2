@@ -1,10 +1,12 @@
 /**
- * Workspace tree icons (Lucide, via better-icons).
- * Folder/file icons chosen by type: folder, folder-open, file, file-code, file-text, file-braces, file-image.
- * Use: better-icons get lucide:folder | lucide:file-code | etc.
+ * Workspace tree icons from file-name-mapping-rules.
+ * Uses material-icon-theme (folders) and vscode-icons (files) via better-icons.
+ * Regenerate: node scripts/fetch-workspace-icons.mjs
  */
 import React from "react";
 import Svg, { Path, Circle, G } from "react-native-svg";
+import { SvgXml } from "react-native-svg";
+import { getFolderIconSvg, getFileIconSvg } from "../../data/workspaceIcons";
 
 const size = 20;
 const viewBox = "0 0 24 24";
@@ -99,13 +101,55 @@ export function FileImageIcon({ color = "currentColor" }: { color?: string }) {
   );
 }
 
+/** Key icon for .env files */
+export function FileKeyIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox={viewBox} fill="none">
+      <G {...strokeAndFill(color)} {...strokeProps}>
+        <Path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+        <Path d="m21 2-9.6 9.6" />
+        <Circle cx="7.5" cy="15.5" r="5.5" />
+      </G>
+    </Svg>
+  );
+}
+
+/** Git branch icon for .gitignore and git config files */
+export function FileGitIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox={viewBox} fill="none">
+      <G {...strokeAndFill(color)} {...strokeProps}>
+        <Path d="M6 3v12" />
+        <Path d="M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <Path d="M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <Path d="M15 6a9 9 0 0 0-9 9" />
+      </G>
+    </Svg>
+  );
+}
+
+/** Terminal/shell icon for .sh and .bash files */
+export function FileTerminalIcon({ color = "currentColor" }: { color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox={viewBox} fill="none">
+      <G {...strokeAndFill(color)} {...strokeProps}>
+        <Path d="m4 17 6-6-6-6" />
+        <Path d="M12 19h8" />
+      </G>
+    </Svg>
+  );
+}
+
 /** File icon type by extension (and optionally name). */
 export type FileIconType =
   | "file"
   | "file-code"
   | "file-text"
   | "file-braces"
-  | "file-image";
+  | "file-image"
+  | "file-key"
+  | "file-git"
+  | "file-terminal";
 
 const EXT_TO_ICON: Record<string, FileIconType> = {
   // Code
@@ -150,9 +194,24 @@ const EXT_TO_ICON: Record<string, FileIconType> = {
   svg: "file-image",
   ico: "file-image",
   bmp: "file-image",
+  // Special files
+  sh: "file-terminal",
+  bash: "file-terminal",
+  zsh: "file-terminal",
+};
+
+const NAME_TO_ICON: Record<string, FileIconType> = {
+  ".env": "file-key",
+  ".env.local": "file-key",
+  ".env.example": "file-key",
+  ".gitignore": "file-git",
+  ".gitattributes": "file-git",
+  ".gitmodules": "file-git",
 };
 
 export function getFileIconType(name: string): FileIconType {
+  const lower = name.toLowerCase();
+  if (NAME_TO_ICON[lower] != null) return NAME_TO_ICON[lower];
   const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() ?? "" : "";
   return EXT_TO_ICON[ext] ?? "file";
 }
@@ -163,8 +222,33 @@ const FILE_ICON_COMPONENTS: Record<FileIconType, React.ComponentType<{ color?: s
   "file-text": FileTextIcon,
   "file-braces": FileBracesIcon,
   "file-image": FileImageIcon,
+  "file-key": FileKeyIcon,
+  "file-git": FileGitIcon,
+  "file-terminal": FileTerminalIcon,
 };
 
+/** Mapped folder icon by name (uses mapping rules); falls back to Lucide if no mapping. */
+export function FolderIconByType({
+  name,
+  expanded,
+  color = "currentColor",
+}: {
+  name: string;
+  expanded: boolean;
+  color?: string;
+}) {
+  const svg = getFolderIconSvg(name, expanded);
+  if (svg) {
+    return <SvgXml xml={svg} width={size} height={size} />;
+  }
+  return expanded ? (
+    <FolderOpenIcon color={color} />
+  ) : (
+    <FolderIcon color={color} />
+  );
+}
+
+/** Mapped file icon by name (uses mapping rules); falls back to Lucide if no mapping. */
 export function FileIconByType({
   name,
   color = "currentColor",
@@ -172,6 +256,10 @@ export function FileIconByType({
   name: string;
   color?: string;
 }) {
+  const svg = getFileIconSvg(name);
+  if (svg) {
+    return <SvgXml xml={svg} width={size} height={size} />;
+  }
   const type = getFileIconType(name);
   const Icon = FILE_ICON_COMPONENTS[type];
   return <Icon color={color} />;

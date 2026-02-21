@@ -1,0 +1,21 @@
+{
+  "fileNames": {
+  "package.json": "npm",
+  "package-lock.json": "npm",
+  "yarn.lock": "yarn",
+  "gulpfile.js": "gulp",
+  "webpack.config.js": "webpack",
+  "tsconfig.json": "typescript-config",
+  ".gitignore": "git",
+  ".gitattributes": "git",
+  "dockerfile": "docker",
+  "docker-compose.yml": "docker",
+  "readme.md": "readme",
+  "license": "license",
+  "favicon.ico": "favicon",
+  "index.html": "html",
+  ".env": "tune",
+  ".eslintrc": "eslint",
+  ".prettierrc": "prettier"
+  }
+}

@@ -16,7 +16,9 @@ import {
   AttachPlusIcon,
   ChevronDownIcon,
   CloseIcon,
+  DockerIcon,
   GlobeIcon,
+  SkillIcon,
   StopCircleIcon,
   TerminalIcon,
 } from "../icons/ChatActionIcons";
@@ -46,17 +48,12 @@ export interface InputPanelProps {
   onSubmit: (prompt: string, permissionMode?: string) => void;
   pendingCodeRefs?: PendingCodeRef[];
   onRemoveCodeRef?: (index: number) => void;
-  /** When true, show green dot on terminal button (run output exists). */
-  showTerminalButton?: boolean;
-  /** Running state: show green dot on terminal button. */
-  runProcessActive?: boolean;
-  onShowTerminal?: () => void;
-  /** Open full-screen terminal. Button is shown beside model name (Sonnet 4.5). */
-  onOpenTerminal?: () => void;
   /** When agent is running, show a control to terminate the response. */
   onTerminateAgent?: () => void;
   /** Open web preview modal. */
   onOpenWebPreview?: () => void;
+  /** Open processes/terminal dashboard. */
+  onOpenProcesses?: () => void;
   /** Current AI provider (for model selector in input bar). */
   provider?: "claude" | "gemini" | "codex" | "pi";
   /** Current model value (e.g. "sonnet", "gemini-2.5-flash"). */
@@ -67,8 +64,10 @@ export interface InputPanelProps {
   onProviderChange?: (provider: "claude" | "gemini" | "codex" | "pi") => void;
   /** Called when user selects a model. */
   onModelChange?: (model: string) => void;
-  /** Open skill configuration modal. Tapping the + button invokes this. */
+  /** Open skill configuration modal. */
   onOpenSkillsConfig?: () => void;
+  /** Open Docker manager modal. */
+  onOpenDocker?: () => void;
 }
 
 export function InputPanel({
@@ -80,22 +79,21 @@ export function InputPanel({
   onSubmit,
   pendingCodeRefs = [],
   onRemoveCodeRef,
-  showTerminalButton = false,
-  runProcessActive = false,
-  onShowTerminal,
-  onOpenTerminal,
   onTerminateAgent,
   onOpenWebPreview,
+  onOpenProcesses,
   provider = "pi",
   model = "gemini-2.5-flash",
   modelOptions = [],
   onProviderChange,
   onModelChange,
   onOpenSkillsConfig,
+  onOpenDocker,
 }: InputPanelProps) {
   const theme = useTheme();
   const [prompt, setPrompt] = useState("");
   const [modelPickerVisible, setModelPickerVisible] = useState(false);
+  const [addDropdownVisible, setAddDropdownVisible] = useState(false);
 
   const currentModelLabel = modelOptions.find((m) => m.value === model)?.label ?? model;
 
@@ -166,14 +164,48 @@ export function InputPanel({
           <View style={[styles.statusDot, connected && styles.statusDotConnected]} />
         </View>
         <View style={styles.bottomRow}>
-          <TouchableOpacity
-            style={[styles.btnAttach, (provider === "gemini" || provider === "codex" || provider === "pi") && styles.btnAttachLight]}
-            activeOpacity={0.8}
-            onPress={onOpenSkillsConfig}
-            accessibilityLabel={onOpenSkillsConfig ? "Skill configuration" : "Attach file"}
-          >
-            <AttachPlusIcon size={18} color={provider === "gemini" || provider === "codex" || provider === "pi" ? theme.accent : "#ffffff"} strokeWidth={2.1} />
-          </TouchableOpacity>
+          {(onOpenSkillsConfig || onOpenDocker) && (
+            <View style={styles.addDropdownWrap}>
+              <TouchableOpacity
+                style={[styles.btnAttach, (provider === "gemini" || provider === "codex" || provider === "pi") && styles.btnAttachLight]}
+                activeOpacity={0.8}
+                onPress={() => setAddDropdownVisible((v) => !v)}
+                accessibilityLabel="Add options"
+              >
+                <AttachPlusIcon size={18} color={provider === "gemini" || provider === "codex" || provider === "pi" ? theme.accent : "#ffffff"} strokeWidth={2.1} />
+              </TouchableOpacity>
+              {addDropdownVisible && (
+                <View style={styles.addDropdownCard} onStartShouldSetResponder={() => true}>
+                  {onOpenSkillsConfig && (
+                    <TouchableOpacity
+                      style={styles.addDropdownOption}
+                      onPress={() => {
+                        onOpenSkillsConfig();
+                        setAddDropdownVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <SkillIcon size={18} color={theme.textPrimary} />
+                      <Text style={styles.addDropdownOptionText}>Skill</Text>
+                    </TouchableOpacity>
+                  )}
+                  {onOpenDocker && (
+                    <TouchableOpacity
+                      style={styles.addDropdownOption}
+                      onPress={() => {
+                        onOpenDocker();
+                        setAddDropdownVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <DockerIcon size={18} color={theme.textPrimary} />
+                      <Text style={styles.addDropdownOptionText}>Docker</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
           <TouchableOpacity
             style={styles.modelSelector}
             onPress={() => (onModelChange ? setModelPickerVisible(true) : null)}
@@ -184,6 +216,16 @@ export function InputPanel({
             <Text style={styles.modelName}>{currentModelLabel}</Text>
             <ChevronDownIcon size={14} color={theme.textMuted} />
           </TouchableOpacity>
+          {onOpenProcesses && (
+            <TouchableOpacity
+              style={styles.btnWebPreview}
+              onPress={onOpenProcesses}
+              activeOpacity={0.8}
+              accessibilityLabel="Open processes dashboard"
+            >
+              <TerminalIcon size={18} color={theme.textPrimary} />
+            </TouchableOpacity>
+          )}
           {onOpenWebPreview && (
             <TouchableOpacity
               style={styles.btnWebPreview}
@@ -192,17 +234,6 @@ export function InputPanel({
               accessibilityLabel="Open web preview"
             >
               <GlobeIcon size={18} color={theme.textPrimary} />
-            </TouchableOpacity>
-          )}
-          {onOpenTerminal && (
-            <TouchableOpacity
-              style={[styles.btnTerminal, runProcessActive && styles.btnTerminalActive]}
-              onPress={onOpenTerminal}
-              activeOpacity={0.8}
-              accessibilityLabel="Open terminal"
-            >
-              <TerminalIcon size={18} color={theme.textPrimary} />
-              {runProcessActive && <View style={styles.terminalRunningDot} />}
             </TouchableOpacity>
           )}
           {onTerminateAgent && claudeRunning && (
@@ -377,6 +408,33 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     alignItems: "center",
     padding: 24,
   },
+  addDropdownWrap: {
+    position: "relative",
+  },
+  addDropdownCard: {
+    position: "absolute",
+    bottom: 44,
+    left: 0,
+    backgroundColor: theme.surfaceBg,
+    borderRadius: 12,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: theme.borderColor,
+    minWidth: 140,
+  },
+  addDropdownOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  addDropdownOptionText: {
+    fontSize: 15,
+    color: theme.textPrimary,
+    fontWeight: "500",
+  },
   modelPickerCard: {
     width: "100%",
     maxWidth: 320,
@@ -454,33 +512,6 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     borderColor: theme.borderColor,
     alignItems: "center",
     justifyContent: "center",
-  },
-  btnTerminal: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: utilityButtonBg,
-    borderWidth: 1,
-    borderColor: theme.borderColor,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  btnTerminalActive: {
-    borderColor: theme.success,
-  },
-  btnTerminalText: {
-    fontSize: 18,
-    color: theme.textPrimary,
-  },
-  terminalRunningDot: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.success,
   },
   btnTerminateAgent: {
     flexDirection: "row",

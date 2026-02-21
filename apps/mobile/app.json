@@ -3,7 +3,7 @@
     "name": "mobile",
     "slug": "mobile",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,6 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "requireFullScreen": true,
       "bundleIdentifier": "com.anonymous.mobile",
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -35,14 +36,8 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true
-          }
-        }
-      ]
+      ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }],
+      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }]
     ]
   }
 }

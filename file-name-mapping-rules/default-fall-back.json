@@ -1,0 +1,7 @@
+"defaults": {
+  "file": "default-file",
+  "folder": "default-folder",
+  "folderExpanded": "default-folder-open",
+  "rootFolder": "default-root",
+  "rootFolderExpanded": "default-root-open"
+}

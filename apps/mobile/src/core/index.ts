@@ -14,4 +14,3 @@ export type {
   ClaudeEventContext,
   ClaudeEventHandler,
 } from "../services/providers/types";
-export { getTerminalInputState, type TerminalInputState } from "../services/providers/terminalInput";

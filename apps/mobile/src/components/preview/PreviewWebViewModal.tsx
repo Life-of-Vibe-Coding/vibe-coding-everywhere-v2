@@ -9,6 +9,7 @@ import {
   Platform,
   TextInput,
   Keyboard,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -60,6 +61,7 @@ export function PreviewWebViewModal({
   resolvePreviewUrl,
 }: PreviewWebViewModalProps) {
   const theme = useTheme();
+  const { width, height } = useWindowDimensions();
   const styles = useMemo(() => createPreviewStyles(theme), [theme]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +162,7 @@ export function PreviewWebViewModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
       statusBarTranslucent
+      supportedOrientations={["portrait", "portrait-upside-down", "landscape", "landscape-left", "landscape-right"]}
     >
       <View style={styles.safe}>
         {/* Chrome-like toolbar */}

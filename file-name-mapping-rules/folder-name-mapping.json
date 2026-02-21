@@ -1,0 +1,26 @@
+{
+  "folderNames": {
+  "src": "folder-src",
+  "source": "folder-src",
+  "dist": "folder-dist",
+  "out": "folder-dist",
+  "build": "folder-dist",
+  "node_modules": "folder-node",
+  "test": "folder-test",
+  "tests": "folder-test",
+  "__tests__": "folder-test",
+  "components": "folder-components",
+  "assets": "folder-assets",
+  "public": "folder-public",
+  "views": "folder-views",
+  "layouts": "folder-views",
+  "utils": "folder-utils",
+  "config": "folder-config",
+  "hooks": "folder-hook",
+  "api": "folder-api",
+  "scripts": "folder-scripts",
+  "docs": "folder-docs",
+  ".github": "folder-github",
+  ".git": "folder-git"
+  }
+}

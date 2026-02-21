@@ -15,6 +15,7 @@
     "icons:convert": "node scripts/convert-atom-icons.mjs"
   },
   "dependencies": {
+    "dockerode": "^4.0.9",
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "node-pty": "^1.0.0",

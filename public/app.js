@@ -7,10 +7,6 @@ const statusDot = document.getElementById("status-dot");
 const statusLabel = document.getElementById("status-label");
 const permissionContainer = document.getElementById("permission-denial-container");
 const permissionModeSelect = document.getElementById("permission-mode");
-const renderPreviewBar = document.getElementById("render-preview-bar");
-const renderCommandEl = document.getElementById("render-command");
-const renderUrlEl = document.getElementById("render-url");
-const btnRunRender = document.getElementById("btn-run-render");
 const sidebar = document.getElementById("sidebar");
 const sidebarTree = document.getElementById("sidebar-tree");
 const sidebarWorkspaceName = document.getElementById("sidebar-workspace-name");
@@ -178,16 +174,11 @@ let lastRunOptions = { permissionMode: null, allowedTools: [], useContinue: fals
 let waitingForUserInput = false;
 let outputBuffer = "";
 let currentAssistantMessage = null;
-/** When set, the response contained render command + URL; show the run-preview bar. */
-let pendingRender = null;
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 // Remove PTY control/escape sequences sent by the Claude CLI (e.g. cursor hide/show codes).
 const ANSI_REGEX =
   /\x1B\[[0-9;?]*[ -/]*[@-~]|\x1B\][^\x07]*(?:\x07|\x1B\\)|\x1B[@-_]|\x1B.|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
-
-const RENDER_CMD_REGEX = /Run the following command for render:\s*"([^"]+)"/i;
-const RENDER_URL_REGEX = /URL for preview:\s*"([^"]+)"/i;
 
 function escapeHtml(str) {
   return str
@@ -281,51 +272,6 @@ function ensureAssistantMessage() {
   return currentAssistantMessage;
 }
 
-function getAssistantRawText() {
-  const bubbles = chatMessages.querySelectorAll(".message.assistant .bubble");
-  return Array.from(bubbles)
-    .map((el) => el.dataset.rawText || "")
-    .join("\n");
-}
-
-function extractRenderCommandAndUrl(text) {
-  if (!text || typeof text !== "string") return null;
-  const cmdMatch = text.match(RENDER_CMD_REGEX);
-  const urlMatch = text.match(RENDER_URL_REGEX);
-  if (!cmdMatch?.[1] || !urlMatch?.[1]) return null;
-  return { command: cmdMatch[1].trim(), url: urlMatch[1].trim() };
-}
-
-function showRenderPreviewBar() {
-  if (!pendingRender || !renderPreviewBar || !renderCommandEl || !renderUrlEl) return;
-  renderCommandEl.textContent = pendingRender.command;
-  renderUrlEl.href = pendingRender.url;
-  renderUrlEl.textContent = pendingRender.url;
-  renderPreviewBar.hidden = false;
-  // Keep sidebar collapsed and bring the code/main page to front
-  sidebar?.classList.add("collapsed");
-  const pageEl = document.querySelector(".page");
-  if (pageEl) {
-    pageEl.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-function hideRenderPreviewBar() {
-  if (renderPreviewBar) renderPreviewBar.hidden = true;
-}
-
-function updatePendingRender() {
-  const raw = getAssistantRawText();
-  const next = extractRenderCommandAndUrl(raw);
-  if (next && (!pendingRender || next.command !== pendingRender.command || next.url !== pendingRender.url)) {
-    pendingRender = next;
-    showRenderPreviewBar();
-  } else if (!next) {
-    pendingRender = null;
-    hideRenderPreviewBar();
-  }
-}
-
 function appendAssistantText(chunk) {
   const sanitized = stripAnsi(chunk);
   if (!sanitized) return;
@@ -335,7 +281,6 @@ function appendAssistantText(chunk) {
   const next = current + sanitized;
   bubble.dataset.rawText = next;
   bubble.innerHTML = formatText(next);
-  updatePendingRender();
   if (claudeRunning) {
     setTypingIndicator(true);
   }
@@ -346,7 +291,6 @@ function finalizeAssistantMessage() {
     currentAssistantMessage = null;
   }
   setTypingIndicator(false);
-  updatePendingRender();
 }
 
 function setTypingIndicator(state) {
@@ -575,14 +519,6 @@ socket.on("exit", () => {
   promptInput.focus();
 });
 
-socket.on("run-render-result", ({ ok, error }) => {
-  if (ok) {
-    addSystemMessage("Render command started. Preview should open in a new tab.");
-  } else if (error) {
-    addSystemMessage(`Failed to run command: ${error}`);
-  }
-});
-
 function submitPrompt() {
   const prompt = promptInput.value.trim();
   if (!prompt) return;
@@ -627,23 +563,6 @@ function getCurrentUiOptions() {
 
 document.getElementById("btn-attach")?.addEventListener("click", () => {
   addSystemMessage("Attachments are not supported in this prototype.");
-});
-
-btnRunRender?.addEventListener("click", () => {
-  if (!pendingRender) return;
-  const { command, url } = pendingRender;
-  const msg = `Run the following command and open the preview URL?\n\nCommand: ${command}\n\nURL: ${url}`;
-  if (!confirm(msg)) return;
-  // Keep sidebar collapsed and bring code page to front (do not unfold sidebar)
-  sidebar?.classList.add("collapsed");
-  const pageEl = document.querySelector(".page");
-  if (pageEl) {
-    pageEl.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-  socket.emit("run-render-command", { command, url });
-  setTimeout(() => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, 800);
 });
 
 setConnectionState(false);

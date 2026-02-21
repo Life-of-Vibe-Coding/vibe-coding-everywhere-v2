@@ -178,8 +178,11 @@ export function FileViewerModal({
   );
   if (!visible) return null;
 
-  const language = getLanguage(path);
-  const imageUri = isImage && content ? `data:${getImageMime(path)};base64,${content}` : null;
+  const isDiffMode = path?.startsWith("__diff__:");
+  const realPath = isDiffMode ? path!.replace(/^__diff__:(staged|unstaged):/, "") : path;
+
+  const language = isDiffMode ? "diff" : getLanguage(realPath);
+  const imageUri = isImage && content ? `data:${getImageMime(realPath)};base64,${content}` : null;
 
   const [imageScale, setImageScale] = useState(1);
   /** Line selection for "Add to prompt" (1-based). First tap sets start, second tap sets end. */
@@ -239,177 +242,192 @@ export function FileViewerModal({
     clearSelection();
   }, [path, content, selectionStart, selectionEnd, lines, onAddCodeReference, clearSelection]);
   const hasSelection = selectionStart != null && selectionEnd != null;
-  const displayFileName = (path && path.trim() !== "") ? path : "Untitled";
+  const displayFileName = (realPath && realPath.trim() !== "") ? realPath : "Untitled";
+  const headerLabel = isDiffMode && path?.startsWith("__diff__:staged:") ? "Diff (Staged)"
+    : isDiffMode && path?.startsWith("__diff__:unstaged:") ? "Diff (Unstaged)"
+      : "File";
 
   const contentView = (
     <View style={[styles.container, embedded ? undefined : { paddingTop: TOP_INSET }]}>
-        <View style={styles.header}>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerLabel}>File</Text>
-            <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
-              {displayFileName}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.closeBtn}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text style={styles.closeBtnText}>✕</Text>
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerLabel}>{headerLabel}</Text>
+          <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
+            {displayFileName}
+          </Text>
         </View>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.closeBtn}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={styles.closeBtnText}>✕</Text>
+        </TouchableOpacity>
+      </View>
 
-        {loading && (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={theme.accent} />
+      {loading && (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={theme.accent} />
+        </View>
+      )}
+
+      {error && !loading && (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {imageUri && (
+        <View style={styles.imageWrap}>
+          <View style={styles.zoomBar}>
+            <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out">
+              <Text style={styles.zoomBtnText}>−</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomLabel} onPress={zoomReset}>
+              <Text style={styles.zoomLabelText}>{Math.round(imageScale * 100)}%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in">
+              <Text style={styles.zoomBtnText}>+</Text>
+            </TouchableOpacity>
           </View>
-        )}
+          <ScrollView
+            style={styles.codeScroll}
+            contentContainerStyle={styles.imageScrollContent}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+          >
+            <View style={[styles.imageScaleWrap, { transform: [{ scale: imageScale }] }]}>
+              <Image
+                source={{ uri: imageUri }}
+                style={[styles.image, { width: Dimensions.get("window").width - 32 }]}
+                resizeMode="contain"
+              />
+            </View>
+          </ScrollView>
+        </View>
+      )}
 
-        {error && !loading && (
-          <View style={styles.center}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+      {content !== null && !loading && !error && !isImage && isMarkdownFile(path) && (
+        <View style={styles.markdownWrap}>
+          <ScrollView
+            style={styles.markdownScroll}
+            contentContainerStyle={styles.markdownScrollContent}
+            showsVerticalScrollIndicator
+            showsHorizontalScrollIndicator={false}
+          >
+            <Markdown
+              style={markdownStyles}
+              mergeStyle
+              onLinkPress={(url) => {
+                Linking.openURL(url);
+                return false;
+              }}
+            >
+              {wrapBareUrlsInMarkdown(content)}
+            </Markdown>
+          </ScrollView>
+        </View>
+      )}
 
-        {imageUri && (
-          <View style={styles.imageWrap}>
-            <View style={styles.zoomBar}>
-              <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out">
-                <Text style={styles.zoomBtnText}>−</Text>
+      {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
+        <View style={styles.htmlWrap}>
+          <WebView
+            source={{ html: content }}
+            style={styles.htmlWebView}
+            originWhitelist={["*"]}
+            javaScriptEnabled
+            domStorageEnabled
+            scalesPageToFit
+          />
+        </View>
+      )}
+
+      {content !== null && !loading && !error && !isImage && !isMarkdownFile(realPath) && !isHtmlFile(realPath) && (
+        <View style={styles.codeWrap}>
+          {truncated && (
+            <View style={styles.truncatedBanner}>
+              <Text style={styles.truncatedText}>
+                Showing first {MAX_DISPLAY_LINES} of {allLines.length} lines
+              </Text>
+            </View>
+          )}
+          {hasSelection && onAddCodeReference && (
+            <View style={styles.addRefBar}>
+              <Text style={styles.addRefHint}>
+                {selectionStart === selectionEnd
+                  ? `Line ${selectionStart}`
+                  : `Lines ${selectionStart}-${selectionEnd}`}
+              </Text>
+              <TouchableOpacity style={styles.addRefBtn} onPress={handleAddToPrompt} activeOpacity={0.8}>
+                <Text style={styles.addRefBtnText}>Add to prompt</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.zoomLabel} onPress={zoomReset}>
-                <Text style={styles.zoomLabelText}>{Math.round(imageScale * 100)}%</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in">
-                <Text style={styles.zoomBtnText}>+</Text>
+              <TouchableOpacity style={styles.cancelRefBtn} onPress={clearSelection}>
+                <Text style={styles.cancelRefBtnText}>Cancel</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
-              style={styles.codeScroll}
-              contentContainerStyle={styles.imageScrollContent}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-            >
-              <View style={[styles.imageScaleWrap, { transform: [{ scale: imageScale }] }]}>
-                <Image
-                  source={{ uri: imageUri }}
-                  style={[styles.image, { width: Dimensions.get("window").width - 32 }]}
-                  resizeMode="contain"
-                />
-              </View>
-            </ScrollView>
-          </View>
-        )}
+          )}
+          <ScrollView
+            style={styles.codeScroll}
+            contentContainerStyle={styles.codeScrollContent}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+          >
+            <View style={styles.codeWithNumbers}>
+              {lines.map((lineContent, i) => {
+                const lineNum = i + 1;
+                const selected =
+                  selectionStart != null &&
+                  selectionEnd != null &&
+                  lineNum >= Math.min(selectionStart, selectionEnd) &&
+                  lineNum <= Math.max(selectionStart, selectionEnd);
 
-        {content !== null && !loading && !error && !isImage && isMarkdownFile(path) && (
-          <View style={styles.markdownWrap}>
-            <ScrollView
-              style={styles.markdownScroll}
-              contentContainerStyle={styles.markdownScrollContent}
-              showsVerticalScrollIndicator
-              showsHorizontalScrollIndicator={false}
-            >
-              <Markdown
-                style={markdownStyles}
-                mergeStyle
-                onLinkPress={(url) => {
-                  Linking.openURL(url);
-                  return false;
-                }}
-              >
-                {wrapBareUrlsInMarkdown(content)}
-              </Markdown>
-            </ScrollView>
-          </View>
-        )}
+                let diffStyle = null;
+                if (isDiffMode) {
+                  if (lineContent.startsWith("+") && !lineContent.startsWith("+++")) {
+                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.15)" };
+                  } else if (lineContent.startsWith("-") && !lineContent.startsWith("---")) {
+                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(239, 68, 68, 0.25)" : "rgba(239, 68, 68, 0.15)" };
+                  } else if (lineContent.startsWith("@@ ")) {
+                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)" };
+                  }
+                }
 
-        {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
-          <View style={styles.htmlWrap}>
-            <WebView
-              source={{ html: content }}
-              style={styles.htmlWebView}
-              originWhitelist={["*"]}
-              javaScriptEnabled
-              domStorageEnabled
-              scalesPageToFit
-            />
-          </View>
-        )}
-
-        {content !== null && !loading && !error && !isImage && !isMarkdownFile(path) && !isHtmlFile(path) && (
-          <View style={styles.codeWrap}>
-            {truncated && (
-              <View style={styles.truncatedBanner}>
-                <Text style={styles.truncatedText}>
-                  Showing first {MAX_DISPLAY_LINES} of {allLines.length} lines
-                </Text>
-              </View>
-            )}
-            {hasSelection && onAddCodeReference && (
-              <View style={styles.addRefBar}>
-                <Text style={styles.addRefHint}>
-                  {selectionStart === selectionEnd
-                    ? `Line ${selectionStart}`
-                    : `Lines ${selectionStart}-${selectionEnd}`}
-                </Text>
-                <TouchableOpacity style={styles.addRefBtn} onPress={handleAddToPrompt} activeOpacity={0.8}>
-                  <Text style={styles.addRefBtnText}>Add to prompt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelRefBtn} onPress={clearSelection}>
-                  <Text style={styles.cancelRefBtnText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <ScrollView
-              style={styles.codeScroll}
-              contentContainerStyle={styles.codeScrollContent}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-            >
-              <View style={styles.codeWithNumbers}>
-                {lines.map((lineContent, i) => {
-                  const lineNum = i + 1;
-                  const selected =
-                    selectionStart != null &&
-                    selectionEnd != null &&
-                    lineNum >= Math.min(selectionStart, selectionEnd) &&
-                    lineNum <= Math.max(selectionStart, selectionEnd);
-                  return (
-                    <Pressable
-                      key={i}
-                      style={[styles.codeRow, selected && styles.codeRowSelected]}
-                      onPress={() => onLinePress(i)}
-                    >
-                      <View style={[styles.lineNumCell, selected && styles.lineNumCellSelected]}>
-                        <Text style={[styles.lineNumText, selected && styles.lineNumTextSelected]}>
-                          {lineNum}
-                        </Text>
-                      </View>
-                      <View style={styles.codeCell}>
-                        <Highlight theme={themes.vsLight} code={lineContent} language={language}>
-                          {({ tokens, getTokenProps }) => (
-                            <Text style={codeBaseStyle} selectable>
-                              {(tokens[0] ?? []).map((token, k) => {
-                                const tokenProps = getTokenProps({ token });
-                                const rnStyle = toRNStyle(tokenProps.style as Record<string, unknown>);
-                                return (
-                                  <Text key={k} style={rnStyle}>
-                                    {tokenProps.children}
-                                  </Text>
-                                );
-                              })}
-                            </Text>
-                          )}
-                        </Highlight>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-      </View>
+                return (
+                  <Pressable
+                    key={i}
+                    style={[styles.codeRow, selected && styles.codeRowSelected, diffStyle]}
+                    onPress={() => onLinePress(i)}
+                  >
+                    <View style={[styles.lineNumCell, selected && styles.lineNumCellSelected]}>
+                      <Text style={[styles.lineNumText, selected && styles.lineNumTextSelected]}>
+                        {lineNum}
+                      </Text>
+                    </View>
+                    <View style={styles.codeCell}>
+                      <Highlight theme={themes.vsLight} code={lineContent} language={language}>
+                        {({ tokens, getTokenProps }) => (
+                          <Text style={codeBaseStyle} selectable>
+                            {(tokens[0] ?? []).map((token, k) => {
+                              const tokenProps = getTokenProps({ token });
+                              const rnStyle = toRNStyle(tokenProps.style as Record<string, unknown>);
+                              return (
+                                <Text key={k} style={rnStyle}>
+                                  {tokenProps.children}
+                                </Text>
+                              );
+                            })}
+                          </Text>
+                        )}
+                      </Highlight>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+    </View>
   );
 
   if (embedded) {
@@ -431,222 +449,222 @@ export function FileViewerModal({
 
 function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.surfaceBg,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 48,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: theme.surfaceBg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
-  },
-  headerTitleWrap: {
-    flex: 1,
-    marginRight: 12,
-    minWidth: 0,
-  },
-  headerLabel: {
-    fontSize: 11,
-    color: theme.textMuted,
-    marginBottom: 2,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  path: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.textPrimary,
-  },
-  closeBtn: {
-    padding: 4,
-  },
-  closeBtnText: {
-    fontSize: 18,
-    color: "#666",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  errorText: {
-    fontSize: 14,
-    color: theme.danger,
-  },
-  imageWrap: {
-    flex: 1,
-  },
-  zoomBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
-    backgroundColor: theme.surfaceBg,
-  },
-  zoomBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.borderColor,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  zoomBtnText: {
-    fontSize: 24,
-    fontWeight: "300",
-    color: theme.textPrimary,
-  },
-  zoomLabel: {
-    minWidth: 56,
-    alignItems: "center",
-  },
-  zoomLabelText: {
-    fontSize: 14,
-    color: theme.textMuted,
-    fontWeight: "500",
-  },
-  imageScaleWrap: {
-    alignSelf: "center",
-    width: Dimensions.get("window").width - 32,
-  },
-  markdownWrap: {
-    flex: 1,
-  },
-  markdownScroll: {
-    flex: 1,
-    backgroundColor: theme.surfaceBg,
-  },
-  markdownScrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: 32,
-  },
-  htmlWrap: {
-    flex: 1,
-  },
-  htmlWebView: {
-    flex: 1,
-    backgroundColor: theme.surfaceBg,
-  },
-  codeWrap: {
-    flex: 1,
-  },
-  truncatedBanner: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: theme.accentLight,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
-  },
-  truncatedText: {
-    fontSize: 13,
-    color: theme.textMuted,
-  },
-  addRefBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
-    backgroundColor: theme.accentLight,
-  },
-  addRefHint: {
-    fontSize: 13,
-    color: theme.textPrimary,
-  },
-  addRefBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: theme.accent,
-  },
-  addRefBtnText: {
-    fontSize: 14,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  cancelRefBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-  cancelRefBtnText: {
-    fontSize: 14,
-    color: theme.textMuted,
-  },
-  codeScroll: {
-    flex: 1,
-    backgroundColor: theme.surfaceBg,
-  },
-  codeScrollContent: {
-    paddingVertical: 12,
-    paddingBottom: 32,
-    paddingHorizontal: 0,
-  },
-  codeWithNumbers: {
-    paddingLeft: 4,
-    paddingRight: 8,
-  },
-  codeRow: {
-    flexDirection: "row",
-    minHeight: LINE_HEIGHT,
-    alignItems: "flex-start",
-  },
-  codeRowSelected: {
-    backgroundColor: theme.accentLight,
-  },
-  lineNumCell: {
-    minWidth: 28,
-    paddingRight: 6,
-    borderRightWidth: 1,
-    borderRightColor: theme.borderColor,
-    minHeight: LINE_HEIGHT,
-    justifyContent: "flex-start",
-    paddingVertical: 2,
-    alignItems: "flex-end",
-  },
-  lineNumCellSelected: {
-    backgroundColor: "transparent",
-  },
-  lineNumText: {
-    fontSize: FONT_SIZE,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    color: theme.textMuted,
-  },
-  lineNumTextSelected: {
-    color: theme.accent,
-    fontWeight: "600",
-  },
-  codeCell: {
-    flex: 1,
-    paddingLeft: 4,
-    minHeight: LINE_HEIGHT,
-    justifyContent: "flex-start",
-  },
-  imageScrollContent: {
-    flexGrow: 1,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  image: {
-    width: "100%",
-    minHeight: 200,
-    maxWidth: Dimensions.get("window").width - 32,
-  },
+    container: {
+      flex: 1,
+      backgroundColor: theme.surfaceBg,
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      minHeight: 48,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: theme.surfaceBg,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+    },
+    headerTitleWrap: {
+      flex: 1,
+      marginRight: 12,
+      minWidth: 0,
+    },
+    headerLabel: {
+      fontSize: 11,
+      color: theme.textMuted,
+      marginBottom: 2,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    path: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.textPrimary,
+    },
+    closeBtn: {
+      padding: 4,
+    },
+    closeBtnText: {
+      fontSize: 18,
+      color: "#666",
+    },
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.danger,
+    },
+    imageWrap: {
+      flex: 1,
+    },
+    zoomBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 24,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+      backgroundColor: theme.surfaceBg,
+    },
+    zoomBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.borderColor,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    zoomBtnText: {
+      fontSize: 24,
+      fontWeight: "300",
+      color: theme.textPrimary,
+    },
+    zoomLabel: {
+      minWidth: 56,
+      alignItems: "center",
+    },
+    zoomLabelText: {
+      fontSize: 14,
+      color: theme.textMuted,
+      fontWeight: "500",
+    },
+    imageScaleWrap: {
+      alignSelf: "center",
+      width: Dimensions.get("window").width - 32,
+    },
+    markdownWrap: {
+      flex: 1,
+    },
+    markdownScroll: {
+      flex: 1,
+      backgroundColor: theme.surfaceBg,
+    },
+    markdownScrollContent: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      paddingBottom: 32,
+    },
+    htmlWrap: {
+      flex: 1,
+    },
+    htmlWebView: {
+      flex: 1,
+      backgroundColor: theme.surfaceBg,
+    },
+    codeWrap: {
+      flex: 1,
+    },
+    truncatedBanner: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      backgroundColor: theme.accentLight,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+    },
+    truncatedText: {
+      fontSize: 13,
+      color: theme.textMuted,
+    },
+    addRefBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+      backgroundColor: theme.accentLight,
+    },
+    addRefHint: {
+      fontSize: 13,
+      color: theme.textPrimary,
+    },
+    addRefBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.accent,
+    },
+    addRefBtnText: {
+      fontSize: 14,
+      color: "#fff",
+      fontWeight: "600",
+    },
+    cancelRefBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+    },
+    cancelRefBtnText: {
+      fontSize: 14,
+      color: theme.textMuted,
+    },
+    codeScroll: {
+      flex: 1,
+      backgroundColor: theme.surfaceBg,
+    },
+    codeScrollContent: {
+      paddingVertical: 12,
+      paddingBottom: 32,
+      paddingHorizontal: 0,
+    },
+    codeWithNumbers: {
+      paddingLeft: 4,
+      paddingRight: 8,
+    },
+    codeRow: {
+      flexDirection: "row",
+      minHeight: LINE_HEIGHT,
+      alignItems: "flex-start",
+    },
+    codeRowSelected: {
+      backgroundColor: theme.accentLight,
+    },
+    lineNumCell: {
+      minWidth: 28,
+      paddingRight: 6,
+      borderRightWidth: 1,
+      borderRightColor: theme.borderColor,
+      minHeight: LINE_HEIGHT,
+      justifyContent: "flex-start",
+      paddingVertical: 2,
+      alignItems: "flex-end",
+    },
+    lineNumCellSelected: {
+      backgroundColor: "transparent",
+    },
+    lineNumText: {
+      fontSize: FONT_SIZE,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      color: theme.textMuted,
+    },
+    lineNumTextSelected: {
+      color: theme.accent,
+      fontWeight: "600",
+    },
+    codeCell: {
+      flex: 1,
+      paddingLeft: 4,
+      minHeight: LINE_HEIGHT,
+      justifyContent: "flex-start",
+    },
+    imageScrollContent: {
+      flexGrow: 1,
+      padding: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    image: {
+      width: "100%",
+      minHeight: 200,
+      maxWidth: Dimensions.get("window").width - 32,
+    },
   });
 }

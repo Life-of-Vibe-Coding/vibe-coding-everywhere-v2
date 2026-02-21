@@ -89,7 +89,15 @@ export function buildWorkspaceTree(dirPath, basePath = "") {
     if (SKIP_DIRS.has(entry.name)) continue;
     const relPath = basePath ? `${basePath}/${entry.name}` : entry.name;
     const fullPath = path.join(dirPath, entry.name);
-    if (entry.isDirectory()) {
+    const isFolder = entry.isDirectory()
+      || (entry.isSymbolicLink() && (() => {
+        try {
+          return fs.statSync(fullPath).isDirectory();
+        } catch {
+          return false;
+        }
+      })());
+    if (isFolder) {
       try {
         const children = buildWorkspaceTree(fullPath, relPath);
         items.push({ name: entry.name, path: relPath, type: "folder", children });

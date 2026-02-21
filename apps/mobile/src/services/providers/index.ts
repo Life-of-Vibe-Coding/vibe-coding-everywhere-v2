@@ -22,6 +22,3 @@ export {
   RENDER_URL_REGEX,
   NEED_PERMISSION_REGEX,
 } from "./stream";
-
-// Terminal input
-export { getTerminalInputState, type TerminalInputState } from "./terminalInput";
