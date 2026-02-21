@@ -1,22 +1,36 @@
 ---
 name: terminal-runner
-description: 'Use this skill whenever the user wants to run terminal commands, execute scripts, render/run a page or project, start/stop processes, run build tools, test runners, compilers, linters, servers, or any shell-based task — including multi-service projects like frontend + backend. Triggers on: "run this", "execute", "start the server", "render the page", "run tests", "build", "start the app", or any request implying shell execution. Always use this skill so commands are planned, tracked, and properly terminated at end of conversation.'
+description: 'Use this skill whenever the user wants to run terminal commands, execute scripts, render/run a page or project, start/stop processes, run build tools, test runners, compilers, linters, servers, or any shell-based task — including multi-service projects like frontend + backend. Triggers on: "run this", "execute", "start the server", "render the page", "run tests", "build", "start the app", or any request implying shell execution. MANDATORY: Execute every terminal command step via the Bash tool (never run_terminal_cmd or alternatives). Always use this skill so commands are planned, tracked, and properly terminated at end of conversation.'
 ---
 # Terminal Runner Skill (Improved)
 
 Manages terminal command execution with structured output, per-service command chains, inbound network verification, and guaranteed cleanup at conversation end.
 
+## MANDATORY: Use Bash Tool for Every Terminal Command
+
+**Every terminal command step MUST be executed via the Bash tool.** Never use `run_terminal_cmd`, `run_command`, inline shell execution, or any alternative — use the **Bash** tool exclusively for:
+
+- Cleanup (port killing)
+- Validation (checking binaries, directories, files)
+- Installing dependencies (pip, npm, pnpm, yarn, etc.)
+- Starting services (always use `nohup` to avoid Pi shell hang)
+- Verification (curl, lsof, etc.)
+- Any other shell-based operation
+
+**Rule:** If you need to run a shell command, invoke the Bash tool. One bash call per logical step; split long operations across multiple bash calls to avoid timeout.
+
 ## Quick Reference
 
-1. **NEW: Clean existing processes on target ports before starting**
-2. Require workspace + remote_host from user (never guess).
-3. Validate workspace, binaries, and required files before running.
-4. **CRITICAL: Split install and run into separate bash calls** to avoid timeout.
-5. **CHANGED: Port occupied → kill the occupying process, then use the desired port**
-6. Use `run_in_background: true` for server start commands; record task IDs for cleanup.
-7. **NEW: Monitor background task output with retry logic**
-8. Verify inbound HTTP reachability on remote_host with retry; wait 8s before first curl attempt (FastAPI/DB init needs time); do NOT conclude "timeout" if logs show server running.
-9. On conversation end: stop all tracked background tasks.
+1. **MANDATORY: Use the Bash tool for every terminal command step** — never use alternatives
+2. **Clean existing processes on target ports before starting**
+3. Require workspace + remote_host from user (never guess).
+4. Validate workspace, binaries, and required files before running.
+5. **CRITICAL: Split install and run into separate bash calls** to avoid timeout.
+6. **Port occupied → kill the occupying process, then use the desired port**
+7. **Use `nohup ... & disown` for every runnable command** (cleanup, install, run, kill); record PIDs (from `lsof -ti :port`) for cleanup; use `tail -f` to monitor completion.
+8. **Monitor background task output** with `tail -f` (use `timeout N tail -f logfile` to avoid blocking)
+9. Verify inbound HTTP reachability on remote_host with retry; wait 8s before first curl attempt (FastAPI/DB init needs time); do NOT conclude "timeout" if logs show server running.
+10. On conversation end: stop all tracked background tasks.
 
 ## CRITICAL: Timeout Prevention
 
@@ -24,30 +38,39 @@ Manages terminal command execution with structured output, per-service command c
 
 **Solution:** Split operations across multiple bash calls:
 
-1. **Cleanup phase** — Kill existing processes on target ports:
+1. **Cleanup phase** — Kill existing processes on target ports (nohup disown):
    ```bash
-   # Call 0: Clean ports (NEW)
-   for port in 8000 3000 5173; do
-     lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null
-   done
+   # Call 0: Clean ports
+   nohup bash -c 'for port in 8000 3000 5173; do lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null; sleep 0.5; done' >> cleanup.log 2>&1 &
+   disown
+   sleep 2
+   tail -5 cleanup.log
    ```
 
-2. **Install phase** — Run each install command separately (foreground):
+2. **Install phase** — Run each install in nohup disown, then tail -f log to confirm completion:
    ```bash
    # Call 1: Backend install
-   cd /path/backend && source venv/bin/activate && pip install -r requirements.txt
+   nohup bash -c 'cd /path/backend && source venv/bin/activate && pip install -r requirements.txt' >> backend_install.log 2>&1 &
+   disown
+   timeout 120 tail -f backend_install.log
 
    # Call 2: Frontend install
-   cd /path/frontend && npm install
+   nohup bash -c 'cd /path/frontend && npm install' >> frontend_install.log 2>&1 &
+   disown
+   timeout 120 tail -f frontend_install.log
    ```
 
-3. **Run phase** — Start each server using `run_in_background: true`:
+3. **Run phase** — Start each server using **nohup** (always):
    ```bash
-   # Call 3: Start backend (with run_in_background: true)
-   cd /path/backend && source venv/bin/activate && python run.py
+   # Call 3: Start backend (nohup + disown)
+   nohup bash -c 'cd /path/backend && source venv/bin/activate && python run.py' >> backend.log 2>&1 &
+   disown
+   echo "Backend started"
 
-   # Call 4: Start frontend (with run_in_background: true)
-   cd /path/frontend && npm run dev -- --host 0.0.0.0
+   # Call 4: Start frontend
+   nohup bash -c 'cd /path/frontend && npm run dev -- --host 0.0.0.0' >> frontend.log 2>&1 &
+   disown
+   echo "Frontend started"
    ```
 
 4. **Monitor phase** — Check background task output and verify reachability
@@ -55,9 +78,9 @@ Manages terminal command execution with structured output, per-service command c
 **Rules:**
 - Each bash call should complete in under 60 seconds
 - Never combine `pip install` + `npm install` + server start in one command
-- Use `run_in_background: true` for any long-running server process
-- **FALLBACK:** If the Bash tool does not honor `run_in_background` and the call hangs, use a **subshell** to isolate the background process so Pi's Bash tool returns immediately: `( cd backend && source venv/bin/activate && python run.py > backend.log 2>&1 & )` then `echo "Backend started"`. The subshell exits right after backgrounding; the server is reparented to init, so Pi does not wait for it.
-- Check background task output using `TaskOutput` tool with the returned task_id (when available)
+- **ALWAYS use nohup disown** for cleanup, install, run, and kill commands — wrap each in `nohup bash -c '...' >> log 2>&1 & disown`, then use `tail -f` (with `timeout` if needed) to monitor completion.
+- Server example: `nohup bash -c 'cd backend && source venv/bin/activate && python run.py' >> backend.log 2>&1 & disown` then `echo "Backend started"`. `nohup` plus `disown` detaches the process from Pi's shell so the Bash tool returns immediately.
+- Check service output using `tail -f` (with `timeout` if needed): `timeout 8 tail -f backend.log` / `timeout 8 tail -f frontend.log` to follow logs briefly after start
 - **NEW: Always clean ports before starting services**
 
 ## Parameters
@@ -69,16 +92,18 @@ REQUIRED parameters (ask for both if either is missing; never guess or auto-dete
 
 ## Core Principles
 
-1. **NEW: Clean before start**: Always kill processes on target ports before starting new services.
-2. Workspace is a user parameter: validate it exists, then cd into it. Never guess.
-3. Validate before running: check every binary and required file. On failure, report exact reason and stop.
-4. **Split install and run**: Never combine install + run in one bash call. Execute in phases to avoid timeout.
-5. Python projects: look for venv from project root or service dir (.venv, venv, env) and activate it.
-6. **CHANGED: Port already in use → kill it, then use the desired port** (prevents port drift).
-7. Inbound verification with retry: verify HTTP services are reachable from user's browser (up to 10 attempts).
-8. Track background tasks: every server gets started with `run_in_background: true`; record task_ids for cleanup.
-9. **NEW: Monitor task output**: Use TaskOutput to check if services started successfully.
-10. Stop all on conversation end: use TaskStop for every tracked task_id when done.
+1. **MANDATORY: Bash tool only**: Use the Bash tool for every terminal command. No `run_terminal_cmd`, `run_command`, or alternatives. One bash call per step.
+2. **nohup disown for every runnable command**: Wrap cleanup, install, run, and kill in `nohup bash -c '...' >> log 2>&1 & disown`; use `tail -f` to monitor logs. (Validation and quick checks like `lsof` may stay foreground.)
+3. **Clean before start**: Always kill processes on target ports before starting new services.
+4. Workspace is a user parameter: validate it exists, then cd into it. Never guess.
+5. Validate before running: check every binary and required file. On failure, report exact reason and stop.
+6. **Split install and run**: Never combine install + run in one bash call. Execute in phases to avoid timeout.
+7. Python projects: look for venv from project root or service dir (.venv, venv, env) and activate it.
+8. **Port already in use → kill it, then use the desired port** (prevents port drift).
+9. Inbound verification with retry: verify HTTP services are reachable from user's browser (up to 10 attempts).
+10. Track background tasks: every server gets started with `nohup`; record PIDs (from `lsof -ti :port`) for cleanup.
+11. **Monitor service output**: Use `tail -f` to check logs (e.g. `timeout 8 tail -f backend.log`) so output streams live; use `timeout` to avoid blocking indefinitely.
+12. Stop all on conversation end: use `nohup bash -c 'kill $(lsof -ti :port)' & disown` for each tracked port.
 
 ## Workflow
 
@@ -114,7 +139,10 @@ cleanup_ports() {
 }
 
 # Example for Python backend (8000) + Next.js frontend (3000)
-cleanup_ports 8000 3000
+nohup bash -c 'for port in 8000 3000; do pids=$(lsof -ti :$port 2>/dev/null); [ -n "$pids" ] && echo "$pids" | xargs kill -9 2>/dev/null; sleep 0.5; done; echo "✓ Ports cleaned"' >> cleanup.log 2>&1 &
+disown
+sleep 2
+tail -20 cleanup.log
 ```
 
 **When to run cleanup:**
@@ -302,17 +330,16 @@ If all checks pass: proceed to execute. If any issue found: stop and wait for us
 Before installing or starting anything, clean the target ports.
 
 ```bash
-# Bash call 0: Clean ports
-for port in 8000 3000; do
-  lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null
-  sleep 0.5
-done
-echo "✓ Ports cleaned"
+# Bash call 0: Clean ports (nohup disown)
+nohup bash -c 'for port in 8000 3000; do lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null; sleep 0.5; done; echo "✓ Ports cleaned"' >> cleanup.log 2>&1 &
+disown
+sleep 2
+tail -5 cleanup.log
 ```
 
 Report cleanup results:
 ```
-PHASE 0: CLEANING PORTS
+PHASE 0: CLEANING PORTS (nohup disown)
 ---
   Port 8000: ✓ freed (was occupied by PID 12345)
   Port 3000: ✓ freed (was occupied by PID 67890)
@@ -323,68 +350,68 @@ PHASE 0: CLEANING PORTS
 Run each install command as a **separate bash call**. Wait for each to complete before proceeding.
 
 ```bash
-# Bash call 1: Backend dependencies
-cd /home/alice/myproject/backend && source venv/bin/activate 2>/dev/null && pip install -q -r requirements.txt
-# Wait for completion, then make next call
+# Bash call 1: Backend dependencies (nohup disown, then tail -f to confirm)
+nohup bash -c 'cd /home/alice/myproject/backend && source venv/bin/activate 2>/dev/null && pip install -q -r requirements.txt' >> backend_install.log 2>&1 &
+disown
+timeout 120 tail -f backend_install.log
 
-# Bash call 2: Frontend dependencies
-cd /home/alice/myproject/frontend && npm install --silent
-# Wait for completion, then proceed to Phase 2
+# Bash call 2: Frontend dependencies (nohup disown, then tail -f to confirm)
+nohup bash -c 'cd /home/alice/myproject/frontend && npm install --silent' >> frontend_install.log 2>&1 &
+disown
+timeout 120 tail -f frontend_install.log
 ```
 
 #### Phase 2: Start Services (Background)
 
-Start each server using the Bash tool with `run_in_background: true`. This returns immediately with a task_id.
-
-**FALLBACK:** If the Bash tool ignores `run_in_background` and the call hangs, use a **subshell** so Pi returns immediately. Pi waits for all child processes; wrapping in `( ... & )` detaches the server from Pi's process tree:
+**ALWAYS run each server/run command in nohup disown mode.** Pi's Bash tool waits for child processes; `nohup ... & disown` detaches the server so the call returns immediately:
 
 ```bash
-# Bash call 3: Start backend (use run_in_background: true)
-# FALLBACK if it hangs: use subshell — ( cmd & ) then echo done
-( cd /home/alice/myproject/backend && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload > backend.log 2>&1 & )
+# Bash call 3: Start backend (nohup + disown)
+nohup bash -c 'cd /home/alice/myproject/backend && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload' >> backend.log 2>&1 &
+disown
 echo "Backend started"
 
 # Bash call 4: Start frontend
-( cd /home/alice/myproject/frontend && npm run dev -- --host 0.0.0.0 > frontend.log 2>&1 & )
+nohup bash -c 'cd /home/alice/myproject/frontend && npm run dev -- --host 0.0.0.0' >> frontend.log 2>&1 &
+disown
 echo "Frontend started"
 ```
 
+Pattern for any server:
 ```bash
-# Primary (when run_in_background works):
-cd /home/alice/myproject/backend && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-# Returns task_id immediately
-
-# FALLBACK (when Pi hangs waiting for background process):
-( cd ... && source venv/bin/activate && uvicorn ... > backend.log 2>&1 & )
-echo "Backend started"
+nohup bash -c 'cd <dir> && <activate if needed> && <start command>' >> <log> 2>&1 &
+disown
+echo "<Service> started"
 ```
 
-#### Phase 3: Monitor Task Output (NEW)
+#### Phase 3: Monitor Service Output (NEW)
 
-After starting services, monitor their output to ensure they started successfully.
-
-Use `TaskOutput` with `block: false` to check each background task:
+After starting services with nohup, use `tail -f` to follow log files and ensure they started successfully:
 
 ```bash
-# Check backend task output
-TaskOutput(task_id: "bg_abc123", block: false)
+# Wait for startup, then follow backend log (timeout avoids indefinite block)
+sleep 3
+timeout 8 tail -f backend.log
 
 # Look for success indicators like:
 # - "Uvicorn running on http://0.0.0.0:8000"
 # - "Application startup complete"
 # - No error messages
+
+# Similarly for frontend
+timeout 8 tail -f frontend.log
 ```
 
-Wait 3-5 seconds after starting before checking output, then report:
+Then report:
 
 ```
 PHASE 3: MONITORING SERVICES
 ---
-  backend (bg_abc123):
+  backend (port 8000):
     ✓ Uvicorn running on http://0.0.0.0:8000
     ✓ Application startup complete
   
-  frontend (bg_def456):
+  frontend (port 3000):
     ✓ Next.js started
     ✓ Ready in 1234ms
 ```
@@ -395,10 +422,9 @@ If errors detected in output, report them immediately and stop.
 
 After confirming services started, verify they're reachable with retry logic.
 
-**Task ID Tracking:**
-- Store returned task_ids for later cleanup
-- Use `TaskOutput` tool to read server logs
-- Use `TaskStop` tool to terminate services at conversation end
+**PID Tracking (nohup):**
+- Get PIDs with `lsof -ti :8000` (backend) and `lsof -ti :3000` (frontend) after start
+- Use `kill <pid>` to terminate services at conversation end
 
 ### Step 5: Inbound Verification with Retry (IMPROVED)
 
@@ -487,7 +513,7 @@ Emit one result block per service after it starts, followed by an overall summar
 A Python API and a Next.js frontend running as separate services.
 
 ```
-PHASE 0: CLEANING PORTS
+PHASE 0: CLEANING PORTS (nohup disown)
 ---
   Port 8000: ✓ freed (was occupied by PID 12345)
   Port 3000: ✓ freed (was occupied by PID 67890)
@@ -509,27 +535,27 @@ All commands validated ✓
 
 PHASE 1: INSTALLING DEPENDENCIES
 ---
-[Bash call 1] cd /home/alice/myapp/backend && source venv/bin/activate && pip install -q -r requirements.txt
+[Bash call 1, nohup] nohup bash -c 'cd backend && source venv/bin/activate && pip install -q -r requirements.txt' >> backend_install.log 2>&1 & disown; timeout 120 tail -f backend_install.log
   ✓ Backend dependencies installed
 
-[Bash call 2] cd /home/alice/myapp/frontend && npm install --silent
+[Bash call 2, nohup] nohup bash -c 'cd frontend && npm install --silent' >> frontend_install.log 2>&1 & disown; timeout 120 tail -f frontend_install.log
   ✓ Frontend dependencies installed
 
 PHASE 2: STARTING SERVICES (background)
 ---
-[Bash call 3, run_in_background: true] cd /home/alice/myapp/backend && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-  ✓ Backend started (task_id: bg_abc123)
+[Bash call 3, nohup] nohup bash -c 'cd backend && source venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload' >> backend.log 2>&1 & disown
+  ✓ Backend started (PID from lsof -ti :8000)
 
-[Bash call 4, run_in_background: true] cd /home/alice/myapp/frontend && npm run dev -- --host 0.0.0.0
-  ✓ Frontend started (task_id: bg_def456)
+[Bash call 4, nohup] nohup bash -c 'cd /home/alice/myapp && npm run dev -- --host 0.0.0.0' >> frontend.log 2>&1 & disown
+  ✓ Frontend started (PID from lsof -ti :3000)
 
 PHASE 3: MONITORING TASK OUTPUT
 ---
-  backend (bg_abc123):
+  backend (port 8000):
     ✓ Uvicorn running on http://0.0.0.0:8000
     ✓ Application startup complete
   
-  frontend (bg_def456):
+  frontend (port 3000):
     ✓ Next.js 14.2.35
     ✓ Local: http://localhost:3000
     ✓ Ready in 1176ms
@@ -541,48 +567,50 @@ PHASE 4: VERIFICATION (with retry)
 
 ALL SERVICES RUNNING
 ---
-  SERVICE     TASK_ID      STATUS    ACCESS URL
-  backend     bg_abc123    running   http://<remote_host>:8000  ✓
-  frontend    bg_def456    running   http://<remote_host>:3000  ✓
+  SERVICE     PORT         STATUS    ACCESS URL
+  backend     :8000        running   http://<remote_host>:8000  ✓
+  frontend    :3000        running   http://<remote_host>:3000  ✓
 ---
 Type "terminate" to stop all services.
 ```
 
 ## Cleanup Protocol
 
-### Track running services
+### Track running services (nohup)
 
-Keep a list of background task_ids during the session:
-- `backend: bg_abc123`
-- `frontend: bg_def456`
+Keep a list of ports during the session:
+- `backend: port 8000`
+- `frontend: port 3000`
 
 ### Check service status
 
-Use `TaskOutput` tool with `block: false` to check if a service is still running and see its recent output.
+Use `tail -f` to follow logs: `timeout 5 tail -f backend.log` / `timeout 5 tail -f frontend.log`; or `lsof -ti :8000` to verify process is running.
 
 ### Stop a single service
 
-Use `TaskStop` tool with the task_id:
-```
-TaskStop(task_id: "bg_abc123")
+Use `kill` with the PID from lsof (nohup disown):
+```bash
+nohup bash -c 'kill $(lsof -ti :8000)' >> cleanup.log 2>&1 &
+disown
 ```
 
 ### End of conversation / "terminate" / "stop all"
 
-Stop all tracked background tasks using `TaskStop` for each task_id:
+Stop all tracked services by port (nohup disown):
 
-```
-# For each tracked service:
-TaskStop(task_id: "bg_abc123")  # backend
-TaskStop(task_id: "bg_def456")  # frontend
+```bash
+nohup bash -c 'kill $(lsof -ti :8000) $(lsof -ti :3000) 2>/dev/null' >> cleanup.log 2>&1 &
+disown
+sleep 1
+tail -3 cleanup.log
 ```
 
 Report each termination:
 ```
 SERVICES TERMINATED
 ---
-  backend  (bg_abc123): stopped ✓
-  frontend (bg_def456): stopped ✓
+  backend  (port 8000): stopped ✓
+  frontend (port 3000): stopped ✓
 ---
 All services terminated.
 ```
@@ -599,7 +627,7 @@ RULE: Always stop all background tasks at conversation end.
 - Command fails mid-chain (&& stops it): Report which command failed and its output.
 - **NEW: Port cleanup fails**: Report which port couldn't be freed, suggest manual cleanup.
 - **NEW: Background task output shows errors**: Stop execution, show error output, ask user to fix.
-- Service crashes after start: Report in summary, show crash logs from TaskOutput.
+- Service crashes after start: Report in summary, show crash logs from backend.log/frontend.log.
 - Inbound check fails after retries: Show which attempts failed and final error state. **Do NOT say "server start timeout"** if logs (backend.log, frontend.log) show the server running ("Application startup complete", "Uvicorn running"). That is "verification failed" (REMOTE_HOST/firewall), not timeout.
 - Service binds to 127.0.0.1: Warn before starting, add --host 0.0.0.0 to chain.
 - **CHANGED: Port already in use after cleanup**: Report failure, suggest manual intervention.

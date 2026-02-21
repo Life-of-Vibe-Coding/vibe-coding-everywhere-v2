@@ -277,7 +277,7 @@ export function createPiRpcSession({
     } catch (_) { }
 
     const terminalRules =
-      "When running terminal commands: (1) use ad-hoc bash, not persistent shells; (2) long-running commands (servers, dev watchers) MUST NOT block — use run_in_background: true first; (3) if the Bash tool hangs (waits for background children), use a subshell: ( cd path && source venv/bin/activate && python run.py > server.log 2>&1 & ) then echo done — the subshell exits immediately and detaches the server from the process tree; (4) prefer run_in_background when available.";
+      "When running terminal commands: (1) MANDATORY: use the Bash tool for every terminal command step — never use run_terminal_cmd, run_command, or alternatives; (2) use ad-hoc bash, not persistent shells; (3) when starting background servers, ALWAYS use nohup + disown: nohup bash -c 'cd dir && ... && python run.py' >> log 2>&1 & disown — Pi's Bash tool waits for children, so nohup+disown prevents the call from hanging;";
     const connectionType = getConnectionContext(socket);
     const previewHost = getPreviewHost();
     const tailscaleHint =

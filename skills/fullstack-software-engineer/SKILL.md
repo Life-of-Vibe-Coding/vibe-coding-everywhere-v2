@@ -26,7 +26,7 @@ Before writing any code:
 
 ### 2. Environment Detection
 
-Before creating any new environment or installing packages:
+Before creating any new environment or installing packages, use the **terminal-runner** skill and execute every command via the **Bash tool** (never `run_terminal_cmd` or alternatives).
 
 ```bash
 # Scan for existing environments
@@ -151,7 +151,7 @@ Request received
 │
 ├── Ambiguous? ──────────────────────── YES → Ask ONE focused clarifying question
 │
-├── Needs terminal/runtime? ─────────── YES → Detect environment first
+├── Needs terminal/runtime? ─────────── YES → Use terminal-runner skill; run every command via Bash tool
 │
 ├── Involves user input? ─────────────── YES → Sanitize + validate at entry point
 │
