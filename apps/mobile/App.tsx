@@ -15,7 +15,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   ScrollView,
   KeyboardAvoidingView,
@@ -25,9 +24,9 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
-
 // Design System Imports
 import {
   ThemeProvider,
@@ -478,10 +477,12 @@ export default function App() {
         <ExpoStatusBar style={theme.mode === "dark" ? "light" : "dark"} />
         <KeyboardAvoidingView
           style={styles.keyboardView}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={0}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
           <View style={styles.page}>
+            {/* Group 1: Main content + overlays (flex: 1) */}
+            <View style={styles.topSection}>
             {/* Main Content Area */}
             <View style={styles.contentArea}>
               {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
@@ -577,18 +578,6 @@ export default function App() {
                 />
               </View>
 
-              {/* Sidebar Overlay */}
-              <View style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
-                <WorkspaceSidebar
-                  visible={sidebarVisible}
-                  embedded
-                  onClose={() => setSidebarVisible(false)}
-                  onFileSelect={handleFileSelect}
-                  onCommitByAI={handleCommitByAI}
-                />
-              </View>
-
-              {/* File Viewer Overlay */}
               {selectedFilePath != null && (
                 <View style={styles.fileViewerOverlay} pointerEvents="box-none">
                   <FileViewerModal
@@ -604,9 +593,21 @@ export default function App() {
                   />
                 </View>
               )}
+
+              {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
+              <View style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
+                <WorkspaceSidebar
+                  visible={sidebarVisible}
+                  embedded
+                  onClose={() => setSidebarVisible(false)}
+                  onFileSelect={handleFileSelect}
+                  onCommitByAI={handleCommitByAI}
+                />
+              </View>
+            </View>
             </View>
 
-            {/* Input Panel */}
+            {/* Group 2: Input Panel */}
             <View style={styles.inputBar}>
               <InputPanel
                 connected={connected}
@@ -734,19 +735,18 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       paddingTop: 8,
       paddingBottom: 16,
     },
-    contentArea: {
+    topSection: {
       flex: 1,
-      flexShrink: 1,
       minHeight: 0,
       position: "relative",
-      overflow: "hidden",
+      overflow: Platform.OS === "ios" ? "visible" : "hidden",
+    },
+    contentArea: {
+      ...StyleSheet.absoluteFillObject,
+      overflow: Platform.OS === "ios" ? "visible" : "hidden",
     },
     sidebarOverlay: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      ...StyleSheet.absoluteFillObject,
       zIndex: 5,
     },
     fileViewerOverlay: {

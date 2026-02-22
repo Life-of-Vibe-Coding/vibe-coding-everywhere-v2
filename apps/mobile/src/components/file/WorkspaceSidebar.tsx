@@ -13,6 +13,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
 import { getDefaultServerConfig } from "../../core";
 import {
@@ -81,11 +82,11 @@ interface WorkspaceSidebarProps {
 }
 
 const SIDE_MARGIN = 12;
-const RESERVED_BOTTOM = 100;
 const IGNORED_FILES = new Set([".gitignore", ".env", ".env.example", ".env.local"]);
 
 export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI }: WorkspaceSidebarProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [data, setData] = useState<WorkspaceData | null>(null);
 
@@ -112,10 +113,10 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   const baseUrl = getDefaultServerConfig().getBaseUrl();
   const drawerWidth = windowWidth - 2 * SIDE_MARGIN;
   const maxDrawerHeight = Math.round(windowHeight * 0.85);
-  const drawerHeight =
-    embedded
-      ? Math.min(maxDrawerHeight, Math.max(300, windowHeight - RESERVED_BOTTOM))
-      : maxDrawerHeight;
+  const drawerHeight = embedded ? undefined : maxDrawerHeight;
+  const drawerSize = embedded
+    ? { width: drawerWidth, flex: 1 }
+    : { width: drawerWidth, height: drawerHeight };
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -594,30 +595,21 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     );
   };
 
+  const overlayPadding = embedded
+    ? { paddingTop: 0, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }
+    : { paddingTop: (insets.top - 20), paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
+  const drawerCenterStyle = embedded
+    ? [styles.drawerCenter, styles.drawerCenterEmbedded, { paddingHorizontal: SIDE_MARGIN }]
+    : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];
   const overlayContent = (
-    <View style={[styles.overlay, embedded && styles.overlayEmbedded]}>
+    <View style={[styles.overlay, embedded && styles.overlayEmbedded, overlayPadding]}>
       <TouchableOpacity
         style={styles.mask}
         activeOpacity={1}
         onPress={onClose}
       />
-      <View style={[styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }]} pointerEvents="box-none">
-        <View style={[styles.drawer, { width: drawerWidth, height: drawerHeight }]}>
-
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {activeTab === "changes" ? "Source Control"
-                : activeTab === "commits" ? "Git History"
-                  : "Explorer"}
-            </Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+      <View style={drawerCenterStyle} pointerEvents="box-none">
+        <View style={[styles.drawer, drawerSize]}>
 
           <View style={styles.tabContainer}>
             {(["files", "changes", "commits"] as const).map(tab => (
@@ -668,12 +660,6 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
             activeTab === "files" ? renderFilesTab() :
               renderChangesTab()}
 
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.footerCloseBtn} onPress={onClose}>
-              <Text style={styles.footerCloseBtnText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-
         </View>
       </View>
     </View>
@@ -690,6 +676,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      statusBarTranslucent={false}
     >
       {overlayContent}
     </Modal>
@@ -702,6 +689,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     overlayEmbedded: { minHeight: 0 },
     mask: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
     drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
+    drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
       backgroundColor: theme.beigeBg,
       borderRadius: 24,
@@ -793,7 +781,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       borderColor: "rgba(0,0,0,0.08)",
     },
     loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: theme.beigeBg },
-    scroll: { flex: 1, backgroundColor: theme.beigeBg },
+    scroll: { flex: 1, minHeight: 0, backgroundColor: theme.beigeBg },
     scrollContent: { paddingVertical: 8, paddingBottom: 24 },
     folderBlock: { marginBottom: 0 },
     treeRow: {
@@ -907,26 +895,5 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     commitDate: { fontSize: 12, color: theme.textMuted },
     commitMessageTxt: { fontSize: 14, color: theme.textPrimary, marginBottom: 4, fontWeight: "500" },
     commitAuthorTxt: { fontSize: 12, color: theme.textMuted, opacity: 0.8 },
-
-    footer: {
-      padding: 16,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
-    },
-    footerCloseBtn: {
-      backgroundColor: theme.surfaceBg,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-      paddingVertical: 12,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    footerCloseBtnText: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: theme.textPrimary,
-    }
   });
 }

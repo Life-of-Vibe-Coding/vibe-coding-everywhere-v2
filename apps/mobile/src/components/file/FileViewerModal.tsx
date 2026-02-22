@@ -20,8 +20,7 @@ import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
 import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
-
-const TOP_INSET = Platform.OS === "ios" ? 50 : 28;
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;
@@ -135,6 +134,7 @@ export function FileViewerModal({
   onAddCodeReference,
 }: FileViewerModalProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createFileViewerStyles(theme), [theme]);
   const markdownStyles = useMemo(
     () => ({
@@ -247,8 +247,9 @@ export function FileViewerModal({
     : isDiffMode && path?.startsWith("__diff__:unstaged:") ? "Diff (Unstaged)"
       : "File";
 
+  const topInset = embedded ? 0 : insets.top - 20;
   const contentView = (
-    <View style={[styles.container, embedded ? undefined : { paddingTop: TOP_INSET }]}>
+    <View style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerLabel}>{headerLabel}</Text>

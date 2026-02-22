@@ -527,9 +527,28 @@ export function useSocket(options: UseSocketOptions = {}) {
   /**
    * Load an existing session's messages (e.g. from persisted storage).
    * Replaces current messages without affecting socket/server state.
+   * Deduplicates message IDs (in case persisted data has duplicates) and
+   * syncs nextIdRef so new messages get unique IDs.
    */
   const loadSession = useCallback((messages: Message[]) => {
-    setMessages(messages);
+    let maxN = 0;
+    for (const m of messages) {
+      const match = /^msg-(\d+)$/.exec(m.id);
+      if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
+    }
+    nextIdRef.current = Math.max(nextIdRef.current, maxN);
+    const seen = new Set<string>();
+    const deduped = messages.map((m) => {
+      let id = m.id;
+      if (seen.has(id)) {
+        id = `msg-${++nextIdRef.current}`;
+        seen.add(id);
+      } else {
+        seen.add(id);
+      }
+      return { ...m, id };
+    });
+    setMessages(deduped);
   }, []);
 
   return {

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  KeyboardAvoidingView,
   Platform,
   Modal,
   ScrollView,
@@ -116,10 +115,7 @@ export function InputPanel({
   const styles = useMemo(() => createInputPanelStyles(theme), [theme]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    <View>
       <View style={styles.container}>
         {pendingCodeRefs.length > 0 && (
           <View style={styles.refPills}>
@@ -354,7 +350,7 @@ export function InputPanel({
           </View>
         </TouchableOpacity>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
