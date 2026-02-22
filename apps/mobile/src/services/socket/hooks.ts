@@ -269,33 +269,35 @@ export function useSocket(options: UseSocketOptions = {}) {
   addMessageRef.current = addMessage;
 
   const resumeLiveSession = useCallback((sid: string, initialMessages: Message[]) => {
-    let maxN = 0;
-    for (const m of initialMessages) {
-      const match = /^msg-(\d+)$/.exec(m.id);
-      if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
-    }
-    nextIdRef.current = Math.max(nextIdRef.current, maxN);
-    const seen = new Set<string>();
-    const deduped = initialMessages.map((m) => {
-      let id = m.id;
-      if (seen.has(id)) {
-        id = `msg-${++nextIdRef.current}`;
-        seen.add(id);
-      } else {
-        seen.add(id);
-      }
-      return { ...m, id };
-    });
-
     const state = getOrCreateSessionState(sid);
-    state.messages = deduped;
-    state.outputBuffer = "";
-    state.currentAssistantContent = "";
-    // If it's already connected, we don't want history to duplicate everything.
-    // However, since we re-subscribe to SSE, the server will send history catchups.
-    // To handle this, the server will use `?activeOnly=1` for resumed sessions,
-    // which streams the currently generating (active) turn (if any) and omits past turns.
-    
+    const alreadyConnected = eventSourceMapRef.current.has(sid);
+    const hasExistingOutput = state.messages.length > 0 || (state.currentAssistantContent ?? "").trim() !== "";
+
+    if (!alreadyConnected || !hasExistingOutput) {
+      let maxN = 0;
+      for (const m of initialMessages) {
+        const match = /^msg-(\d+)$/.exec(m.id);
+        if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
+      }
+      nextIdRef.current = Math.max(nextIdRef.current, maxN);
+      const seen = new Set<string>();
+      const deduped = initialMessages.map((m) => {
+        let id = m.id;
+        if (seen.has(id)) {
+          id = `msg-${++nextIdRef.current}`;
+          seen.add(id);
+        } else {
+          seen.add(id);
+        }
+        return { ...m, id };
+      });
+      state.messages = deduped;
+      state.outputBuffer = "";
+      state.currentAssistantContent = "";
+    }
+    // If already connected and have existing output, preserve it — don't overwrite with disk/API
+    // so we keep the previous generation output that streamed while user was viewing another session.
+
     setSessionId(sid);
     setViewingLiveSession(true);
     syncSessionToReact(sid);
@@ -822,7 +824,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     setViewingLiveSession(true);
   }, [sessionId, serverUrl]);
 
-  /** Start new session: initialize via POST /api/sessions/new (no temp sessions). */
+  /** Start new session: clear state; session is created on first prompt (no dummy session). */
   const startNewSession = useCallback(async () => {
     if (sessionId) {
       try {
@@ -842,25 +844,16 @@ export function useSocket(options: UseSocketOptions = {}) {
       }
       sessionStatesRef.current.delete(sessionId);
     }
-    try {
-      const res = await fetch(`${serverUrl}/api/sessions/new`, { method: "POST" });
-      const data = await res.json();
-      if (data.ok && data.sessionId) {
-        setSessionId(data.sessionId);
-        const newState = getOrCreateSessionState(data.sessionId);
-        setLiveSessionMessages(newState.messages);
-      }
-    } catch (err) {
-      console.error("Failed to start new session", err);
-      setSessionId(null);
-    }
+    setSessionId(null);
+    pendingMessagesForNewSessionRef.current = [];
+    setLiveSessionMessages([]);
     setPermissionDenials(null);
     setLastRunOptions({ permissionMode: null, allowedTools: [], useContinue: false });
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
     setViewingLiveSession(true);
-  }, [sessionId, serverUrl, getOrCreateSessionState]);
+  }, [sessionId, serverUrl]);
 
   const loadSession = useCallback((loadedMessages: Message[]) => {
     if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs");

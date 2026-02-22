@@ -37,8 +37,9 @@ function resolveWorkspaceCwd() {
     }
   }
   
-  // Resolve final path with fallback chain
-  const raw = fromCli ?? process.env.WORKSPACE ?? process.env.WORKSPACE_CWD ?? path.join(projectRoot, "workspace_for_testing");
+  // Resolve final path with fallback chain.
+  // Default to project root so sessions come from project-root/.pi only (not workspace_for_testing/.pi).
+  const raw = fromCli ?? process.env.WORKSPACE ?? process.env.WORKSPACE_CWD ?? projectRoot;
   const resolved = path.resolve(raw);
   
   // Validate workspace path exists and is a directory
