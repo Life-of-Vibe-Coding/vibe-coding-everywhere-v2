@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { PendingAskUserQuestion, AskUserQuestionItem } from "../core/types";
+import type { PendingAskUserQuestion, AskUserQuestionItem } from "../../core/types";
 import { useTheme } from "../../theme/index";
 
 export interface AskQuestionModalProps {
@@ -64,7 +64,7 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
     onSubmit(answers);
   }, [buildAnswers, onSubmit]);
 
-  const canSubmit = questions.every((q, i) => (getSelected(i).length ?? 0) > 0);
+  const canSubmit = questions.every((q: any, i: number) => (getSelected(i).length ?? 0) > 0);
   const isMultiCard = questions.length > 1;
   const q = questions[currentIndex];
   const currentHasSelection = q ? (getSelected(currentIndex).length ?? 0) > 0 : false;
@@ -83,7 +83,7 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
           <Text style={styles.questionText}>{question.question}</Text>
         ) : null}
         <View style={styles.options}>
-          {question.options.map((opt, oIndex) => {
+          {question.options.map((opt: any, oIndex: number) => {
             const sel = getSelected(qIndex);
             const isSelected = sel.includes(opt.label);
             return (
@@ -123,7 +123,7 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
               <Text style={styles.title}>Please choose</Text>
               {isMultiCard && (
                 <View style={styles.stepper}>
-                  {questions.map((_, i) => (
+                  {questions.map((_: any, i: number) => (
                     <TouchableOpacity
                       key={i}
                       style={[
@@ -225,166 +225,166 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
 
 function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-  safe: {
-    maxHeight: "80%",
-  },
-  card: {
-    backgroundColor: theme.surfaceBg,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: theme.borderColor,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: theme.textPrimary,
-  },
-  stepper: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.borderColor,
-  },
-  dotActive: {
-    backgroundColor: theme.accent,
-    transform: [{ scale: 1.2 }],
-  },
-  dotAnswered: {
-    backgroundColor: theme.success,
-  },
-  flashcard: {
-    minHeight: 180,
-  },
-  progressText: {
-    fontSize: 13,
-    color: theme.textMuted,
-    marginTop: 8,
-  },
-  scroll: {
-    maxHeight: 360,
-  },
-  scrollContent: {
-    paddingBottom: 16,
-  },
-  questionBlock: {
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.textPrimary,
-    marginBottom: 4,
-  },
-  questionText: {
-    fontSize: 14,
-    color: theme.textMuted,
-    marginBottom: 10,
-  },
-  options: {
-    gap: 8,
-  },
-  option: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: theme.borderColor,
-    backgroundColor: theme.cardBg,
-  },
-  optionSelected: {
-    borderColor: theme.accent,
-    backgroundColor: theme.accentLight,
-  },
-  optionLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: theme.textPrimary,
-  },
-  optionLabelSelected: {
-    color: theme.accent,
-  },
-  optionDesc: {
-    fontSize: 13,
-    color: theme.textMuted,
-    marginTop: 2,
-  },
-  hint: {
-    fontSize: 13,
-    color: theme.textMuted,
-    marginTop: 8,
-  },
-  actions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 16,
-  },
-  btnBack: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  btnBackText: {
-    fontSize: 16,
-    color: theme.accent,
-    fontWeight: "600",
-  },
-  btnBackPlaceholder: {
-    width: 60,
-  },
-  btnNext: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    backgroundColor: theme.accent,
-  },
-  btnCancel: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: "transparent",
-  },
-  btnCancelText: {
-    fontSize: 16,
-    color: theme.textMuted,
-    fontWeight: "500",
-  },
-  btnConfirm: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    backgroundColor: theme.accent,
-  },
-  btnConfirmDisabled: {
-    backgroundColor: theme.borderColor,
-  },
-  btnConfirmText: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  btnConfirmTextDisabled: {
-    color: theme.textMuted,
-  },
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.4)",
+      justifyContent: "flex-end",
+    },
+    safe: {
+      maxHeight: "80%",
+    },
+    card: {
+      backgroundColor: theme.surfaceBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 16,
+      paddingBottom: 24,
+      paddingHorizontal: 20,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: theme.borderColor,
+    },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: theme.textPrimary,
+    },
+    stepper: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.borderColor,
+    },
+    dotActive: {
+      backgroundColor: theme.accent,
+      transform: [{ scale: 1.2 }],
+    },
+    dotAnswered: {
+      backgroundColor: theme.success,
+    },
+    flashcard: {
+      minHeight: 180,
+    },
+    progressText: {
+      fontSize: 13,
+      color: theme.textMuted,
+      marginTop: 8,
+    },
+    scroll: {
+      maxHeight: 360,
+    },
+    scrollContent: {
+      paddingBottom: 16,
+    },
+    questionBlock: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.textPrimary,
+      marginBottom: 4,
+    },
+    questionText: {
+      fontSize: 14,
+      color: theme.textMuted,
+      marginBottom: 10,
+    },
+    options: {
+      gap: 8,
+    },
+    option: {
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: theme.borderColor,
+      backgroundColor: theme.cardBg,
+    },
+    optionSelected: {
+      borderColor: theme.accent,
+      backgroundColor: theme.accentLight,
+    },
+    optionLabel: {
+      fontSize: 15,
+      fontWeight: "500",
+      color: theme.textPrimary,
+    },
+    optionLabelSelected: {
+      color: theme.accent,
+    },
+    optionDesc: {
+      fontSize: 13,
+      color: theme.textMuted,
+      marginTop: 2,
+    },
+    hint: {
+      fontSize: 13,
+      color: theme.textMuted,
+      marginTop: 8,
+    },
+    actions: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      marginTop: 16,
+    },
+    btnBack: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    btnBackText: {
+      fontSize: 16,
+      color: theme.accent,
+      fontWeight: "600",
+    },
+    btnBackPlaceholder: {
+      width: 60,
+    },
+    btnNext: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      backgroundColor: theme.accent,
+    },
+    btnCancel: {
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+      backgroundColor: "transparent",
+    },
+    btnCancelText: {
+      fontSize: 16,
+      color: theme.textMuted,
+      fontWeight: "500",
+    },
+    btnConfirm: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      backgroundColor: theme.accent,
+    },
+    btnConfirmDisabled: {
+      backgroundColor: theme.borderColor,
+    },
+    btnConfirmText: {
+      fontSize: 16,
+      color: "#fff",
+      fontWeight: "600",
+    },
+    btnConfirmTextDisabled: {
+      color: theme.textMuted,
+    },
   });
 }

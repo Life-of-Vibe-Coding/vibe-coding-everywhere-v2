@@ -5,34 +5,48 @@
  * Shows notifications when:
  * - Agent finishes its final response
  * - Agent needs user approval (e.g. tool execution, confirm/select dialogs)
+ *
+ * Note: expo-notifications is not fully supported in Expo Go. We lazy-load it
+ * only in dev/preview builds to avoid the warning; in Expo Go we use haptics only.
  */
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
-
-// Show notifications as banner when app is in foreground (iOS/Android only)
-if (Platform.OS !== "web") {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-}
+import Constants from "expo-constants";
 import * as Device from "expo-device";
 import { triggerHaptic } from "../design-system";
 
 const AGENT_CHANNEL_ID = "agent-events";
 
+/** True when running in Expo Go (notifications unavailable, use haptics only). */
+const isExpoGo =
+  Constants.appOwnership === "expo" || Constants.executionEnvironment === "storeClient";
+
 let permissionsEnsured = false;
+let notificationHandlerSet = false;
+
+async function getNotifications() {
+  return import("expo-notifications");
+}
 
 /** Ensure notification permissions and Android channel. Call once on app init. */
 export async function ensureNotificationPermissions(): Promise<boolean> {
-  if (Platform.OS === "web") return false;
+  if (Platform.OS === "web" || isExpoGo) return false;
   if (permissionsEnsured) return true;
 
   try {
+    const Notifications = await getNotifications();
+
+    if (!notificationHandlerSet) {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+      notificationHandlerSet = true;
+    }
+
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync(AGENT_CHANNEL_ID, {
         name: "Agent Events",
@@ -59,17 +73,17 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
 
 /** Schedule an immediate local notification. */
 async function scheduleNotification(title: string, body: string): Promise<void> {
-  if (Platform.OS === "web") return;
+  if (Platform.OS === "web" || isExpoGo) return;
   const granted = await ensureNotificationPermissions();
   if (!granted) return;
 
   try {
+    const Notifications = await getNotifications();
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
         data: {},
-        channelId: Platform.OS === "android" ? AGENT_CHANNEL_ID : undefined,
       },
       trigger: null,
     });

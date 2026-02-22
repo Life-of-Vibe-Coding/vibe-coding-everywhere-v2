@@ -158,55 +158,55 @@ export function ProcessesDashboardSection({
               {[...apiProcesses]
                 .sort((a, b) => b.pid - a.pid)
                 .map((proc) => {
-                const logPaths = proc.logPaths ?? [];
-                return (
-                  <View key={`${proc.pid}-${proc.port}`} style={styles.row}>
-                    <View style={styles.rowMain}>
-                      <View style={styles.pidPortRow}>
-                        <View style={styles.pill}>
-                          <Text style={styles.pillText}>PID {proc.pid}</Text>
+                  const logPaths = proc.logPaths ?? [];
+                  return (
+                    <View key={`${proc.pid}-${proc.port}`} style={styles.row}>
+                      <View style={styles.rowMain}>
+                        <View style={styles.pidPortRow}>
+                          <View style={styles.pill}>
+                            <Text style={styles.pillText}>PID {proc.pid}</Text>
+                          </View>
+                          <View style={styles.pill}>
+                            <Text style={styles.pillText}>Port {proc.port}</Text>
+                          </View>
                         </View>
-                        <View style={styles.pill}>
-                          <Text style={styles.pillText}>Port {proc.port}</Text>
+                        <Text
+                          style={styles.command}
+                          numberOfLines={3}
+                          selectable
+                        >
+                          {proc.command}
+                        </Text>
+                      </View>
+                      <View style={styles.rowActions}>
+                        {logPaths.map((logPath) => {
+                          const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
+                          return (
+                            <TouchableOpacity
+                              key={logPath}
+                              onPress={() => handleViewLog(logPath)}
+                              style={[styles.logButton, logPaths.length > 0 && styles.logButtonVisible]}
+                              activeOpacity={0.7}
+                              accessibilityLabel={`View log ${label}`}
+                              accessibilityRole="button"
+                            >
+                              <Text style={styles.logButtonText}>Log: {label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        <View style={styles.killButtonWrap}>
+                          <AppButton
+                            label={killingPid === proc.pid ? "…" : "Kill"}
+                            variant="danger"
+                            size="sm"
+                            onPress={() => handleKillApiProcess(proc)}
+                            disabled={killingPid === proc.pid}
+                          />
                         </View>
                       </View>
-                      <Text
-                        style={styles.command}
-                        numberOfLines={3}
-                        selectable
-                      >
-                        {proc.command}
-                      </Text>
                     </View>
-                    <View style={styles.rowActions}>
-                      {logPaths.map((logPath) => {
-                        const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
-                        return (
-                          <TouchableOpacity
-                            key={logPath}
-                            onPress={() => handleViewLog(logPath)}
-                            style={[styles.logButton, logPaths.length > 0 && styles.logButtonVisible]}
-                            activeOpacity={0.7}
-                            accessibilityLabel={`View log ${label}`}
-                            accessibilityRole="button"
-                          >
-                            <Text style={styles.logButtonText}>Log: {label}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                      <View style={styles.killButtonWrap}>
-                        <AppButton
-                          label={killingPid === proc.pid ? "…" : "Kill"}
-                          variant="danger"
-                          size="sm"
-                          onPress={() => handleKillApiProcess(proc)}
-                          disabled={killingPid === proc.pid}
-                        />
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
             </View>
           )}
 
@@ -278,17 +278,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       gap: 10,
     },
     errorBanner: {
-      backgroundColor: theme.colors.errorBg ?? "#fee",
+      backgroundColor: theme.accentLight ?? "#fee",
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 8,
     },
     errorText: {
-      color: theme.colors.error ?? "#c00",
+      color: theme.danger ?? "#c00",
       fontSize: 13,
     },
     errorHint: {
-      color: theme.colors.error ?? "#c00",
+      color: theme.danger ?? "#c00",
       fontSize: 11,
       marginTop: 4,
       opacity: 0.9,

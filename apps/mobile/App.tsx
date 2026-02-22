@@ -240,6 +240,7 @@ export default function App() {
     terminateAgent,
     resetSession,
     loadSession,
+    resumeLiveSession,
     switchToLiveSession,
     viewingLiveSession,
     liveSessionMessages,
@@ -259,6 +260,7 @@ export default function App() {
       }
       setProvider(p);
       setModel(newModel);
+      sessionStore.setLastUsedProviderModel(p, newModel);
       triggerHaptic("selection");
     },
     [provider, model, messages, currentSessionId, workspacePath, resetSession]
@@ -274,6 +276,7 @@ export default function App() {
         resetSession();
       }
       setModel(newModel);
+      sessionStore.setLastUsedProviderModel(provider, newModel);
       triggerHaptic("selection");
     },
     [model, messages, currentSessionId, workspacePath, provider, resetSession]
@@ -315,24 +318,35 @@ export default function App() {
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
-  // Load last active session on mount
+  // Load last active session and last used provider/model on mount
   const hasRestoredSession = useRef(false);
   useEffect(() => {
     if (hasRestoredSession.current) return;
     hasRestoredSession.current = true;
-    sessionStore.loadLastActiveSession().then((session) => {
+    Promise.all([
+      sessionStore.loadLastActiveSession(),
+      sessionStore.loadLastUsedProviderModel(),
+    ]).then(([session, lastUsed]) => {
       if (session && session.messages.length > 0) {
         lastSwitchedSessionRef.current = {
           id: session.id,
           provider: session.provider ?? undefined,
           model: session.model ?? undefined,
         };
-        loadSession(session.messages);
+        resumeLiveSession(session.id, session.messages);
         setCurrentSessionId(session.id);
         if (session.provider) setProvider(session.provider as BrandProvider);
         if (session.model) setModel(session.model);
+        if (session.provider && session.model) sessionStore.setLastUsedProviderModel(session.provider, session.model);
+      } else if (lastUsed) {
+        const validProvider: BrandProvider =
+          lastUsed.provider === "claude" || lastUsed.provider === "gemini" || lastUsed.provider === "pi" || lastUsed.provider === "codex"
+            ? lastUsed.provider
+            : "pi";
+        setProvider(validProvider);
+        setModel(lastUsed.model);
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, [loadSession]);
 
   // Persist current session when messages change (debounced).
@@ -355,7 +369,7 @@ export default function App() {
       if (useSwitched) lastSwitchedSessionRef.current = null;
       sessionStore.saveSession(messages, idToUse, workspacePath, persistProvider, persistModel).then((s) => {
         if (s.id) setCurrentSessionId(s.id);
-      }).catch(() => {});
+      }).catch(() => { });
     }, 1500);
     return () => {
       if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
@@ -489,10 +503,10 @@ export default function App() {
       const codexOptions =
         provider === "pi" || provider === "codex"
           ? {
-              askForApproval: backend.askForApproval,
-              fullAuto: backend.fullAuto,
-              yolo: backend.yolo,
-            }
+            askForApproval: backend.askForApproval,
+            fullAuto: backend.fullAuto,
+            yolo: backend.yolo,
+          }
           : undefined;
 
       const doSubmit = () => {
@@ -571,130 +585,147 @@ export default function App() {
           <View style={[styles.page, { paddingTop: insets.top }]}>
             {/* Group 1: Main content + overlays (flex: 1) */}
             <View style={styles.topSection}>
-            {/* Main Content Area */}
-            <View style={styles.contentArea}>
-              {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
-              {!sidebarVisible && (
-                <View style={styles.menuButtonOverlay} pointerEvents="box-none">
-                  <HeaderButton
-                    icon={<MenuIcon color={theme.colors.textPrimary} />}
-                    onPress={() => setSidebarVisible(true)}
-                    accessibilityLabel="Open Explorer"
-                    delay={100}
-                  />
-                  <View style={styles.sessionIdCenter} pointerEvents="none">
-                    <Text
-                      style={styles.sessionIdText}
-                      numberOfLines={1}
-                      accessibilityLabel={sessionId != null ? `Session ${sessionId}` : "No session"}
-                    >
-                      {sessionId != null
-                        ? `Session: ${sessionId.split("-")[0] ?? sessionId}`
-                        : workspacePath != null
-                          ? basename(workspacePath)
-                          : "Start a new conversation"}
-                    </Text>
-                  </View>
-                  <HeaderButton
-                    icon={<SettingsIcon color={theme.colors.textPrimary} />}
-                    onPress={() => setSessionManagementVisible(true)}
-                    accessibilityLabel="Manage sessions"
-                    delay={200}
-                  />
-                </View>
-              )}
-
-              {/* Chat Area */}
-              <View style={styles.chatShell}>
-                <FlatList
-                  key={viewingLiveSession ? "live" : "saved"}
-                  ref={flatListRef}
-                  style={styles.chatArea}
-                  contentContainerStyle={styles.chatMessages}
-                  showsVerticalScrollIndicator={false}
-                  showsHorizontalScrollIndicator={false}
-                  keyboardDismissMode="on-drag"
-                  keyboardShouldPersistTaps="handled"
-                  data={messages}
-                  extraData={`${messages.length}-${messages[messages.length - 1]?.content?.length ?? 0}`}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item, index }) => {
-                    const isLast = index === messages.length - 1;
-                    const showTerminated =
-                      lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
-                    const messageToShow = showTerminated
-                      ? { ...item, content: "Terminated" }
-                      : item;
-                    const hasCodeOrFileContent =
-                      hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
-                    const showTailBox =
-                      isLast &&
-                      item.role === "assistant" &&
-                      !!(item.content && item.content.trim()) &&
-                      hasCodeOrFileContent;
-                    return (
-                      <MessageBubble
-                        message={messageToShow}
-                        isTerminatedLabel={showTerminated}
-                        showAsTailBox={showTailBox}
-                        tailBoxMaxHeight={Dimensions.get("window").height * 0.5}
-                        provider={provider}
-                        onOpenUrl={handleOpenPreviewInApp}
-                        onFileSelect={handleFileSelectFromChat}
-                      />
-                    );
-                  }}
-                  ListFooterComponent={
-                    <>
-                      <TypingIndicator visible={typingIndicator} provider={provider} activity={currentActivity} />
-                      {permissionDenials && permissionDenials.length > 0 && (
-                        <PermissionDenialBanner
-                          denials={permissionDenials}
-                          onDismiss={dismissPermission}
-                          onAccept={() => {
-                            const backend = getBackendPermissionMode(permissionModeUI, provider);
-                            retryAfterPermission(backend.permissionMode, backend.approvalMode);
-                          }}
+              {/* Main Content Area */}
+              <View style={styles.contentArea}>
+                {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
+                {!sidebarVisible && (
+                  <View style={styles.menuButtonOverlay} pointerEvents="box-none">
+                    <HeaderButton
+                      icon={<MenuIcon color={theme.colors.textPrimary} />}
+                      onPress={() => setSidebarVisible(true)}
+                      accessibilityLabel="Open Explorer"
+                      delay={100}
+                    />
+                    <View style={styles.sessionIdCenter} pointerEvents="none">
+                      <View style={styles.sessionStatusRow}>
+                        <View
+                          style={[
+                            styles.sessionStatusDot,
+                            { backgroundColor: claudeRunning || typingIndicator ? theme.colors.accent : theme.colors.textMuted },
+                          ]}
                         />
-                      )}
-                    </>
-                  }
-                  onContentSizeChange={() => {
-                    const now = Date.now();
-                    if (now - lastScrollToEndTimeRef.current < 400) return;
-                    lastScrollToEndTimeRef.current = now;
-                    flatListRef.current?.scrollToEnd({ animated: true });
-                  }}
-                />
-              </View>
+                        <Text
+                          style={[styles.sessionStatusText, { color: theme.colors.textMuted }]}
+                          accessibilityLabel={
+                            (viewingLiveSession && (claudeRunning || typingIndicator)) ? "Session running" : "Session idle"
+                          }
+                        >
+                          {(viewingLiveSession && (claudeRunning || typingIndicator)) ? "Running" : "Idle"}
+                        </Text>
+                      </View>
+                      <Text
+                        style={styles.sessionIdText}
+                        numberOfLines={1}
+                        accessibilityLabel={sessionId != null ? `Session ${sessionId}` : "No session"}
+                      >
+                        {sessionId != null
+                          ? `Session: ${sessionId.split("-")[0] ?? sessionId}`
+                          : workspacePath != null
+                            ? basename(workspacePath)
+                            : "Start a new conversation"}
+                      </Text>
+                    </View>
+                    <HeaderButton
+                      icon={<SettingsIcon color={theme.colors.textPrimary} />}
+                      onPress={() => setSessionManagementVisible(true)}
+                      accessibilityLabel="Manage sessions"
+                      delay={200}
+                    />
+                  </View>
+                )}
 
-              {selectedFilePath != null && (
-                <View style={styles.fileViewerOverlay} pointerEvents="box-none">
-                  <FileViewerModal
-                    visible
-                    embedded
-                    path={selectedFilePath}
-                    content={fileContent}
-                    isImage={fileIsImage}
-                    loading={fileLoading}
-                    error={fileError}
-                    onClose={handleCloseFileViewer}
-                    onAddCodeReference={handleAddCodeReference}
+                {/* Chat Area */}
+                <View style={styles.chatShell}>
+                  <FlatList
+                    key={viewingLiveSession ? "live" : "saved"}
+                    ref={flatListRef}
+                    style={styles.chatArea}
+                    contentContainerStyle={styles.chatMessages}
+                    showsVerticalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={false}
+                    keyboardDismissMode="on-drag"
+                    keyboardShouldPersistTaps="handled"
+                    data={messages}
+                    extraData={`${lastSessionTerminated}-${messages.length}`}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) => {
+                      const isLast = index === messages.length - 1;
+                      const showTerminated =
+                        lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
+                      const messageToShow = showTerminated
+                        ? { ...item, content: "Terminated" }
+                        : item;
+                      const hasCodeOrFileContent =
+                        hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
+                      const showTailBox =
+                        isLast &&
+                        item.role === "assistant" &&
+                        !!(item.content && item.content.trim()) &&
+                        hasCodeOrFileContent;
+                      return (
+                        <MessageBubble
+                          message={messageToShow}
+                          isTerminatedLabel={showTerminated}
+                          showAsTailBox={showTailBox}
+                          tailBoxMaxHeight={Dimensions.get("window").height * 0.5}
+                          provider={provider}
+                          onOpenUrl={handleOpenPreviewInApp}
+                          onFileSelect={handleFileSelectFromChat}
+                        />
+                      );
+                    }}
+                    ListFooterComponent={
+                      <>
+                        <TypingIndicator visible={typingIndicator} provider={provider} activity={currentActivity} />
+                        {permissionDenials && permissionDenials.length > 0 && (
+                          <PermissionDenialBanner
+                            denials={permissionDenials}
+                            onDismiss={dismissPermission}
+                            onAccept={() => {
+                              const backend = getBackendPermissionMode(permissionModeUI, provider);
+                              const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+                              retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
+                            }}
+                          />
+                        )}
+                      </>
+                    }
+                    onContentSizeChange={() => {
+                      const now = Date.now();
+                      if (now - lastScrollToEndTimeRef.current < 400) return;
+                      lastScrollToEndTimeRef.current = now;
+                      flatListRef.current?.scrollToEnd({ animated: true });
+                    }}
                   />
                 </View>
-              )}
 
-              {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
-              <View style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
-                <WorkspaceSidebar
-                  visible={sidebarVisible}
-                  embedded
-                  onClose={() => setSidebarVisible(false)}
-                  onFileSelect={handleFileSelect}
-                  onCommitByAI={handleCommitByAI}
-                />
+                {selectedFilePath != null && (
+                  <View style={styles.fileViewerOverlay} pointerEvents="box-none">
+                    <FileViewerModal
+                      visible
+                      embedded
+                      path={selectedFilePath}
+                      content={fileContent}
+                      isImage={fileIsImage}
+                      loading={fileLoading}
+                      error={fileError}
+                      onClose={handleCloseFileViewer}
+                      onAddCodeReference={handleAddCodeReference}
+                    />
+                  </View>
+                )}
+
+                {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
+                <View style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
+                  <WorkspaceSidebar
+                    visible={sidebarVisible}
+                    embedded
+                    onClose={() => setSidebarVisible(false)}
+                    onFileSelect={handleFileSelect}
+                    onCommitByAI={handleCommitByAI}
+                  />
+                </View>
               </View>
-            </View>
             </View>
 
             {/* Group 2: Input Panel */}
@@ -798,16 +829,18 @@ export default function App() {
                 );
                 if (saved.id) setCurrentSessionId(saved.id);
               }
-              loadSession(s.messages);
+              resumeLiveSession(s.id, s.messages);
               setCurrentSessionId(s.id);
               if (s.provider) setProvider(s.provider as BrandProvider);
               if (s.model) setModel(s.model);
+              if (s.provider && s.model) sessionStore.setLastUsedProviderModel(s.provider, s.model);
             }}
             onNewSession={() => {
               setCurrentSessionId(null);
               resetSession();
             }}
             showActiveChat={!viewingLiveSession && liveSessionMessages.length > 0}
+            sessionRunning={claudeRunning || typingIndicator}
             onSelectActiveChat={() => {
               switchToLiveSession();
               setCurrentSessionId(null);
@@ -879,6 +912,22 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       alignItems: "center",
       paddingHorizontal: spacing[1],
       minHeight: 40,
+    },
+    sessionStatusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 2,
+    },
+    sessionStatusDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    sessionStatusText: {
+      fontSize: 11,
+      fontWeight: "500",
+      letterSpacing: 0.3,
     },
     sessionIdText: {
       fontSize: 12,

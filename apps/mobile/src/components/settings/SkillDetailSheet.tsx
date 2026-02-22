@@ -192,11 +192,13 @@ export function SkillDetailSheet({
             accessibilityLabel={`${child.name} folder, ${isExpanded ? "expanded" : "collapsed"}`}
             accessibilityRole="button"
           >
-            {isExpanded ? (
-              <ChevronDownIcon size={12} color={theme.textMuted} style={styles.childChevron} />
-            ) : (
-              <ChevronRightIcon size={12} color={theme.textMuted} style={styles.childChevron} />
-            )}
+            <View style={styles.childChevron}>
+              {isExpanded ? (
+                <ChevronDownIcon size={12} color={theme.textMuted} />
+              ) : (
+                <ChevronRightIcon size={12} color={theme.textMuted} />
+              )}
+            </View>
             <Text style={[styles.childName, styles.childNameFolder]}>{child.name}</Text>
             {isLoading && (
               <ActivityIndicator size="small" color={theme.accent} style={styles.childLoader} />
@@ -276,76 +278,76 @@ export function SkillDetailSheet({
   const content = (
     <View style={styles.container}>
       <View style={styles.safe}>
-          <View style={styles.header}>
-            <Text style={styles.title} numberOfLines={1}>
-              {detail?.name ?? skillId ?? "Skill Details"}
-            </Text>
-            <TouchableOpacity
-              onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={12}
-              accessibilityLabel="Close skill details"
-            >
-              <CloseIcon size={20} color={theme.textMuted} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator
+        <View style={styles.header}>
+          <Text style={styles.title} numberOfLines={1}>
+            {detail?.name ?? skillId ?? "Skill Details"}
+          </Text>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            hitSlop={12}
+            accessibilityLabel="Close skill details"
           >
-            {loading ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.accent}
-                style={styles.loader}
-              />
-            ) : error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity
-                  style={styles.retryBtn}
-                  onPress={handleRetry}
-                  activeOpacity={0.8}
-                  accessibilityLabel="Retry loading skill"
-                >
-                  <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
-              </View>
-            ) : detail ? (
-              <>
-                {detail.children && detail.children.length > 0 ? (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Child folders & files</Text>
-                    <View style={styles.childrenList}>
-                      {detail.children.map((child) =>
-                        renderChildRow(child, "", child.name)
-                      )}
-                    </View>
-                  </View>
-                ) : null}
-                {detail.content ? (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>SKILL.md</Text>
-                    <View style={styles.contentCard}>
-                      <Markdown
-                        style={markdownStyles}
-                        mergeStyle
-                        onLinkPress={(url) => {
-                          Linking.openURL(url);
-                          return false;
-                        }}
-                      >
-                        {wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
-                      </Markdown>
-                    </View>
-                  </View>
-                ) : null}
-              </>
-            ) : null}
-          </ScrollView>
+            <CloseIcon size={20} color={theme.textMuted} />
+          </TouchableOpacity>
         </View>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+        >
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={theme.accent}
+              style={styles.loader}
+            />
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={handleRetry}
+                activeOpacity={0.8}
+                accessibilityLabel="Retry loading skill"
+              >
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : detail ? (
+            <>
+              {detail.children && detail.children.length > 0 ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Child folders & files</Text>
+                  <View style={styles.childrenList}>
+                    {detail.children.map((child) =>
+                      renderChildRow(child, "", child.name)
+                    )}
+                  </View>
+                </View>
+              ) : null}
+              {detail.content ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>SKILL.md</Text>
+                  <View style={styles.contentCard}>
+                    <Markdown
+                      style={markdownStyles}
+                      mergeStyle
+                      onLinkPress={(url) => {
+                        Linking.openURL(url);
+                        return false;
+                      }}
+                    >
+                      {wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
+                    </Markdown>
+                  </View>
+                </View>
+              ) : null}
+            </>
+          ) : null}
+        </ScrollView>
       </View>
+    </View>
   );
 
   if (embedded) {

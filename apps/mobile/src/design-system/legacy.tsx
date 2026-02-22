@@ -101,7 +101,7 @@ export function AppPressable({
 
   const handlePress = useCallback(
     (event: GestureResponderEvent) => {
-      if (hapticMap[haptic]) hapticMap[haptic]().catch(() => {});
+      if (hapticMap[haptic]) hapticMap[haptic]().catch(() => { });
       onPress?.(event);
     },
     [haptic, onPress]
@@ -363,11 +363,11 @@ export function AppInput({
           { color: theme.colors.textPrimary, flex: 1 },
           style,
         ]}
-        onFocus={(e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+        onFocus={(e: any) => {
           setIsFocused(true);
           props.onFocus?.(e);
         }}
-        onBlur={(e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+        onBlur={(e: any) => {
           setIsFocused(false);
           props.onBlur?.(e);
         }}
