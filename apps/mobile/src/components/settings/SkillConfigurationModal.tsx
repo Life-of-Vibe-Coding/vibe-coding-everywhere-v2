@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Switch,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
 import { CloseIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
 import { SkillDetailSheet } from "./SkillDetailSheet";
@@ -38,7 +38,8 @@ export function SkillConfigurationModal({
   serverBaseUrl,
 }: SkillConfigurationModalProps) {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, insets), [theme, insets]);
 
   const [skills, setSkills] = useState<Skill[]>([]);
   const [enabledSkillIds, setEnabledSkillIds] = useState<Set<string>>(new Set());
@@ -115,7 +116,7 @@ export function SkillConfigurationModal({
         onRequestClose={onClose}
       >
         <View style={styles.fullScreen}>
-          <SafeAreaView style={styles.safe}>
+          <View style={styles.safe}>
             <View style={styles.header}>
               <Text style={styles.title}>Skill Configuration</Text>
               <TouchableOpacity
@@ -192,7 +193,7 @@ export function SkillConfigurationModal({
                 ))
               )}
             </ScrollView>
-          </SafeAreaView>
+          </View>
           {/* Skill detail overlay - rendered on top of config list (iOS can't stack native Modals) */}
           {selectedSkillId && (
             <View style={styles.detailOverlay}>
@@ -210,7 +211,7 @@ export function SkillConfigurationModal({
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>) {
+function createStyles(theme: ReturnType<typeof useTheme>, insets: { top: number; bottom: number }) {
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
@@ -223,6 +224,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     safe: {
       flex: 1,
+      paddingTop: Math.max(insets.top, 8),
+      paddingBottom: Math.max(insets.bottom, 8),
     },
     header: {
       flexDirection: "row",

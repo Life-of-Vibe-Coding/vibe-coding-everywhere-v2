@@ -8,6 +8,45 @@
   }
   
   body {
-    @apply text-text;
+    @apply text-text bg-background;
+    background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 50%, #7F1D1D 100%);
+    background-attachment: fixed;
+  }
+
+  /* Focus states for accessibility */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-cta;
+  }
+}
+
+@layer utilities {
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Glass effect for cards */
+  .glass-card {
+    @apply bg-card-bg/80 backdrop-blur-sm border border-red-700/30;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-smooth hover:scale-[1.02] hover:shadow-2xl;
+  }
+
+  /* Cursor pointer for clickable elements */
+  .clickable {
+    @apply cursor-pointer transition-smooth;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

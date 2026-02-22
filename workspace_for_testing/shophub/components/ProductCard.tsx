@@ -31,46 +31,48 @@ export default function ProductCard({
   };
 
   return (
-    <Link href={`/products/${id}`}>
-      <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer">
+    <Link href={`/products/${id}`} className="group">
+      <article className="glass-card rounded-2xl shadow-lg hover:shadow-2xl hover-lift overflow-hidden cursor-pointer h-full flex flex-col">
         {/* Image */}
-        <div className="relative h-64 overflow-hidden bg-gray-100">
+        <div className="relative h-64 overflow-hidden bg-gradient-to-br from-card-bg to-card-hover">
           <Image
             src={image}
-            alt={name}
+            alt={`Product image of ${name}`}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
           <div className="absolute top-3 left-3">
-            <span className="px-3 py-1 bg-primary/90 text-white text-xs font-semibold rounded-full">
+            <span className="px-3 py-1.5 bg-gradient-to-r from-accent to-cta text-gray-900 text-xs font-bold rounded-full shadow-md backdrop-blur-sm">
               {category}
             </span>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          <h3 className="font-heading font-semibold text-xl text-text mb-2 line-clamp-1">
+        <div className="p-6 flex-grow flex flex-col">
+          <h3 className="font-heading font-bold text-xl text-text mb-2 line-clamp-1 group-hover:text-cta transition-smooth">
             {name}
           </h3>
-          <p className="font-body text-sm text-gray-600 mb-4 line-clamp-2">
+          <p className="font-body text-sm text-text-muted mb-4 line-clamp-2 leading-relaxed flex-grow">
             {description}
           </p>
 
-          <div className="flex items-center justify-between">
-            <span className="font-heading font-bold text-2xl text-primary">
+          <div className="flex items-center justify-between mt-auto">
+            <span className="font-heading font-bold text-2xl bg-gradient-to-r from-cta to-accent bg-clip-text text-transparent">
               {formatPrice(price)}
             </span>
             <button
               onClick={handleAddToCart}
-              className="p-3 bg-cta hover:bg-orange-600 text-white rounded-lg transition-colors duration-200 cursor-pointer"
+              className="p-3 bg-gradient-to-r from-cta to-accent hover:from-accent hover:to-cta text-gray-900 rounded-xl transition-smooth cursor-pointer shadow-md hover:shadow-lg hover:scale-110"
               title="Add to cart"
+              aria-label={`Add ${name} to cart`}
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }

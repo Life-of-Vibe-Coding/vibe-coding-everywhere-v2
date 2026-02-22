@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
+import ProductFilters from '@/components/ProductFilters';
 
 interface Product {
   id: string;
@@ -48,37 +48,13 @@ export default function ProductsPage() {
         All Products
       </h1>
 
-      {/* Filters */}
-      <div className="mb-8 space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg font-body focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        {/* Categories */}
-        <div className="flex flex-wrap gap-3">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-6 py-2 rounded-lg font-body font-semibold transition-colors duration-200 cursor-pointer ${
-                selectedCategory === category
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-text border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ProductFilters
+        categories={categories}
+        searchValue={searchQuery}
+        selectedCategory={selectedCategory}
+        onSearchChange={setSearchQuery}
+        onCategorySelect={setSelectedCategory}
+      />
 
       {/* Products Grid */}
       {loading ? (

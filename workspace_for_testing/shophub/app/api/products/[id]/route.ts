@@ -1,27 +1,21 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { ProductService } from '@/lib/services/product.service';
+import { ApiResponse } from '@/lib/utils/response';
+import { ErrorMessage } from '@/lib/constants/http';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: params.id },
-    });
+    const product = await ProductService.getProductById(params.id);
 
     if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+      return ApiResponse.notFound(ErrorMessage.PRODUCT_NOT_FOUND);
     }
 
-    return NextResponse.json(product);
+    return ApiResponse.success(product);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch product' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch product:', error);
+    return ApiResponse.internalError(ErrorMessage.FAILED_TO_FETCH_PRODUCT);
   }
 }

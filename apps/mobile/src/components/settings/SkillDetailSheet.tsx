@@ -10,7 +10,7 @@ import {
   Platform,
   Linking,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
@@ -43,7 +43,8 @@ export function SkillDetailSheet({
   embedded = false,
 }: SkillDetailSheetProps) {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, insets), [theme, insets]);
   const markdownStyles = useMemo(
     () => ({
       body: { color: theme.textPrimary },
@@ -274,7 +275,7 @@ export function SkillDetailSheet({
 
   const content = (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safe}>
+      <View style={styles.safe}>
           <View style={styles.header}>
             <Text style={styles.title} numberOfLines={1}>
               {detail?.name ?? skillId ?? "Skill Details"}
@@ -343,7 +344,7 @@ export function SkillDetailSheet({
               </>
             ) : null}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </View>
   );
 
@@ -363,7 +364,7 @@ export function SkillDetailSheet({
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>) {
+function createStyles(theme: ReturnType<typeof useTheme>, insets: { top: number; bottom: number }) {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -371,6 +372,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     safe: {
       flex: 1,
+      paddingTop: Math.max(insets.top, 8),
+      paddingBottom: Math.max(insets.bottom, 8),
     },
     header: {
       flexDirection: "row",

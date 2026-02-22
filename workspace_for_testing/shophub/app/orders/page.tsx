@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Package } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import EmptyState from '@/components/EmptyState';
+import StatusBadge from '@/components/StatusBadge';
 
 interface OrderItem {
   id: string;
@@ -70,15 +72,11 @@ export default function OrdersPage() {
       </h1>
 
       {orders.length === 0 ? (
-        <div className="text-center py-20">
-          <Package className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-          <h2 className="font-heading font-bold text-2xl text-text mb-4">
-            No orders yet
-          </h2>
-          <p className="font-body text-gray-600">
-            Start shopping to see your orders here!
-          </p>
-        </div>
+        <EmptyState
+          icon={<Package className="w-12 h-12 text-gray-700" aria-hidden="true" />}
+          title="No orders yet"
+          description="Start shopping to see your orders here!"
+        />
       ) : (
         <div className="space-y-6">
           {orders.map((order) => (
@@ -133,18 +131,3 @@ export default function OrdersPage() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    processing: 'bg-blue-100 text-blue-800',
-    shipped: 'bg-purple-100 text-purple-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-  };
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors[status] || colors.pending}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}

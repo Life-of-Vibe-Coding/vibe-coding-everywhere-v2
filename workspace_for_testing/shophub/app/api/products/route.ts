@@ -1,40 +1,23 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { ProductService } from '@/lib/services/product.service';
+import { ApiResponse } from '@/lib/utils/response';
+import { ErrorMessage } from '@/lib/constants/http';
+import type { ProductFilters } from '@/lib/types';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const featured = searchParams.get('featured');
-    const search = searchParams.get('search');
+    
+    const filters: ProductFilters = {
+      category: searchParams.get('category') || undefined,
+      featured: searchParams.get('featured') === 'true' ? true : undefined,
+      search: searchParams.get('search') || undefined,
+    };
 
-    const where: any = {};
+    const products = await ProductService.getProducts(filters);
 
-    if (category && category !== 'all') {
-      where.category = category;
-    }
-
-    if (featured === 'true') {
-      where.featured = true;
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const products = await prisma.product.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return NextResponse.json(products);
+    return ApiResponse.success(products);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch products:', error);
+    return ApiResponse.internalError(ErrorMessage.FAILED_TO_FETCH_PRODUCTS);
   }
 }

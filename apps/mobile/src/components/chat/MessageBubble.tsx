@@ -445,7 +445,7 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
           borderRadius: 18,
           backgroundColor: "transparent",
         },
-        bubbleAssistant: { flex: 1, maxWidth: "96%" },
+        bubbleAssistant: { alignSelf: "stretch", marginHorizontal: -18 },
         bubbleUser: {
           maxWidth: "85%",
           borderWidth: 1,

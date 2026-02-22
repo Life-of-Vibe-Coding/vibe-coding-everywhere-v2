@@ -1,59 +1,32 @@
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(2),
-});
+import { UserService } from '@/lib/services/user.service';
+import { ApiResponse } from '@/lib/utils/response';
+import { ErrorMessage, SuccessMessage, HttpStatus } from '@/lib/constants/http';
+import { registerSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: Request) {
   try {
+    // Parse and validate request body
     const body = await request.json();
-    const { email, password, name } = registerSchema.parse(body);
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 400 }
-      );
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const userData = registerSchema.parse(body);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: 'customer',
-      },
-    });
+    const user = await UserService.createUser(userData);
 
-    return NextResponse.json(
-      { message: 'User created successfully', userId: user.id },
-      { status: 201 }
+    return ApiResponse.success(
+      { message: SuccessMessage.USER_CREATED, userId: user.id },
+      HttpStatus.CREATED
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return ApiResponse.badRequest(ErrorMessage.INVALID_INPUT, error.errors);
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if (error instanceof Error && error.message === 'User already exists') {
+      return ApiResponse.badRequest(ErrorMessage.USER_ALREADY_EXISTS);
+    }
+
+    console.error('Failed to register user:', error);
+    return ApiResponse.internalError(ErrorMessage.INTERNAL_SERVER_ERROR);
   }
 }

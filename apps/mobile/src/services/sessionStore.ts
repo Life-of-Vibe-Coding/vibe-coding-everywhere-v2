@@ -18,6 +18,10 @@ export interface StoredSession {
   updatedAt: number;
   /** Workspace path where this session was created/last saved. */
   workspacePath?: string | null;
+  /** AI provider used in this session (e.g. "claude", "gemini", "pi"). */
+  provider?: string | null;
+  /** AI model used in this session (e.g. "sonnet4.5", "gemini-2.5-flash"). */
+  model?: string | null;
 }
 
 export interface SessionStoreState {
@@ -77,11 +81,15 @@ export async function getSession(id: string): Promise<StoredSession | null> {
  * Save or update a session. If id is null, creates a new session.
  * Returns the saved session (with id set).
  * @param workspacePath - Workspace path where the session is being used (stored with session).
+ * @param provider - AI provider used in this session (e.g. "claude", "gemini", "pi").
+ * @param model - AI model used in this session (e.g. "sonnet4.5", "gemini-2.5-flash").
  */
 export async function saveSession(
   messages: Message[],
   id: string | null,
-  workspacePath?: string | null
+  workspacePath?: string | null,
+  provider?: string | null,
+  model?: string | null
 ): Promise<StoredSession> {
   if (messages.length === 0) {
     // Don't persist empty sessions
@@ -110,6 +118,8 @@ export async function saveSession(
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       workspacePath: workspacePath ?? existing?.workspacePath ?? null,
+      provider: provider ?? existing?.provider ?? null,
+      model: model ?? existing?.model ?? null,
     };
     const updated = [...sessions];
     if (idx >= 0) {
@@ -122,7 +132,16 @@ export async function saveSession(
   }
 
   const newId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  session = { id: newId, title, messages, createdAt: now, updatedAt: now, workspacePath: workspacePath ?? null };
+  session = {
+    id: newId,
+    title,
+    messages,
+    createdAt: now,
+    updatedAt: now,
+    workspacePath: workspacePath ?? null,
+    provider: provider ?? null,
+    model: model ?? null,
+  };
   const updated = [...sessions, session];
   await saveRaw({ sessions: updated, lastActiveId: newId });
   return session;

@@ -37,7 +37,8 @@
     },
     "plugins": [
       ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }],
-      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }]
+      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
+      ["expo-notifications", { "defaultChannel": "agent-events" }]
     ]
   }
 }

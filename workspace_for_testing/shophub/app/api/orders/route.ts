@@ -1,124 +1,62 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
-
-const orderItemSchema = z.object({
-  productId: z.string(),
-  quantity: z.number().min(1),
-  price: z.number().min(0),
-});
-
-const createOrderSchema = z.object({
-  items: z.array(orderItemSchema).min(1),
-  total: z.number().min(0),
-});
+import { OrderService } from '@/lib/services/order.service';
+import { AuthService } from '@/lib/utils/auth';
+import { ApiResponse } from '@/lib/utils/response';
+import { ErrorMessage, HttpStatus } from '@/lib/constants/http';
+import { createOrderSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    // Authenticate user
+    const user = await AuthService.requireAuth();
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+    // Parse and validate request body
     const body = await request.json();
-    const { items, total } = createOrderSchema.parse(body);
+    const orderData = createOrderSchema.parse(body);
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
+    // Create order
+    const order = await OrderService.createOrder(user.id, orderData);
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create order with items
-    const order = await prisma.order.create({
-      data: {
-        userId: user.id,
-        total,
-        status: 'pending',
-        items: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(order, { status: 201 });
+    return ApiResponse.success(order, HttpStatus.CREATED);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return ApiResponse.badRequest(ErrorMessage.INVALID_INPUT, error.errors);
     }
 
-    return NextResponse.json(
-      { error: 'Failed to create order' },
-      { status: 500 }
-    );
+    if (error instanceof Error) {
+      if (error.message === 'Unauthorized') {
+        return ApiResponse.unauthorized();
+      }
+      if (error.message === 'User not found') {
+        return ApiResponse.notFound(ErrorMessage.USER_NOT_FOUND);
+      }
+    }
+
+    console.error('Failed to create order:', error);
+    return ApiResponse.internalError(ErrorMessage.FAILED_TO_CREATE_ORDER);
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    // Authenticate user
+    const user = await AuthService.requireAuth();
 
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Get user's orders
+    const orders = await OrderService.getUserOrders(user.id);
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email! },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    const orders = await prisma.order.findMany({
-      where: { userId: user.id },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return NextResponse.json(orders);
+    return ApiResponse.success(orders);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    );
+    if (error instanceof Error) {
+      if (error.message === 'Unauthorized') {
+        return ApiResponse.unauthorized();
+      }
+      if (error.message === 'User not found') {
+        return ApiResponse.notFound(ErrorMessage.USER_NOT_FOUND);
+      }
+    }
+
+    console.error('Failed to fetch orders:', error);
+    return ApiResponse.internalError(ErrorMessage.FAILED_TO_FETCH_ORDERS);
   }
 }

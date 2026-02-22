@@ -36,6 +36,10 @@ export interface SessionManagementModalProps {
   currentSessionId: string | null;
   /** Current workspace path for display. */
   workspacePath?: string | null;
+  /** Current AI provider (for saving session metadata). */
+  provider?: string | null;
+  /** Current AI model (for saving session metadata). */
+  model?: string | null;
   /** Base URL for API (e.g. http://localhost:3456) for workspace picker. */
   serverBaseUrl?: string;
   /** Loading state for workspace path. */
@@ -48,6 +52,10 @@ export interface SessionManagementModalProps {
   onSelectSession: (session: StoredSession) => void;
   /** Called when user creates new session (clear and close). */
   onNewSession: () => void;
+  /** When true, show an "Active chat" card to switch back to the live session. */
+  showActiveChat?: boolean;
+  /** Called when user taps "Active chat" to switch back to the live session. */
+  onSelectActiveChat?: () => void;
   /** Session store - loadSessions, deleteSession, saveSession, setLastActiveSession. */
   sessionStore: Pick<
     typeof import("../../services/sessionStore"),
@@ -76,12 +84,16 @@ export function SessionManagementModal({
   currentMessages,
   currentSessionId,
   workspacePath,
+  provider,
+  model,
   serverBaseUrl,
   workspaceLoading,
   onRefreshWorkspace,
   onOpenWorkspacePicker,
   onSelectSession,
   onNewSession,
+  showActiveChat = false,
+  onSelectActiveChat,
   sessionStore,
 }: SessionManagementModalProps) {
   const theme = useTheme();
@@ -151,14 +163,14 @@ export function SessionManagementModal({
         setSelectedForTransition(null);
         // 2. Then switch and return to chat
         if (currentMessages.length > 0) {
-          await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath);
+          await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath, provider, model);
         }
         await sessionStore.setLastActiveSession(session.id);
         onSelectSession(session);
         onClose();
       }, 300);
     },
-    [currentSessionId, currentMessages, workspacePath, sessionStore, onSelectSession, onClose]
+    [currentSessionId, currentMessages, workspacePath, provider, model, sessionStore, onSelectSession, onClose]
   );
 
   const handleDelete = useCallback(
@@ -189,12 +201,12 @@ export function SessionManagementModal({
   const handleNewSession = useCallback(async () => {
     triggerHaptic("selection");
     if (currentMessages.length > 0) {
-      await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath);
+      await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath, provider, model);
     }
     await sessionStore.setLastActiveSession(null);
     onNewSession();
     onClose();
-  }, [currentMessages, currentSessionId, workspacePath, sessionStore, onNewSession, onClose]);
+  }, [currentMessages, currentSessionId, workspacePath, provider, model, sessionStore, onNewSession, onClose]);
 
   if (!visible) return null;
 
@@ -252,14 +264,29 @@ export function SessionManagementModal({
             <View style={styles.empty}>
               <Text style={styles.emptyText}>Loading…</Text>
             </View>
-          ) : sessions.length === 0 ? (
+          ) : sessions.length === 0 && !showActiveChat ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>No saved sessions yet.</Text>
               <Text style={styles.emptySub}>Start a conversation to save it.</Text>
             </View>
           ) : (
-            <FlatList
-              data={sessions}
+            <>
+              {showActiveChat && onSelectActiveChat && (
+                <TouchableOpacity
+                  style={[styles.row, styles.sessionCard, styles.activeChatCard]}
+                  onPress={onSelectActiveChat}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.sessionCardContent}>
+                    <Text style={[styles.sessionTitle, { color: theme.colors.accent }]} numberOfLines={1}>
+                      Active chat
+                    </Text>
+                    <Text style={styles.sessionMeta}>Receiving updates in background — tap to view</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              <FlatList
+                data={sessions}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.list}
               renderItem={({ item }) => (
@@ -279,7 +306,9 @@ export function SessionManagementModal({
                       </Text>
                     )}
                     <Text style={styles.sessionMeta}>
-                      {item.messages.length} messages · {formatDate(item.updatedAt)}
+                      {item.messages.length} messages
+                      {item.model ? ` · ${item.model}` : ""}
+                      {` · ${formatDate(item.updatedAt)}`}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -292,7 +321,8 @@ export function SessionManagementModal({
                   </TouchableOpacity>
                 </View>
               )}
-            />
+              />
+            </>
           )}
         </SafeAreaView>
       </View>
@@ -394,6 +424,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sessionCardActive: {
       borderColor: theme.accent,
       backgroundColor: theme.accentLight,
+    },
+    activeChatCard: {
+      borderColor: theme.accent,
+      backgroundColor: theme.accentLight,
+      marginHorizontal: 20,
+      marginBottom: 12,
     },
     sessionTitle: {
       fontSize: 15,

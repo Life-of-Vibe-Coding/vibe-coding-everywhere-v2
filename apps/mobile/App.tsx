@@ -69,6 +69,7 @@ import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
 import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
 import * as sessionStore from "./src/services/sessionStore";
+import { notifyAgentFinished, notifyApprovalNeeded } from "./src/services/agentNotifications";
 import {
   normalizePathSeparators,
   isAbsolutePath,
@@ -154,14 +155,6 @@ export default function App() {
   const modelOptions =
     provider === "claude" ? CLAUDE_MODELS : provider === "pi" || provider === "codex" ? PI_MODELS : GEMINI_MODELS;
 
-  const setProviderAndModel = useCallback((p: BrandProvider) => {
-    setProvider(p);
-    setModel(
-      p === "claude" ? DEFAULT_CLAUDE_MODEL : p === "pi" || p === "codex" ? DEFAULT_PI_MODEL : DEFAULT_GEMINI_MODEL
-    );
-    triggerHaptic("selection");
-  }, []);
-
   // Server Configuration
   const serverConfig = useMemo(() => getDefaultServerConfig(), []);
   const workspaceFileService = useMemo(
@@ -225,6 +218,8 @@ export default function App() {
   const flatListRef = useRef<FlatList>(null);
   const lastScrollToEndTimeRef = useRef(0);
   const didOpenInitialPreview = useRef(false);
+  /** When switching sessions, store the selected session's provider/model so the persist effect uses them instead of possibly stale state. */
+  const lastSwitchedSessionRef = useRef<{ id: string; provider?: string | null; model?: string | null } | null>(null);
 
   // Socket Hook
   const {
@@ -245,8 +240,80 @@ export default function App() {
     terminateAgent,
     resetSession,
     loadSession,
+    switchToLiveSession,
+    viewingLiveSession,
+    liveSessionMessages,
     lastSessionTerminated,
   } = useSocket({ provider, model });
+
+  /** When user switches provider: save current session, start new session, update provider+model. */
+  const handleProviderChange = useCallback(
+    async (p: BrandProvider) => {
+      const newModel =
+        p === "claude" ? DEFAULT_CLAUDE_MODEL : p === "pi" || p === "codex" ? DEFAULT_PI_MODEL : DEFAULT_GEMINI_MODEL;
+      const isChanging = p !== provider || newModel !== model;
+      if (isChanging && messages.length > 0) {
+        await sessionStore.saveSession(messages, currentSessionId, workspacePath, provider, model);
+        setCurrentSessionId(null);
+        resetSession();
+      }
+      setProvider(p);
+      setModel(newModel);
+      triggerHaptic("selection");
+    },
+    [provider, model, messages, currentSessionId, workspacePath, resetSession]
+  );
+
+  /** When user switches model: save current session, start new session, update model. */
+  const handleModelChange = useCallback(
+    async (newModel: string) => {
+      if (newModel === model) return;
+      if (messages.length > 0) {
+        await sessionStore.saveSession(messages, currentSessionId, workspacePath, provider, model);
+        setCurrentSessionId(null);
+        resetSession();
+      }
+      setModel(newModel);
+      triggerHaptic("selection");
+    },
+    [model, messages, currentSessionId, workspacePath, provider, resetSession]
+  );
+
+  // Agent notifications: when agent finishes or needs approval
+  const prevClaudeRunningRef = useRef<boolean>(false);
+  const prevApprovalNeededRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (prevClaudeRunningRef.current && !claudeRunning) {
+      void notifyAgentFinished();
+    }
+    prevClaudeRunningRef.current = claudeRunning;
+  }, [claudeRunning]);
+
+  useEffect(() => {
+    const approvalNeeded =
+      pendingAskQuestion != null ||
+      waitingForUserInput ||
+      (permissionDenials != null && permissionDenials.length > 0);
+    if (approvalNeeded && !prevApprovalNeededRef.current) {
+      const q = pendingAskQuestion?.questions?.[0];
+      const title =
+        typeof (q?.header ?? q?.question) === "string"
+          ? (q?.header ?? q?.question)
+          : permissionDenials && permissionDenials.length > 0
+            ? "Permission decision needed"
+            : undefined;
+      void notifyApprovalNeeded(title);
+    }
+    prevApprovalNeededRef.current = approvalNeeded;
+  }, [pendingAskQuestion, waitingForUserInput, permissionDenials]);
+
+  // Sync currentSessionId from Pi agent session_id when conversation begins (live session only)
+  useEffect(() => {
+    if (viewingLiveSession && sessionId != null && liveSessionMessages.length > 0) {
+      setCurrentSessionId(sessionId);
+    }
+  }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
   // Load last active session on mount
   const hasRestoredSession = useRef(false);
@@ -255,27 +322,45 @@ export default function App() {
     hasRestoredSession.current = true;
     sessionStore.loadLastActiveSession().then((session) => {
       if (session && session.messages.length > 0) {
+        lastSwitchedSessionRef.current = {
+          id: session.id,
+          provider: session.provider ?? undefined,
+          model: session.model ?? undefined,
+        };
         loadSession(session.messages);
         setCurrentSessionId(session.id);
+        if (session.provider) setProvider(session.provider as BrandProvider);
+        if (session.model) setModel(session.model);
       }
     }).catch(() => {});
   }, [loadSession]);
 
-  // Persist current session when messages change (debounced)
+  // Persist current session when messages change (debounced).
+  // For live session: only persist after Pi agent returns session_id (conversation has begun).
+  // Use Pi session_id as the stored session id; do not create sessions before user sends a message.
   const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (messages.length === 0) return;
+    // When viewing live session: wait for Pi agent to return session_id before persisting
+    if (viewingLiveSession && !sessionId) return;
     if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
     persistTimeoutRef.current = setTimeout(() => {
       persistTimeoutRef.current = null;
-      sessionStore.saveSession(messages, currentSessionId, workspacePath).then((s) => {
+      const idToUse = viewingLiveSession ? sessionId : currentSessionId;
+      // When we just switched to this session, use its stored provider/model to avoid overwriting with stale state
+      const switched = lastSwitchedSessionRef.current;
+      const useSwitched = switched && switched.id === idToUse;
+      const persistProvider = useSwitched && switched.provider != null ? switched.provider : provider;
+      const persistModel = useSwitched && switched.model != null ? switched.model : model;
+      if (useSwitched) lastSwitchedSessionRef.current = null;
+      sessionStore.saveSession(messages, idToUse, workspacePath, persistProvider, persistModel).then((s) => {
         if (s.id) setCurrentSessionId(s.id);
       }).catch(() => {});
     }, 1500);
     return () => {
       if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
     };
-  }, [messages, currentSessionId, workspacePath]);
+  }, [messages, currentSessionId, sessionId, viewingLiveSession, workspacePath, provider, model]);
 
   // Performance Monitoring
   const performanceMetrics = usePerformanceMonitor(__DEV__);
@@ -399,14 +484,15 @@ export default function App() {
 
   const handleSubmit = useCallback(
     (prompt: string) => {
+      switchToLiveSession();
       const backend = getBackendPermissionMode(permissionModeUI, provider);
       const codexOptions =
         provider === "pi" || provider === "codex"
           ? {
-            askForApproval: backend.askForApproval,
-            fullAuto: backend.fullAuto,
-            yolo: backend.yolo,
-          }
+              askForApproval: backend.askForApproval,
+              fullAuto: backend.fullAuto,
+              yolo: backend.yolo,
+            }
           : undefined;
 
       const doSubmit = () => {
@@ -425,7 +511,7 @@ export default function App() {
 
       doSubmit();
     },
-    [submitPrompt, permissionModeUI, provider, pendingCodeRefs, handleCloseFileViewer]
+    [submitPrompt, permissionModeUI, provider, pendingCodeRefs, handleCloseFileViewer, switchToLiveSession]
   );
 
   const handleOpenPreviewInApp = useCallback((u: string) => {
@@ -482,7 +568,7 @@ export default function App() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <View style={[styles.page, { paddingTop: insets.top - 16 }]}>
+          <View style={[styles.page, { paddingTop: insets.top }]}>
             {/* Group 1: Main content + overlays (flex: 1) */}
             <View style={styles.topSection}>
             {/* Main Content Area */}
@@ -521,6 +607,7 @@ export default function App() {
               {/* Chat Area */}
               <View style={styles.chatShell}>
                 <FlatList
+                  key={viewingLiveSession ? "live" : "saved"}
                   ref={flatListRef}
                   style={styles.chatArea}
                   contentContainerStyle={styles.chatMessages}
@@ -529,6 +616,7 @@ export default function App() {
                   keyboardDismissMode="on-drag"
                   keyboardShouldPersistTaps="handled"
                   data={messages}
+                  extraData={`${messages.length}-${messages[messages.length - 1]?.content?.length ?? 0}`}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item, index }) => {
                     const isLast = index === messages.length - 1;
@@ -634,8 +722,8 @@ export default function App() {
                   gemini: GEMINI_MODELS,
                   codex: PI_MODELS,
                 }}
-                onProviderChange={setProviderAndModel}
-                onModelChange={setModel}
+                onProviderChange={handleProviderChange}
+                onModelChange={handleModelChange}
                 onOpenSkillsConfig={() => setSkillsConfigVisible(true)}
                 onOpenDocker={() => setDockerVisible(true)}
               />
@@ -685,6 +773,8 @@ export default function App() {
             currentMessages={messages}
             currentSessionId={currentSessionId}
             workspacePath={workspacePath}
+            provider={provider}
+            model={model}
             serverBaseUrl={serverConfig.getBaseUrl()}
             workspaceLoading={workspacePathLoading}
             onRefreshWorkspace={fetchWorkspacePath}
@@ -692,13 +782,36 @@ export default function App() {
               setSessionManagementVisible(false);
               setWorkspacePickerVisible(true);
             }}
-            onSelectSession={(s) => {
+            onSelectSession={async (s) => {
+              lastSwitchedSessionRef.current = {
+                id: s.id,
+                provider: s.provider ?? undefined,
+                model: s.model ?? undefined,
+              };
+              if (viewingLiveSession && liveSessionMessages.length > 0) {
+                const saved = await sessionStore.saveSession(
+                  liveSessionMessages,
+                  currentSessionId,
+                  workspacePath,
+                  provider,
+                  model
+                );
+                if (saved.id) setCurrentSessionId(saved.id);
+              }
               loadSession(s.messages);
               setCurrentSessionId(s.id);
+              if (s.provider) setProvider(s.provider as BrandProvider);
+              if (s.model) setModel(s.model);
             }}
             onNewSession={() => {
               setCurrentSessionId(null);
               resetSession();
+            }}
+            showActiveChat={!viewingLiveSession && liveSessionMessages.length > 0}
+            onSelectActiveChat={() => {
+              switchToLiveSession();
+              setCurrentSessionId(null);
+              setSessionManagementVisible(false);
             }}
             sessionStore={sessionStore}
           />

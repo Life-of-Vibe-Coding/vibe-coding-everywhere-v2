@@ -11,7 +11,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppButton, triggerHaptic } from "../../design-system";
 import { CloseIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
@@ -39,6 +39,7 @@ export function ProcessesDashboardModal({
   serverBaseUrl,
 }: ProcessesDashboardModalProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [apiProcesses, setApiProcesses] = useState<ApiProcess[]>([]);
@@ -147,9 +148,10 @@ export function ProcessesDashboardModal({
       animationType="slide"
       presentationStyle="fullScreen"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.fullScreen}>
-        <SafeAreaView style={styles.safe}>
+      <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <View style={styles.header}>
             <Text style={styles.title}>Running Processes</Text>
             <TouchableOpacity
@@ -276,8 +278,10 @@ export function ProcessesDashboardModal({
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={() => setLogViewer(null)}
+          statusBarTranslucent
         >
-          <SafeAreaView style={styles.logViewerSafe}>
+          <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+            <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
             <View style={styles.logViewerHeader}>
               <Text style={styles.logViewerTitle} numberOfLines={1}>
                 {logViewer.name}
@@ -305,7 +309,8 @@ export function ProcessesDashboardModal({
                 {logViewer.content || "(empty)"}
               </Text>
             </ScrollView>
-          </SafeAreaView>
+            </SafeAreaView>
+          </View>
         </Modal>
       )}
     </Modal>

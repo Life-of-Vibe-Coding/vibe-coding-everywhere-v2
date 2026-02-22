@@ -487,7 +487,7 @@ export function PreviewWebViewModal({
         {/* Floating exit fullscreen button (in landscape this closes the preview since full screen is locked) */}
         {isFullScreen && (
           <TouchableOpacity
-            style={[styles.fullScreenExit, { top:  -8 }]}
+            style={[styles.fullScreenExit, { top: insets.top }]}
             onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
             activeOpacity={0.8}
             accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}

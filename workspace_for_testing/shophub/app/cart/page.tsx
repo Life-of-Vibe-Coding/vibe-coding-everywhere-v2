@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store';
 import { formatPrice } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
+import CartItemCard from '@/components/CartItemCard';
+import EmptyState from '@/components/EmptyState';
 
 export default function CartPage() {
   const router = useRouter();
@@ -52,21 +53,12 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="text-center py-20">
-          <ShoppingBag className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-          <h1 className="font-heading font-bold text-3xl text-text mb-4">
-            Your cart is empty
-          </h1>
-          <p className="font-body text-gray-600 mb-8">
-            Add some products to get started!
-          </p>
-          <Link
-            href="/products"
-            className="inline-block px-8 py-4 bg-primary hover:bg-secondary text-white font-semibold rounded-lg transition-colors cursor-pointer"
-          >
-            Continue Shopping
-          </Link>
-        </div>
+        <EmptyState
+          icon={<ShoppingBag className="w-12 h-12 text-gray-700" aria-hidden="true" />}
+          title="Your cart is empty"
+          description="Add some products to get started!"
+          action={{ label: 'Continue Shopping', href: '/products' }}
+        />
       </div>
     );
   }
@@ -81,53 +73,13 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
-            <div
+            <CartItemCard
               key={item.id}
-              className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex items-center space-x-6"
-            >
-              <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-
-              <div className="flex-1">
-                <h3 className="font-heading font-semibold text-lg text-text mb-2">
-                  {item.name}
-                </h3>
-                <p className="font-body text-primary font-bold">
-                  {formatPrice(item.price)}
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold transition-colors cursor-pointer"
-                >
-                  <Minus className="w-4 h-4 mx-auto" />
-                </button>
-                <span className="font-heading font-bold text-lg w-8 text-center">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold transition-colors cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 mx-auto" />
-                </button>
-              </div>
-
-              <button
-                onClick={() => removeItem(item.id)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
+              item={item}
+              onIncrement={() => updateQuantity(item.id, item.quantity + 1)}
+              onDecrement={() => updateQuantity(item.id, item.quantity - 1)}
+              onRemove={() => removeItem(item.id)}
+            />
           ))}
         </div>
 

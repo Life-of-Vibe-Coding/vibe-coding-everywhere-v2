@@ -1,9 +1,10 @@
-import { NextAuthOptions } from 'next-auth';
+import NextAuth from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import { prisma } from './prisma';
+import { UserService } from './services/user.service';
+import type { AuthUser } from './types';
 
-export const authOptions: NextAuthOptions = {
+export const authConfig: NextAuthConfig = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -16,33 +17,31 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const user = await UserService.authenticate(
+          credentials.email as string,
+          credentials.password as string
+        );
 
-        if (!user || !user.password) {
+        if (!user) {
           throw new Error('Invalid credentials');
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid credentials');
-        }
-
-        return {
+        const authUser: AuthUser = {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
         };
+
+        return authUser;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
+        const authUser = user as AuthUser;
+        token.role = authUser.role;
       }
       return token;
     },
@@ -61,3 +60,8 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+// For backward compatibility
+export const authOptions = authConfig;

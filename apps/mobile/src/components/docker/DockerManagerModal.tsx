@@ -12,7 +12,7 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { AppButton, AppText, Skeleton, triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
@@ -82,6 +82,7 @@ export function DockerManagerModal({
   serverBaseUrl,
 }: DockerManagerModalProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [activeTab, setActiveTab] = useState<DockerTab>("containers");
@@ -437,9 +438,10 @@ export function DockerManagerModal({
       animationType="slide"
       presentationStyle="fullScreen"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.fullScreen}>
-        <SafeAreaView style={styles.safe}>
+      <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <TouchableOpacity
@@ -906,9 +908,10 @@ export function DockerManagerModal({
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={closeLogs}
+          statusBarTranslucent
         >
-          <View style={styles.fullScreen}>
-            <SafeAreaView style={styles.safe}>
+          <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
               <View style={styles.header}>
                 <Text style={styles.title} numberOfLines={1}>
                   Logs: {logsFor.name}

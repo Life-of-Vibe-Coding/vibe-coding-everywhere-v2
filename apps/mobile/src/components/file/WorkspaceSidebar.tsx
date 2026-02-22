@@ -597,7 +597,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
 
   const overlayPadding = embedded
     ? { paddingTop: 0, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }
-    : { paddingTop: (insets.top - 20), paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
+    : { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
   const drawerCenterStyle = embedded
     ? [styles.drawerCenter, styles.drawerCenterEmbedded, { paddingHorizontal: SIDE_MARGIN }]
     : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];

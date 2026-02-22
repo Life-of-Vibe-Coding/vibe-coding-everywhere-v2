@@ -247,7 +247,7 @@ export function FileViewerModal({
     : isDiffMode && path?.startsWith("__diff__:unstaged:") ? "Diff (Unstaged)"
       : "File";
 
-  const topInset = embedded ? 0 : insets.top - 20;
+  const topInset = embedded ? 0 : insets.top;
   const contentView = (
     <View style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
       <View style={styles.header}>

@@ -10,6 +10,7 @@
  * - File rendering
  */
 import { useEffect, useRef, useState, useCallback } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { io, Socket } from "socket.io-client";
 import {
   stripAnsi,
@@ -80,16 +81,25 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   // ===== Connection State =====
   const [connected, setConnected] = useState(false);
-  
-  // ===== Chat State =====
-  const [messages, setMessages] = useState<Message[]>([]);
+
+  // ===== Live Session (receives socket events; continues in background when user switches) =====
+  const [liveSessionMessages, setLiveSessionMessages] = useState<Message[]>([]);
+  const [viewingLiveSession, setViewingLiveSession] = useState(true);
+
+  // ===== Chat State (derived: either live or saved session) =====
   const [claudeRunning, setClaudeRunning] = useState(false);
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [typingIndicator, setTypingIndicator] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<string | null>(null);
-  
+
   // ===== Session (server session_id for Claude; shown in UI) =====
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // ===== Saved Session (when user switches to a different session, we show this) =====
+  const [savedSessionMessages, setSavedSessionMessages] = useState<Message[]>([]);
+
+  // Displayed messages: live session when viewing it, else saved session
+  const messages = viewingLiveSession ? liveSessionMessages : savedSessionMessages;
 
   // ===== Permission State =====
   const [permissionDenials, setPermissionDenials] = useState<PermissionDenial[] | null>(null);
@@ -118,8 +128,14 @@ export function useSocket(options: UseSocketOptions = {}) {
   const nextIdRef = useRef(0);
   const workspaceRootRef = useRef<string | null>(null);
   const toolUseByIdRef = useRef<Map<string, { tool_name: string; tool_input?: Record<string, unknown> }>>(new Map());
-  const messagesRef = useRef<Message[]>([]);
-  messagesRef.current = messages;
+  const liveMessagesRef = useRef<Message[]>([]);
+  liveMessagesRef.current = liveSessionMessages;
+
+  // Refs for stable callback identity - socket handlers must always call latest implementations,
+  // especially after session switch when viewingLiveSession changes but live session continues in background.
+  const appendAssistantTextRef = useRef<(chunk: string) => void>(() => {});
+  const addMessageRef = useRef<(role: Message["role"], content: string, codeReferences?: CodeReference[]) => string>(() => "");
+  const finalizeAssistantMessageRef = useRef<() => void>(() => {});
 
   /**
    * Add a new message to the chat.
@@ -128,14 +144,12 @@ export function useSocket(options: UseSocketOptions = {}) {
   const addMessage = useCallback(
     (role: Message["role"], content: string, codeReferences?: CodeReference[]) => {
       const id = `msg-${++nextIdRef.current}`;
-      // #region agent log
-      if (role === "assistant") { fetch('http://127.0.0.1:7648/ingest/90b82ca6-2c33-4285-83a2-301e58d458f5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'90f72f'},body:JSON.stringify({sessionId:'90f72f',location:'hooks.ts:addMessage',message:'addMessage assistant',data:{contentLen:content.length,contentPreview:content.slice(0,80)+'...',stack:new Error().stack?.split('\n').slice(1,4).join('|')},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{}); }
-      // #endregion
-      setMessages((prev) => [...prev, { id, role, content, codeReferences }]);
+      setLiveSessionMessages((prev) => [...prev, { id, role, content, codeReferences }]);
       return id;
     },
     []
   );
+  addMessageRef.current = addMessage;
 
   /**
    * Append text to the current assistant message.
@@ -146,11 +160,11 @@ export function useSocket(options: UseSocketOptions = {}) {
     const sanitized = stripAnsi(chunk);
     if (!sanitized) return;
     // Update ref synchronously so getCurrentAssistantContent() is correct when
-    // appendOverlapTextDelta runs (e.g. item.completed) before React flushes setMessages.
+    // appendOverlapTextDelta runs (e.g. item.completed) before React flushes setLiveSessionMessages.
     const current = currentAssistantContentRef.current;
     const next = current ? current + sanitized : sanitized;
     currentAssistantContentRef.current = next;
-    setMessages((prev) => {
+    setLiveSessionMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last?.role === "assistant") {
         return [...prev.slice(0, -1), { ...last, content: next }];
@@ -160,6 +174,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
     setTypingIndicator(true);
   }, []);
+  appendAssistantTextRef.current = appendAssistantText;
 
   /**
    * Finalize the current assistant message when streaming ends.
@@ -170,7 +185,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     const raw = currentAssistantContentRef.current;
     const cleaned = stripTrailingIncompleteTag(raw ?? "");
     if (cleaned !== (raw ?? "")) {
-      setMessages((prev) => {
+      setLiveSessionMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
           const trimmed = cleaned.trim();
@@ -183,7 +198,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       });
       currentAssistantContentRef.current = cleaned;
     }
-    setMessages((prev) => {
+    setLiveSessionMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last?.role === "assistant" && (last.content ?? "").trim() === "") {
         return prev.slice(0, -1);
@@ -192,6 +207,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
     currentAssistantContentRef.current = "";
   }, []);
+  finalizeAssistantMessageRef.current = finalizeAssistantMessage;
 
   /**
    * Remove duplicate permission denials based on tool name and path.
@@ -226,23 +242,42 @@ export function useSocket(options: UseSocketOptions = {}) {
     [deduplicateDenials]
   );
 
+  // Refs for callbacks used by socket handlers - allows effect to depend only on serverUrl,
+  // so session switch (provider/model change) never triggers effect re-run and disconnect.
+  const deduplicateDenialsRef = useRef(deduplicateDenials);
+  const recordToolUseRef = useRef(recordToolUse);
+  const getAndClearToolUseRef = useRef(getAndClearToolUse);
+  const addPermissionDenialRef = useRef(addPermissionDenial);
+  deduplicateDenialsRef.current = deduplicateDenials;
+  recordToolUseRef.current = recordToolUse;
+  getAndClearToolUseRef.current = getAndClearToolUse;
+  addPermissionDenialRef.current = addPermissionDenial;
+
   // ===== Socket.IO Connection Setup =====
   useEffect(() => {
-    // Initialize Socket.IO connection
+    if (__DEV__) {
+      console.log("[socket] effect mount", { serverUrl });
+    }
+
+    // Initialize Socket.IO connection with explicit reconnection for mobile
     const socket = io(serverUrl, {
       transports: ["websocket", "polling"],
       timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
     socketRef.current = socket;
 
     // Connection events
     socket.on("connect", () => {
-      console.log("[socket] connected");
+      if (__DEV__) console.log("[socket] connected");
       setConnected(true);
     });
 
-    socket.on("disconnect", () => {
-      console.log("[socket] disconnected");
+    socket.on("disconnect", (reason) => {
+      if (__DEV__) console.log("[socket] disconnected", reason);
       setConnected(false);
     });
 
@@ -250,6 +285,18 @@ export function useSocket(options: UseSocketOptions = {}) {
       console.error("[socket] connect_error:", err.message);
       setConnected(false);
     });
+
+    // Reconnect when app returns to foreground (mobile: connection may drop when backgrounded)
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === "active") {
+        const s = socketRef.current;
+        if (s && !s.connected) {
+          if (__DEV__) console.log("[socket] app foregrounded, reconnecting");
+          s.connect();
+        }
+      }
+    };
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
 
     // Claude session events
     socket.on("claude-started", (data: Record<string, unknown>) => {
@@ -269,27 +316,27 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
 
     const dispatchProviderEvent = createEventDispatcher({
-      setPermissionDenials: (d) => setPermissionDenials(d ? deduplicateDenials(d) : null),
+      setPermissionDenials: (d) => setPermissionDenials(d ? deduplicateDenialsRef.current(d) : null),
       setModelName,
       setWaitingForUserInput,
       setPendingAskQuestion,
       setCurrentActivity,
-      addMessage,
-      appendAssistantText,
+      addMessage: (role, content, codeRefs) => addMessageRef.current(role, content, codeRefs),
+      appendAssistantText: (chunk) => appendAssistantTextRef.current(chunk),
       getCurrentAssistantContent: () => currentAssistantContentRef.current,
       getLastMessageRole: () => {
-        const m = messagesRef.current;
+        const m = liveMessagesRef.current;
         return m.length ? m[m.length - 1]?.role ?? null : null;
       },
       getLastMessageContent: () => {
-        const m = messagesRef.current;
+        const m = liveMessagesRef.current;
         const last = m.length ? m[m.length - 1] : null;
         return (last?.content as string) ?? "";
       },
-      deduplicateDenials,
-      recordToolUse,
-      getAndClearToolUse,
-      addPermissionDenial,
+      deduplicateDenials: (d) => deduplicateDenialsRef.current(d),
+      recordToolUse: (id, data) => recordToolUseRef.current(id, data),
+      getAndClearToolUse: (id) => getAndClearToolUseRef.current(id),
+      addPermissionDenial: (denial) => addPermissionDenialRef.current(denial),
       setSessionId,
     });
 
@@ -313,7 +360,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         // Codex stderr: "missing rollout path for thread" — treat as session invalid, show friendly message
         if (isCodexSessionInvalidStderr(clean)) {
           setSessionId(null);
-          addMessage("system", "This session is no longer available. Start a new chat to continue.");
+          addMessageRef.current("system", "This session is no longer available. Start a new chat to continue.");
           continue;
         }
 
@@ -331,7 +378,7 @@ export function useSocket(options: UseSocketOptions = {}) {
             // Handle AI stream events via shared dispatcher (Claude/Gemini/Codex)
             dispatchProviderEvent(parsed as Record<string, unknown>);
           } else {
-            appendAssistantText(clean + "\n");
+            appendAssistantTextRef.current(clean + "\n");
           }
         } catch {
           // PTY sometimes injects "<u" before a JSON line (terminal underline escape), producing "<u{...}".
@@ -349,26 +396,20 @@ export function useSocket(options: UseSocketOptions = {}) {
             }
           }
           // Not JSON - treat as plain text output
-          appendAssistantText(clean + "\n");
+          appendAssistantTextRef.current(clean + "\n");
         }
       }
     });
 
     // Session ended
     socket.on("exit", ({ exitCode }: { exitCode: number }) => {
-      // #region agent log
-      const msgs = messagesRef.current;
-      const assistantCount = msgs.filter((m) => m.role === "assistant").length;
-      const lastTwo = msgs.slice(-2).map((m) => ({ role: m.role, contentLen: (m.content ?? "").length }));
-      fetch('http://127.0.0.1:7648/ingest/90b82ca6-2c33-4285-83a2-301e58d458f5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'90f72f'},body:JSON.stringify({sessionId:'90f72f',location:'hooks.ts:exit',message:'exit before finalize',data:{totalMsgs:msgs.length,assistantCount,lastTwo},timestamp:Date.now(),hypothesisId:'H5'})}).catch(()=>{});
-      // #endregion
       setClaudeRunning(false);
       setTypingIndicator(false);
       setCurrentActivity(null);
       setWaitingForUserInput(false);
       // Defer finalize so React can flush setMessages from item.completed/appendAssistantText first.
       // Otherwise exit may run in same tick and finalizeAssistantMessage can see stale state.
-      queueMicrotask(() => finalizeAssistantMessage());
+      queueMicrotask(() => finalizeAssistantMessageRef.current());
       
       if (exitCode !== 0) {
         setLastSessionTerminated(true);
@@ -381,9 +422,11 @@ export function useSocket(options: UseSocketOptions = {}) {
 
     // Cleanup on unmount
     return () => {
+      if (__DEV__) console.log("[socket] effect cleanup, disconnecting");
+      subscription.remove();
       socket.disconnect();
     };
-  }, [serverUrl, recordToolUse, getAndClearToolUse, addPermissionDenial, deduplicateDenials]);
+  }, [serverUrl]);
 
   // ===== Action Handlers =====
 
@@ -515,30 +558,31 @@ export function useSocket(options: UseSocketOptions = {}) {
    */
   const resetSession = useCallback(() => {
     if (socketRef.current) socketRef.current.emit("claude-terminate", { resetSession: true });
-    setMessages([]);
+    setLiveSessionMessages([]);
     setSessionId(null);
     setPermissionDenials(null);
     setLastRunOptions({ permissionMode: null, allowedTools: [], useContinue: false });
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
+    setViewingLiveSession(true);
   }, []);
 
   /**
    * Load an existing session's messages (e.g. from persisted storage).
-   * Replaces current messages without affecting socket/server state.
-   * Deduplicates message IDs (in case persisted data has duplicates) and
-   * syncs nextIdRef so new messages get unique IDs.
+   * Switches display to the saved session; the live session continues receiving
+   * socket events in the background.
    */
-  const loadSession = useCallback((messages: Message[]) => {
+  const loadSession = useCallback((loadedMessages: Message[]) => {
+    if (__DEV__) console.log("[socket] loadSession", loadedMessages.length, "msgs");
     let maxN = 0;
-    for (const m of messages) {
+    for (const m of loadedMessages) {
       const match = /^msg-(\d+)$/.exec(m.id);
       if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
     }
     nextIdRef.current = Math.max(nextIdRef.current, maxN);
     const seen = new Set<string>();
-    const deduped = messages.map((m) => {
+    const deduped = loadedMessages.map((m) => {
       let id = m.id;
       if (seen.has(id)) {
         id = `msg-${++nextIdRef.current}`;
@@ -548,7 +592,16 @@ export function useSocket(options: UseSocketOptions = {}) {
       }
       return { ...m, id };
     });
-    setMessages(deduped);
+    setSavedSessionMessages(deduped);
+    setViewingLiveSession(false);
+  }, []);
+
+  /**
+   * Switch back to viewing the live session (the one receiving socket events).
+   */
+  const switchToLiveSession = useCallback(() => {
+    if (__DEV__) console.log("[socket] switchToLiveSession", { connected: socketRef.current?.connected });
+    setViewingLiveSession(true);
   }, []);
 
   return {
@@ -587,5 +640,8 @@ export function useSocket(options: UseSocketOptions = {}) {
     terminateAgent,
     resetSession,
     loadSession,
+    switchToLiveSession,
+    viewingLiveSession,
+    liveSessionMessages,
   };
 }
