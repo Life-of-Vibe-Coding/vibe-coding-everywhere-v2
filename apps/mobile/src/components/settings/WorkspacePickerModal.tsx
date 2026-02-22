@@ -6,11 +6,11 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   LayoutChangeEvent,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { triggerHaptic } from "../../design-system";

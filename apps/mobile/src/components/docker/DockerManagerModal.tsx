@@ -7,12 +7,12 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  SafeAreaView,
   Platform,
   ActivityIndicator,
   Alert,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { AppButton, AppText, Skeleton, triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
@@ -541,9 +541,16 @@ export function DockerManagerModal({
                   </View>
                   {error ? (
                     <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={{ color: theme.colors.danger }}>
+                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
                         {error}
                       </AppText>
+                      <AppButton
+                        label="Retry"
+                        variant="primary"
+                        size="sm"
+                        onPress={() => load(true)}
+                        style={styles.retryBtn}
+                      />
                     </View>
                   ) : loading && containers.length === 0 ? (
                     <View style={styles.skeletonList}>
@@ -684,9 +691,16 @@ export function DockerManagerModal({
                   </View>
                   {error ? (
                     <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={{ color: theme.colors.danger }}>
+                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
                         {error}
                       </AppText>
+                      <AppButton
+                        label="Retry"
+                        variant="primary"
+                        size="sm"
+                        onPress={() => loadImages(true)}
+                        style={styles.retryBtn}
+                      />
                     </View>
                   ) : loading && images.length === 0 ? (
                     <View style={styles.skeletonList}>
@@ -784,9 +798,16 @@ export function DockerManagerModal({
                   </View>
                   {error ? (
                     <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={{ color: theme.colors.danger }}>
+                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
                         {error}
                       </AppText>
+                      <AppButton
+                        label="Retry"
+                        variant="primary"
+                        size="sm"
+                        onPress={() => loadVolumes(true)}
+                        style={styles.retryBtn}
+                      />
                     </View>
                   ) : loading && volumes.length === 0 ? (
                     <View style={styles.skeletonList}>
@@ -1060,6 +1081,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       padding: 24,
       justifyContent: "center",
+      alignItems: "center",
+    },
+    errorText: {
+      textAlign: "center",
+      marginBottom: 16,
+    },
+    retryBtn: {
+      alignSelf: "center",
     },
     loadingBox: {
       flex: 1,

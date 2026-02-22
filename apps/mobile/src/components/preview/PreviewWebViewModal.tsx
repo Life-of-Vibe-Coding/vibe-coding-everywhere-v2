@@ -306,7 +306,7 @@ export function PreviewWebViewModal({
         {!isFullScreen && (
           <>
             {/* Row 1: Close button | Tabs | Add tab */}
-            <View style={[styles.toolbar, { paddingTop: insets.top - 20 }]}>
+            <View style={[styles.toolbar, { paddingTop: insets.top }]}>
               <TouchableOpacity
                 style={styles.closeBtn}
                 onPress={onClose}

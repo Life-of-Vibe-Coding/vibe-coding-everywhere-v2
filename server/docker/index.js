@@ -79,6 +79,7 @@ export async function listContainers(opts = {}) {
     }));
   } catch (err) {
     if (err?.code === "ECONNREFUSED" || err?.message?.includes("connect")) {
+      resetDockerClient();
       throw new Error(DOCKER_UNAVAILABLE_MSG);
     }
     throw err;
@@ -249,6 +250,7 @@ export async function listImages() {
     }));
   } catch (err) {
     if (err?.code === "ECONNREFUSED" || err?.message?.includes("connect")) {
+      resetDockerClient();
       throw new Error(DOCKER_UNAVAILABLE_MSG);
     }
     throw err;
@@ -300,6 +302,7 @@ export async function listVolumes() {
     }));
   } catch (err) {
     if (err?.code === "ECONNREFUSED" || err?.message?.includes("connect")) {
+      resetDockerClient();
       throw new Error(DOCKER_UNAVAILABLE_MSG);
     }
     throw err;

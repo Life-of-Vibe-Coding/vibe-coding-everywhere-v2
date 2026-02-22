@@ -729,6 +729,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     closeBtnText: { fontSize: 18, color: theme.textMuted },
     tabContainer: {
       flexDirection: "row",
+      alignItems: "center",
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
       backgroundColor: theme.beigeBg,
@@ -743,7 +744,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     tabTextActive: { color: theme.accent },
     tabCloseBtn: {
       width: 36,
-      alignSelf: "stretch",
+      flexShrink: 0,
       alignItems: "center",
       justifyContent: "center",
       marginLeft: 4,

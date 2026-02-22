@@ -6,11 +6,11 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   Platform,
   Linking,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "../icons/ChatActionIcons";

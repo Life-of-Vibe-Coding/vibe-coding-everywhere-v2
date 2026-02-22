@@ -24,7 +24,7 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 // Design System Imports
@@ -142,6 +142,8 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
 // ============================================================================
 
 export default function App() {
+  const insets = useSafeAreaInsets();
+
   // Theme and Provider State
   const [provider, setProvider] = useState<BrandProvider>("pi");
   const [model, setModel] = useState(DEFAULT_PI_MODEL);
@@ -473,14 +475,14 @@ export default function App() {
 
   return (
     <ThemeProvider provider={provider} colorMode="light">
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
         <ExpoStatusBar style={theme.mode === "dark" ? "light" : "dark"} />
         <KeyboardAvoidingView
           style={styles.keyboardView}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <View style={styles.page}>
+          <View style={[styles.page, { paddingTop: insets.top - 16 }]}>
             {/* Group 1: Main content + overlays (flex: 1) */}
             <View style={styles.topSection}>
             {/* Main Content Area */}
@@ -740,6 +742,7 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       minHeight: 0,
       position: "relative",
       overflow: Platform.OS === "ios" ? "visible" : "hidden",
+      paddingBottom: 130,
     },
     contentArea: {
       ...StyleSheet.absoluteFillObject,
@@ -801,7 +804,7 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
     chatMessages: {
       paddingVertical: 12,
       gap: 16,
-      paddingBottom: 24,
+      paddingBottom: 48,
     },
   });
 }

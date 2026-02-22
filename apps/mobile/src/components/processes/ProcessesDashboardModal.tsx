@@ -6,12 +6,12 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   RefreshControl,
   Alert,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton, triggerHaptic } from "../../design-system";
 import { CloseIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";

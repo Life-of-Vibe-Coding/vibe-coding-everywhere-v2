@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  SafeAreaView,
   Alert,
   FlatList,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../design-system";
 import { triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
