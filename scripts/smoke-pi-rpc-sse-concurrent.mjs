@@ -167,11 +167,28 @@ function runSseClient(sessionId, token) {
       }
     };
 
+    function flushOutputBuffer() {
+      const lines = outputBuffer.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const parsed = JSON.parse(trimmed);
+          const text = extractText(parsed);
+          if (text) fullOutput += text;
+        } catch {
+          fullOutput += trimmed + "\n";
+        }
+      }
+      outputBuffer = "";
+    }
+
     es.addEventListener("end", (ev) => {
       try {
         const data = ev.data ? JSON.parse(ev.data) : {};
         exitCode = data.exitCode ?? 0;
       } catch (_) {}
+      flushOutputBuffer(); // defensive: process any trailing output before end
       clearTimeout(timeout);
       finish();
     });
@@ -192,7 +209,7 @@ async function main() {
 
   const start = Date.now();
 
-  // Run all 3 sessions in parallel (server uses unique --session-dir per session to avoid Pi lock)
+  // Run all 3 sessions in parallel
   const results = await Promise.all(RUNS.map((cfg, i) => runOne(cfg, i)));
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
@@ -214,7 +231,17 @@ async function main() {
     console.error(`[smoke] ${r.label}: ${status}`);
     if (r.submitError) console.error(`         Submit error: ${r.submitError}`);
     if (r.error) console.error(`         Error: ${r.error}`);
-    if (!hasOwnToken) console.error(`         Missing own token in output`);
+    if (!hasOwnToken) {
+      console.error(`         Missing own token in output`);
+      if (DEBUG_SMOKE) {
+        const out = r.fullOutput ?? "";
+        console.error(`         [DEBUG] token: ${r.token}`);
+        console.error(`         [DEBUG] fullOutput length: ${out.length}`);
+        console.error(`         [DEBUG] gotExit: ${r.exitCode !== null}, error: ${r.error ?? "none"}`);
+        console.error(`         [DEBUG] head (200): "${out.slice(0, 200).replace(/\n/g, "\\n")}..."`);
+        console.error(`         [DEBUG] tail (400): "...${out.slice(-400).replace(/\n/g, "\\n")}"`);
+      }
+    }
     if (hasOthersToken) console.error(`         CROSS-TALK: received another session's token!`);
     if (!gotExit) console.error(`         Did not receive exit event`);
     if (ok) {

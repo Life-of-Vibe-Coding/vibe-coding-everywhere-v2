@@ -210,7 +210,7 @@ export function registerSessionsRoutes(app) {
                 sessionId = crypto.randomUUID();
             }
             const root = getWorkspaceCwd();
-            const usePerSessionDir = sessionId && sessionId.startsWith("smoke-concurrent-");
+            const usePerSessionDir = sessionId && (sessionId.startsWith("smoke-concurrent-") || sessionId.startsWith("smoke-switch-"));
             let existingPath = resolveSessionFilePath(root, sessionId);
             if (!existingPath) {
                 existingPath = createNewSessionFile(sessionId, root, usePerSessionDir);

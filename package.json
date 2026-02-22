@@ -14,7 +14,8 @@
     "dev:mobile:funnel": "node scripts/start-mobile-funnel.mjs",
     "icons:convert": "node scripts/convert-atom-icons.mjs",
     "smoke:sse": "node scripts/smoke-pi-rpc-sse-multi-client.mjs",
-    "smoke:concurrent": "node scripts/smoke-pi-rpc-sse-concurrent.mjs"
+    "smoke:concurrent": "node scripts/smoke-pi-rpc-sse-concurrent.mjs",
+    "smoke:session-switch": "node scripts/smoke-pi-rpc-sse-session-switch.mjs"
   },
   "dependencies": {
     "dockerode": "^4.0.9",
