@@ -12,17 +12,19 @@
     "dev": "nodemon server.js",
     "dev:mobile": "EXPO_PUBLIC_SERVER_URL=http://localhost:3456 npm run -w mobile start",
     "dev:mobile:funnel": "node scripts/start-mobile-funnel.mjs",
-    "icons:convert": "node scripts/convert-atom-icons.mjs"
+    "icons:convert": "node scripts/convert-atom-icons.mjs",
+    "smoke:sse": "node scripts/smoke-pi-rpc-sse-multi-client.mjs",
+    "smoke:concurrent": "node scripts/smoke-pi-rpc-sse-concurrent.mjs"
   },
   "dependencies": {
     "dockerode": "^4.0.9",
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "node-pty": "^1.0.0",
-    "socket.io": "^4.8.1",
     "tree-kill": "^1.2.2"
   },
   "devDependencies": {
+    "eventsource": "^4.1.0",
     "nodemon": "^3.1.11",
     "patch-package": "^8.0.0",
     "sharp": "^0.34.5"

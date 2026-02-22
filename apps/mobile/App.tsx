@@ -239,22 +239,21 @@ export default function App() {
     dismissPermission,
     terminateAgent,
     resetSession,
+    startNewSession,
     loadSession,
-    resumeLiveSession,
     switchToLiveSession,
     viewingLiveSession,
     liveSessionMessages,
     lastSessionTerminated,
   } = useSocket({ provider, model });
 
-  /** When user switches provider: save current session, start new session, update provider+model. */
+  /** When user switches provider: start new session, update provider+model. */
   const handleProviderChange = useCallback(
-    async (p: BrandProvider) => {
+    (p: BrandProvider) => {
       const newModel =
         p === "claude" ? DEFAULT_CLAUDE_MODEL : p === "pi" || p === "codex" ? DEFAULT_PI_MODEL : DEFAULT_GEMINI_MODEL;
       const isChanging = p !== provider || newModel !== model;
-      if (isChanging && messages.length > 0) {
-        await sessionStore.saveSession(messages, currentSessionId, workspacePath, provider, model);
+      if (isChanging) {
         setCurrentSessionId(null);
         resetSession();
       }
@@ -263,15 +262,14 @@ export default function App() {
       sessionStore.setLastUsedProviderModel(p, newModel);
       triggerHaptic("selection");
     },
-    [provider, model, messages, currentSessionId, workspacePath, resetSession]
+    [provider, model, resetSession]
   );
 
-  /** When user switches model: save current session, start new session, update model. */
+  /** When user switches model: start new session, update model. */
   const handleModelChange = useCallback(
-    async (newModel: string) => {
+    (newModel: string) => {
       if (newModel === model) return;
       if (messages.length > 0) {
-        await sessionStore.saveSession(messages, currentSessionId, workspacePath, provider, model);
         setCurrentSessionId(null);
         resetSession();
       }
@@ -279,7 +277,7 @@ export default function App() {
       sessionStore.setLastUsedProviderModel(provider, newModel);
       triggerHaptic("selection");
     },
-    [model, messages, currentSessionId, workspacePath, provider, resetSession]
+    [model, messages, provider, resetSession]
   );
 
   // Agent notifications: when agent finishes or needs approval
@@ -318,27 +316,13 @@ export default function App() {
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
-  // Load last active session and last used provider/model on mount
-  const hasRestoredSession = useRef(false);
+  // Load last used provider/model on mount (sessions come from server .pi/sessions)
+  const hasRestoredProviderModel = useRef(false);
   useEffect(() => {
-    if (hasRestoredSession.current) return;
-    hasRestoredSession.current = true;
-    Promise.all([
-      sessionStore.loadLastActiveSession(),
-      sessionStore.loadLastUsedProviderModel(),
-    ]).then(([session, lastUsed]) => {
-      if (session && session.messages.length > 0) {
-        lastSwitchedSessionRef.current = {
-          id: session.id,
-          provider: session.provider ?? undefined,
-          model: session.model ?? undefined,
-        };
-        resumeLiveSession(session.id, session.messages);
-        setCurrentSessionId(session.id);
-        if (session.provider) setProvider(session.provider as BrandProvider);
-        if (session.model) setModel(session.model);
-        if (session.provider && session.model) sessionStore.setLastUsedProviderModel(session.provider, session.model);
-      } else if (lastUsed) {
+    if (hasRestoredProviderModel.current) return;
+    hasRestoredProviderModel.current = true;
+    sessionStore.loadLastUsedProviderModel().then((lastUsed) => {
+      if (lastUsed) {
         const validProvider: BrandProvider =
           lastUsed.provider === "claude" || lastUsed.provider === "gemini" || lastUsed.provider === "pi" || lastUsed.provider === "codex"
             ? lastUsed.provider
@@ -347,34 +331,12 @@ export default function App() {
         setModel(lastUsed.model);
       }
     }).catch(() => { });
-  }, [loadSession]);
+  }, []);
 
-  // Persist current session when messages change (debounced).
-  // For live session: only persist after Pi agent returns session_id (conversation has begun).
-  // Use Pi session_id as the stored session id; do not create sessions before user sends a message.
-  const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Persist provider/model preference when they change (sessions come from server .pi/sessions)
   useEffect(() => {
-    if (messages.length === 0) return;
-    // When viewing live session: wait for Pi agent to return session_id before persisting
-    if (viewingLiveSession && !sessionId) return;
-    if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
-    persistTimeoutRef.current = setTimeout(() => {
-      persistTimeoutRef.current = null;
-      const idToUse = viewingLiveSession ? sessionId : currentSessionId;
-      // When we just switched to this session, use its stored provider/model to avoid overwriting with stale state
-      const switched = lastSwitchedSessionRef.current;
-      const useSwitched = switched && switched.id === idToUse;
-      const persistProvider = useSwitched && switched.provider != null ? switched.provider : provider;
-      const persistModel = useSwitched && switched.model != null ? switched.model : model;
-      if (useSwitched) lastSwitchedSessionRef.current = null;
-      sessionStore.saveSession(messages, idToUse, workspacePath, persistProvider, persistModel).then((s) => {
-        if (s.id) setCurrentSessionId(s.id);
-      }).catch(() => { });
-    }, 1500);
-    return () => {
-      if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
-    };
-  }, [messages, currentSessionId, sessionId, viewingLiveSession, workspacePath, provider, model]);
+    sessionStore.setLastUsedProviderModel(provider, model);
+  }, [provider, model]);
 
   // Performance Monitoring
   const performanceMetrics = usePerformanceMonitor(__DEV__);
@@ -813,23 +775,13 @@ export default function App() {
               setSessionManagementVisible(false);
               setWorkspacePickerVisible(true);
             }}
-            onSelectSession={async (s) => {
+            onSelectSession={(s) => {
               lastSwitchedSessionRef.current = {
                 id: s.id,
                 provider: s.provider ?? undefined,
                 model: s.model ?? undefined,
               };
-              if (viewingLiveSession && liveSessionMessages.length > 0) {
-                const saved = await sessionStore.saveSession(
-                  liveSessionMessages,
-                  currentSessionId,
-                  workspacePath,
-                  provider,
-                  model
-                );
-                if (saved.id) setCurrentSessionId(saved.id);
-              }
-              resumeLiveSession(s.id, s.messages);
+              loadSession(s.messages);
               setCurrentSessionId(s.id);
               if (s.provider) setProvider(s.provider as BrandProvider);
               if (s.model) setModel(s.model);
@@ -837,7 +789,7 @@ export default function App() {
             }}
             onNewSession={() => {
               setCurrentSessionId(null);
-              resetSession();
+              startNewSession();
             }}
             showActiveChat={!viewingLiveSession && liveSessionMessages.length > 0}
             sessionRunning={claudeRunning || typingIndicator}
@@ -846,7 +798,6 @@ export default function App() {
               setCurrentSessionId(null);
               setSessionManagementVisible(false);
             }}
-            sessionStore={sessionStore}
           />
 
           {/* Preview WebView Modal */}

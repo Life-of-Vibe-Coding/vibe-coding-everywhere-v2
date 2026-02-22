@@ -6,13 +6,24 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.api.deps import get_current_admin_user, get_product_or_404
+from app.api.deps import get_current_admin_user
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from app.services.product import ProductService # Import ProductService
 
 router = APIRouter()
 
+# Dependency to inject ProductService
+def get_product_service(db: Session = Depends(get_db)) -> ProductService:
+    return ProductService(db)
+
+# Helper function to get product or raise 404
+def get_product_or_404_service(product_id: str, product_service: ProductService = Depends(get_product_service)) -> Product:
+    product = product_service.get_product_by_id(product_id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return product
 
 @router.get("/", response_model=List[ProductResponse])
 def get_products(
@@ -21,7 +32,7 @@ def get_products(
     search: Optional[str] = Query(None, description="Search in name and description"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: Session = Depends(get_db)
+    product_service: ProductService = Depends(get_product_service) # Inject service
 ):
     """
     Get all products with optional filtering.
@@ -32,30 +43,19 @@ def get_products(
     - **skip**: Number of products to skip (pagination)
     - **limit**: Maximum number of products to return (max 100)
     """
-    query = db.query(Product)
-    
-    # Apply filters
-    if category and category != "all":
-        query = query.filter(Product.category == category)
-    
-    if featured is not None:
-        query = query.filter(Product.featured == featured)
-    
-    if search:
-        search_filter = f"%{search}%"
-        query = query.filter(
-            (Product.name.ilike(search_filter)) | 
-            (Product.description.ilike(search_filter))
-        )
-    
-    # Order and paginate
-    products = query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
+    products = product_service.get_products(
+        category=category,
+        featured=featured,
+        search=search,
+        skip=skip,
+        limit=limit
+    )
     
     return [ProductResponse.model_validate(p) for p in products]
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
-def get_product(product: Product = Depends(get_product_or_404)):
+def get_product(product: Product = Depends(get_product_or_404_service)): # Use new dependency
     """
     Get a specific product by ID.
     
@@ -67,7 +67,7 @@ def get_product(product: Product = Depends(get_product_or_404)):
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(
     product_data: ProductCreate,
-    db: Session = Depends(get_db),
+    product_service: ProductService = Depends(get_product_service), # Inject service
     current_user: User = Depends(get_current_admin_user)
 ):
     """
@@ -76,10 +76,7 @@ def create_product(
     Requires authentication with admin role.
     """
     
-    new_product = Product(**product_data.model_dump())
-    db.add(new_product)
-    db.commit()
-    db.refresh(new_product)
+    new_product = product_service.create_product(product_data) # Call service method
     
     return ProductResponse.model_validate(new_product)
 
@@ -87,8 +84,8 @@ def create_product(
 @router.patch("/{product_id}", response_model=ProductResponse)
 def update_product(
     product_data: ProductUpdate,
-    product: Product = Depends(get_product_or_404),
-    db: Session = Depends(get_db),
+    product: Product = Depends(get_product_or_404_service), # Use new dependency
+    product_service: ProductService = Depends(get_product_service), # Inject service
     current_user: User = Depends(get_current_admin_user)
 ):
     """
@@ -99,22 +96,15 @@ def update_product(
     Requires authentication with admin role.
     """
     
-    # Update only provided fields
-    update_data = product_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(product, field, value)
+    updated_product = product_service.update_product(product, product_data) # Call service method
     
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    
-    return ProductResponse.model_validate(product)
+    return ProductResponse.model_validate(updated_product)
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_product(
-    product: Product = Depends(get_product_or_404),
-    db: Session = Depends(get_db),
+    product: Product = Depends(get_product_or_404_service), # Use new dependency
+    product_service: ProductService = Depends(get_product_service), # Inject service
     current_user: User = Depends(get_current_admin_user)
 ):
     """
@@ -125,7 +115,6 @@ def delete_product(
     Requires authentication with admin role.
     """
     
-    db.delete(product)
-    db.commit()
+    product_service.delete_product(product) # Call service method
     
     return None

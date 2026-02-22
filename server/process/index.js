@@ -4,7 +4,6 @@
  */
 import {
   getWorkspaceCwd,
-  getLlmCliIoTurnPaths,
   projectRoot,
   DEFAULT_PERMISSION_MODE,
   DEFAULT_PROVIDER,
@@ -49,7 +48,7 @@ function emitError(socket, message) {
 }
 
 /** Format current time as yyyy-MM-dd_HH-mm-ss (24-hour) for log directory names. */
-function formatSessionLogTimestamp() {
+export function formatSessionLogTimestamp() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
@@ -59,7 +58,7 @@ function formatSessionLogTimestamp() {
  * Creates an AI process manager for a socket connection.
  * Uses Pi RPC for all providers (claude, gemini, codex).
  */
-export function createProcessManager(socket, { hasCompletedFirstRunRef, session_management }) {
+export function createProcessManager(socket, { hasCompletedFirstRunRef, session_management, onPiSessionId, existingSessionPath, sessionId }) {
   let turnCounter = 0;
   const piRpcSession = createPiRpcSession({
     socket,
@@ -68,7 +67,9 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
     globalSpawnChildren,
     getWorkspaceCwd,
     projectRoot,
-    getLlmCliIoTurnPaths,
+    onPiSessionId,
+    existingSessionPath,
+    sessionId,
   });
 
   function processRunning() {
@@ -173,5 +174,75 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
     handleTerminate,
     handleDebug,
     cleanup,
+    getTurnCounter: () => turnCounter,
   };
+}
+
+/**
+ * Creates a socket-like adapter that broadcasts to session.subscribers (SSE responses).
+ * Used by the REST+SSE session flow instead of Socket.IO.
+ */
+function createSseSocketAdapter(sessionId, session, host = "localhost:3456") {
+  const adapter = {
+    id: sessionId,
+    handshake: {
+      headers: { host },
+      address: "",
+    },
+    conn: { remoteAddress: "" },
+    emit(event, data) {
+      const subs = session.subscribers;
+      if (!subs || subs.size === 0) return;
+      const line = typeof data === "string" ? data : JSON.stringify(data);
+      const sseData = line.replace(/\r?\n/g, "\ndata: ");
+      const payload = `data: ${sseData}\n\n`;
+      const endPayload = event === "exit"
+        ? `event: end\ndata: ${JSON.stringify(data ?? {})}\n\n`
+        : null;
+      for (const res of subs) {
+        try {
+          if (!res.writableEnded) {
+            if (endPayload) {
+              res.write(endPayload);
+              res.end();
+            } else {
+              res.write(payload);
+            }
+          }
+        } catch (_) {}
+      }
+    },
+    setHost(h) {
+      adapter.handshake.headers.host = h || "localhost:3456";
+    },
+  };
+  return adapter;
+}
+
+/**
+ * Creates a process manager for the REST+SSE session flow.
+ * Uses one Pi RPC process per session; output is broadcast to all SSE subscribers.
+ */
+export function createSessionProcessManager(sessionId, session, { onPiSessionId, existingSessionPath, sessionLogTimestamp } = {}) {
+  const hasCompletedFirstRunRef = { value: false };
+  const sessionManagement = {
+    provider: session.provider,
+    model: session.model,
+    session_id: null,
+    session_log_timestamp: sessionLogTimestamp ?? session.sessionLogTimestamp,
+  };
+  const socket = createSseSocketAdapter(sessionId, session);
+  const pm = createProcessManager(socket, {
+    hasCompletedFirstRunRef,
+    session_management: sessionManagement,
+    onPiSessionId,
+    existingSessionPath,
+    sessionId,
+  });
+  const origHandleSubmitPrompt = pm.handleSubmitPrompt;
+  pm.handleSubmitPrompt = (payload, host) => {
+    if (host) socket.setHost(host);
+    origHandleSubmitPrompt(payload);
+  };
+  return pm;
 }

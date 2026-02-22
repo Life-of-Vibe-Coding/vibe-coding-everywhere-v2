@@ -10,6 +10,7 @@
  * - Docker API (when enabled)
  */
 import { registerConfigRoutes } from "./config.js";
+import { registerSessionsRoutes } from "./sessions.js";
 import { registerSkillsRoutes } from "./skills.js";
 import { registerWorkspaceRoutes, createServeWorkspaceFileMiddleware } from "./workspace.js";
 import { registerGitRoutes } from "./git.js";
@@ -24,6 +25,7 @@ export async function setupRoutes(app) {
   app.use(apiLoggingMiddleware);
 
   registerConfigRoutes(app);
+  registerSessionsRoutes(app);
   registerSkillsRoutes(app);
   registerWorkspaceRoutes(app);
   registerGitRoutes(app);

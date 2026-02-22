@@ -1,4 +1,4 @@
-# ShopHub Backend Refactoring
+# ShopHub Next.js API Routes Refactoring
 
 ## Overview
 

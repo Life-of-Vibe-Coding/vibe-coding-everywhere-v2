@@ -9,13 +9,32 @@ import {
   FlatList,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppButton } from "../../design-system";
 import { triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { TrashIcon } from "../icons/ChatActionIcons";
-import type { StoredSession } from "../../services/sessionStore";
 import type { Message } from "../../core/types";
+
+/** Session from GET /api/sessions (disk .pi/sessions) */
+export interface ApiSession {
+  id: string;
+  fileStem: string;
+  firstUserInput: string;
+  provider: string | null;
+  model: string | null;
+  mtime: number;
+  sseConnected: boolean;
+  running: boolean;
+}
+
+/** Loaded session passed to onSelectSession (id + messages from GET /api/sessions/:id/messages) */
+export interface LoadedSession {
+  id: string;
+  messages: Message[];
+  provider?: string | null;
+  model?: string | null;
+}
 
 /** Get relative path from root to fullPath. */
 function getRelativePath(fullPath: string, root: string): string {
@@ -30,17 +49,17 @@ function getRelativePath(fullPath: string, root: string): string {
 export interface SessionManagementModalProps {
   visible: boolean;
   onClose: () => void;
-  /** Current messages (for saving when switching). */
+  /** Current messages (unused - we don't save to client storage). */
   currentMessages: Message[];
   /** Current session id if we're viewing a persisted session. */
   currentSessionId: string | null;
   /** Current workspace path for display. */
   workspacePath?: string | null;
-  /** Current AI provider (for saving session metadata). */
+  /** Current AI provider (unused). */
   provider?: string | null;
-  /** Current AI model (for saving session metadata). */
+  /** Current AI model (unused). */
   model?: string | null;
-  /** Base URL for API (e.g. http://localhost:3456) for workspace picker. */
+  /** Base URL for API (e.g. http://localhost:3456). */
   serverBaseUrl?: string;
   /** Loading state for workspace path. */
   workspaceLoading?: boolean;
@@ -48,19 +67,16 @@ export interface SessionManagementModalProps {
   onRefreshWorkspace?: () => void;
   /** Called when user taps "Change workspace" - opens full-screen picker. */
   onOpenWorkspacePicker?: () => void;
-  /** Called when user selects a session to switch to. */
-  onSelectSession: (session: StoredSession) => void;
+  /** Called when user selects a session (fetches messages from API first). */
+  onSelectSession: (session: LoadedSession) => void;
   /** Called when user creates new session (clear and close). */
   onNewSession: () => void;
   /** When true, show an "Active chat" card to switch back to the live session. */
   showActiveChat?: boolean;
   /** Called when user taps "Active chat" to switch back to the live session. */
   onSelectActiveChat?: () => void;
-  /** Session store - loadSessions, deleteSession, saveSession, setLastActiveSession. */
-  sessionStore: Pick<
-    typeof import("../../services/sessionStore"),
-    "loadSessions" | "deleteSession" | "saveSession" | "setLastActiveSession"
-  >;
+  /** Whether a session is currently running (for display). */
+  sessionRunning?: boolean;
 }
 
 function formatDate(ts: number): string {
@@ -81,38 +97,35 @@ function formatDate(ts: number): string {
 export function SessionManagementModal({
   visible,
   onClose,
-  currentMessages,
   currentSessionId,
   workspacePath,
-  provider,
-  model,
   serverBaseUrl,
   workspaceLoading,
-  onRefreshWorkspace,
   onOpenWorkspacePicker,
   onSelectSession,
   onNewSession,
   showActiveChat = false,
   onSelectActiveChat,
-  sessionStore,
+  sessionRunning = false,
 }: SessionManagementModalProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const [sessions, setSessions] = useState<StoredSession[]>([]);
+  const [sessions, setSessions] = useState<ApiSession[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
-  /** Session id being selected - shown highlighted for 1s before switching. */
-  const [selectedForTransition, setSelectedForTransition] = useState<string | null>(null);
+  const [selectError, setSelectError] = useState<string | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!visible) {
-      setSelectedForTransition(null);
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
       }
+      setSelectError(null);
     }
   }, [visible]);
 
@@ -129,84 +142,101 @@ export function SessionManagementModal({
     allowedRoot && workspacePath ? getRelativePath(workspacePath, allowedRoot) : "";
 
   const refresh = useCallback(async () => {
+    if (!serverBaseUrl) return;
     setLoading(true);
     try {
-      const { sessions: list } = await sessionStore.loadSessions();
-      setSessions(list);
+      const res = await fetch(`${serverBaseUrl}/api/sessions`);
+      const data = (await res.json()) as { sessions?: ApiSession[] };
+      setSessions(data.sessions ?? []);
     } catch {
       setSessions([]);
     } finally {
       setLoading(false);
     }
-  }, [sessionStore]);
+  }, [serverBaseUrl]);
 
   useEffect(() => {
     if (visible) void refresh();
   }, [visible, refresh]);
 
   const handleSelect = useCallback(
-    (session: StoredSession) => {
+    (session: ApiSession) => {
       triggerHaptic("selection");
       if (session.id === currentSessionId) {
         onClose();
         return;
       }
-      // Cancel any in-flight transition
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
       }
-      // 1. Highlight the selected session for 1 second
-      setSelectedForTransition(session.id);
-      transitionTimeoutRef.current = setTimeout(async () => {
-        transitionTimeoutRef.current = null;
-        setSelectedForTransition(null);
-        // 2. Then switch and return to chat
-        if (currentMessages.length > 0) {
-          await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath, provider, model);
-        }
-        await sessionStore.setLastActiveSession(session.id);
-        onSelectSession(session);
-        onClose();
-      }, 300);
+      setSelectError(null);
+      setLoadingSessionId(session.id);
+      fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(session.id)}/messages`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load session");
+          return res.json();
+        })
+        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null }) => {
+          const messages = data.messages ?? [];
+          const id = data.sessionId ?? session.id;
+          onSelectSession({
+            id,
+            messages,
+            provider: data.provider ?? session.provider,
+            model: data.model ?? session.model,
+          });
+          onClose();
+        })
+        .catch((err) => {
+          setSelectError(err?.message ?? "Failed to load session");
+        })
+        .finally(() => {
+          setLoadingSessionId(null);
+        });
     },
-    [currentSessionId, currentMessages, workspacePath, provider, model, sessionStore, onSelectSession, onClose]
+    [currentSessionId, serverBaseUrl, onSelectSession, onClose]
   );
 
   const handleDelete = useCallback(
-    (session: StoredSession) => {
+    (session: ApiSession) => {
       triggerHaptic("medium");
+      const title = session.firstUserInput.slice(0, 50) + (session.firstUserInput.length > 50 ? "…" : "");
       Alert.alert(
         "Delete session",
-        `Remove "${session.title.slice(0, 50)}${session.title.length > 50 ? "…" : ""}"?`,
+        `Remove "${title}" from .pi/sessions?`,
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Delete",
             style: "destructive",
             onPress: async () => {
-              await sessionStore.deleteSession(session.id);
-              if (session.id === currentSessionId) {
-                onNewSession();
+              if (!serverBaseUrl) return;
+              try {
+                const res = await fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(session.id)}`, {
+                  method: "DELETE",
+                });
+                if (!res.ok) throw new Error("Delete failed");
+                if (session.id === currentSessionId) {
+                  onNewSession();
+                }
+                await refresh();
+              } catch {
+                setSelectError("Failed to delete session");
               }
-              await refresh();
             },
           },
         ]
       );
     },
-    [sessionStore, currentSessionId, onNewSession, refresh]
+    [serverBaseUrl, currentSessionId, onNewSession, refresh]
   );
 
-  const handleNewSession = useCallback(async () => {
+  const handleNewSession = useCallback(() => {
     triggerHaptic("selection");
-    if (currentMessages.length > 0) {
-      await sessionStore.saveSession(currentMessages, currentSessionId, workspacePath, provider, model);
-    }
-    await sessionStore.setLastActiveSession(null);
     onNewSession();
     onClose();
-  }, [currentMessages, currentSessionId, workspacePath, provider, model, sessionStore, onNewSession, onClose]);
+  }, [onNewSession, onClose]);
 
   if (!visible) return null;
 
@@ -217,8 +247,8 @@ export function SessionManagementModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safe}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <View style={styles.header}>
             <Text style={styles.title}>Sessions</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={12}>
@@ -226,7 +256,12 @@ export function SessionManagementModal({
             </TouchableOpacity>
           </View>
 
-          {/* Workspace - path, change button, and new session merged in one box */}
+          {selectError && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{selectError}</Text>
+            </View>
+          )}
+
           <View style={styles.workspaceSection}>
             <Text style={styles.sectionTitle}>Workspace</Text>
             <View style={styles.workspaceBox}>
@@ -260,14 +295,16 @@ export function SessionManagementModal({
             </View>
           </View>
 
+          <Text style={styles.sectionTitle}>From .pi/sessions</Text>
+
           {loading ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>Loading…</Text>
             </View>
           ) : sessions.length === 0 && !showActiveChat ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No saved sessions yet.</Text>
-              <Text style={styles.emptySub}>Start a conversation to save it.</Text>
+              <Text style={styles.emptyText}>No sessions in .pi/sessions.</Text>
+              <Text style={styles.emptySub}>Start a conversation to create one.</Text>
             </View>
           ) : (
             <>
@@ -281,46 +318,47 @@ export function SessionManagementModal({
                     <Text style={[styles.sessionTitle, { color: theme.colors.accent }]} numberOfLines={1}>
                       Active chat
                     </Text>
-                    <Text style={styles.sessionMeta}>Receiving updates in background — tap to view</Text>
+                    <Text style={styles.sessionMeta}>
+                      {sessionRunning ? "Receiving updates — tap to view" : "Tap to view"}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               )}
               <FlatList
                 data={sessions}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.list}
-              renderItem={({ item }) => (
-                <View style={[styles.row, styles.sessionCard, item.id === (selectedForTransition ?? currentSessionId) && styles.sessionCardActive]}>
-                  <TouchableOpacity
-                    style={styles.sessionCardContent}
-                    onPress={() => handleSelect(item)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.sessionTitle} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.sessionId}>{item.id}</Text>
-                    {item.workspacePath != null && item.workspacePath !== "" && (
-                      <Text style={styles.sessionWorkspace}>
-                        Workspace: {item.workspacePath}
-                      </Text>
-                    )}
-                    <Text style={styles.sessionMeta}>
-                      {item.messages.length} messages
-                      {item.model ? ` · ${item.model}` : ""}
-                      {` · ${formatDate(item.updatedAt)}`}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => handleDelete(item)}
-                    hitSlop={8}
-                    accessibilityLabel={`Delete session ${item.title}`}
-                  >
-                    <TrashIcon color={theme.colors.textMuted} size={20} />
-                  </TouchableOpacity>
-                </View>
-              )}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.list}
+                renderItem={({ item }) => {
+                  const isLoading = loadingSessionId === item.id;
+                  return (
+                    <View style={[styles.row, styles.sessionCard, item.id === currentSessionId && styles.sessionCardActive]}>
+                      <TouchableOpacity
+                        style={styles.sessionCardContent}
+                        onPress={() => handleSelect(item)}
+                        disabled={isLoading}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.sessionTitle} numberOfLines={1}>
+                          {item.firstUserInput || "(no input)"}
+                        </Text>
+                        <Text style={styles.sessionId}>{item.id}</Text>
+                        <Text style={styles.sessionMeta}>
+                          {item.model ? item.model : ""}
+                          {item.model ? " · " : ""}
+                          {formatDate(item.mtime)}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.deleteBtn}
+                        onPress={() => handleDelete(item)}
+                        hitSlop={8}
+                        accessibilityLabel={`Delete session ${item.firstUserInput.slice(0, 30)}`}
+                      >
+                        <TrashIcon color={theme.colors.textMuted} size={20} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }}
               />
             </>
           )}
@@ -360,6 +398,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: 20,
       color: theme.textMuted,
     },
+    errorBanner: {
+      padding: 12,
+      marginHorizontal: 20,
+      marginTop: 8,
+      backgroundColor: "rgba(228, 86, 73, 0.12)",
+      borderRadius: 8,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.danger ?? "#E45649",
+    },
     workspaceSection: {
       paddingHorizontal: 20,
       paddingVertical: 12,
@@ -371,10 +420,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: theme.typography.label.fontSize,
       color: theme.colors.textSecondary,
       marginBottom: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+      marginHorizontal: 20,
       textTransform: "uppercase" as const,
       letterSpacing: 0.6,
     },
     workspaceBox: {
+      marginHorizontal: 20,
       padding: theme.spacing.sm,
       borderRadius: theme.radii.md,
       backgroundColor: theme.cardBg,
@@ -441,14 +493,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textMuted,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       marginTop: 2,
-    },
-    sessionWorkspace: {
-      fontSize: 12,
-      color: theme.colors.textMuted,
-      marginTop: 4,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      letterSpacing: 0.2,
-      lineHeight: 16,
     },
     sessionMeta: {
       fontSize: 12,

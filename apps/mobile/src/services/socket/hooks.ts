@@ -161,6 +161,21 @@ export function useSocket(options: UseSocketOptions = {}) {
     }
   }, []);
 
+  /** Deduplicate message IDs; bump nextIdRef for any reassignments. */
+  const deduplicateMessageIds = useCallback((msgs: Message[]): Message[] => {
+    const seen = new Set<string>();
+    return msgs.map((m) => {
+      let id = m.id;
+      if (seen.has(id)) {
+        id = `msg-${++nextIdRef.current}`;
+        seen.add(id);
+      } else {
+        seen.add(id);
+      }
+      return id === m.id ? m : { ...m, id };
+    });
+  }, []);
+
   const createSessionHandlers = useCallback(
     (sidRef: { current: string }) => {
       const addMessageForSession = (role: Message["role"], content: string, codeReferences?: CodeReference[]) => {
@@ -521,6 +536,11 @@ export function useSocket(options: UseSocketOptions = {}) {
             continue;
           }
 
+          if (parsed.type === "session" && typeof parsed.id === "string" && !parsed.id.startsWith("temp-")) {
+            setSessionIdWithRekey(parsed.id);
+            continue;
+          }
+
           if (isProviderStream(parsed)) {
             dispatchProviderEvent(parsed as Record<string, unknown>);
           } else if (typeof parsed === "object" && parsed != null && "type" in parsed) {
@@ -654,11 +674,12 @@ export function useSocket(options: UseSocketOptions = {}) {
             const newState = getOrCreateSessionState(newSessionId);
             // If viewingLiveSession was false, we should have carried over savedSessionMessages
             if (!viewingLiveSession) {
-              newState.messages = [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+              const merged = [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+              newState.messages = deduplicateMessageIds(merged);
             } else {
               // Usually we don't switch session ids mid-stream unless the server forks, but typically we want empty.
               // However, if we just typed a message after a reset, preserve pending.
-              newState.messages = [...pendingMessagesForNewSessionRef.current];
+              newState.messages = deduplicateMessageIds([...pendingMessagesForNewSessionRef.current]);
             }
             pendingMessagesForNewSessionRef.current = [];
             newState.outputBuffer = "";
@@ -670,7 +691,8 @@ export function useSocket(options: UseSocketOptions = {}) {
             // First prompt - migrate user message(s) to new session
             const newState = getOrCreateSessionState(newSessionId);
             // Also include saved session messages if we were viewing a past session
-            newState.messages = viewingLiveSession ? [...pendingMessagesForNewSessionRef.current] : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+            const merged = viewingLiveSession ? [...pendingMessagesForNewSessionRef.current] : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+            newState.messages = deduplicateMessageIds(merged);
             pendingMessagesForNewSessionRef.current = [];
             setLiveSessionMessages([...newState.messages]);
           }
@@ -680,7 +702,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         console.error("Failed to submit prompt", err);
       }
     },
-    [addMessage, provider, model, serverUrl, sessionId]
+    [addMessage, deduplicateMessageIds, getOrCreateSessionState, provider, model, serverUrl, sessionId, viewingLiveSession, savedSessionMessages]
   );
 
   const submitAskQuestionAnswer = useCallback(
@@ -800,28 +822,58 @@ export function useSocket(options: UseSocketOptions = {}) {
     setViewingLiveSession(true);
   }, [sessionId, serverUrl]);
 
+  /** Start new session: initialize via POST /api/sessions/new (no temp sessions). */
+  const startNewSession = useCallback(async () => {
+    if (sessionId) {
+      try {
+        await fetch(`${serverUrl}/api/sessions/${sessionId}/terminate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resetSession: true }),
+        });
+      } catch (err) {
+        console.error("Failed to terminate session", err);
+      }
+      const sse = eventSourceMapRef.current.get(sessionId);
+      if (sse) {
+        if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
+        sse.close();
+        eventSourceMapRef.current.delete(sessionId);
+      }
+      sessionStatesRef.current.delete(sessionId);
+    }
+    try {
+      const res = await fetch(`${serverUrl}/api/sessions/new`, { method: "POST" });
+      const data = await res.json();
+      if (data.ok && data.sessionId) {
+        setSessionId(data.sessionId);
+        const newState = getOrCreateSessionState(data.sessionId);
+        setLiveSessionMessages(newState.messages);
+      }
+    } catch (err) {
+      console.error("Failed to start new session", err);
+      setSessionId(null);
+    }
+    setPermissionDenials(null);
+    setLastRunOptions({ permissionMode: null, allowedTools: [], useContinue: false });
+    setPendingAskQuestion(null);
+    setLastSessionTerminated(false);
+    currentAssistantContentRef.current = "";
+    setViewingLiveSession(true);
+  }, [sessionId, serverUrl, getOrCreateSessionState]);
+
   const loadSession = useCallback((loadedMessages: Message[]) => {
     if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs");
     let maxN = 0;
     for (const m of loadedMessages) {
-      const match = /^msg-(\\d+)$/.exec(m.id);
+      const match = /^msg-(\d+)$/.exec(m.id);
       if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
     }
     nextIdRef.current = Math.max(nextIdRef.current, maxN);
-    const seen = new Set<string>();
-    const deduped = loadedMessages.map((m) => {
-      let id = m.id;
-      if (seen.has(id)) {
-        id = `msg-${++nextIdRef.current}`;
-        seen.add(id);
-      } else {
-        seen.add(id);
-      }
-      return { ...m, id };
-    });
+    const deduped = deduplicateMessageIds(loadedMessages);
     setSavedSessionMessages(deduped);
     setViewingLiveSession(false);
-  }, []);
+  }, [deduplicateMessageIds]);
 
   const switchToLiveSession = useCallback(() => {
     if (__DEV__) console.log("[sse] switchToLiveSession", { sessionId, openCount: eventSourceMapRef.current.size });
@@ -850,6 +902,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     dismissPermission,
     terminateAgent,
     resetSession,
+    startNewSession,
     loadSession,
     resumeLiveSession,
     switchToLiveSession,

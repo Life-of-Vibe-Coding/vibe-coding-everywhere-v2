@@ -22,15 +22,3 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)):
         )
     return current_user
 
-
-def get_product_or_404(product_id: str, db: Session = Depends(get_db)) -> Product:
-    """
-    Dependency to fetch a product by ID or raise a 404 HTTPException.
-    """
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product with id {product_id} not found"
-        )
-    return product

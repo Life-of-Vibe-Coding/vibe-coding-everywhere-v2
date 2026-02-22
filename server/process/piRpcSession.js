@@ -11,7 +11,6 @@ import { spawn } from "child_process";
 import {
   getWorkspaceCwd,
   PI_CLI_PATH,
-  getLlmCliIoTurnPaths,
   SKILLS_DIR,
   projectRoot,
   PORT,
@@ -146,7 +145,9 @@ export function createPiRpcSession({
   globalSpawnChildren,
   getWorkspaceCwd,
   projectRoot,
-  getLlmCliIoTurnPaths,
+  onPiSessionId,
+  existingSessionPath,
+  sessionId,
 }) {
   let piProcess = null;
   let stdoutBuffer = "";
@@ -231,6 +232,10 @@ export function createPiRpcSession({
       return;
     }
 
+    if (type === "session" && typeof parsed.id === "string" && onPiSessionId) {
+      onPiSessionId(parsed.id);
+    }
+
     if (type === "agent_start") {
       turnRunning = true;
     }
@@ -270,10 +275,15 @@ export function createPiRpcSession({
     const rawModel = options.model ?? (piProvider === "anthropic" ? "claude-sonnet-4-5" : piProvider === "openai" || piProvider === "openai-codex" ? "gpt-4o" : "gemini-2.0-flash");
     const piModel = toPiModel(rawModel, piProvider);
     const cwd = getWorkspaceCwd();
-    const sessionDir = path.join(cwd, ".pi", "sessions");
+    // Use unique session-dir per session to avoid Pi's workspace lock contention (enables concurrent runs)
+    const defaultSessionDir = path.join(cwd, ".pi", "sessions");
+    const sessionDir =
+      sessionId && typeof sessionId === "string"
+        ? path.join(cwd, ".pi", "sessions-" + sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"))
+        : defaultSessionDir;
 
     try {
-      fs.mkdirSync(path.dirname(sessionDir), { recursive: true });
+      fs.mkdirSync(sessionDir, { recursive: true });
     } catch (_) { }
 
     const terminalRules =
@@ -308,6 +318,7 @@ export function createPiRpcSession({
       "--provider", piProvider,
       "--model", piModel,
       "--session-dir", sessionDir,
+      ...(existingSessionPath && fs.existsSync(existingSessionPath) ? ["--session", existingSessionPath] : []),
       "--no-skills",
       "--append-system-prompt", criticalPrompt,
       "--append-system-prompt", terminalRules,
@@ -400,20 +411,8 @@ export function createPiRpcSession({
       model: options.model,
     });
 
-    const sessionId = options.sessionLogTimestamp ?? options.conversationSessionId ?? "unknown";
-    const turnId = options.turnId ?? 1;
-    try {
-      const { inputPath, outputPath } = getLlmCliIoTurnPaths("pi", sessionId, turnId);
-      const ioInputStream = fs.createWriteStream(inputPath, { flags: "a" });
-      ioInputStream.write(`pi --mode rpc ...\n`);
-      ioInputStream.write(`${prompt}\n`);
-      ioInputStream.end();
-      closeIoOutputStream();
-      piIoOutputStream = fs.createWriteStream(outputPath, { flags: "a" });
-    } catch (err) {
-      console.warn("[llm-cli-io] Failed to create Pi turn log files:", err?.message);
-    }
-
+    closeIoOutputStream();
+    // No temp folders: Pi writes to .pi/sessions; we only emit to socket
     socket.emit("claude-started", {
       provider: options.clientProvider ?? sessionManagement?.provider ?? "claude",
       session_id: null,
