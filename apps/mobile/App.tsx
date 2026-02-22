@@ -532,6 +532,73 @@ export default function App() {
     if (sessionManagementVisible) fetchWorkspacePath();
   }, [sessionManagementVisible, fetchWorkspacePath]);
 
+  // FlatList performance: compute once to avoid per-item Dimensions.get
+  const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
+
+  const renderMessageItem = useCallback(
+    ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
+      const isLast = index === messages.length - 1;
+      const showTerminated =
+        lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
+      const messageToShow = showTerminated ? { ...item, content: "Terminated" } : item;
+      const hasCodeOrFileContent =
+        hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
+      const showTailBox =
+        isLast &&
+        item.role === "assistant" &&
+        !!(item.content && item.content.trim()) &&
+        hasCodeOrFileContent;
+      return (
+        <MessageBubble
+          message={messageToShow}
+          isTerminatedLabel={showTerminated}
+          showAsTailBox={showTailBox}
+          tailBoxMaxHeight={tailBoxMaxHeight}
+          provider={provider}
+          onOpenUrl={handleOpenPreviewInApp}
+          onFileSelect={handleFileSelectFromChat}
+        />
+      );
+    },
+    [
+      messages.length,
+      lastSessionTerminated,
+      provider,
+      handleOpenPreviewInApp,
+      handleFileSelectFromChat,
+      tailBoxMaxHeight,
+    ]
+  );
+
+  const chatListFooter = useMemo(
+    () => (
+      <>
+        <TypingIndicator visible={typingIndicator} provider={provider} activity={currentActivity} />
+        {permissionDenials && permissionDenials.length > 0 && (
+          <PermissionDenialBanner
+            denials={permissionDenials}
+            onDismiss={dismissPermission}
+            onAccept={() => {
+              const backend = getBackendPermissionMode(permissionModeUI, provider);
+              const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+              retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
+            }}
+          />
+        )}
+      </>
+    ),
+    [
+      typingIndicator,
+      provider,
+      currentActivity,
+      permissionDenials,
+      dismissPermission,
+      permissionModeUI,
+      messages,
+      retryAfterPermission,
+    ]
+  );
+
   // ============================================================================
   // Render
   // ============================================================================
@@ -611,48 +678,12 @@ export default function App() {
                     data={messages}
                     extraData={`${lastSessionTerminated}-${messages.length}`}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item, index }) => {
-                      const isLast = index === messages.length - 1;
-                      const showTerminated =
-                        lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
-                      const messageToShow = showTerminated
-                        ? { ...item, content: "Terminated" }
-                        : item;
-                      const hasCodeOrFileContent =
-                        hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
-                      const showTailBox =
-                        isLast &&
-                        item.role === "assistant" &&
-                        !!(item.content && item.content.trim()) &&
-                        hasCodeOrFileContent;
-                      return (
-                        <MessageBubble
-                          message={messageToShow}
-                          isTerminatedLabel={showTerminated}
-                          showAsTailBox={showTailBox}
-                          tailBoxMaxHeight={Dimensions.get("window").height * 0.5}
-                          provider={provider}
-                          onOpenUrl={handleOpenPreviewInApp}
-                          onFileSelect={handleFileSelectFromChat}
-                        />
-                      );
-                    }}
-                    ListFooterComponent={
-                      <>
-                        <TypingIndicator visible={typingIndicator} provider={provider} activity={currentActivity} />
-                        {permissionDenials && permissionDenials.length > 0 && (
-                          <PermissionDenialBanner
-                            denials={permissionDenials}
-                            onDismiss={dismissPermission}
-                            onAccept={() => {
-                              const backend = getBackendPermissionMode(permissionModeUI, provider);
-                              const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-                              retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
-                            }}
-                          />
-                        )}
-                      </>
-                    }
+                    renderItem={renderMessageItem}
+                    initialNumToRender={15}
+                    maxToRenderPerBatch={10}
+                    windowSize={10}
+                    removeClippedSubviews={Platform.OS === "android"}
+                    ListFooterComponent={chatListFooter}
                     onContentSizeChange={() => {
                       const now = Date.now();
                       if (now - lastScrollToEndTimeRef.current < 400) return;

@@ -368,7 +368,7 @@ const TERMINAL_BG = "#1e293b";
 const TERMINAL_TEXT = "rgba(255,255,255,0.9)";
 const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 
-export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect }: MessageBubbleProps) {
+function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.surfaceBg;
   const codeTextColor = theme.accent;
@@ -1033,4 +1033,6 @@ export function MessageBubble({ message, isTerminatedLabel, showAsTailBox, tailB
     </View>
   );
 }
+
+export const MessageBubble = React.memo(MessageBubbleInner);
 
