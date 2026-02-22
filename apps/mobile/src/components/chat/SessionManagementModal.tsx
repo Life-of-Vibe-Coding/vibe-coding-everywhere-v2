@@ -173,7 +173,14 @@ export function SessionManagementModal({
           const next = data.sessions ?? [];
           setSessions((prev) => {
             if (prev.length !== next.length) return next;
-            const changed = prev.some((p, i) => p.running !== next[i]?.running || p.sseConnected !== next[i]?.sseConnected);
+            const byId = (arr: ApiSession[]) => new Map(arr.map((s) => [s.id, s]));
+            const prevMap = byId(prev);
+            const changed = next.some(
+              (n) => {
+                const p = prevMap.get(n.id);
+                return !p || p.running !== n.running || p.sseConnected !== n.sseConnected;
+              }
+            );
             return changed ? next : prev;
           });
         })
@@ -200,7 +207,7 @@ export function SessionManagementModal({
           if (!res.ok) throw new Error("Failed to load session");
           return res.json();
         })
-        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null }) => {
+        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean }) => {
           const messages = data.messages ?? [];
           const id = data.sessionId ?? session.id;
           onSelectSession({
@@ -208,8 +215,8 @@ export function SessionManagementModal({
             messages,
             provider: data.provider ?? session.provider,
             model: data.model ?? session.model,
-            running: session.running,
-            sseConnected: session.sseConnected,
+            running: data.running ?? session.running,
+            sseConnected: data.sseConnected ?? session.sseConnected,
           });
           onClose();
         })

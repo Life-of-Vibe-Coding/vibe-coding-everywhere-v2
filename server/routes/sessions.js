@@ -320,7 +320,17 @@ export function registerSessionsRoutes(app) {
                 });
             }
             const { provider, modelId } = parseSessionMetadata(filePath);
-            res.json({ messages, sessionId: canonicalSessionId, provider: provider || null, model: modelId || null });
+            const activeSession = resolveSession(sessionId) || resolveSession(canonicalSessionId);
+            const running = activeSession?.processManager?.processRunning?.() ?? false;
+            const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
+            res.json({
+                messages,
+                sessionId: canonicalSessionId,
+                provider: provider || null,
+                model: modelId || null,
+                running,
+                sseConnected,
+            });
         } catch (e) {
             console.error("[sessions] Failed to load messages:", e?.message);
             res.status(500).json({ error: "Failed to load session" });
