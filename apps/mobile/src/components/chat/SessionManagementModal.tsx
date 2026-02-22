@@ -225,10 +225,12 @@ export function SessionManagementModal({
                 {onOpenWorkspacePicker && (
                   <View style={styles.workspaceActionBtn}>
                     <AppButton
-                      label="Change workspace…"
+                      label="Change workspace"
                       variant="secondary"
                       size="sm"
                       onPress={onOpenWorkspacePicker}
+                      style={{ height: 52 }}
+                      labelStyle={{ textAlign: "center" }}
                     />
                   </View>
                 )}
@@ -238,8 +240,8 @@ export function SessionManagementModal({
                     variant="primary"
                     size="sm"
                     onPress={handleNewSession}
-                    style={{ backgroundColor: theme.colors.accentSoft }}
-                    labelStyle={{ color: theme.colors.textPrimary }}
+                    style={{ backgroundColor: theme.colors.accentSoft, height: 52 }}
+                    labelStyle={{ color: theme.colors.textPrimary, textAlign: "center" }}
                   />
                 </View>
               </View>

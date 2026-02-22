@@ -458,15 +458,19 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
             <Text style={styles.sectionTitle}>Staged Changes</Text>
           </View>
           {hasStaged ? stagedFiles.map((f, i) => (
-            <View key={`staged:${f.file}:${i}`} style={styles.changeItem}>
-              {f.isDirectory ? (
-                <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
-              ) : (
-                <TouchableOpacity style={{ flex: 1, minWidth: 0 }} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
-                  <Text style={styles.changeFileLabel} numberOfLines={1}>{f.file}</Text>
-                </TouchableOpacity>
-              )}
-              <Text style={[styles.statusLabel, styles.statusLabelRight]}>{f.status}</Text>
+            <View key={`staged:${f.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
+              <View style={styles.stagedPathWrap}>
+                {f.isDirectory ? (
+                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
+                ) : (
+                  <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
+                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>{f.file}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.statusBadgeWrap}>
+                <Text style={styles.statusLabel} numberOfLines={1}>{f.status}</Text>
+              </View>
             </View>
           )) : <Text style={styles.emptyText}>No staged changes</Text>}
 
@@ -483,11 +487,11 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               {f.isDirectory ? (
                 <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
               ) : (
-                <TouchableOpacity style={{ flex: 1 }} onPress={() => handleFilePress("__diff__:unstaged:" + f.file)}>
+                <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + f.file)}>
                   <Text style={styles.changeFileLabel} numberOfLines={1}>{f.file}</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => handleStageFile(f.file)}>
+              <TouchableOpacity onPress={() => handleStageFile(f.file)} style={styles.stageBtnWrap}>
                 <Text style={styles.stageBtnText}>Stage</Text>
               </TouchableOpacity>
             </View>
@@ -504,11 +508,11 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                   {u.isDirectory ? (
                     <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{u.file}</Text>
                   ) : (
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => handleFilePress("__diff__:unstaged:" + u.file)}>
+                    <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + u.file)}>
                       <Text style={styles.changeFileLabel} numberOfLines={1}>{u.file}</Text>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity onPress={() => handleStageFile(u.file)}>
+                  <TouchableOpacity onPress={() => handleStageFile(u.file)} style={styles.stageBtnWrap}>
                     <Text style={styles.stageBtnText}>Stage</Text>
                   </TouchableOpacity>
                 </View>
@@ -843,10 +847,15 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: "rgba(0,0,0,0.05)",
     },
-    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 14, color: theme.textPrimary, marginRight: 8, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    changeItemStaged: { paddingLeft: 24 },
+    stagedPathWrap: { flex: 1, minWidth: 0, flexShrink: 1 },
+    changePathTouchable: { flex: 1, minWidth: 0 },
+    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 14, color: theme.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    changeFileLabelStaged: { fontFamily: undefined },
+    statusBadgeWrap: { flexShrink: 0, marginLeft: 8, justifyContent: "center" },
     statusLabel: { fontSize: 13, color: theme.accent, fontWeight: "600" },
-    statusLabelRight: { flexShrink: 0 },
-    stageAllBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)" },
+    stageBtnWrap: { flexShrink: 0, marginLeft: 8 },
+    stageAllBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)", marginLeft: 8 },
     stageAllBtnText: { color: theme.accent, fontSize: 13, fontWeight: "600" },
     stageBtnText: { color: theme.accent, fontSize: 14, fontWeight: "600" },
 

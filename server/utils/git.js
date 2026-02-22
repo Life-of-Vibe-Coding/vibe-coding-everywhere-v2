@@ -130,7 +130,8 @@ export function getGitStatus(cwd) {
     for (const line of lines) {
         if (line.length < 4) continue;
         const xy = line.substring(0, 2);
-        const file = line.substring(3).replace(/"/g, "");
+        // Use substring(2): XY is 2 chars; path follows. substring(3) skips first path char when format is "M path" (no double space).
+        const file = line.substring(2).replace(/"/g, "").trim();
 
         const x = xy[0];
         const y = xy[1];
@@ -140,16 +141,9 @@ export function getGitStatus(cwd) {
             continue;
         }
         if (x !== " " && x !== "?") {
-            // DEBUG staged path: trace first char to find root cause
-            if (file && process.env.DEBUG_GIT_STATUS) {
-                console.log("[DEBUG git] staged raw line:", JSON.stringify(line), "| parsed file:", JSON.stringify(file), "| firstChar:", file[0], "code:", file.charCodeAt(0));
-            }
             staged.push({ file, status: x, isDirectory: isDir(file) });
         }
         if (y !== " " && y !== "?") {
-            if (file && process.env.DEBUG_GIT_STATUS) {
-                console.log("[DEBUG git] unstaged raw line:", JSON.stringify(line), "| parsed file:", JSON.stringify(file), "| firstChar:", file[0], "code:", file.charCodeAt(0));
-            }
             unstaged.push({ file, status: y, isDirectory: isDir(file) });
         }
     }

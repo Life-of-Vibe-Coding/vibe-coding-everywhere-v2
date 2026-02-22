@@ -10,11 +10,15 @@ import {
   TextInput,
   Keyboard,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
 import { UrlChoiceModal } from "./UrlChoiceModal";
+
+const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
 
 function normalizeUrl(input: string): string {
   const trimmed = input.trim();
@@ -80,12 +84,20 @@ export function PreviewWebViewModal({
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const [urlChoiceVisible, setUrlChoiceVisible] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const pendingUrlChoice = useRef<{ normalized: string; thenApply: (u: string) => void } | null>(null);
   const initializedRef = useRef(false);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLandscape = windowWidth > windowHeight;
+
+  // Auto full screen only when phone is rotated to landscape (90°); portrait shows toolbar
+  useEffect(() => {
+    if (!visible) return;
+    setIsFullScreen(isLandscape);
+  }, [visible, isLandscape]);
 
   const currentTab = tabs[activeIndex] ?? null;
   const currentUrl = currentTab?.url ?? "";
-  const loadKey = currentTab?.loadKey ?? 0;
 
   const applyUrl = (u: string) => {
     setTabs((prev) => {
@@ -136,48 +148,77 @@ export function PreviewWebViewModal({
   useEffect(() => {
     if (!visible) {
       initializedRef.current = false;
+      setIsFullScreen(false);
       return;
     }
     if (!initializedRef.current) {
       initializedRef.current = true;
       const initialUrl = (url?.trim() ?? "") || "";
       const normalized = initialUrl ? normalizeUrl(initialUrl) : "";
-      const willShowChoice = !!normalized && !!resolvePreviewUrl && isLocalhostUrl(normalized);
 
-      if (willShowChoice) {
-        setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
-        setActiveIndex(0);
-        setUrlInputValue(normalized);
-        setError(null);
-        setLoading(false);
-        pendingUrlChoice.current = {
-          normalized,
-          thenApply: (resolved: string) => {
-            setTabs((prev) => {
-              const next = [...prev];
-              if (next[0]) next[0] = { ...next[0], url: resolved, loadKey: Date.now() };
-              return next;
-            });
-            setUrlInputValue(resolved);
-            setLoading(true);
-          },
-        };
-        setUrlChoiceVisible(true);
-      } else if (normalized) {
-        setTabs([{ id: genTabId(), url: normalized, loadKey: Date.now() }]);
-        setActiveIndex(0);
-        setUrlInputValue(normalized);
-        setError(null);
-        setLoading(true);
-      } else {
-        setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
-        setActiveIndex(0);
-        setUrlInputValue("");
-        setError(null);
-        setLoading(false);
-      }
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem(PREVIEW_TABS_KEY);
+          const stored = raw ? (JSON.parse(raw) as { tabs: { id: string; url: string }[]; activeIndex: number }) : null;
+          if (stored?.tabs?.length) {
+            const restored: TabState[] = stored.tabs.map((t) => ({ ...t, loadKey: t.url ? Date.now() : 0 }));
+            const idx = Math.min(Math.max(0, stored.activeIndex ?? 0), restored.length - 1);
+            setTabs(restored);
+            setActiveIndex(idx);
+            setUrlInputValue(restored[idx]?.url ?? "");
+            setError(null);
+            setLoading(!!restored[idx]?.url);
+            return;
+          }
+        } catch {
+          // Fall through to url-based init
+        }
+
+        const willShowChoice = !!normalized && !!resolvePreviewUrl && isLocalhostUrl(normalized);
+        if (willShowChoice) {
+          setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
+          setActiveIndex(0);
+          setUrlInputValue(normalized);
+          setError(null);
+          setLoading(false);
+          pendingUrlChoice.current = {
+            normalized,
+            thenApply: (resolved: string) => {
+              setTabs((prev) => {
+                const next = [...prev];
+                if (next[0]) next[0] = { ...next[0], url: resolved, loadKey: Date.now() };
+                return next;
+              });
+              setUrlInputValue(resolved);
+              setLoading(true);
+            },
+          };
+          setUrlChoiceVisible(true);
+        } else if (normalized) {
+          setTabs([{ id: genTabId(), url: normalized, loadKey: Date.now() }]);
+          setActiveIndex(0);
+          setUrlInputValue(normalized);
+          setError(null);
+          setLoading(true);
+        } else {
+          setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
+          setActiveIndex(0);
+          setUrlInputValue("");
+          setError(null);
+          setLoading(false);
+        }
+      })();
     }
   }, [visible, url, resolvePreviewUrl]);
+
+  useEffect(() => {
+    if (!visible || tabs.length === 0) return;
+    const payload = {
+      tabs: tabs.map((t) => ({ id: t.id, url: t.url })),
+      activeIndex,
+    };
+    AsyncStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(payload)).catch(() => {});
+  }, [visible, tabs, activeIndex]);
 
   const handleGo = () => {
     Keyboard.dismiss();
@@ -188,6 +229,16 @@ export function PreviewWebViewModal({
   };
 
   const handleReload = () => {
+    Keyboard.dismiss();
+    const raw = urlInputValue.trim();
+    if (raw) {
+      const normalized = normalizeUrl(raw);
+      const currentClean = stripPreviewParam(resolvedUrl) || resolvedUrl;
+      if (normalized !== currentClean) {
+        promptLocalhostToVpn(normalized, applyUrl);
+        return;
+      }
+    }
     if (!resolvedUrl) return;
     setError(null);
     setLoading(true);
@@ -199,16 +250,16 @@ export function PreviewWebViewModal({
     });
   };
 
-  const handleNavigationStateChange = (navState: { url?: string }) => {
+  const handleNavigationStateChange = (navState: { url?: string }, tabIndex: number) => {
     if (navState.url) {
       const clean = stripPreviewParam(navState.url);
       setTabs((prev) => {
         const next = [...prev];
-        const tab = next[activeIndex];
-        if (tab) next[activeIndex] = { ...tab, url: clean };
+        const tab = next[tabIndex];
+        if (tab) next[tabIndex] = { ...tab, url: clean };
         return next;
       });
-      setUrlInputValue(clean);
+      if (tabIndex === activeIndex) setUrlInputValue(clean);
     }
   };
 
@@ -240,13 +291,6 @@ export function PreviewWebViewModal({
   if (!visible) return null;
 
   const resolvedUrl = currentUrl || "";
-  /** Base URL without our param; used for stable key so we don't remount and reload in a loop. */
-  const baseUrl = stripPreviewParam(resolvedUrl) || resolvedUrl;
-  /** Cache-busting URI so we always request from network; if server is down we get onError instead of cached page. */
-  const loadUri =
-    resolvedUrl && loadKey
-      ? baseUrl + (baseUrl.includes("?") ? "&" : "?") + "_preview=" + loadKey
-      : "";
 
   return (
     <Modal
@@ -258,94 +302,102 @@ export function PreviewWebViewModal({
       supportedOrientations={["portrait", "portrait-upside-down", "landscape", "landscape-left", "landscape-right"]}
     >
       <View style={styles.safe}>
-        {/* Chrome-like toolbar */}
-        <View style={[styles.toolbar, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={onClose}
-            activeOpacity={0.8}
-            accessibilityLabel="Close preview"
-          >
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-          <View style={styles.urlBarWrap}>
-            <TextInput
-              style={styles.urlInput}
-              value={urlInputValue}
-              onChangeText={setUrlInputValue}
-              placeholder="搜索或输入网址"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              returnKeyType="go"
-              onSubmitEditing={handleGo}
-              selectTextOnFocus
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.iconBtn, loading && !!resolvedUrl && styles.iconBtnDisabled]}
-            onPress={handleReload}
-            disabled={loading && !!resolvedUrl}
-            activeOpacity={0.8}
-            accessibilityLabel="Reload"
-          >
-            {loading && resolvedUrl ? (
-              <ActivityIndicator size="small" color={theme.accent} />
-            ) : (
-              <Text style={styles.iconBtnText}>↻</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Tab bar */}
-        <View style={styles.tabBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabBarContent}
-            style={styles.tabBarScroll}
-          >
-            {tabs.map((tab, i) => {
-              const isActive = i === activeIndex;
-              let label = "New tab";
-              if (tab.url) {
-                try {
-                  label = new URL(stripPreviewParam(tab.url) || tab.url).hostname || "New tab";
-                } catch {
-                  label = "New tab";
-                }
-              }
-              return (
-                <TouchableOpacity
-                  key={tab.id}
-                  style={[styles.tab, isActive && styles.tabActive]}
-                  onPress={() => selectTab(i)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
-                    {label}
-                  </Text>
-                  {tabs.length > 1 && (
+        {/* Chrome-like toolbar - hidden in full screen */}
+        {!isFullScreen && (
+          <>
+            {/* Row 1: Close button | Tabs | Add tab */}
+            <View style={[styles.toolbar, { paddingTop: insets.top + 8 }]}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={onClose}
+                activeOpacity={0.8}
+                accessibilityLabel="Close preview"
+              >
+                <Text style={styles.closeText}>✕</Text>
+              </TouchableOpacity>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tabBarContent}
+                style={styles.tabBarScroll}
+              >
+                {tabs.map((tab, i) => {
+                  const isActive = i === activeIndex;
+                  const label = `tab ${i + 1}`;
+                  return (
                     <TouchableOpacity
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={styles.tabClose}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        closeTab(i);
-                      }}
+                      key={tab.id}
+                      style={[styles.tab, isActive && styles.tabActive]}
+                      onPress={() => selectTab(i)}
+                      activeOpacity={0.8}
                     >
-                      <Text style={[styles.tabCloseText, isActive && styles.tabCloseTextActive]}>×</Text>
+                      <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
+                        {label}
+                      </Text>
+                      {tabs.length > 1 && (
+                        <TouchableOpacity
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={styles.tabClose}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            closeTab(i);
+                          }}
+                        >
+                          <Text style={[styles.tabCloseText, isActive && styles.tabCloseTextActive]}>×</Text>
+                        </TouchableOpacity>
+                      )}
                     </TouchableOpacity>
-                  )}
+                  );
+                })}
+              </ScrollView>
+              <TouchableOpacity style={styles.addTabBtn} onPress={addTab} activeOpacity={0.8}>
+                <Text style={styles.addTabText}>+</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Row 2: Address bar | Refresh | Fullscreen */}
+            <View style={styles.tabBar}>
+              <View style={styles.urlBarWrap}>
+                <TextInput
+                  style={styles.urlInput}
+                  value={urlInputValue}
+                  onChangeText={setUrlInputValue}
+                  placeholder="搜索或输入网址"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  returnKeyType="go"
+                  onSubmitEditing={handleGo}
+                  selectTextOnFocus
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.iconBtn, loading && !!resolvedUrl && styles.iconBtnDisabled]}
+                onPress={handleReload}
+                disabled={loading && !!resolvedUrl}
+                activeOpacity={0.8}
+                accessibilityLabel="Reload"
+              >
+                {loading && resolvedUrl ? (
+                  <ActivityIndicator size="small" color={theme.accent} />
+                ) : (
+                  <Text style={styles.iconBtnText}>↵</Text>
+                )}
+              </TouchableOpacity>
+              {!!resolvedUrl && (
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => setIsFullScreen(true)}
+                  activeOpacity={0.8}
+                  accessibilityLabel="Full screen"
+                >
+                  <Text style={styles.iconBtnText}>⛶</Text>
                 </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          <TouchableOpacity style={styles.addTabBtn} onPress={addTab} activeOpacity={0.8}>
-            <Text style={styles.addTabText}>+</Text>
-          </TouchableOpacity>
-        </View>
+              )}
+            </View>
+          </>
+        )}
 
         {!resolvedUrl ? (
           <View style={styles.placeholder}>
@@ -353,6 +405,67 @@ export function PreviewWebViewModal({
           </View>
         ) : (
           <View style={styles.webContainer}>
+            {/* Render one WebView per tab so switching tabs does not remount/reload. */}
+            {tabs.map((tab, i) => {
+              const tabUrl = tab.url ?? "";
+              const tabBaseUrl = tabUrl ? stripPreviewParam(tabUrl) : "";
+              const tabLoadUri =
+                tabUrl && tab.loadKey
+                  ? tabBaseUrl + (tabBaseUrl.includes("?") ? "&" : "?") + "_preview=" + tab.loadKey
+                  : "";
+              const isActive = i === activeIndex;
+              if (!tabLoadUri) return null;
+              return (
+                <View
+                  key={tab.id}
+                  style={[
+                    styles.webviewWrapper,
+                    !isActive && styles.webviewWrapperHidden,
+                  ]}
+                  pointerEvents={isActive ? "auto" : "none"}
+                >
+                  <WebView
+                    ref={isActive ? webViewRef : undefined}
+                    key={tab.loadKey ? `${tab.loadKey}-${tabBaseUrl}` : tabUrl}
+                    source={{ uri: tabLoadUri }}
+                    style={styles.webview}
+                    onLoadStart={() => {
+                      if (i === activeIndex) {
+                        setLoading(true);
+                        setError(null);
+                      }
+                    }}
+                    onLoadEnd={() => {
+                      if (i === activeIndex) setLoading(false);
+                    }}
+                    onError={(e) => {
+                      if (i === activeIndex) {
+                        setLoading(false);
+                        const desc = e.nativeEvent?.description ?? "加载失败";
+                        setError(desc);
+                      }
+                    }}
+                    onHttpError={(e) => {
+                      if (i === activeIndex) {
+                        setLoading(false);
+                        const status = e.nativeEvent?.statusCode;
+                        setError(status ? `HTTP ${status}` : "加载失败");
+                      }
+                    }}
+                    onNavigationStateChange={(navState) => {
+                      if (navState.url) handleNavigationStateChange(navState, i);
+                    }}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    startInLoadingState
+                    scalesPageToFit
+                    mixedContentMode="compatibility"
+                    cacheEnabled={false}
+                    {...(Platform.OS === "android" ? { cacheMode: "LOAD_NO_CACHE" as const } : {})}
+                  />
+                </View>
+              );
+            })}
             {loading && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={theme.accent} />
@@ -367,40 +480,20 @@ export function PreviewWebViewModal({
                   <Text style={styles.retryBtnText}>重试</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <WebView
-                ref={webViewRef}
-                key={loadKey ? `${loadKey}-${baseUrl}` : resolvedUrl}
-                source={{ uri: loadUri }}
-                style={styles.webview}
-                onLoadStart={() => {
-                  setLoading(true);
-                  setError(null);
-                }}
-                onLoadEnd={() => {
-                  setLoading(false);
-                }}
-                onError={(e) => {
-                  setLoading(false);
-                  const desc = e.nativeEvent?.description ?? "加载失败";
-                  setError(desc);
-                }}
-                onHttpError={(e) => {
-                  setLoading(false);
-                  const status = e.nativeEvent?.statusCode;
-                  setError(status ? `HTTP ${status}` : "加载失败");
-                }}
-                onNavigationStateChange={handleNavigationStateChange}
-                javaScriptEnabled
-                domStorageEnabled
-                startInLoadingState
-                scalesPageToFit
-                mixedContentMode="compatibility"
-                cacheEnabled={false}
-                {...(Platform.OS === "android" ? { cacheMode: "LOAD_NO_CACHE" as const } : {})}
-              />
-            )}
+            ) : null}
           </View>
+        )}
+
+        {/* Floating exit fullscreen button (in landscape this closes the preview since full screen is locked) */}
+        {isFullScreen && (
+          <TouchableOpacity
+            style={[styles.fullScreenExit, { top: insets.top + 8 }]}
+            onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
+            activeOpacity={0.8}
+            accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}
+          >
+            <Text style={styles.fullScreenExitText}>✕</Text>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -503,22 +596,23 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 6,
-    paddingLeft: 12,
+    paddingLeft: 10,
     paddingRight: 8,
     borderRadius: 8,
     backgroundColor: theme.borderColor,
-    maxWidth: 120,
+    maxWidth: 85,
   },
   tabActive: {
-    backgroundColor: theme.accent,
+    // no theme color - same neutral as inactive
   },
   tabText: {
     fontSize: 13,
     color: theme.textPrimary,
     flex: 1,
+    textAlign: "center",
   },
   tabTextActive: {
-    color: "#fff",
+    color: theme.textPrimary,
     fontWeight: "600",
   },
   tabClose: {
@@ -531,7 +625,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     lineHeight: 16,
   },
   tabCloseTextActive: {
-    color: "rgba(255,255,255,0.9)",
+    color: theme.textPrimary,
   },
   addTabBtn: {
     width: 32,
@@ -563,6 +657,13 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   webContainer: {
     flex: 1,
     position: "relative",
+  },
+  webviewWrapper: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  webviewWrapperHidden: {
+    opacity: 0,
+    zIndex: -1,
   },
   webview: {
     flex: 1,
@@ -607,6 +708,22 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     fontSize: 15,
     color: "#fff",
     fontWeight: "600",
+  },
+  fullScreenExit: {
+    position: "absolute",
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  fullScreenExitText: {
+    fontSize: 20,
+    color: "#fff",
+    fontWeight: "400",
   },
   });
 }

@@ -774,7 +774,7 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     menuButtonOverlay: {
       position: "absolute",
-      top: -8,
+      top: 8,
       left: 0,
       right: 0,
       height: 44,
@@ -786,7 +786,7 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     chatShell: {
       flex: 1,
-      marginTop: 22,
+      marginTop: 58,
       minHeight: 0,
     },
     chatArea: {

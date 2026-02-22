@@ -213,7 +213,7 @@ export function InputPanel({
               disabled={!onModelChange}
               accessibilityLabel="Select model"
             >
-              <Text style={styles.modelName} numberOfLines={1}>
+              <Text style={styles.modelName} numberOfLines={1} ellipsizeMode="tail">
                 {currentModelLabel}
               </Text>
               <ChevronDownIcon size={14} color={theme.textMuted} />
@@ -464,6 +464,7 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     borderColor: theme.borderColor,
   },
   modelSelector: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -474,9 +475,11 @@ function createInputPanelStyles(theme: ReturnType<typeof useTheme>) {
     borderWidth: 1,
     borderColor: theme.borderColor,
     minHeight: MIN_TOUCH,
+    minWidth: 0,
     justifyContent: "center",
   },
   modelName: {
+    flexShrink: 1,
     fontSize: 14,
     color: theme.textMuted,
     fontWeight: "500",

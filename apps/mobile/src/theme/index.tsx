@@ -255,7 +255,7 @@ function getNeutrals(mode: ColorMode, provider: Provider) {
     };
   }
   return {
-    background: provider === "gemini" || provider === "codex" || provider === "pi" ? "#ffffff" : "#f8f7f5",
+    background: "#ffffff",
     surface: "#ffffff",
     surfaceAlt: "#f1f2f6",
     surfaceMuted: "#e7e9ef",
