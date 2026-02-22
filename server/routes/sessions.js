@@ -161,7 +161,7 @@ export function registerSessionsRoutes(app) {
                     const id = sessionId || fileUuid;
                     if (seenIds.has(id)) continue;
                     seenIds.add(id);
-                    const activeSession = getSession(id) || getSession(fileUuid);
+                    const activeSession = resolveSession(id) || resolveSession(fileUuid);
                     const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
                     const running = activeSession?.processManager?.processRunning?.() ?? false;
                     discovered.push({

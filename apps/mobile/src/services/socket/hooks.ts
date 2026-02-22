@@ -61,7 +61,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   const [liveSessionMessages, setLiveSessionMessages] = useState<Message[]>([]);
   const [viewingLiveSession, setViewingLiveSession] = useState(true);
 
-  const [claudeRunning, setClaudeRunning] = useState(false);
+  const [agentRunning, setAgentRunning] = useState(false);
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [typingIndicator, setTypingIndicator] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     messages: Message[];
     outputBuffer: string;
     currentAssistantContent: string;
-    claudeRunning: boolean;
+    agentRunning: boolean;
     typingIndicator: boolean;
     waitingForUserInput: boolean;
     currentActivity: string | null;
@@ -111,7 +111,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         messages: [],
         outputBuffer: "",
         currentAssistantContent: "",
-        claudeRunning: false,
+        agentRunning: false,
         typingIndicator: false,
         waitingForUserInput: false,
         currentActivity: null,
@@ -140,7 +140,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     const s = sessionStatesRef.current.get(sid);
     if (s) {
       setLiveSessionMessages(s.messages);
-      setClaudeRunning(s.claudeRunning);
+      setAgentRunning(s.agentRunning);
       setTypingIndicator(s.typingIndicator);
       setWaitingForUserInput(s.waitingForUserInput);
       setCurrentActivity(s.currentActivity);
@@ -151,7 +151,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       liveMessagesRef.current = s.messages;
     } else {
       setLiveSessionMessages([]);
-      setClaudeRunning(false);
+      setAgentRunning(false);
       setTypingIndicator(false);
       setWaitingForUserInput(false);
       setCurrentActivity(null);
@@ -513,12 +513,12 @@ export function useSocket(options: UseSocketOptions = {}) {
           const parsed = JSON.parse(clean);
 
           if (parsed.type === "session-started" || parsed.type === "claude-started") {
-            state.claudeRunning = true;
+            state.agentRunning = true;
             state.typingIndicator = true;
             state.waitingForUserInput = false;
             state.lastSessionTerminated = false;
             if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-              setClaudeRunning(true);
+              setAgentRunning(true);
               setTypingIndicator(true);
               setWaitingForUserInput(false);
               setLastSessionTerminated(false);
@@ -574,7 +574,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         }
       } catch (e) {}
 
-      state.claudeRunning = false;
+      state.agentRunning = false;
       state.typingIndicator = false;
       state.currentActivity = null;
       state.waitingForUserInput = false;
@@ -582,7 +582,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       if (!state.hasCompletedFirstRun && exitCode === 0) state.hasCompletedFirstRun = true;
 
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-        setClaudeRunning(false);
+        setAgentRunning(false);
         setTypingIndicator(false);
         setCurrentActivity(null);
         setWaitingForUserInput(false);
@@ -883,7 +883,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   return {
     connected,
     messages,
-    claudeRunning,
+    agentRunning,
     waitingForUserInput,
     typingIndicator,
     currentActivity,

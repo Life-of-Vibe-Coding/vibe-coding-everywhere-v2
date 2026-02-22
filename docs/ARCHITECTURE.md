@@ -186,7 +186,7 @@ Single source of truth in `useSocket` hook:
 ```typescript
 // Key state pieces
 const [messages, setMessages] = useState<Message[]>([]);
-const [claudeRunning, setClaudeRunning] = useState(false);
+const [agentRunning, setAgentRunning] = useState(false);
 const [terminals, setTerminals] = useState<TerminalState[]>([]);
 const [pendingRender, setPendingRender] = useState<PendingRender | null>(null);
 ```

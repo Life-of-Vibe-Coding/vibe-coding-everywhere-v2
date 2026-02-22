@@ -36,7 +36,7 @@ export type PendingCodeRef = {
 
 export interface InputPanelProps {
   connected: boolean;
-  claudeRunning: boolean;
+  agentRunning: boolean;
   waitingForUserInput: boolean;
   permissionMode: string | null;
   onPermissionModeChange: (mode: string) => void;
@@ -69,7 +69,7 @@ export interface InputPanelProps {
 
 export function InputPanel({
   connected,
-  claudeRunning,
+  agentRunning,
   waitingForUserInput,
   permissionMode,
   onPermissionModeChange,
@@ -95,22 +95,22 @@ export function InputPanel({
 
   const currentModelLabel = modelOptions.find((m) => m.value === model)?.label ?? model;
 
-  const disabled = !waitingForUserInput && claudeRunning;
+  const disabled = !waitingForUserInput && agentRunning;
   const placeholder = waitingForUserInput ? INPUT_PLACEHOLDER : DEFAULT_PLACEHOLDER;
 
   const handleSubmit = useCallback(() => {
     const trimmed = prompt.trim();
     if (!trimmed && !pendingCodeRefs.length) return;
     Keyboard.dismiss();
-    if (waitingForUserInput && claudeRunning) {
+    if (waitingForUserInput && agentRunning) {
       onSubmit(trimmed, permissionMode ?? undefined);
       setPrompt("");
       return;
     }
-    if (claudeRunning) return;
+    if (agentRunning) return;
     onSubmit(trimmed || "See code references below.", permissionMode ?? undefined);
     setPrompt("");
-  }, [prompt, pendingCodeRefs.length, waitingForUserInput, claudeRunning, permissionMode, onSubmit]);
+  }, [prompt, pendingCodeRefs.length, waitingForUserInput, agentRunning, permissionMode, onSubmit]);
 
   const styles = useMemo(() => createInputPanelStyles(theme), [theme]);
 
@@ -236,7 +236,7 @@ export function InputPanel({
                 <GlobeIcon size={20} color={theme.textPrimary} />
               </TouchableOpacity>
             )}
-            {onTerminateAgent && claudeRunning && (
+            {onTerminateAgent && agentRunning && (
               <TouchableOpacity
                 style={styles.btnTerminateAgent}
                 onPress={onTerminateAgent}
@@ -246,7 +246,7 @@ export function InputPanel({
                 <StopCircleIcon size={16} color={theme.mode === "dark" ? "#f87171" : "#c0392b"} />
               </TouchableOpacity>
             )}
-            {!(claudeRunning && !waitingForUserInput) && (
+            {!(agentRunning && !waitingForUserInput) && (
               <TouchableOpacity
                 style={[
                   styles.btnSend,

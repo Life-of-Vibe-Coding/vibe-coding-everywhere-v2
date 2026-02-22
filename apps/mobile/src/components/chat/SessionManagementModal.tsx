@@ -34,6 +34,10 @@ export interface LoadedSession {
   messages: Message[];
   provider?: string | null;
   model?: string | null;
+  /** Whether session is running on server (enables SSE connect for live stream). */
+  running?: boolean;
+  /** Whether session has SSE subscribers. */
+  sseConnected?: boolean;
 }
 
 /** Get relative path from root to fullPath. */
@@ -159,6 +163,25 @@ export function SessionManagementModal({
     if (visible) void refresh();
   }, [visible, refresh]);
 
+  // Poll sessions while modal is open so running status stays up to date
+  useEffect(() => {
+    if (!visible || !serverBaseUrl) return;
+    const interval = setInterval(() => {
+      fetch(`${serverBaseUrl}/api/sessions`)
+        .then((res) => res.json())
+        .then((data: { sessions?: ApiSession[] }) => {
+          const next = data.sessions ?? [];
+          setSessions((prev) => {
+            if (prev.length !== next.length) return next;
+            const changed = prev.some((p, i) => p.running !== next[i]?.running || p.sseConnected !== next[i]?.sseConnected);
+            return changed ? next : prev;
+          });
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [visible, serverBaseUrl]);
+
   const handleSelect = useCallback(
     (session: ApiSession) => {
       triggerHaptic("selection");
@@ -185,6 +208,8 @@ export function SessionManagementModal({
             messages,
             provider: data.provider ?? session.provider,
             model: data.model ?? session.model,
+            running: session.running,
+            sseConnected: session.sseConnected,
           });
           onClose();
         })
@@ -343,7 +368,12 @@ export function SessionManagementModal({
                         </Text>
                         <Text style={styles.sessionId}>{item.id}</Text>
                         <Text style={styles.sessionMeta}>
-                          {item.model ? item.model : ""}
+                          {item.running ? (
+                            <Text style={[styles.sessionMeta, { color: theme.colors.accent, fontWeight: "600" }]}>
+                              Running{item.sseConnected ? " · streaming" : ""} ·{" "}
+                            </Text>
+                          ) : null}
+                          {item.model ?? ""}
                           {item.model ? " · " : ""}
                           {formatDate(item.mtime)}
                         </Text>

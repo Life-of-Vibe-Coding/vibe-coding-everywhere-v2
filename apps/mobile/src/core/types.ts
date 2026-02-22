@@ -121,8 +121,8 @@ export interface IChatState {
   messages: Message[];
   /** Whether typing indicator should show */
   typingIndicator: boolean;
-  /** Whether Claude is currently running */
-  claudeRunning: boolean;
+  /** Whether the AI agent is currently running */
+  agentRunning: boolean;
   /** Whether waiting for user input (permission prompt) */
   waitingForUserInput: boolean;
 }

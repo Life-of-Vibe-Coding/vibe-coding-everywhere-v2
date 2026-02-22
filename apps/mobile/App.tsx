@@ -225,7 +225,7 @@ export default function App() {
   const {
     connected,
     messages,
-    claudeRunning,
+    agentRunning,
     waitingForUserInput,
     typingIndicator,
     currentActivity,
@@ -241,6 +241,7 @@ export default function App() {
     resetSession,
     startNewSession,
     loadSession,
+    resumeLiveSession,
     switchToLiveSession,
     viewingLiveSession,
     liveSessionMessages,
@@ -281,15 +282,15 @@ export default function App() {
   );
 
   // Agent notifications: when agent finishes or needs approval
-  const prevClaudeRunningRef = useRef<boolean>(false);
+  const prevAgentRunningRef = useRef<boolean>(false);
   const prevApprovalNeededRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (prevClaudeRunningRef.current && !claudeRunning) {
+    if (prevAgentRunningRef.current && !agentRunning) {
       void notifyAgentFinished();
     }
-    prevClaudeRunningRef.current = claudeRunning;
-  }, [claudeRunning]);
+    prevAgentRunningRef.current = agentRunning;
+  }, [agentRunning]);
 
   useEffect(() => {
     const approvalNeeded =
@@ -563,16 +564,16 @@ export default function App() {
                         <View
                           style={[
                             styles.sessionStatusDot,
-                            { backgroundColor: claudeRunning || typingIndicator ? theme.colors.accent : theme.colors.textMuted },
+                            { backgroundColor: agentRunning || typingIndicator ? theme.colors.accent : theme.colors.textMuted },
                           ]}
                         />
                         <Text
                           style={[styles.sessionStatusText, { color: theme.colors.textMuted }]}
                           accessibilityLabel={
-                            (viewingLiveSession && (claudeRunning || typingIndicator)) ? "Session running" : "Session idle"
+                            (viewingLiveSession && (agentRunning || typingIndicator)) ? "Session running" : "Session idle"
                           }
                         >
-                          {(viewingLiveSession && (claudeRunning || typingIndicator)) ? "Running" : "Idle"}
+                          {(viewingLiveSession && (agentRunning || typingIndicator)) ? "Running" : "Idle"}
                         </Text>
                       </View>
                       <Text
@@ -694,7 +695,7 @@ export default function App() {
             <View style={styles.inputBar}>
               <InputPanel
                 connected={connected}
-                claudeRunning={claudeRunning}
+                agentRunning={agentRunning}
                 waitingForUserInput={waitingForUserInput}
                 permissionMode={(() => {
                   const b = getBackendPermissionMode(permissionModeUI, provider);
@@ -781,18 +782,22 @@ export default function App() {
                 provider: s.provider ?? undefined,
                 model: s.model ?? undefined,
               };
-              loadSession(s.messages);
               setCurrentSessionId(s.id);
               if (s.provider) setProvider(s.provider as BrandProvider);
               if (s.model) setModel(s.model);
               if (s.provider && s.model) sessionStore.setLastUsedProviderModel(s.provider, s.model);
+              if (s.running || s.sseConnected) {
+                resumeLiveSession(s.id, s.messages);
+              } else {
+                loadSession(s.messages);
+              }
             }}
             onNewSession={() => {
               setCurrentSessionId(null);
               startNewSession();
             }}
             showActiveChat={!viewingLiveSession && liveSessionMessages.length > 0}
-            sessionRunning={claudeRunning || typingIndicator}
+            sessionRunning={agentRunning || typingIndicator}
             onSelectActiveChat={() => {
               switchToLiveSession();
               setCurrentSessionId(null);
