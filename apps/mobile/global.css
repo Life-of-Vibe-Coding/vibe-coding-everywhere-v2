@@ -49,6 +49,7 @@
       --color-background-900: 39 38 37;
       --color-background-950: 18 18 18;
       --color-background-muted: 247 248 247;
+      --color-background-dark: 0 0 0;
       /* App design-system tokens (light) */
       --color-surface: 255 255 255;
       --color-surface-alt: 241 245 249;
@@ -102,6 +103,7 @@
       --color-background-900: 246 246 246;
       --color-background-950: 255 255 255;
       --color-background-muted: 51 51 51;
+      --color-background-dark: 0 0 0;
       /* App design-system tokens (dark) */
       --color-surface: 18 20 28;
       --color-surface-alt: 27 30 41;

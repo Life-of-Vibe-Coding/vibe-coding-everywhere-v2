@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useMemo } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { StyleSheet, Animated } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../../theme/index";
-import { Typography } from "../../design-system";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
 
 interface TypingIndicatorProps {
   visible: boolean;
@@ -128,10 +129,10 @@ export function TypingIndicator({ visible, provider = "pi", activity }: TypingIn
   const displayActivity = activity && activity.trim() ? stripActivityForDisplay(activity) : null;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconCell}>
+    <Box style={styles.container} className="flex-row items-center gap-4 py-2.5">
+      <Box style={styles.iconCell}>
         <Animated.View style={[styles.iconWrap, { transform: [{ rotate: iconRotate }] }]}>
-          <Icon size={ICON_SIZE} />
+          <Icon size={ICON_SIZE} color={theme.colors.accent} />
         </Animated.View>
         <Animated.View style={[styles.ringOverlay, { transform: [{ rotate: ringRotate }] }]}>
           <Svg width={WRAP_SIZE} height={WRAP_SIZE} viewBox={`0 0 ${WRAP_SIZE} ${WRAP_SIZE}`}>
@@ -144,18 +145,12 @@ export function TypingIndicator({ visible, provider = "pi", activity }: TypingIn
             />
           </Svg>
         </Animated.View>
-      </View>
+      </Box>
       {displayActivity ? (
-        <Typography
-          variant="caption"
-          tone="secondary"
-          weight="medium"
-          numberOfLines={2}
-          style={styles.activityText}
-        >
+        <Text size="xs" bold numberOfLines={2} className="flex-1 text-typography-500">
           {displayActivity}
-        </Typography>
+        </Text>
       ) : null}
-    </View>
+    </Box>
   );
 }

@@ -807,6 +807,49 @@ export function PulseAnimation({
 }
 
 // ============================================================================
+// Flash Animation (opacity blink for status indicators)
+// ============================================================================
+
+interface FlashAnimationProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  minOpacity?: number;
+  duration?: number;
+}
+
+export function FlashAnimation({
+  children,
+  style,
+  minOpacity = 0.35,
+  duration = 600,
+}: FlashAnimationProps) {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: minOpacity,
+          duration: duration / 2,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: duration / 2,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [minOpacity, duration, opacity]);
+
+  return <Animated.View style={[style, { opacity }]}>{children}</Animated.View>;
+}
+
+// ============================================================================
 // Swipeable Card (Simplified - no gesture handler dependency)
 // ============================================================================
 

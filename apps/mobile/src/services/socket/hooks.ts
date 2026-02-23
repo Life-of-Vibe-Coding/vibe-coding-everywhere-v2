@@ -67,6 +67,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   const [currentActivity, setCurrentActivity] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionInitLoading, setSessionInitLoading] = useState(false);
   const [savedSessionMessages, setSavedSessionMessages] = useState<Message[]>([]);
 
   const messages = viewingLiveSession ? liveSessionMessages : savedSessionMessages;
@@ -402,6 +403,33 @@ export function useSocket(options: UseSocketOptions = {}) {
   getAndClearToolUseRef.current = getAndClearToolUse;
   addPermissionDenialRef.current = addPermissionDenial;
 
+  // ===== Init session (pi new / POST /api/sessions/new) when starting new live session ===== //
+  useEffect(() => {
+    if (!viewingLiveSession || sessionId != null) return;
+    let cancelled = false;
+    const initSession = async () => {
+      setSessionInitLoading(true);
+      try {
+        const res = await fetch(`${serverUrl}/api/sessions/new`, { method: "POST" });
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.ok && data.sessionId) {
+          const sid = data.sessionId;
+          getOrCreateSessionState(sid);
+          setSessionId(sid);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          if (__DEV__) console.warn("[sse] init session failed:", err);
+        }
+      } finally {
+        if (!cancelled) setSessionInitLoading(false);
+      }
+    };
+    void initSession();
+    return () => { cancelled = true; };
+  }, [viewingLiveSession, sessionId, serverUrl, getOrCreateSessionState]);
+
   // ===== EventSource Connection Setup (multi-SSE: do not close on session switch) ===== //
   useEffect(() => {
     if (!sessionId || !viewingLiveSession) {
@@ -625,6 +653,17 @@ export function useSocket(options: UseSocketOptions = {}) {
     }
   }, [sessionId, viewingLiveSession, syncSessionToReact]);
 
+  // Refresh status when app returns from background (fixes stale Idle/Running display)
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (nextState === "active" && viewingLiveSession && sessionId) {
+        syncSessionToReact(sessionId);
+        setConnected(eventSourceMapRef.current.has(sessionId));
+      }
+    });
+    return () => sub.remove();
+  }, [sessionId, viewingLiveSession, syncSessionToReact]);
+
   const submitPrompt = useCallback(
     async (
       prompt: string,
@@ -645,6 +684,8 @@ export function useSocket(options: UseSocketOptions = {}) {
       addMessage("user", prompt);
       setPermissionDenials(null);
       setLastSessionTerminated(false);
+      setAgentRunning(true);
+      setTypingIndicator(true);
 
       const payload = {
         prompt: fullPrompt,
@@ -662,6 +703,11 @@ export function useSocket(options: UseSocketOptions = {}) {
         }),
       };
 
+      const resetRunningState = () => {
+        setAgentRunning(false);
+        setTypingIndicator(false);
+      };
+
       try {
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
@@ -674,6 +720,8 @@ export function useSocket(options: UseSocketOptions = {}) {
           if (sessionId != null && newSessionId !== sessionId) {
             // Switching to different session - clear new session's state OR preserve past messages
             const newState = getOrCreateSessionState(newSessionId);
+            newState.agentRunning = true;
+            newState.typingIndicator = true;
             // If viewingLiveSession was false, we should have carried over savedSessionMessages
             if (!viewingLiveSession) {
               const merged = [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
@@ -692,6 +740,8 @@ export function useSocket(options: UseSocketOptions = {}) {
           } else if (sessionId == null) {
             // First prompt - migrate user message(s) to new session
             const newState = getOrCreateSessionState(newSessionId);
+            newState.agentRunning = true;
+            newState.typingIndicator = true;
             // Also include saved session messages if we were viewing a past session
             const merged = viewingLiveSession ? [...pendingMessagesForNewSessionRef.current] : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
             newState.messages = deduplicateMessageIds(merged);
@@ -699,9 +749,26 @@ export function useSocket(options: UseSocketOptions = {}) {
             setLiveSessionMessages([...newState.messages]);
           }
           setSessionId(newSessionId);
+        } else {
+          // Server error - reset running state so user isn't stuck. Use sessionId from error response if present (client can connect to stream).
+          if (data.sessionId && typeof data.sessionId === "string" && !data.sessionId.startsWith("temp-")) {
+            const newState = getOrCreateSessionState(data.sessionId);
+            newState.agentRunning = false;
+            newState.typingIndicator = false;
+            const merged = viewingLiveSession ? pendingMessagesForNewSessionRef.current : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+            newState.messages = deduplicateMessageIds(merged);
+            pendingMessagesForNewSessionRef.current = [];
+            setLiveSessionMessages([...newState.messages]);
+            setSessionId(data.sessionId);
+          }
+          resetRunningState();
+          if (__DEV__ && !data.ok) {
+            console.warn("[sse] submit prompt failed:", data?.error ?? "no sessionId in response");
+          }
         }
       } catch (err) {
         console.error("Failed to submit prompt", err);
+        resetRunningState();
       }
     },
     [addMessage, deduplicateMessageIds, getOrCreateSessionState, provider, model, serverUrl, sessionId, viewingLiveSession, savedSessionMessages]
@@ -757,6 +824,8 @@ export function useSocket(options: UseSocketOptions = {}) {
         sessionId,
       };
 
+      setAgentRunning(true);
+      setTypingIndicator(true);
       try {
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
@@ -765,7 +834,11 @@ export function useSocket(options: UseSocketOptions = {}) {
         });
         const data = await res.json();
         if (data.ok && data.sessionId) {
-          setSessionId(data.sessionId);
+          const sid = data.sessionId;
+          const s = getOrCreateSessionState(sid);
+          s.agentRunning = true;
+          s.typingIndicator = true;
+          setSessionId(sid);
         }
       } catch (err) {
         console.error("Failed to retry after permission", err);
@@ -773,7 +846,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       
       setPermissionDenials(null);
     },
-    [permissionDenials, lastRunOptions, provider, model, serverUrl, sessionId]
+    [permissionDenials, lastRunOptions, provider, model, serverUrl, sessionId, getOrCreateSessionState]
   );
 
   const dismissPermission = useCallback(() => {
@@ -887,6 +960,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     selectedSequence,
     setSelectedSequence,
     sessionId,
+    sessionInitLoading,
     lastSessionTerminated,
     submitPrompt,
     submitAskQuestionAnswer,

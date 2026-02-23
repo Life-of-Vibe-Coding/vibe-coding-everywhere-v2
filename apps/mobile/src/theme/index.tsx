@@ -36,10 +36,10 @@ export const geminiTheme = {
 } as const;
 
 export const codexTheme = {
-  accent: "#059669", // Vibrant emerald
-  accentSoft: "#ECFDF5",
-  accentMuted: "#D1FAE5",
-  accentOnDark: "#34D399",
+  accent: "#000000", // Black/white design: black accent in light mode
+  accentSoft: "#F3F4F6",
+  accentMuted: "#E5E7EB",
+  accentOnDark: "#FFFFFF", // White accent in dark mode
 } as const;
 
 export const piTheme = {
@@ -215,7 +215,44 @@ const motion = {
   },
 };
 
+const isCodexDesign = (p: Provider) => p === "codex" || p === "pi";
+
 function getNeutrals(mode: ColorMode, provider: Provider) {
+  // Codex design: black background + white text (dark) or white background + black text (light)
+  if (isCodexDesign(provider)) {
+    if (mode === "dark") {
+      return {
+        background: "#000000",
+        surface: "#0A0A0A",
+        surfaceAlt: "#141414",
+        surfaceMuted: "#1F1F1F",
+        border: "#2A2A2A",
+        textPrimary: "#FFFFFF",
+        textSecondary: "#E5E5E5",
+        textMuted: "#A3A3A3",
+        textInverse: "#000000",
+        overlay: "rgba(0,0,0,0.7)",
+        shadow: "rgba(0,0,0,0.6)",
+        skeleton: "#141414",
+        skeletonHighlight: "#1F1F1F",
+      };
+    }
+    return {
+      background: "#FFFFFF",
+      surface: "#FFFFFF",
+      surfaceAlt: "#FAFAFA",
+      surfaceMuted: "#F5F5F5",
+      border: "#E5E5E5",
+      textPrimary: "#000000",
+      textSecondary: "#404040",
+      textMuted: "#737373",
+      textInverse: "#FFFFFF",
+      overlay: "rgba(0,0,0,0.4)",
+      shadow: "rgba(0,0,0,0.08)",
+      skeleton: "#F5F5F5",
+      skeletonHighlight: "#FAFAFA",
+    };
+  }
   if (mode === "dark") {
     return {
       background: "#0A0B10", // Deeper black
@@ -256,6 +293,7 @@ function buildTheme(provider: Provider, mode: ColorMode): DesignTheme {
   const accent = mode === "dark" ? brand.accentOnDark : brand.accent;
   const accentSoft = mode === "dark" ? withAlpha(brand.accentOnDark, 0.18) : brand.accentSoft;
   const accentSubtle = withAlpha(accent, mode === "dark" ? 0.2 : 0.14);
+  const pageAccentTint = withAlpha(accent, mode === "dark" ? 0.06 : 0.05);
   const success = mode === "dark" ? "#22c55e" : "#16a34a";
   const danger = mode === "dark" ? "#f87171" : "#dc2626";
   const warning = mode === "dark" ? "#fbbf24" : "#d97706";
@@ -263,6 +301,7 @@ function buildTheme(provider: Provider, mode: ColorMode): DesignTheme {
 
   const colors = {
     ...neutral,
+    pageAccentTint,
     accent,
     accentSoft,
     accentSubtle,

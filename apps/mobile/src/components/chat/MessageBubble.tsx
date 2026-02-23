@@ -1,14 +1,8 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { View, Text, StyleSheet, Linking, Pressable, ScrollView, Platform, Dimensions, Animated } from "react-native";
+import { StyleSheet, Linking, ScrollView, Platform, Dimensions, Animated } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
-import {
-  Typography,
-  Badge,
-  spacing,
-  radii,
-  triggerHaptic,
-} from "../../design-system";
+import { spacing, radii, triggerHaptic } from "../../design-system";
 import type { Message } from "../../services/socket/hooks";
 import { stripTrailingIncompleteTag } from "../../services/providers/stream";
 import { TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
@@ -22,6 +16,11 @@ import {
   extractBashCommandOnly,
   collapseIdenticalCommandSteps,
 } from "../../utils/bashContent";
+import { EntranceAnimation } from "../../design-system";
+import { Badge, BadgeText } from "../../../components/ui/badge";
+import { Box } from "../../../components/ui/box";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -231,7 +230,8 @@ export function parseContentSegments(content: string): ContentSegment[] {
 }
 
 /** Collapsible "Thinking" / "Show reasoning" block. Default collapsed, 44px min touch target.
- * Uses accentSoft background + left accent border to distinguish from codeblocks (surfaceMuted). */
+ * Uses accentSoft background + left accent border to distinguish from codeblocks (surfaceMuted).
+ * Unfolds during generation; folds when generation finishes; stays folded until user opens it. */
 function CollapsibleThinkingBlock({
   content,
   theme,
@@ -251,16 +251,12 @@ function CollapsibleThinkingBlock({
 
   const MIN_TOUCH = 44;
   return (
-    <View
+    <Box
+      className="my-2 rounded-xl border border-l-4 overflow-hidden"
       style={{
-        marginVertical: spacing["2"],
-        borderRadius: radii.lg,
-        borderWidth: 1,
-        borderLeftWidth: 4,
         borderColor: theme.colors.border,
         borderLeftColor: theme.colors.accent,
         backgroundColor: theme.colors.accentSoft,
-        overflow: "hidden",
       }}
     >
       <Pressable
@@ -268,31 +264,24 @@ function CollapsibleThinkingBlock({
           triggerHaptic("light");
           setExpanded((e) => !e);
         }}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingVertical: spacing["3"],
-          paddingHorizontal: spacing["4"],
-          minHeight: MIN_TOUCH,
-        }}
+        className="flex-row items-center justify-between py-3 px-4 min-h-11 active:opacity-80"
         accessibilityRole="button"
         accessibilityLabel={expanded ? "Hide reasoning" : "Show reasoning"}
         accessibilityState={{ expanded }}
       >
-        <Typography variant="caption" tone="muted" weight="semibold">
+        <Text size="xs" bold className="text-typography-500">
           {expanded ? "Reasoning" : "Show reasoning"}
-        </Typography>
-        <View style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}>
+        </Text>
+        <Box style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}>
           <ChevronDownIcon size={14} color={theme.colors.textMuted} strokeWidth={2} />
-        </View>
+        </Box>
       </Pressable>
       {expanded && (
-        <View style={{ paddingHorizontal: spacing["4"], paddingBottom: spacing["3"] }}>
+        <Box className="px-4 pb-3">
           {renderContent(content)}
-        </View>
+        </Box>
       )}
-    </View>
+    </Box>
   );
 }
 
@@ -323,24 +312,24 @@ function CollapsibleReadResult({
   const displayContent = expanded ? content : preview;
 
   return (
-    <View style={isLong && !expanded ? { minHeight: 80 } : undefined}>
+    <Box style={isLong && !expanded ? { minHeight: 80 } : undefined}>
       <Markdown style={markdownStyles} mergeStyle rules={markdownRules ?? undefined} onLinkPress={onLinkPress}>
         {wrapBareUrls(replaceHighlight(displayContent, theme.accent))}
       </Markdown>
       {isLong && (
         <Pressable
           onPress={() => setExpanded((e) => !e)}
-          style={{ paddingVertical: 12, paddingRight: 12, alignSelf: "flex-start", minHeight: 44, justifyContent: "center" }}
+          className="py-3 pr-3 self-start min-h-11 justify-center active:opacity-80 rounded-lg"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel={expanded ? "Show less" : `Show more, ${moreChars.toLocaleString()} more characters`}
         >
-          <Text style={{ fontSize: 13, color: theme.accent, fontWeight: "500" }}>
+          <Text size="sm" className="text-primary-500 font-medium">
             {expanded ? "Show less" : `Show more (${moreChars.toLocaleString()} more characters)`}
           </Text>
         </Pressable>
       )}
-    </View>
+    </Box>
   );
 }
 
@@ -373,6 +362,8 @@ interface MessageBubbleProps {
   onOpenUrl?: (url: string) => void;
   /** When provided, file: links (from Writing/Editing/Reading) open the file in explorer. */
   onFileSelect?: (path: string) => void;
+  /** When true, the message is still being streamed; reasoning block unfolds during generation, folds when done. */
+  isStreaming?: boolean;
 }
 
 /** Shared message bubble colors — same logic for all providers (theme-driven). */
@@ -380,7 +371,7 @@ const TERMINAL_BG = "#1e293b";
 const TERMINAL_TEXT = "rgba(255,255,255,0.9)";
 const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 
-function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect }: MessageBubbleProps) {
+function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect, isStreaming }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.colors.surfaceMuted;
   const codeTextColor = theme.accent;
@@ -484,7 +475,12 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           backgroundColor: theme.colors.surfaceAlt,
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderRadius: radii.xl,
+          borderRadius: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          elevation: 2,
         },
         bubbleSystem: {
           alignSelf: "center",
@@ -705,14 +701,14 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 
       const segments = parseTextWithUrlSegments(displayContent);
       return (
-        <View key={node.key} style={[styles.bashCodeBlockWrapper, { maxHeight }]}>
+        <Box key={node.key} style={[styles.bashCodeBlockWrapper, { maxHeight }]}>
           <ScrollView
             nestedScrollEnabled
             bounces={false}
             style={{ flexGrow: 0 }}
           >
             <ScrollView horizontal nestedScrollEnabled bounces={false} style={{ flexGrow: 0 }}>
-              <View style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
+              <Box style={[styles.bashCodeBlock, { alignSelf: "flex-start" }]}>
                 <Text style={[inheritedStyles, mdStyles.fence ?? markdownStyles.fence]} selectable>
                   {segments.map((seg, i) =>
                     seg.type === "text" ? (
@@ -728,10 +724,10 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                     )
                   )}
                 </Text>
-              </View>
+              </Box>
             </ScrollView>
           </ScrollView>
-        </View>
+        </Box>
       );
     };
     return rules as React.ComponentProps<typeof Markdown>["rules"];
@@ -773,35 +769,32 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 
   const renderActivitySegmentsContent = useCallback(
     (segments: FileActivitySegment[], keyPrefix: string = "root") => (
-      <View key={keyPrefix} style={styles.fileActivityContainer}>
+      <Box key={keyPrefix} style={styles.fileActivityContainer}>
         {segments.map((seg, index) => {
           if (seg.kind === "file") {
             const actionLabel = seg.prefix.replace(/^[📖✏️📝]\s*/, "") || "File";
+            const actionColor = getFileActivityActionStyle(seg.prefix).color;
             return (
-              <View key={`${keyPrefix}-file-activity-${index}`} style={getFileActivityRowStyle(seg.prefix)}>
+              <Box key={`${keyPrefix}-file-activity-${index}`} style={getFileActivityRowStyle(seg.prefix)}>
                 <FileActivityIcon prefix={seg.prefix} />
-                <Typography variant="label" color={getFileActivityActionStyle(seg.prefix).color}>
+                <Text size="sm" bold style={{ color: actionColor }}>
                   {actionLabel}
-                </Typography>
+                </Text>
                 <Pressable
-                  style={{ flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" }}
+                  className="flex-1 min-w-0 min-h-11 justify-center active:opacity-80 rounded-lg"
                   onPress={() => onFileSelect?.(seg.path)}
                   accessibilityRole="button"
                   accessibilityLabel={`Open file ${seg.fileName}`}
                 >
-                  <Typography
-                    variant="bodyStrong"
-                    numberOfLines={1}
-                    style={{ color: theme.colors.textPrimary }}
-                  >
+                  <Text size="md" bold numberOfLines={1} className="text-typography-900">
                     {seg.fileName}
-                  </Typography>
+                  </Text>
                 </Pressable>
-              </View>
+              </Box>
             );
           }
           if (!seg.text.trim()) {
-            return <View key={`${keyPrefix}-file-activity-space-${index}`} style={styles.fileActivityLine} />;
+            return <Box key={`${keyPrefix}-file-activity-space-${index}`} style={styles.fileActivityLine} />;
           }
           if (seg.text.length > MAX_READ_RESULT_PREVIEW) {
             return (
@@ -830,7 +823,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
             </Markdown>
           );
         })}
-      </View>
+      </Box>
     ),
     [
       FileActivityIcon,
@@ -876,28 +869,28 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
             ? Math.min(320, Math.max(80, outputLineCount * 24 + 48))
             : visibleLines * COMMAND_LINE_HEIGHT;
           nodes.push(
-            <View
+            <Box
               key={key}
               style={styles.commandTerminalContainer}
             >
-              <View style={styles.commandTerminalHeader}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Box style={styles.commandTerminalHeader}>
+                <Box className="flex-row items-center gap-2">
                   <TerminalIcon color={theme.colors.accent} size={14} strokeWidth={2} />
-                  <Typography variant="label" tone="muted" style={styles.commandTerminalTitle}>
+                  <Text size="sm" bold className="text-typography-500">
                     Commands • {cmds.length}
-                  </Typography>
-                </View>
-              </View>
+                  </Text>
+                </Box>
+              </Box>
               <ScrollView
                 style={[styles.commandTerminalScrollBase, hasOutput ? { maxHeight: scrollHeight } : { height: scrollHeight }]}
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled
               >
                 <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.commandTerminalContent} nestedScrollEnabled>
-                  <View style={{ flex: 1, minWidth: "100%", paddingRight: 40 }}>
+                  <Box className="flex-1 min-w-full pr-10">
                     {cmds.map((cmd, i) => (
-                      <View key={`line-${i}`}>
-                        <View style={styles.commandTerminalLine}>
+                      <Box key={`line-${i}`}>
+                        <Box style={styles.commandTerminalLine} className="flex-row items-center gap-1">
                           <Text style={styles.commandTerminalPrompt} selectable={false}>
                             $
                           </Text>
@@ -905,17 +898,13 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                             {cmd.command}
                           </Text>
                           {cmd.status && (
-                            <Badge
-                              variant={cmd.status === "Failed" ? "danger" : "success"}
-                              size="sm"
-                              style={{ marginLeft: 6 }}
-                            >
-                              {cmd.status}{cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}
+                            <Badge action={cmd.status === "Failed" ? "error" : "success"} variant="solid" size="sm" className="ml-1.5">
+                              <BadgeText>{cmd.status}{cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}</BadgeText>
                             </Badge>
                           )}
-                        </View>
+                        </Box>
                         {cmd.output ? (
-                          <View style={{ marginTop: 4, marginBottom: 8, paddingLeft: 12 }}>
+                          <Box className="mt-1 mb-2 pl-3">
                             <Text style={[styles.commandTerminalText, { color: "rgba(255,255,255,0.7)", opacity: 0.8, flex: 0 }]} selectable>
                               {parseTextWithUrlSegments(cmd.output).map((seg, i) =>
                                 seg.type === "text" ? (
@@ -931,14 +920,14 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                                 )
                               )}
                             </Text>
-                          </View>
+                          </Box>
                         ) : null}
-                      </View>
+                      </Box>
                     ))}
-                  </View>
+                  </Box>
                 </ScrollView>
               </ScrollView>
-            </View>
+            </Box>
           );
         };
         let cmdKey = 0;
@@ -969,7 +958,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           }
         });
         flushCommandGroup(`terminal-${cmdKey}`);
-        return <View style={styles.commandRunSection}>{nodes}</View>;
+        return <Box style={styles.commandRunSection}>{nodes}</Box>;
       } else if (hasRawFileActivityLinks) {
         return renderActivitySegmentsContent(fileActivitySegments, "root");
       } else {
@@ -1013,20 +1002,16 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
     <>
       {message.content && message.content.trim() !== "" ? (
         isTerminatedLabel ? (
-          <Typography
-            style={styles.bubbleTextTerminated}
-            tone="muted"
-            italic
-          >
+          <Text style={styles.bubbleTextTerminated} italic className="text-typography-500">
             {message.content}
-          </Typography>
+          </Text>
         ) : isUser || isSystem ? (
-          <Typography
+          <Text
             style={isSystem ? styles.bubbleTextSystem : styles.bubbleText}
-            tone={isSystem ? "muted" : "primary"}
+            className={isSystem ? "text-typography-500" : "text-typography-900"}
           >
             {message.content}
-          </Typography>
+          </Text>
         ) : (
           <>
             {contentSegments.map((seg, i) => (
@@ -1036,32 +1021,32 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                   content={seg.content}
                   theme={theme}
                   renderContent={renderRichContent}
-                  initiallyExpanded={isLatestThinkingBlock(i)}
+                  initiallyExpanded={isLatestThinkingBlock(i) && !!isStreaming}
                 />
               ) : (
-                <View key={`seg-${i}`}>
+                <Box key={`seg-${i}`}>
                   {renderRichContent(seg.content)}
-                </View>
+                </Box>
               )
             ))}
           </>
         )
       ) : !isUser && !isSystem ? (
-        <Typography tone="muted" style={styles.bubbleTextPlaceholder}>
+        <Text className="text-typography-500" style={styles.bubbleTextPlaceholder}>
           …
-        </Typography>
+        </Text>
       ) : null}
       {refs.length > 0 && (
-        <View style={[styles.refPills, message.content ? styles.refPillsWithContent : null]}>
+        <Box style={[styles.refPills, message.content ? styles.refPillsWithContent : null]} className="flex-row flex-wrap gap-2">
           {refs.map((ref, index) => (
-            <View key={`${ref.path}-${ref.startLine}-${index}`} style={styles.refPill}>
-              <Text style={styles.refPillIcon}>◇</Text>
-              <Text style={styles.refPillText} numberOfLines={1}>
+            <Box key={`${ref.path}-${ref.startLine}-${index}`} style={styles.refPill} className="flex-row items-center gap-1 py-1 px-2 rounded bg-background-muted">
+              <Text style={styles.refPillIcon} className="text-primary-500">◇</Text>
+              <Text size="xs" numberOfLines={1} className="text-typography-700">
                 {getFileName(ref.path)} ({ref.startLine === ref.endLine ? ref.startLine : `${ref.startLine}-${ref.endLine}`})
               </Text>
-            </View>
+            </Box>
           ))}
-        </View>
+        </Box>
       )}
     </>
   );
@@ -1069,19 +1054,21 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const bubbleLayoutProps = {};
 
   return (
-    <View
+    <EntranceAnimation variant="slideUp" duration={220} delay={0}>
+    <Box
       style={[
         styles.row,
         isUser && styles.rowUser,
         showProviderIcon && styles.rowAssistant,
       ]}
+      className="flex-row"
     >
       {showProviderIcon && (
-        <View style={styles.providerIconWrap}>
-          <ProviderIcon size={24} />
-        </View>
+        <Box style={styles.providerIconWrap} className="items-center justify-center pr-2">
+          <ProviderIcon size={24} color={theme.colors.accent} />
+        </Box>
       )}
-      <View
+      <Box
         style={[
           styles.bubble,
           isUser && styles.bubbleUser,
@@ -1091,8 +1078,9 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         {...bubbleLayoutProps}
       >
         {bubbleContent}
-      </View>
-    </View>
+      </Box>
+    </Box>
+    </EntranceAnimation>
   );
 }
 

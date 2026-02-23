@@ -76,6 +76,7 @@ export {
   EntranceAnimation,
   StaggeredList,
   PulseAnimation,
+  FlashAnimation,
   SwipeableCard,
 
   // Types

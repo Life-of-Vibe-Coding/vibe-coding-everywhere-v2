@@ -1,8 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   ScrollView,
@@ -13,6 +10,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { Pressable } from "../../../components/ui/pressable";
+import { Button, ButtonText } from "../../../components/ui/button";
 import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "../../utils/markdown";
 
@@ -44,7 +45,6 @@ export function SkillDetailSheet({
 }: SkillDetailSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(theme, insets), [theme, insets]);
   const markdownStyles = useMemo(
     () => ({
       body: { color: theme.textPrimary },
@@ -167,54 +167,51 @@ export function SkillDetailSheet({
     (child: SkillChild, parentPath: string, fullPath: string, depth = 0) => {
       if (child.type === "file") {
         return (
-          <View
+          <Box
             key={fullPath}
-            style={[styles.childRow, depth > 0 && { marginLeft: 16 * depth }]}
+            className="flex-row items-center py-1.5 px-2.5 rounded-lg bg-secondary-100 border border-outline-500 mb-1"
+            style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
           >
-            <Text style={styles.childFileIcon}>•</Text>
-            <Text style={styles.childName}>{child.name}</Text>
-          </View>
+            <Text className="text-xs text-text-muted w-4.5 mr-1.5">•</Text>
+            <Text className="text-[13px] text-text-primary font-mono">{child.name}</Text>
+          </Box>
         );
       }
       const isExpanded = expandedPaths.has(fullPath);
       const isLoading = loadingPaths.has(fullPath);
       const nested = loadedChildren.get(fullPath) ?? [];
       return (
-        <View key={fullPath}>
-          <TouchableOpacity
-            style={[
-              styles.childRow,
-              styles.childRowFolder,
-              depth > 0 && { marginLeft: 16 * depth },
-            ]}
+        <Box key={fullPath}>
+          <Pressable
+            className="flex-row items-center py-1.5 px-2.5 rounded-lg bg-secondary-100 border border-outline-500 mb-1 min-h-11"
+            style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
             onPress={() => toggleFolder(fullPath)}
-            activeOpacity={0.7}
             accessibilityLabel={`${child.name} folder, ${isExpanded ? "expanded" : "collapsed"}`}
             accessibilityRole="button"
           >
-            <View style={styles.childChevron}>
+            <Box className="mr-1.5">
               {isExpanded ? (
                 <ChevronDownIcon size={12} color={theme.textMuted} />
               ) : (
                 <ChevronRightIcon size={12} color={theme.textMuted} />
               )}
-            </View>
-            <Text style={[styles.childName, styles.childNameFolder]}>{child.name}</Text>
+            </Box>
+            <Text className="text-[13px] text-text-primary font-mono font-semibold">{child.name}</Text>
             {isLoading && (
               <ActivityIndicator size="small" color={theme.accent} style={styles.childLoader} />
             )}
-          </TouchableOpacity>
+          </Pressable>
           {isExpanded && (
-            <View style={styles.nestedList}>
+            <Box className="mb-1">
               {isLoading && nested.length === 0 ? null : nested.map((c) =>
                 renderChildRow(c, fullPath, `${fullPath}/${c.name}`, depth + 1)
               )}
-            </View>
+            </Box>
           )}
-        </View>
+        </Box>
       );
     },
-    [expandedPaths, loadedChildren, loadingPaths, toggleFolder, theme, styles]
+    [expandedPaths, loadedChildren, loadingPaths, toggleFolder, theme]
   );
 
   useEffect(() => {
@@ -275,24 +272,32 @@ export function SkillDetailSheet({
 
   if (!visible) return null;
 
+  // When embedded, parent (SkillConfigurationModal) already applies safe insets—avoid doubling.
+  const safeStyle = embedded
+    ? undefined
+    : {
+        paddingTop: Math.max(insets.top, 8),
+        paddingBottom: Math.max(insets.bottom, 8),
+      };
+
   const content = (
-    <View style={styles.container}>
-      <View style={styles.safe}>
-        <View style={styles.header}>
-          <Text style={styles.title} numberOfLines={1}>
+    <Box className="flex-1 bg-background-0">
+      <Box className="flex-1" style={safeStyle}>
+        <Box className="flex-row items-center justify-between py-4 px-5 border-b border-outline-500">
+          <Text className="flex-1 text-lg font-semibold text-text-primary mr-3" numberOfLines={1}>
             {detail?.name ?? skillId ?? "Skill Details"}
           </Text>
-          <TouchableOpacity
+          <Pressable
             onPress={onClose}
-            style={styles.closeBtn}
             hitSlop={12}
             accessibilityLabel="Close skill details"
+            className="p-2 min-w-11 min-h-11 items-center justify-center"
           >
             <CloseIcon size={20} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+          </Pressable>
+        </Box>
         <ScrollView
-          style={styles.scroll}
+          className="flex-1"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator
         >
@@ -303,33 +308,38 @@ export function SkillDetailSheet({
               style={styles.loader}
             />
           ) : error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity
-                style={styles.retryBtn}
+            <Box className="mt-6">
+              <Text className="text-sm text-error-500 mb-3">{error}</Text>
+              <Button
+                variant="outline"
+                size="sm"
                 onPress={handleRetry}
-                activeOpacity={0.8}
                 accessibilityLabel="Retry loading skill"
+                className="self-start"
               >
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
+                <ButtonText>Retry</ButtonText>
+              </Button>
+            </Box>
           ) : detail ? (
             <>
               {detail.children && detail.children.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Child folders & files</Text>
-                  <View style={styles.childrenList}>
+                <Box className="mb-6">
+                  <Text className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2.5">
+                    Child folders & files
+                  </Text>
+                  <Box>
                     {detail.children.map((child) =>
                       renderChildRow(child, "", child.name)
                     )}
-                  </View>
-                </View>
+                  </Box>
+                </Box>
               ) : null}
               {detail.content ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>SKILL.md</Text>
-                  <View style={styles.contentCard}>
+                <Box className="mb-6">
+                  <Text className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2.5">
+                    SKILL.md
+                  </Text>
+                  <Box className="px-4 py-3.5 bg-secondary-100 rounded-xl border border-outline-500 overflow-hidden">
                     <Markdown
                       style={markdownStyles}
                       mergeStyle
@@ -340,14 +350,14 @@ export function SkillDetailSheet({
                     >
                       {wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
                     </Markdown>
-                  </View>
-                </View>
+                  </Box>
+                </Box>
               ) : null}
             </>
           ) : null}
         </ScrollView>
-      </View>
-    </View>
+      </Box>
+    </Box>
   );
 
   if (embedded) {
@@ -366,130 +376,16 @@ export function SkillDetailSheet({
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>, insets: { top: number; bottom: number }) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.beigeBg,
-    },
-    safe: {
-      flex: 1,
-      paddingTop: Math.max(insets.top, 8),
-      paddingBottom: Math.max(insets.bottom, 8),
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-    },
-    title: {
-      flex: 1,
-      fontSize: 18,
-      fontWeight: "600",
-      color: theme.textPrimary,
-      marginRight: 12,
-    },
-    closeBtn: {
-      padding: 8,
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 24,
-    },
-    loader: {
-      marginTop: 24,
-    },
-    errorContainer: {
-      marginTop: 24,
-    },
-    errorText: {
-      fontSize: 14,
-      color: theme.danger,
-      marginBottom: 12,
-    },
-    retryBtn: {
-      alignSelf: "flex-start",
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 10,
-      backgroundColor: theme.cardBg,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-    },
-    retryText: {
-      fontSize: 14,
-      color: theme.accent,
-      fontWeight: "600",
-    },
-    section: {
-      marginBottom: 24,
-    },
-    sectionTitle: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: theme.textMuted,
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      marginBottom: 10,
-    },
-    childrenList: {},
-    childRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: 8,
-      backgroundColor: theme.cardBg ?? "rgba(0,0,0,0.04)",
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-      marginBottom: 4,
-    },
-    childRowFolder: {
-      minHeight: 44,
-    },
-    childFileIcon: {
-      fontSize: 12,
-      color: theme.textMuted,
-      width: 18,
-      marginRight: 6,
-    },
-    childChevron: {
-      marginRight: 6,
-    },
-    childLoader: {
-      marginLeft: 8,
-    },
-    nestedList: {
-      marginBottom: 4,
-    },
-    childName: {
-      fontSize: 13,
-      color: theme.textPrimary,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-    childNameFolder: {
-      fontWeight: "600",
-    },
-    contentCard: {
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      backgroundColor: theme.cardBg ?? (theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"),
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-      overflow: "hidden",
-    },
-  });
-}
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  loader: {
+    marginTop: 24,
+  },
+  childLoader: {
+    marginLeft: 8,
+  },
+});

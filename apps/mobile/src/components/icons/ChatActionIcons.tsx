@@ -35,6 +35,15 @@ export function ChevronDownIcon({ color = "currentColor", size = 14, strokeWidth
   );
 }
 
+export function ChevronUpIcon({ color = "currentColor", size = 14, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path {...stroke} d="m6 15 6-6 6 6" />
+    </Svg>
+  );
+}
+
 export function ChevronRightIcon({ color = "currentColor", size = 14, strokeWidth = 2 }: IconProps) {
   const stroke = getStrokeProps(color, strokeWidth);
   return (

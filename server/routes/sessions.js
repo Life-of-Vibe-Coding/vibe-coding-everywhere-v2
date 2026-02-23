@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { createSession, getSession, removeSession, subscribeToSession, resolveSession } from "../sessionRegistry.js";
 import { formatSessionLogTimestamp } from "../process/index.js";
-import { getWorkspaceCwd, SESSIONS_ROOT } from "../config/index.js";
+import { getWorkspaceCwd, SESSIONS_ROOT, WORKSPACE_ALLOWED_ROOT } from "../config/index.js";
 
 export function registerSessionsRoutes(app) {
     const router = Router();
@@ -219,7 +219,53 @@ export function registerSessionsRoutes(app) {
             session.processManager.handleSubmitPrompt(payload, req.headers.host);
             res.status(200).json({ sessionId, ok: true });
         } catch (err) {
-            res.status(500).json({ ok: false, error: err.message });
+            // Include sessionId so client can connect to stream even on error (process may have partially started)
+            res.status(500).json({ ok: false, error: err.message, sessionId });
+        }
+    });
+
+    // POST /api/sessions/destroy-workspace - Delete all sessions for a workspace (and their session folders)
+    router.post("/destroy-workspace", (req, res) => {
+        const rawPath = req.body?.path ?? req.query?.path;
+        const targetPath = (typeof rawPath === "string" && rawPath.trim())
+            ? path.resolve(rawPath.trim())
+            : getWorkspaceCwd();
+        if (!targetPath.startsWith(WORKSPACE_ALLOWED_ROOT)) {
+            return res.status(400).json({ error: "Path must be under allowed root" });
+        }
+        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
+        let deletedCount = 0;
+        try {
+            if (!fs.existsSync(sessionsBase)) {
+                return res.json({ ok: true, deletedCount: 0 });
+            }
+            const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
+            for (const d of subdirs) {
+                const sessionId = d.name;
+                const filePath = findJsonlInDir(path.join(sessionsBase, sessionId));
+                if (!filePath) continue;
+                const { cwd } = parseSessionMetadata(filePath);
+                const derived = deriveCwdFromFilePath(filePath);
+                const resolvedCwd = (typeof cwd === "string" && cwd.trim())
+                    ? path.resolve(cwd)
+                    : (derived ? path.resolve(derived) : null);
+                if (resolvedCwd !== targetPath) continue;
+                try {
+                    const activeSession = resolveSession(sessionId);
+                    if (activeSession) removeSession(activeSession.id);
+                    const sessionDir = getSessionDir(sessionId);
+                    if (fs.existsSync(sessionDir)) {
+                        fs.rmSync(sessionDir, { recursive: true });
+                        deletedCount++;
+                    }
+                } catch (e) {
+                    console.error("[sessions] Failed to delete session folder for destroy-workspace:", sessionId, e?.message);
+                }
+            }
+            res.json({ ok: true, deletedCount });
+        } catch (e) {
+            console.error("[sessions] Failed to destroy workspace sessions:", targetPath, e?.message);
+            res.status(500).json({ error: "Failed to destroy workspace sessions" });
         }
     });
 
@@ -325,22 +371,22 @@ export function registerSessionsRoutes(app) {
         }
     });
 
-    // DELETE /api/sessions/:sessionId - Remove session file and optionally clean up active registry
+    // DELETE /api/sessions/:sessionId - Remove session folder and clean up active registry
     router.delete("/:sessionId", (req, res) => {
         const { sessionId } = req.params;
-        const filePath = resolveSessionFilePath(sessionId);
-        if (!filePath || !fs.existsSync(filePath)) {
+        const sessionDir = getSessionDir(sessionId);
+        if (!fs.existsSync(sessionDir)) {
             return res.status(404).json({ error: "Session not found" });
         }
         try {
-            const activeSession = getSession(sessionId);
+            const activeSession = resolveSession(sessionId);
             if (activeSession) {
-                removeSession(sessionId);
+                removeSession(activeSession.id);
             }
-            fs.unlinkSync(filePath);
+            fs.rmSync(sessionDir, { recursive: true });
             res.json({ ok: true });
         } catch (e) {
-            console.error("[sessions] Failed to delete session file:", filePath, e?.message);
+            console.error("[sessions] Failed to delete session folder:", sessionDir, e?.message);
             res.status(500).json({ error: "Failed to delete session" });
         }
     });
@@ -382,8 +428,34 @@ export function registerSessionsRoutes(app) {
             }
         }
         if (activeOnly && !processRunning) {
-            res.write(`event: end\ndata: {"exitCode": 0}\n\n`);
-            res.end();
+            // Race: mobile connects before Pi emits agent_start. Poll briefly for process to start.
+            const maxWaitMs = 6000;
+            const pollMs = 150;
+            const start = Date.now();
+            let done = false;
+            req.on("close", () => {
+                done = true;
+                session.subscribers.delete(res);
+            });
+            const check = () => {
+                if (done || res.writableEnded) return;
+                if (session.processManager.processRunning?.()) {
+                    done = true;
+                    session.subscribers.add(res);
+                    if (process.env.DEBUG_SSE) {
+                        console.log(`[SSE] sessionId=${sessionId} process started after ${Date.now() - start}ms, subscribed`);
+                    }
+                    return;
+                }
+                if (Date.now() - start >= maxWaitMs) {
+                    done = true;
+                    res.write(`event: end\ndata: {"exitCode": 0}\n\n`);
+                    res.end();
+                    return;
+                }
+                setTimeout(check, pollMs);
+            };
+            setTimeout(check, pollMs);
             return;
         }
         console.log(`[SSE] sessionId=${sessionId} connected. Sent ${sentLines} lines from .pi/agent/sessions.`);

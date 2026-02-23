@@ -1,9 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
   StyleSheet,
   Modal,
   ScrollView,
@@ -14,9 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
-import { AppButton, AppText, Skeleton, triggerHaptic } from "../../design-system";
+import { Skeleton, triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "./DockerTabIcons";
+import { Box } from "../../../components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
+import { Input, InputField } from "../../../components/ui/input";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
 
 export type DockerTab = "containers" | "images" | "volumes";
 
@@ -446,11 +447,11 @@ export function DockerManagerModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity
+          <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
+            <Box style={styles.headerLeft} className="flex-row items-center gap-3 flex-1 min-w-0">
+              <Pressable
                 onPress={() => {
                   triggerHaptic("selection");
                   setSidebarVisible((v) => !v);
@@ -458,125 +459,106 @@ export function DockerManagerModal({
                 style={styles.menuToggleBtn}
                 hitSlop={12}
                 accessibilityLabel={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
-                accessibilityRole="button"
               >
                 {sidebarVisible ? (
-                  <ChevronLeftIcon color={theme.textMuted ?? theme.colors.textSecondary} />
+                  <ChevronLeftIcon color={theme.colors?.textMuted ?? theme.textMuted ?? theme.colors?.textSecondary} />
                 ) : (
-                  <PanelLeftIcon color={theme.textMuted ?? theme.colors.textSecondary} />
+                  <PanelLeftIcon color={theme.colors?.textMuted ?? theme.textMuted ?? theme.colors?.textSecondary} />
                 )}
-              </TouchableOpacity>
-              <View style={styles.headerTitleRow}>
-                <DockerIcon color={theme.textPrimary ?? theme.colors.textPrimary} size={24} />
-                <Text style={styles.title}>Docker</Text>
-              </View>
-            </View>
-            <TouchableOpacity
+              </Pressable>
+              <Box style={styles.headerTitleRow} className="flex-row items-center gap-2 min-w-0 flex-1">
+                <DockerIcon color={theme.colors?.textPrimary ?? theme.textPrimary} size={24} />
+                <Text style={styles.title} size="lg" bold className="text-typography-900">Docker</Text>
+              </Box>
+            </Box>
+            <Button
+              action="default"
+              variant="link"
+              size="md"
               onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={12}
               accessibilityLabel="Close Docker manager"
-              accessibilityRole="button"
+              className="min-w-11 min-h-11 -mr-2"
             >
-              <CloseIcon color={theme.textMuted ?? theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+            </Button>
+          </Box>
 
-          <View style={styles.tabRow}>
+          <Box style={styles.tabRow} className="flex-1 flex-row min-h-0">
             {sidebarVisible && (
-            <View style={styles.tabBar}>
-              <TouchableOpacity
-                style={[styles.tabItem, activeTab === "containers" && styles.tabItemActive]}
+            <Box style={styles.tabBar} className="w-32 border-r border-outline-400 py-2">
+              <Pressable
                 onPress={() => handleTabChange("containers")}
-                activeOpacity={0.8}
+                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "containers" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
               >
                 <ContainerIcon color={tabColor("containers")} />
-                <Text style={[styles.tabLabel, activeTab === "containers" && styles.tabLabelActive]}>
+                <Text size="sm" className={activeTab === "containers" ? "text-primary-500 font-semibold" : "text-typography-500"}>
                   Containers
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tabItem, activeTab === "images" && styles.tabItemActive]}
+              </Pressable>
+              <Pressable
                 onPress={() => handleTabChange("images")}
-                activeOpacity={0.8}
+                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "images" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
               >
                 <ImageIcon color={tabColor("images")} />
-                <Text style={[styles.tabLabel, activeTab === "images" && styles.tabLabelActive]}>
+                <Text size="sm" className={activeTab === "images" ? "text-primary-500 font-semibold" : "text-typography-500"}>
                   Images
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tabItem, activeTab === "volumes" && styles.tabItemActive]}
+              </Pressable>
+              <Pressable
                 onPress={() => handleTabChange("volumes")}
-                activeOpacity={0.8}
+                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "volumes" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
               >
                 <VolumeIcon color={tabColor("volumes")} />
-                <Text style={[styles.tabLabel, activeTab === "volumes" && styles.tabLabelActive]}>
+                <Text size="sm" className={activeTab === "volumes" ? "text-primary-500 font-semibold" : "text-typography-500"}>
                   Volumes
                 </Text>
-              </TouchableOpacity>
-            </View>
+              </Pressable>
+            </Box>
             )}
 
-            <View style={styles.contentArea}>
+            <Box style={styles.contentArea} className="flex-1 min-w-0">
               {activeTab === "containers" && (
                 <>
-                  <View style={styles.toolbar}>
-                    <TouchableOpacity
-                      style={[styles.filterChip, showAll && styles.filterChipActive]}
+                  <Box style={styles.toolbar} className="flex-row gap-2 py-2">
+                    <Pressable
                       onPress={() => setShowAll(true)}
-                      activeOpacity={0.8}
+                      className={`px-3 py-1.5 rounded-lg border ${showAll ? "bg-primary-500/15 border-primary-500" : "border-outline-400"}`}
                       accessibilityLabel="Show all containers"
-                      accessibilityRole="button"
                       accessibilityState={{ selected: showAll }}
                     >
-                      <Text style={[styles.filterChipText, showAll && styles.filterChipTextActive]}>
-                        All
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.filterChip, !showAll && styles.filterChipActive]}
+                      <Text size="sm" className={showAll ? "text-primary-500 font-semibold" : "text-typography-600"}>All</Text>
+                    </Pressable>
+                    <Pressable
                       onPress={() => setShowAll(false)}
-                      activeOpacity={0.8}
+                      className={`px-3 py-1.5 rounded-lg border ${!showAll ? "bg-primary-500/15 border-primary-500" : "border-outline-400"}`}
                       accessibilityLabel="Show running containers only"
-                      accessibilityRole="button"
                       accessibilityState={{ selected: !showAll }}
                     >
-                      <Text style={[styles.filterChipText, !showAll && styles.filterChipTextActive]}>
-                        Running
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                      <Text size="sm" className={!showAll ? "text-primary-500 font-semibold" : "text-typography-600"}>Running</Text>
+                    </Pressable>
+                  </Box>
                   {error ? (
-                    <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
-                        {error}
-                      </AppText>
-                      <AppButton
-                        label="Retry"
-                        variant="primary"
-                        size="sm"
-                        onPress={() => load(true)}
-                        style={styles.retryBtn}
-                      />
-                    </View>
+                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Button action="primary" variant="solid" size="sm" onPress={() => load(true)} className="mt-3">
+                        <ButtonText>Retry</ButtonText>
+                      </Button>
+                    </Box>
                   ) : loading && containers.length === 0 ? (
-                    <View style={styles.skeletonList}>
+                    <Box style={styles.skeletonList} className="flex gap-2">
                       {[1, 2, 3].map((i) => (
-                        <View key={i} style={styles.card}>
+                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
                           <Skeleton height={18} width="70%" style={{ marginBottom: 12 }} />
                           <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
                           <Skeleton height={14} width="60%" style={{ marginBottom: 8 }} />
                           <Skeleton height={14} width="40%" />
-                        </View>
+                        </Box>
                       ))}
-                    </View>
+                    </Box>
                   ) : containers.length === 0 ? (
-                    <View style={styles.emptyBox}>
-                      <AppText variant="callout" tone="muted">
-                        No containers found.
-                      </AppText>
-                    </View>
+                    <Box style={styles.emptyBox} className="py-8 items-center">
+                      <Text size="sm" className="text-typography-500">No containers found.</Text>
+                    </Box>
                   ) : (
                     <ScrollView
                       style={styles.scroll}
@@ -594,91 +576,61 @@ export function DockerManagerModal({
                 const isRunning = (c.state ?? "").toLowerCase().includes("running");
                 const acting = actingId === c.id;
                 const statusCls = statusClass(c.state);
+                const statusBadgeClass =
+                  statusCls === "running" ? "bg-success-500/15 text-success-600" :
+                  statusCls === "exited" ? "bg-typography-500/15 text-typography-600" :
+                  statusCls === "paused" ? "bg-warning-500/15 text-warning-600" :
+                  "bg-error-500/15 text-error-600";
                 return (
-                  <View key={c.id} style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardName} numberOfLines={1}>
-                        {names}
-                      </Text>
-                      <TouchableOpacity
+                  <Box key={c.id} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
+                    <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
+                      <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{names}</Text>
+                      <Pressable
                         onPress={() => copyToClipboard(c.id)}
                         style={styles.copyBtn}
                         accessibilityLabel="Copy container ID"
-                        accessibilityRole="button"
                       >
-                        <CopyIcon color={theme.textMuted ?? theme.colors.textSecondary} size={18} />
-                      </TouchableOpacity>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          statusCls === "running" && styles.status_running,
-                          statusCls === "exited" && styles.status_exited,
-                          statusCls === "paused" && styles.status_paused,
-                          statusCls === "unknown" && styles.status_unknown,
-                        ]}
-                      >
-                        <Text style={styles.statusText}>{c.status || "—"}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardRow}>
-                      <Text style={styles.cardLabel}>Image</Text>
-                      <Text style={styles.cardValue} numberOfLines={1}>
-                        {c.image || "—"}
-                      </Text>
-                    </View>
-                    <View style={styles.cardRow}>
-                      <Text style={styles.cardLabel}>Ports</Text>
-                      <Text style={styles.cardValue} numberOfLines={2}>
-                        {c.ports || "—"}
-                      </Text>
-                    </View>
-                    <View style={styles.cardRow}>
-                      <Text style={styles.cardLabel}>Created</Text>
-                      <Text style={styles.cardValue}>{formatDate(c.created)}</Text>
-                    </View>
-                    <View style={styles.actions}>
-                      <AppButton
-                        label="Logs"
-                        variant="secondary"
-                        size="sm"
-                        onPress={() => openLogs(c.id, names)}
-                        disabled={acting}
-                      />
+                        <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                      </Pressable>
+                      <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                        <Text size="xs">{c.status || "—"}</Text>
+                      </Box>
+                    </Box>
+                    <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
+                      <Text size="xs" className="text-typography-500 shrink-0">Image</Text>
+                      <Text size="xs" numberOfLines={1} className="text-typography-900 flex-1 min-w-0">{c.image || "—"}</Text>
+                    </Box>
+                    <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
+                      <Text size="xs" className="text-typography-500 shrink-0">Ports</Text>
+                      <Text size="xs" numberOfLines={2} className="text-typography-900 flex-1 min-w-0">{c.ports || "—"}</Text>
+                    </Box>
+                    <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
+                      <Text size="xs" className="text-typography-500 shrink-0">Created</Text>
+                      <Text size="xs" className="text-typography-900">{formatDate(c.created)}</Text>
+                    </Box>
+                    <Box style={styles.actions} className="flex-row flex-wrap gap-2">
+                      <Button action="secondary" variant="outline" size="sm" onPress={() => openLogs(c.id, names)} isDisabled={acting}>
+                        <ButtonText>Logs</ButtonText>
+                      </Button>
                       {!isRunning ? (
-                        <AppButton
-                          label="Start"
-                          variant="primary"
-                          size="sm"
-                          onPress={() => handleAction(c.id, "start")}
-                          disabled={acting}
-                        />
+                        <Button action="primary" variant="solid" size="sm" onPress={() => handleAction(c.id, "start")} isDisabled={acting}>
+                          <ButtonText>Start</ButtonText>
+                        </Button>
                       ) : (
                         <>
-                          <AppButton
-                            label="Stop"
-                            variant="secondary"
-                            size="sm"
-                            onPress={() => handleAction(c.id, "stop")}
-                            disabled={acting}
-                          />
-                          <AppButton
-                            label="Restart"
-                            variant="secondary"
-                            size="sm"
-                            onPress={() => handleAction(c.id, "restart")}
-                            disabled={acting}
-                          />
+                          <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "stop")} isDisabled={acting}>
+                            <ButtonText>Stop</ButtonText>
+                          </Button>
+                          <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "restart")} isDisabled={acting}>
+                            <ButtonText>Restart</ButtonText>
+                          </Button>
                         </>
                       )}
-                      <AppButton
-                        label="Remove"
-                        variant="danger"
-                        size="sm"
-                        onPress={() => handleAction(c.id, "remove")}
-                        disabled={acting}
-                      />
-                    </View>
-                  </View>
+                      <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
+                        <ButtonText>Remove</ButtonText>
+                      </Button>
+                    </Box>
+                  </Box>
                 );
               })}
             </ScrollView>
@@ -688,44 +640,32 @@ export function DockerManagerModal({
 
               {activeTab === "images" && (
                 <>
-                  <View style={styles.toolbar}>
-                    <AppButton
-                      label="Prune unused"
-                      variant="secondary"
-                      size="sm"
-                      onPress={handlePruneImages}
-                      disabled={loading}
-                    />
-                  </View>
+                  <Box style={styles.toolbar} className="flex-row gap-2 py-2">
+                    <Button action="secondary" variant="outline" size="sm" onPress={handlePruneImages} isDisabled={loading}>
+                      <ButtonText>Prune unused</ButtonText>
+                    </Button>
+                  </Box>
                   {error ? (
-                    <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
-                        {error}
-                      </AppText>
-                      <AppButton
-                        label="Retry"
-                        variant="primary"
-                        size="sm"
-                        onPress={() => loadImages(true)}
-                        style={styles.retryBtn}
-                      />
-                    </View>
+                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Button action="primary" variant="solid" size="sm" onPress={() => loadImages(true)} className="mt-3">
+                        <ButtonText>Retry</ButtonText>
+                      </Button>
+                    </Box>
                   ) : loading && images.length === 0 ? (
-                    <View style={styles.skeletonList}>
+                    <Box style={styles.skeletonList} className="flex gap-2">
                       {[1, 2, 3].map((i) => (
-                        <View key={i} style={styles.card}>
+                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
                           <Skeleton height={18} width="80%" style={{ marginBottom: 12 }} />
                           <Skeleton height={14} width="50%" style={{ marginBottom: 8 }} />
                           <Skeleton height={14} width="40%" />
-                        </View>
+                        </Box>
                       ))}
-                    </View>
+                    </Box>
                   ) : images.length === 0 ? (
-                    <View style={styles.emptyBox}>
-                      <AppText variant="callout" tone="muted">
-                        No images found.
-                      </AppText>
-                    </View>
+                    <Box style={styles.emptyBox} className="py-8 items-center">
+                      <Text size="sm" className="text-typography-500">No images found.</Text>
+                    </Box>
                   ) : (
                     <ScrollView
                       style={styles.scroll}
@@ -743,38 +683,31 @@ export function DockerManagerModal({
                         const display = tags.length ? tags.join(", ") : img.id?.slice(0, 12) || "—";
                         const acting = actingImageId === img.id;
                         return (
-                          <View key={img.id} style={styles.card}>
-                            <View style={styles.cardHeader}>
-                              <Text style={styles.cardName} numberOfLines={2}>
-                                {display}
-                              </Text>
-                              <TouchableOpacity
+                          <Box key={img.id} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
+                            <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
+                              <Text size="sm" bold numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{display}</Text>
+                              <Pressable
                                 onPress={() => copyToClipboard(img.id)}
                                 style={styles.copyBtn}
                                 accessibilityLabel="Copy image ID"
-                                accessibilityRole="button"
                               >
-                                <CopyIcon color={theme.textMuted ?? theme.colors.textSecondary} size={18} />
-                              </TouchableOpacity>
-                            </View>
-                            <View style={styles.cardRow}>
-                              <Text style={styles.cardLabel}>Size</Text>
-                              <Text style={styles.cardValue}>{formatBytes(img.size)}</Text>
-                            </View>
-                            <View style={styles.cardRow}>
-                              <Text style={styles.cardLabel}>Created</Text>
-                              <Text style={styles.cardValue}>{formatDate(img.created)}</Text>
-                            </View>
-                            <View style={styles.actions}>
-                              <AppButton
-                                label="Remove"
-                                variant="danger"
-                                size="sm"
-                                onPress={() => handleRemoveImage(img.id)}
-                                disabled={acting}
-                              />
-                            </View>
-                          </View>
+                                <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                              </Pressable>
+                            </Box>
+                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
+                              <Text size="xs" className="text-typography-500 shrink-0">Size</Text>
+                              <Text size="xs" className="text-typography-900">{formatBytes(img.size)}</Text>
+                            </Box>
+                            <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
+                              <Text size="xs" className="text-typography-500 shrink-0">Created</Text>
+                              <Text size="xs" className="text-typography-900">{formatDate(img.created)}</Text>
+                            </Box>
+                            <Box style={styles.actions} className="flex-row flex-wrap gap-2">
+                              <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
+                                <ButtonText>Remove</ButtonText>
+                              </Button>
+                            </Box>
+                          </Box>
                         );
                       })}
                     </ScrollView>
@@ -784,56 +717,44 @@ export function DockerManagerModal({
 
               {activeTab === "volumes" && (
                 <>
-                  <View style={styles.toolbar}>
-                    <TextInput
-                      style={[
-                        styles.searchInput,
-                        { color: theme.textPrimary, borderColor: theme.borderColor ?? theme.colors.border },
-                      ]}
-                      placeholder="Search volumes…"
-                      placeholderTextColor={theme.textMuted ?? theme.colors.textMuted}
-                      value={volumeSearch}
-                      onChangeText={setVolumeSearch}
-                      accessibilityLabel="Search volumes by name or mount point"
-                    />
-                    <AppButton
-                      label="Prune unused"
-                      variant="secondary"
-                      size="sm"
-                      onPress={handlePruneVolumes}
-                      disabled={loading}
-                    />
-                  </View>
-                  {error ? (
-                    <View style={styles.errorBox}>
-                      <AppText variant="callout" tone="primary" style={[styles.errorText, { color: theme.colors.danger }]}>
-                        {error}
-                      </AppText>
-                      <AppButton
-                        label="Retry"
-                        variant="primary"
-                        size="sm"
-                        onPress={() => loadVolumes(true)}
-                        style={styles.retryBtn}
+                  <Box style={styles.toolbar} className="flex-row gap-2 py-2 flex-wrap">
+                    <Input variant="outline" size="md" className="flex-1 min-w-0">
+                      <InputField
+                        placeholder="Search volumes…"
+                        value={volumeSearch}
+                        onChangeText={setVolumeSearch}
+                        accessibilityLabel="Search volumes by name or mount point"
+                        placeholderTextColor={theme.colors?.textMuted ?? theme.textMuted}
                       />
-                    </View>
+                    </Input>
+                    <Button action="secondary" variant="outline" size="sm" onPress={handlePruneVolumes} isDisabled={loading}>
+                      <ButtonText>Prune unused</ButtonText>
+                    </Button>
+                  </Box>
+                  {error ? (
+                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Button action="primary" variant="solid" size="sm" onPress={() => loadVolumes(true)} className="mt-3">
+                        <ButtonText>Retry</ButtonText>
+                      </Button>
+                    </Box>
                   ) : loading && volumes.length === 0 ? (
-                    <View style={styles.skeletonList}>
+                    <Box style={styles.skeletonList} className="flex gap-2">
                       {[1, 2, 3].map((i) => (
-                        <View key={i} style={styles.card}>
+                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
                           <Skeleton height={18} width="75%" style={{ marginBottom: 12 }} />
                           <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
                           <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
                           <Skeleton height={14} width="50%" />
-                        </View>
+                        </Box>
                       ))}
-                    </View>
+                    </Box>
                   ) : filteredVolumes.length === 0 ? (
-                    <View style={styles.emptyBox}>
-                      <AppText variant="callout" tone="muted">
+                    <Box style={styles.emptyBox} className="py-8 items-center">
+                      <Text size="sm" className="text-typography-500">
                         {volumeSearch.trim() ? "No matching volumes." : "No volumes found."}
-                      </AppText>
-                    </View>
+                      </Text>
+                    </Box>
                   ) : (
                     <ScrollView
                       style={styles.scroll}
@@ -849,64 +770,46 @@ export function DockerManagerModal({
                       {filteredVolumes.map((v) => {
                         const acting = actingVolumeName === v.name;
                         return (
-                          <View key={v.name} style={styles.card}>
-                            <View style={styles.cardHeader}>
-                              <Text style={styles.cardName} numberOfLines={1}>
-                                {v.name}
-                              </Text>
-                              <TouchableOpacity
-                                onPress={() => copyToClipboard(v.name)}
-                                style={styles.copyBtn}
-                                accessibilityLabel="Copy volume name"
-                                accessibilityRole="button"
-                              >
-                                <CopyIcon color={theme.textMuted ?? theme.colors.textSecondary} size={18} />
-                              </TouchableOpacity>
-                            </View>
-                            <View style={styles.cardRow}>
-                              <Text style={styles.cardLabel}>DRIVER</Text>
-                              <Text style={styles.cardValue}>{v.driver || "—"}</Text>
-                            </View>
-                            <View style={styles.cardRow}>
-                              <Text style={styles.cardLabel}>MOUNT POINT</Text>
-                              <View style={styles.cardValueRow}>
-                                <Text style={[styles.cardValue, { flex: 1 }]} numberOfLines={2}>
-                                  {v.mountpoint || "—"}
-                                </Text>
-                                <TouchableOpacity
-                                  onPress={() => copyToClipboard(v.mountpoint ?? "")}
-                                  style={styles.copyBtn}
-                                  accessibilityLabel="Copy mount point"
-                                  accessibilityRole="button"
-                                >
-                                  <CopyIcon color={theme.textMuted ?? theme.colors.textSecondary} size={18} />
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                            <View style={styles.cardRow}>
-                              <Text style={styles.cardLabel}>CREATED</Text>
-                              <Text style={styles.cardValue}>{formatDate(v.created)}</Text>
-                            </View>
-                            <View style={styles.actions}>
-                              <AppButton
-                                label="Remove"
-                                variant="danger"
-                                size="sm"
-                                onPress={() => handleRemoveVolume(v.name)}
-                                disabled={acting}
-                              />
-                            </View>
-                          </View>
+                          <Box key={v.name} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
+                            <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
+                              <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{v.name}</Text>
+                              <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
+                                <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                              </Pressable>
+                            </Box>
+                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
+                              <Text size="xs" className="text-typography-500 shrink-0">DRIVER</Text>
+                              <Text size="xs" className="text-typography-900">{v.driver || "—"}</Text>
+                            </Box>
+                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
+                              <Text size="xs" className="text-typography-500 shrink-0">MOUNT POINT</Text>
+                              <Box style={styles.cardValueRow} className="flex-1 flex-row items-start gap-2 min-w-0">
+                                <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{v.mountpoint || "—"}</Text>
+                                <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
+                                  <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                                </Pressable>
+                              </Box>
+                            </Box>
+                            <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
+                              <Text size="xs" className="text-typography-500 shrink-0">CREATED</Text>
+                              <Text size="xs" className="text-typography-900">{formatDate(v.created)}</Text>
+                            </Box>
+                            <Box style={styles.actions} className="flex-row flex-wrap gap-2">
+                              <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
+                                <ButtonText>Remove</ButtonText>
+                              </Button>
+                            </Box>
+                          </Box>
                         );
                       })}
                     </ScrollView>
                   )}
                 </>
               )}
-            </View>
-          </View>
+            </Box>
+          </Box>
         </SafeAreaView>
-      </View>
+      </Box>
 
       {logsFor && (
         <Modal
@@ -916,41 +819,33 @@ export function DockerManagerModal({
           onRequestClose={closeLogs}
           statusBarTranslucent
         >
-          <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-              <View style={styles.header}>
-                <Text style={styles.title} numberOfLines={1}>
+              <Box style={styles.header} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-400">
+                <Text size="lg" bold numberOfLines={1} className="flex-1 text-typography-900">
                   Logs: {logsFor.name}
                 </Text>
-                <TouchableOpacity
-                  onPress={closeLogs}
-                  style={styles.closeBtn}
-                  hitSlop={12}
-                  accessibilityLabel="Close logs"
-                  accessibilityRole="button"
-                >
-                  <CloseIcon color={theme.textMuted ?? theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+                <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
+                  <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+                </Button>
+              </Box>
               {logsLoading ? (
-                <View style={styles.loadingBox}>
+                <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
                   <ActivityIndicator size="large" color={theme.colors.accent} />
-                  <AppText variant="callout" tone="muted" style={styles.loadingText}>
-                    Loading logs…
-                  </AppText>
-                </View>
+                  <Text size="sm" className="text-typography-500 mt-3">Loading logs…</Text>
+                </Box>
               ) : (
                 <ScrollView
                   style={styles.scroll}
                   contentContainerStyle={[styles.scrollContent, styles.logsContent]}
                 >
-                  <Text style={styles.logsText} selectable>
+                  <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
                     {logsContent}
                   </Text>
                 </ScrollView>
               )}
             </SafeAreaView>
-          </View>
+          </Box>
         </Modal>
       )}
     </Modal>

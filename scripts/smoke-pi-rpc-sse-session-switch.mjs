@@ -23,6 +23,9 @@
  *
  *   NUM_SESSIONS=4 SWITCH_DELAY_MS=2500 node scripts/smoke-pi-rpc-sse-session-switch.mjs
  *   RAPID_MODE=1 node scripts/smoke-pi-rpc-sse-session-switch.mjs  # shorter delays, stress test
+ *
+ *   # Tests are distributed across workspaces: A,C,E at CWD_PROJECT, B,D at CWD_TEST_WS
+ *   CWD_PROJECT=/path/to/project CWD_TEST_WS=/path/to/workspace_for_testing node scripts/smoke-pi-rpc-sse-session-switch.mjs
  */
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
@@ -40,36 +43,46 @@ const ROUND_TRIP_INDEX = 0; // After starting session 1, "switch back" to sessio
 
 const BASE_DELAY = RAPID_MODE ? 800 : SWITCH_DELAY_MS;
 
+/** Workspaces to distribute tests across. */
+const CWD_PROJECT = process.env.CWD_PROJECT || "/Users/yifanxu/machine_learning/LoVC/vibe-coding-everywhere_v2";
+const CWD_TEST_WS = process.env.CWD_TEST_WS || "/Users/yifanxu/machine_learning/LoVC/vibe-coding-everywhere_v2/workspace_for_testing";
+
 /** Up to 5 session configs. Prompts are verbose so each LLM runs longer. */
+/** cwd: workspace to run this session in (project root or workspace_for_testing). */
 const RUNS = [
   {
     provider: "codex",
     model: "gpt-5.2-codex",
     label: "session-A",
+    cwd: CWD_PROJECT,
     prompt: "Examine the current project root thoroughly. List all key files and directories, explain the purpose of each major component, and describe how they connect. Be detailed and substantive. In your final reply, include this exact token: {TOKEN}.",
   },
   {
     provider: "codex",
     model: "gpt-5.1-codex-mini",
     label: "session-B",
+    cwd: CWD_TEST_WS,
     prompt: "Summarize the full project structure. Walk through each top-level directory, list important files, and explain the architecture. Be thorough. In your final reply, include this exact token: {TOKEN}.",
   },
   {
     provider: "claude",
     model: "sonnet4.5",
     label: "session-C",
+    cwd: CWD_PROJECT,
     prompt: "Describe what the backend does in detail. Inspect the server code, routes, API definitions, and database models. Explain the main flows and dependencies. Be comprehensive. In your final reply, include this exact token: {TOKEN}.",
   },
   {
     provider: "claude",
     model: "sonnet4.5",
     label: "session-D",
+    cwd: CWD_TEST_WS,
     prompt: "Analyze what skills or tools this project uses. Look at configuration files, package.json or requirements, and any skill definitions. Explain how each is used. Be thorough. In your final reply, include this exact token: {TOKEN}.",
   },
   {
     provider: "codex",
     model: "gpt-5.1-codex-mini",
     label: "session-E",
+    cwd: CWD_PROJECT,
     prompt: "List and analyze all main config files (package.json, tsconfig, next.config, etc.). Explain what each config does and how they interact. Be detailed. In your final reply, include this exact token: {TOKEN}.",
   },
 ].slice(0, NUM_SESSIONS);
@@ -92,7 +105,22 @@ function extractText(parsed) {
   return "";
 }
 
-async function submitPrompt(sessionId, provider, model, prompt) {
+async function setWorkspace(cwd) {
+  const res = await fetch(`${SERVER_URL}/api/workspace-path`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: cwd }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`POST /api/workspace-path failed ${res.status}: ${text}`);
+  }
+}
+
+async function submitPrompt(sessionId, provider, model, prompt, cwd) {
+  if (cwd) {
+    await setWorkspace(cwd);
+  }
   const res = await fetch(`${SERVER_URL}/api/sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -198,9 +226,9 @@ async function runSessionSwitchSimulation() {
     const token = `SMOKE_SWITCH_${i}_${Date.now()}`;
     const prompt = cfg.prompt.replace("{TOKEN}", token);
 
-    console.error(`[smoke] ${cfg.label}: submitting prompt (session ${sessionId.slice(0, 12)}...)`);
+    console.error(`[smoke] ${cfg.label}: submitting prompt (session ${sessionId.slice(0, 12)}... cwd=${cfg.cwd ?? "(default)"})`);
     try {
-      await submitPrompt(sessionId, cfg.provider, cfg.model, prompt);
+      await submitPrompt(sessionId, cfg.provider, cfg.model, prompt, cfg.cwd);
     } catch (err) {
       return {
         results: RUNS.map((r, j) => ({
@@ -253,7 +281,10 @@ async function main() {
   console.error("[smoke] NUM_SESSIONS:", NUM_SESSIONS);
   console.error("[smoke] SWITCH_DELAY_MS:", SWITCH_DELAY_MS);
   console.error("[smoke] RAPID_MODE:", RAPID_MODE);
-  console.error("[smoke] Simulates: A -> B -> round-trip to A -> C -> D... (all SSEs stay open)\n");
+  console.error("[smoke] CWD_PROJECT:", CWD_PROJECT);
+  console.error("[smoke] CWD_TEST_WS:", CWD_TEST_WS);
+  console.error("[smoke] Simulates: A -> B -> round-trip to A -> C -> D... (all SSEs stay open)");
+  console.error("[smoke] Workspace distribution: A,C,E -> project root; B,D -> workspace_for_testing\n");
 
   const start = Date.now();
   const { results, checkpoints } = await runSessionSwitchSimulation();

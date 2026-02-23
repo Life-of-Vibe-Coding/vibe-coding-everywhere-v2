@@ -1,24 +1,18 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Platform, Keyboard, AccessibilityInfo } from "react-native";
-import { CodexSendIcon } from "../icons/ProviderIcons";
+import { Platform, Keyboard, AccessibilityInfo, Modal, TouchableWithoutFeedback } from "react-native";
+import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "../icons/ProviderIcons";
 import {
   AttachPlusIcon,
   ChevronDownIcon,
+  ChevronUpIcon,
   CloseIcon,
+  DockerIcon,
   GlobeIcon,
+  SkillIcon,
   StopCircleIcon,
   TerminalIcon,
 } from "../icons/ChatActionIcons";
 import { EntranceAnimation, triggerHaptic } from "../../design-system";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetItem,
-  ActionsheetItemText,
-} from "../../../components/ui/actionsheet";
 import { Badge, BadgeText } from "../../../components/ui/badge";
 import { Box } from "../../../components/ui/box";
 import { Button, ButtonIcon } from "../../../components/ui/button";
@@ -59,6 +53,7 @@ export interface InputPanelProps {
   providerModelOptions?: Record<"claude" | "gemini" | "codex", { value: string; label: string }[]>;
   onProviderChange?: (provider: "claude" | "gemini" | "codex" | "pi") => void;
   onModelChange?: (model: string) => void;
+  onOpenModelPicker?: () => void;
   onOpenSkillsConfig?: () => void;
   onOpenDocker?: () => void;
 }
@@ -81,14 +76,14 @@ export function InputPanel({
   providerModelOptions,
   onProviderChange,
   onModelChange,
+  onOpenModelPicker,
   onOpenSkillsConfig,
   onOpenDocker,
 }: InputPanelProps) {
   const theme = useTheme();
   const [prompt, setPrompt] = useState("");
-  const [modelPickerVisible, setModelPickerVisible] = useState(false);
-  const [addDropdownVisible, setAddDropdownVisible] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [plusMenuVisible, setPlusMenuVisible] = useState(false);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -118,14 +113,29 @@ export function InputPanel({
     setPrompt("");
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, agentRunning, permissionMode, onSubmit]);
 
+  const isDark = theme.mode === "dark";
+
   return (
     <Box>
       <VStack
         space="md"
         className={cn(
-          "flex-col gap-3 border border-outline-400 rounded-2xl py-3 px-4 bg-surface",
-          "shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+          "flex-col gap-3 border rounded-2xl py-3 px-4",
+          isDark ? "border-outline-500/60" : "border-outline-200"
         )}
+        style={[
+          { borderLeftWidth: 3, borderLeftColor: theme.colors.accent, backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+          Platform.select({
+            ios: {
+              shadowColor: theme.colors.accent,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isDark ? 0.22 : 0.1,
+              shadowRadius: 14,
+            },
+            android: { elevation: 6 },
+            default: {},
+          }),
+        ]}
       >
         {pendingCodeRefs.length > 0 && (
           <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
@@ -170,7 +180,11 @@ export function InputPanel({
           <Textarea
             size="md"
             isDisabled={disabled}
-            className="flex-1 min-h-10 h-auto max-h-37.5 rounded-lg border border-background-300"
+            className="flex-1 min-h-10 h-auto max-h-24 rounded-xl border"
+            style={{
+              borderColor: theme.colors.accentSubtle,
+              backgroundColor: isDark ? theme.colors.surfaceAlt : theme.colors.accentSoft,
+            }}
           >
             <TextareaInput
               placeholder={placeholder}
@@ -189,6 +203,7 @@ export function InputPanel({
                 "flex-1 text-base py-2 min-h-6",
                 Platform.OS === "android" && "text-start"
               )}
+              style={{ color: theme.colors.textPrimary }}
               placeholderTextColor={theme.colors.textMuted}
             />
           </Textarea>
@@ -203,74 +218,111 @@ export function InputPanel({
           <HStack space="sm" className="flex-1 flex-row items-center gap-2 min-w-0">
             {(onOpenSkillsConfig || onOpenDocker) && (
               <>
-                <Button
-                  action="default"
-                  variant="outline"
-                  size="md"
+                <Pressable
                   onPress={() => {
                     triggerHaptic("selection");
-                    setAddDropdownVisible(true);
+                    setPlusMenuVisible(true);
                   }}
-                  accessibilityLabel="Add options"
-                  className="w-11 h-11 rounded-lg bg-background-muted"
+                  accessibilityLabel="More options"
+                  accessibilityHint="Opens Skills and Docker dropdown"
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  className="flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+                  style={{
+                    backgroundColor: theme.colors.accentSoft,
+                    borderColor: theme.colors.accentSubtle,
+                  }}
                 >
-                  <ButtonIcon as={AttachPlusIcon} size="md" style={{ color: theme.colors.accent }} />
-                </Button>
-                <Actionsheet isOpen={addDropdownVisible} onClose={() => setAddDropdownVisible(false)}>
-                  <ActionsheetBackdrop />
-                  <ActionsheetContent>
-                    <ActionsheetDragIndicatorWrapper>
-                      <ActionsheetDragIndicator />
-                    </ActionsheetDragIndicatorWrapper>
-                    {onOpenSkillsConfig && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          onOpenSkillsConfig();
-                          setAddDropdownVisible(false);
-                        }}
-                      >
-                        <ActionsheetItemText>Skill Configuration</ActionsheetItemText>
-                      </ActionsheetItem>
-                    )}
-                    {onOpenDocker && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          onOpenDocker();
-                          setAddDropdownVisible(false);
-                        }}
-                      >
-                        <ActionsheetItemText>Docker Manager</ActionsheetItemText>
-                      </ActionsheetItem>
-                    )}
-                  </ActionsheetContent>
-                </Actionsheet>
+                  <AttachPlusIcon size={18} color={theme.colors.accent} />
+                  {plusMenuVisible ? (
+                    <ChevronUpIcon size={12} color={theme.colors.accent} />
+                  ) : (
+                    <ChevronDownIcon size={12} color={theme.colors.accent} />
+                  )}
+                </Pressable>
+                <Modal
+                  visible={plusMenuVisible}
+                  transparent
+                  animationType="fade"
+                  onRequestClose={() => setPlusMenuVisible(false)}
+                  statusBarTranslucent
+                >
+                  <TouchableWithoutFeedback onPress={() => setPlusMenuVisible(false)}>
+                    <Box className="flex-1 justify-end items-start pl-4 pb-24 pr-4">
+                      <TouchableWithoutFeedback onPress={() => {}}>
+                        <Box
+                          className="rounded-xl border overflow-hidden min-w-40"
+                          style={{
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.border,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 12,
+                            elevation: 8,
+                          }}
+                        >
+                          {onOpenSkillsConfig && (
+                            <Pressable
+                              onPress={() => {
+                                triggerHaptic("selection");
+                                setPlusMenuVisible(false);
+                                onOpenSkillsConfig();
+                              }}
+                              accessibilityLabel="Skill configuration"
+                              className="flex-row items-center gap-3 py-3 px-4 active:opacity-80"
+                              style={{ borderBottomWidth: onOpenDocker ? 1 : 0, borderBottomColor: theme.colors.border }}
+                            >
+                              <SkillIcon size={18} color={theme.colors.accent} />
+                              <Text size="md" className="text-typography-900">Skills</Text>
+                            </Pressable>
+                          )}
+                          {onOpenDocker && (
+                            <Pressable
+                              onPress={() => {
+                                triggerHaptic("selection");
+                                setPlusMenuVisible(false);
+                                onOpenDocker();
+                              }}
+                              accessibilityLabel="Docker manager"
+                              className="flex-row items-center gap-3 py-3 px-4 active:opacity-80"
+                            >
+                              <DockerIcon size={18} color={theme.colors.accent} />
+                              <Text size="md" className="text-typography-900">Docker</Text>
+                            </Pressable>
+                          )}
+                        </Box>
+                      </TouchableWithoutFeedback>
+                    </Box>
+                  </TouchableWithoutFeedback>
+                </Modal>
               </>
             )}
             <Pressable
               onPress={() => {
                 triggerHaptic("selection");
-                onModelChange ? setModelPickerVisible(true) : null;
+                onOpenModelPicker?.();
               }}
-              disabled={!onModelChange}
+              disabled={!onOpenModelPicker}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessibilityLabel="Select model"
-              className={cn(
-                "flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-lg border min-h-11 min-w-0 max-w-35 justify-start",
-                "bg-surface-alt border-outline-400"
-              )}
+              className="flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+              style={{
+                backgroundColor: theme.colors.accentSoft,
+                borderColor: theme.colors.accentSubtle,
+              }}
             >
               <Text
                 size="sm"
                 bold
                 numberOfLines={2}
                 ellipsizeMode="tail"
-                className="flex-1 min-w-0 text-typography-600"
+                className="flex-1 min-w-0"
+                style={{ color: theme.colors.accent }}
               >
                 {currentModelLabel}
               </Text>
               <Box className="shrink-0 self-center">
-                <ChevronDownIcon size={12} color={theme.colors.textMuted} />
+                <ChevronDownIcon size={12} color={theme.colors.accent} />
               </Box>
             </Pressable>
           </HStack>
@@ -282,9 +334,13 @@ export function InputPanel({
                 size="md"
                 onPress={onOpenProcesses}
                 accessibilityLabel="Open processes dashboard"
-                className="w-11 h-11 rounded-lg"
+                className="w-11 h-11 rounded-xl active:opacity-80"
+                style={{
+                  borderColor: theme.colors.accentSubtle,
+                  backgroundColor: theme.colors.accentSoft,
+                }}
               >
-                <ButtonIcon as={TerminalIcon} size="md" />
+                <ButtonIcon as={TerminalIcon} size="md" style={{ color: theme.colors.accent }} />
               </Button>
             )}
             {onOpenWebPreview && (
@@ -294,9 +350,13 @@ export function InputPanel({
                 size="md"
                 onPress={onOpenWebPreview}
                 accessibilityLabel="Open web preview"
-                className="w-11 h-11 rounded-lg"
+                className="w-11 h-11 rounded-xl active:opacity-80"
+                style={{
+                  borderColor: theme.colors.accentSubtle,
+                  backgroundColor: theme.colors.accentSoft,
+                }}
               >
-                <ButtonIcon as={GlobeIcon} size="md" />
+                <ButtonIcon as={GlobeIcon} size="md" style={{ color: theme.colors.accent }} />
               </Button>
             )}
             {onTerminateAgent && agentRunning && (
@@ -309,7 +369,7 @@ export function InputPanel({
                   onTerminateAgent();
                 }}
                 accessibilityLabel="Terminate agent response"
-                className="w-11 h-11 rounded-lg"
+                className="w-11 h-11 rounded-xl active:opacity-80"
               >
                 <ButtonIcon as={StopCircleIcon} size="md" />
               </Button>
@@ -322,68 +382,46 @@ export function InputPanel({
                 onPress={handleSubmit}
                 isDisabled={disabled}
                 accessibilityLabel="Send message"
-                className="w-11 h-11 rounded-lg"
+                className="w-11 h-11 rounded-xl active:opacity-80"
+                style={
+                  disabled
+                    ? undefined
+                    : {
+                        backgroundColor: theme.colors.accent,
+                        ...Platform.select({
+                          ios: {
+                            shadowColor: theme.colors.accent,
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.4,
+                            shadowRadius: 6,
+                          },
+                          android: { elevation: 4 },
+                          default: {},
+                        }),
+                      }
+                }
               >
-                <ButtonIcon as={CodexSendIcon} size="md" />
+                <ButtonIcon
+                  as={
+                    provider === "claude"
+                      ? ClaudeSendIcon
+                      : provider === "gemini"
+                        ? GeminiSendIcon
+                        : provider === "codex" || provider === "pi"
+                          ? (p: { size?: number }) => (
+                              <CodexEnterIcon {...p} stroke={theme.colors.textInverse} color={theme.colors.textInverse} />
+                            )
+                          : CodexSendIcon
+                  }
+                  size="md"
+                  color={theme.colors.textInverse}
+                  style={{ color: theme.colors.textInverse }}
+                />
               </Button>
             )}
           </HStack>
         </HStack>
       </VStack>
-
-      <Actionsheet isOpen={modelPickerVisible} onClose={() => setModelPickerVisible(false)}>
-        <ActionsheetBackdrop />
-        <ActionsheetContent>
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          {providerModelOptions && onProviderChange ? (
-            (["claude", "gemini", "codex"] as const).map((p) => {
-              const opts = providerModelOptions[p] ?? [];
-              if (opts.length === 0) return null;
-              const currentProvider = provider === "pi" ? "codex" : provider;
-              return (
-                <Box key={p} className="mb-3">
-                  <Box className="flex-row items-center mb-1 px-0.5">
-                    <Text size="xs" bold className="text-typography-600">
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
-                    </Text>
-                  </Box>
-                  {opts.map((opt) => {
-                    const isActive = currentProvider === p && model === opt.value;
-                    return (
-                      <ActionsheetItem
-                        key={opt.value}
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          if (currentProvider !== p) onProviderChange(p);
-                          onModelChange?.(opt.value);
-                          setModelPickerVisible(false);
-                        }}
-                      >
-                        <ActionsheetItemText bold={isActive}>{opt.label}</ActionsheetItemText>
-                      </ActionsheetItem>
-                    );
-                  })}
-                </Box>
-              );
-            })
-          ) : (
-            modelOptions.map((opt) => (
-              <ActionsheetItem
-                key={opt.value}
-                onPress={() => {
-                  triggerHaptic("selection");
-                  onModelChange?.(opt.value);
-                  setModelPickerVisible(false);
-                }}
-              >
-                <ActionsheetItemText bold={model === opt.value}>{opt.label}</ActionsheetItemText>
-              </ActionsheetItem>
-            ))
-          )}
-        </ActionsheetContent>
-      </Actionsheet>
     </Box>
   );
 }

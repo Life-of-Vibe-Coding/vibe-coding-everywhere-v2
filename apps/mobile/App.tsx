@@ -14,17 +14,16 @@ import "./global.css";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
+  View,
   FlatList,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   Alert,
   Dimensions,
   StatusBar,
+  InteractionManager,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
@@ -44,8 +43,10 @@ import {
   AnimatedPressableView,
   triggerHaptic,
   EntranceAnimation,
+  FlashAnimation,
   usePerformanceMonitor,
   spacing,
+  Skeleton,
 } from "./src/design-system";
 import { Box } from "./components/ui/box";
 import { Text as GluestackText } from "./components/ui/text";
@@ -76,6 +77,17 @@ import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDas
 import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
 import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
+import { ClaudeIcon, GeminiIcon, CodexIcon } from "./src/components/icons/ProviderIcons";
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+  ActionsheetItem,
+  ActionsheetItemText,
+  ActionsheetScrollView,
+} from "./components/ui/actionsheet";
 import * as sessionStore from "./src/services/sessionStore";
 import { notifyAgentFinished, notifyApprovalNeeded } from "./src/services/agentNotifications";
 import {
@@ -165,6 +177,9 @@ export default function App() {
   const theme = useMemo(() => getTheme(provider, themeMode), [provider, themeMode]);
   const styles = useMemo(() => createAppStyles(theme), [theme]);
 
+  // Model picker visibility (lifted from InputPanel to fix overlay stacking)
+  const [modelPickerVisible, setModelPickerVisible] = useState(false);
+
   // Model Management
   const modelOptions =
     provider === "claude" ? CLAUDE_MODELS : provider === "pi" || provider === "codex" ? PI_MODELS : GEMINI_MODELS;
@@ -196,6 +211,7 @@ export default function App() {
   const [skillsConfigVisible, setSkillsConfigVisible] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [sidebarActiveTab, setSidebarActiveTab] = useState<"files" | "changes" | "commits">("files");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Lock to portrait except when browser preview is open (allow landscape for wide-screen view)
@@ -244,6 +260,7 @@ export default function App() {
     typingIndicator,
     currentActivity,
     sessionId,
+    sessionInitLoading,
     permissionDenials,
     submitPrompt,
     pendingAskQuestion,
@@ -280,19 +297,17 @@ export default function App() {
     [provider, model, resetSession]
   );
 
-  /** When user switches model: start new session, update model. */
+  /** When user switches model: always init new session, update model. */
   const handleModelChange = useCallback(
     (newModel: string) => {
       if (newModel === model) return;
-      if (messages.length > 0) {
-        setCurrentSessionId(null);
-        resetSession();
-      }
+      setCurrentSessionId(null);
+      resetSession();
       setModel(newModel);
       sessionStore.setLastUsedProviderModel(provider, newModel);
       triggerHaptic("selection");
     },
-    [model, messages, provider, resetSession]
+    [model, provider, resetSession]
   );
 
   // Agent notifications: when agent finishes or needs approval
@@ -331,7 +346,39 @@ export default function App() {
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
-  // Load last used provider/model on mount (sessions come from server .pi/agent/sessions)
+  // Clean up empty sessions 3 minutes after creation, unless it is the current page
+  const EMPTY_SESSION_CLEANUP_MS = 3 * 60 * 1000;
+  useEffect(() => {
+    const baseUrl = serverConfig.getBaseUrl();
+    const currentPageId = viewingLiveSession ? sessionId : currentSessionId;
+    const cleanup = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/sessions`);
+        const data = (await res.json()) as { sessions?: Array<{ id: string; firstUserInput: string; mtime: number }> };
+        const list = data.sessions ?? [];
+        const now = Date.now();
+        for (const s of list) {
+          const isNoInput = s.firstUserInput === "(no input)";
+          const isOld = now - s.mtime >= EMPTY_SESSION_CLEANUP_MS;
+          const isCurrentPage = s.id === currentPageId;
+          if (isNoInput && isOld && !isCurrentPage) {
+            try {
+              await fetch(`${baseUrl}/api/sessions/${encodeURIComponent(s.id)}`, { method: "DELETE" });
+            } catch (_) {
+              /* ignore */
+            }
+          }
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    const interval = setInterval(cleanup, 60_000);
+    void cleanup();
+    return () => clearInterval(interval);
+  }, [serverConfig, viewingLiveSession, sessionId, currentSessionId]);
+
+  // Load last used provider/model on mount (sessions come from server .pi/agent/sessions) (sessions come from server .pi/agent/sessions)
   const hasRestoredProviderModel = useRef(false);
   useEffect(() => {
     if (hasRestoredProviderModel.current) return;
@@ -542,6 +589,10 @@ export default function App() {
       .finally(() => setWorkspacePathLoading(false));
   }, [serverConfig]);
 
+  // Fetch workspace on mount for header display; also refetch when session management opens
+  useEffect(() => {
+    fetchWorkspacePath();
+  }, [fetchWorkspacePath]);
   useEffect(() => {
     if (sessionManagementVisible) fetchWorkspacePath();
   }, [sessionManagementVisible, fetchWorkspacePath]);
@@ -571,12 +622,14 @@ export default function App() {
           provider={provider}
           onOpenUrl={handleOpenPreviewInApp}
           onFileSelect={handleFileSelectFromChat}
+          isStreaming={typingIndicator && isLast && item.role === "assistant"}
         />
       );
     },
     [
       messages.length,
       lastSessionTerminated,
+      typingIndicator,
       provider,
       handleOpenPreviewInApp,
       handleFileSelectFromChat,
@@ -587,7 +640,11 @@ export default function App() {
   const chatListFooter = useMemo(
     () => (
       <>
-        <TypingIndicator visible={typingIndicator} provider={provider} activity={currentActivity} />
+        {typingIndicator && (
+          <EntranceAnimation variant="fade" duration={200}>
+            <TypingIndicator visible provider={provider} activity={currentActivity} />
+          </EntranceAnimation>
+        )}
         {permissionDenials && permissionDenials.length > 0 && (
           <PermissionDenialBanner
             denials={permissionDenials}
@@ -627,11 +684,13 @@ export default function App() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <View style={[styles.page, { paddingTop: insets.top }]}>
+          <Box style={[styles.page, { paddingTop: insets.top }]}>
+            {/* Provider-themed subtle gradient tint at top */}
+            <Box style={styles.providerTintOverlay} pointerEvents="none" />
             {/* Group 1: Main content + overlays (flex: 1) */}
-            <View style={styles.topSection}>
+            <Box style={styles.topSection}>
               {/* Main Content Area */}
-              <View style={styles.contentArea}>
+              <Box style={styles.contentArea}>
                 {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
                 {!sidebarVisible && (
                   <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
@@ -641,35 +700,105 @@ export default function App() {
                       accessibilityLabel="Open Explorer"
                       delay={100}
                     />
-                    <VStack style={styles.sessionIdCenter} pointerEvents="none">
-                      <HStack className="flex-row items-center gap-1.5 mb-0.5">
-                        <Box
-                          className={cn(
-                            "w-1.5 h-1.5 rounded-full",
-                            (viewingLiveSession && (agentRunning || typingIndicator)) ? "bg-primary-500" : "bg-background-400"
-                          )}
-                        />
-                        <GluestackText
-                          size="2xs"
-                          className="font-medium tracking-wider text-typography-500"
-                          accessibilityLabel={
-                            (viewingLiveSession && (agentRunning || typingIndicator)) ? "Session running" : "Session idle"
-                          }
-                        >
-                          {(viewingLiveSession && (agentRunning || typingIndicator)) ? "Running" : "Idle"}
-                        </GluestackText>
-                      </HStack>
-                      <Text
-                        style={styles.sessionIdText}
-                        numberOfLines={1}
-                        accessibilityLabel={sessionId != null ? `Session ${sessionId}` : "No session"}
-                      >
-                        {sessionId != null
-                          ? `Session: ${sessionId}`
-                          : workspacePath != null
-                            ? basename(workspacePath)
-                            : "Start a new conversation"}
-                      </Text>
+                    <VStack style={styles.sessionIdCenter} pointerEvents="none" flexShrink={1} className="min-w-0 flex-1 items-center justify-center">
+                      {(() => {
+                        const displaySessionId = viewingLiveSession ? sessionId : currentSessionId;
+                        const isWorkspaceLoaded = workspacePath != null;
+                        const showHeaderSkeleton = !isWorkspaceLoaded;
+
+                        if (showHeaderSkeleton) {
+                          return (
+                            <VStack className="items-center gap-1.5">
+                              <HStack className="flex-row items-center gap-1.5 shrink min-w-0 justify-center" style={{ maxWidth: "100%" }}>
+                                <Skeleton width={6} height={6} borderRadius={3} style={{ marginRight: 2 }} />
+                                <Skeleton width={56} height={10} borderRadius={theme.radii.sm} />
+                              </HStack>
+                              <Skeleton width={90} height={12} borderRadius={theme.radii.sm} />
+                            </VStack>
+                          );
+                        }
+
+                        const agentActive = viewingLiveSession && (agentRunning || typingIndicator);
+                        const isRunning = agentActive && !waitingForUserInput;
+                        const isWaiting = agentActive && waitingForUserInput;
+                        const isIdling = !agentActive;
+                        const workspaceLabel = basename(workspacePath!);
+                        const isWaitingForSession = viewingLiveSession && displaySessionId == null;
+                        const showSessionSkeleton = isWaitingForSession && sessionInitLoading;
+                        const shortId =
+                          displaySessionId != null
+                            ? (() => {
+                                const beforeDash = displaySessionId.split("-")[0];
+                                return beforeDash.length > 20 ? beforeDash.slice(0, 20) : beforeDash;
+                              })()
+                            : null;
+                        const sessionLabel =
+                          shortId == null
+                            ? "—"
+                            : isRunning
+                              ? "Running"
+                              : isWaiting
+                                ? `Waiting: ${shortId}`
+                                : shortId;
+                        const headerTextStyle = { fontSize: 11, lineHeight: 14 };
+                        const workspaceTextStyle = { ...headerTextStyle, fontWeight: "700" as const, color: theme.colors.accent };
+                        const statusColor =
+                          isRunning ? theme.colors.success
+                          : isWaiting ? theme.colors.warning
+                          : theme.colors.textMuted;
+                        return (
+                          <VStack className="items-center gap-1 shrink min-w-0" style={{ maxWidth: "100%" }}>
+                            <GluestackText
+                              size="2xs"
+                              numberOfLines={2}
+                              style={[styles.sessionIdText, workspaceTextStyle]}
+                              className="shrink min-w-0 text-center"
+                            >
+                              {workspaceLabel}
+                            </GluestackText>
+                            <HStack className="flex-row items-center gap-1.5 shrink min-w-0 justify-center">
+                              {showSessionSkeleton ? (
+                                <>
+                                  <Skeleton width={6} height={6} borderRadius={3} />
+                                  <Skeleton width={80} height={10} borderRadius={theme.radii.sm} />
+                                </>
+                              ) : isRunning ? (
+                                <FlashAnimation minOpacity={0.35} duration={700}>
+                                  <Box
+                                    style={{
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: 3,
+                                      backgroundColor: statusColor,
+                                    }}
+                                    accessibilityLabel="Session running"
+                                  />
+                                </FlashAnimation>
+                              ) : (
+                                <Box
+                                  style={[
+                                    styles.sessionDotIdle,
+                                    { backgroundColor: statusColor },
+                                  ]}
+                                  accessibilityLabel={
+                                    isWaiting ? "Session waiting for input" : messages.length > 0 ? "Session idle" : "Session not started"
+                                  }
+                                />
+                              )}
+                              {!showSessionSkeleton && (
+                                <GluestackText
+                                  size="2xs"
+                                  numberOfLines={1}
+                                  style={[headerTextStyle, { color: statusColor }]}
+                                  className="font-normal tracking-wider shrink min-w-0"
+                                >
+                                  {sessionLabel}
+                                </GluestackText>
+                              )}
+                            </HStack>
+                          </VStack>
+                        );
+                      })()}
                     </VStack>
                     <HeaderButton
                       icon={<SettingsIcon color={theme.colors.textPrimary} />}
@@ -681,7 +810,7 @@ export default function App() {
                 )}
 
                 {/* Chat Area */}
-                <View style={styles.chatShell}>
+                <Box style={styles.chatShell}>
                   <FlatList
                     key={viewingLiveSession ? "live" : "saved"}
                     ref={flatListRef}
@@ -707,10 +836,10 @@ export default function App() {
                       flatListRef.current?.scrollToEnd({ animated: true });
                     }}
                   />
-                </View>
+                </Box>
 
                 {selectedFilePath != null && (
-                  <View style={styles.fileViewerOverlay} pointerEvents="box-none">
+                  <Box style={styles.fileViewerOverlay} pointerEvents="box-none">
                     <FileViewerModal
                       visible
                       embedded
@@ -722,23 +851,25 @@ export default function App() {
                       onClose={handleCloseFileViewer}
                       onAddCodeReference={handleAddCodeReference}
                     />
-                  </View>
+                  </Box>
                 )}
 
                 {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
-                <View style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
+                <Box style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
                   <WorkspaceSidebar
                     visible={sidebarVisible}
                     embedded
                     onClose={() => setSidebarVisible(false)}
                     onFileSelect={handleFileSelect}
                     onCommitByAI={handleCommitByAI}
+                    onActiveTabChange={setSidebarActiveTab}
                   />
-                </View>
-              </View>
-            </View>
+                </Box>
+              </Box>
+            </Box>
 
-            {/* Group 2: Input Panel */}
+            {/* Group 2: Input Panel - only show at file explorer, not during staging/commit */}
+            {(!sidebarVisible || sidebarActiveTab === "files") && (
             <View style={styles.inputBar}>
               <InputPanel
                 connected={connected}
@@ -765,11 +896,13 @@ export default function App() {
                 }}
                 onProviderChange={handleProviderChange}
                 onModelChange={handleModelChange}
+                onOpenModelPicker={() => setModelPickerVisible(true)}
                 onOpenSkillsConfig={() => setSkillsConfigVisible(true)}
                 onOpenDocker={() => setDockerVisible(true)}
               />
             </View>
-          </View>
+            )}
+          </Box>
 
           {/* Ask Question Modal */}
           <AskQuestionModal
@@ -794,6 +927,10 @@ export default function App() {
             serverBaseUrl={serverConfig.getBaseUrl()}
             workspacePath={workspacePath}
             onRefreshWorkspace={fetchWorkspacePath}
+            onWorkspaceSelected={() => {
+              setCurrentSessionId(null);
+              resetSession();
+            }}
           />
 
           <DockerManagerModal
@@ -801,6 +938,63 @@ export default function App() {
             onClose={() => setDockerVisible(false)}
             serverBaseUrl={serverConfig.getBaseUrl()}
           />
+
+          {/* Model picker - rendered at root to fix overlay stacking above InputPanel */}
+          <Actionsheet
+            isOpen={modelPickerVisible}
+            onClose={() => setModelPickerVisible(false)}
+            snapPoints={[75]}
+          >
+            <ActionsheetBackdrop />
+            <ActionsheetContent
+              style={{ backgroundColor: theme.colors.surface, opacity: 1 }}
+            >
+              <ActionsheetDragIndicatorWrapper>
+                <ActionsheetDragIndicator />
+              </ActionsheetDragIndicatorWrapper>
+              <ActionsheetScrollView
+                contentContainerStyle={{ paddingBottom: 32 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {(["claude", "gemini", "codex"] as const).map((p) => {
+                  const opts =
+                    p === "claude" ? CLAUDE_MODELS : p === "gemini" ? GEMINI_MODELS : PI_MODELS;
+                  if (opts.length === 0) return null;
+                  const currentProvider = provider === "pi" ? "codex" : provider;
+                  const ProviderIcon = p === "claude" ? ClaudeIcon : p === "gemini" ? GeminiIcon : CodexIcon;
+                  const accent = getTheme(p, themeMode).colors.accent;
+                  return (
+                    <Box key={p} className="mb-4">
+                      <Box className="flex-row items-center gap-2 mb-1.5 px-0.5">
+                        <ProviderIcon size={18} color={accent} />
+                        <GluestackText size="xs" bold className="text-typography-600">
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </GluestackText>
+                      </Box>
+                      {opts.map((opt) => {
+                        const isActive = currentProvider === p && model === opt.value;
+                        return (
+                          <ActionsheetItem
+                            key={opt.value}
+                            onPress={() => {
+                              triggerHaptic("selection");
+                              if (currentProvider !== p) handleProviderChange(p);
+                              handleModelChange(opt.value);
+                              setModelPickerVisible(false);
+                            }}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            style={{ minHeight: 48 }}
+                          >
+                            <ActionsheetItemText bold={isActive}>{opt.label}</ActionsheetItemText>
+                          </ActionsheetItem>
+                        );
+                      })}
+                    </Box>
+                  );
+                })}
+              </ActionsheetScrollView>
+            </ActionsheetContent>
+          </Actionsheet>
 
           <ProcessesDashboardModal
             visible={processesVisible}
@@ -855,6 +1049,12 @@ export default function App() {
               } else {
                 loadSession(s.messages);
               }
+              // Scroll to bottom after modal closes and list has laid out
+              InteractionManager.runAfterInteractions(() => {
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                }, 100);
+              });
             }}
             onNewSession={() => {
               setCurrentSessionId(null);
@@ -866,6 +1066,12 @@ export default function App() {
               switchToLiveSession();
               setCurrentSessionId(null);
               setSessionManagementVisible(false);
+              // Scroll to bottom after modal closes and list has laid out
+              InteractionManager.runAfterInteractions(() => {
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                }, 100);
+              });
             }}
           />
 
@@ -890,6 +1096,20 @@ export default function App() {
 
 function createAppStyles(theme: ReturnType<typeof getTheme>) {
   return StyleSheet.create({
+    providerTintOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 58,
+      backgroundColor: theme.colors.pageAccentTint,
+    },
+    sessionDotIdle: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.colors.textMuted,
+    },
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background,
@@ -970,6 +1190,7 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     chatMessages: {
       paddingVertical: 12,
+      paddingHorizontal: spacing["4"],
       gap: 16,
       paddingBottom: 48,
     },

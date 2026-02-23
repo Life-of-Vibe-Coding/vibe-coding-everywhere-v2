@@ -1,8 +1,13 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from "react-native";
+import { StyleSheet, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { PendingAskUserQuestion, AskUserQuestionItem } from "../../core/types";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Button, ButtonText } from "../../../components/ui/button";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
+import { EntranceAnimation, AnimatedPressableView, triggerHaptic } from "../../design-system";
 
 export interface AskQuestionModalProps {
   /** When non-null, modal is visible and shows these questions. */
@@ -77,35 +82,34 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
     const question = questions[qIndex];
     if (!question) return null;
     return (
-      <View key={`q-${qIndex}`} style={styles.questionBlock}>
-        <Text style={styles.header}>{question.header}</Text>
+      <Box key={`q-${qIndex}`} style={styles.questionBlock} className="mb-5">
+        <Text size="md" bold className="text-typography-900 mb-1">{question.header}</Text>
         {question.question ? (
-          <Text style={styles.questionText}>{question.question}</Text>
+          <Text size="sm" className="text-typography-500 mb-2.5">{question.question}</Text>
         ) : null}
-        <View style={styles.options}>
+        <Box style={styles.options} className="gap-2">
           {question.options.map((opt: any, oIndex: number) => {
             const sel = getSelected(qIndex);
             const isSelected = sel.includes(opt.label);
             return (
-              <TouchableOpacity
+              <AnimatedPressableView
                 key={`${qIndex}-${oIndex}`}
+                onPress={() => {
+                  triggerHaptic("selection");
+                  toggle(qIndex, opt.label, !!question.multiSelect);
+                }}
+                scaleTo={0.98}
                 style={[styles.option, isSelected && styles.optionSelected]}
-                onPress={() => toggle(qIndex, opt.label, !!question.multiSelect)}
-                activeOpacity={0.8}
               >
-                <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>
-                  {opt.label}
-                </Text>
+                <Text size="md" bold className={isSelected ? "text-primary-500" : "text-typography-900"}>{opt.label}</Text>
                 {opt.description ? (
-                  <Text style={styles.optionDesc} numberOfLines={2}>
-                    {opt.description}
-                  </Text>
+                  <Text size="xs" numberOfLines={2} className="text-typography-500 mt-0.5">{opt.description}</Text>
                 ) : null}
-              </TouchableOpacity>
+              </AnimatedPressableView>
             );
           })}
-        </View>
-      </View>
+        </Box>
+      </Box>
     );
   };
 
@@ -116,36 +120,36 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
       transparent
       onRequestClose={onCancel}
     >
-      <View style={styles.overlay}>
+      <Box style={styles.overlay} className="flex-1 bg-black/40 justify-end">
         <SafeAreaView style={styles.safe}>
-          <View style={styles.card}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title}>Please choose</Text>
+          <EntranceAnimation variant="slideUp" duration={320}>
+          <Box style={styles.card} className="rounded-t-2xl pt-4 pb-6 px-5 border border-outline-200 border-b-0 bg-surface shadow-lg">
+            <Box style={styles.titleRow} className="flex-row items-center justify-between mb-3">
+              <Text size="lg" bold className="text-typography-900">Please choose</Text>
               {isMultiCard && (
-                <View style={styles.stepper}>
+                <Box style={styles.stepper} className="flex-row gap-2">
                   {questions.map((_: any, i: number) => (
-                    <TouchableOpacity
+                    <Pressable
                       key={i}
-                      style={[
-                        styles.dot,
-                        i === currentIndex && styles.dotActive,
-                        (getSelected(i).length ?? 0) > 0 && styles.dotAnswered,
-                      ]}
                       onPress={() => setCurrentIndex(i)}
-                      activeOpacity={0.8}
-                    />
+                      hitSlop={16}
+                      className="min-w-11 min-h-11 items-center justify-center rounded-full active:opacity-80"
+                    >
+                      <Box
+                        className={`w-2.5 h-2.5 rounded-full ${i === currentIndex ? "bg-primary-500" : (getSelected(i).length ?? 0) > 0 ? "bg-success-500" : "bg-outline-400"}`}
+                        style={i === currentIndex ? { transform: [{ scale: 1.2 }] } : undefined}
+                      />
+                    </Pressable>
                   ))}
-                </View>
+                </Box>
               )}
-            </View>
+            </Box>
             {isMultiCard ? (
               <>
-                <View style={styles.flashcard}>
+                <Box style={styles.flashcard} className="min-h-45">
                   {renderQuestion(currentIndex)}
-                </View>
-                <Text style={styles.progressText}>
-                  {currentIndex + 1} of {questions.length}
-                </Text>
+                </Box>
+                <Text size="sm" className="text-typography-500 mt-2">{currentIndex + 1} of {questions.length}</Text>
               </>
             ) : (
               <ScrollView
@@ -156,69 +160,41 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
                 {renderQuestion(0)}
               </ScrollView>
             )}
-            <View style={styles.actions}>
+            <Box style={styles.actions} className="flex-row items-center justify-between gap-3 mt-4">
               {onCancel && (
-                <TouchableOpacity
-                  style={styles.btnCancel}
-                  onPress={onCancel}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.btnCancelText}>Cancel</Text>
-                </TouchableOpacity>
+                <Pressable onPress={onCancel} className="py-3 px-5 rounded-xl min-h-11 justify-center active:opacity-80">
+                  <Text size="md" className="text-typography-500">Cancel</Text>
+                </Pressable>
               )}
               {isMultiCard ? (
                 <>
                   {currentIndex > 0 ? (
-                    <TouchableOpacity
-                      style={styles.btnBack}
-                      onPress={() => setCurrentIndex((i) => i - 1)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.btnBackText}>← Back</Text>
-                    </TouchableOpacity>
+                    <Pressable onPress={() => setCurrentIndex((i) => i - 1)} className="py-3 px-4 min-h-11 justify-center active:opacity-80 rounded-xl">
+                      <Text size="md" bold className="text-primary-500">← Back</Text>
+                    </Pressable>
                   ) : (
-                    <View style={styles.btnBackPlaceholder} />
+                    <Box className="w-15" />
                   )}
                   {isLast ? (
-                    <TouchableOpacity
-                      style={[styles.btnConfirm, !canSubmit && styles.btnConfirmDisabled]}
-                      onPress={handleConfirm}
-                      disabled={!canSubmit}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.btnConfirmText, !canSubmit && styles.btnConfirmTextDisabled]}>
-                        Confirm
-                      </Text>
-                    </TouchableOpacity>
+                    <Button action="primary" variant="solid" size="md" onPress={handleConfirm} isDisabled={!canSubmit} className="py-3 px-6 rounded-xl">
+                      <ButtonText className={!canSubmit ? "text-typography-500" : "text-typography-0"}>Confirm</ButtonText>
+                    </Button>
                   ) : (
-                    <TouchableOpacity
-                      style={[styles.btnNext, !canGoNext && styles.btnConfirmDisabled]}
-                      onPress={() => setCurrentIndex((i) => i + 1)}
-                      disabled={!canGoNext}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.btnConfirmText, !canGoNext && styles.btnConfirmTextDisabled]}>
-                        Next →
-                      </Text>
-                    </TouchableOpacity>
+                    <Button action="primary" variant="solid" size="md" onPress={() => setCurrentIndex((i) => i + 1)} isDisabled={!canGoNext} className="py-3 px-6 rounded-xl">
+                      <ButtonText className={!canGoNext ? "text-typography-500" : "text-typography-0"}>Next →</ButtonText>
+                    </Button>
                   )}
                 </>
               ) : (
-                <TouchableOpacity
-                  style={[styles.btnConfirm, !canSubmit && styles.btnConfirmDisabled]}
-                  onPress={handleConfirm}
-                  disabled={!canSubmit}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.btnConfirmText, !canSubmit && styles.btnConfirmTextDisabled]}>
-                    Confirm
-                  </Text>
-                </TouchableOpacity>
+                <Button action="primary" variant="solid" size="md" onPress={handleConfirm} isDisabled={!canSubmit} className="py-3 px-6 rounded-xl">
+                  <ButtonText className={!canSubmit ? "text-typography-500" : "text-typography-0"}>Confirm</ButtonText>
+                </Button>
               )}
-            </View>
-          </View>
+            </Box>
+          </Box>
+          </EntranceAnimation>
         </SafeAreaView>
-      </View>
+      </Box>
     </Modal>
   );
 }

@@ -21,7 +21,6 @@ import {
 import { Badge, BadgeText } from "../../../components/ui/badge";
 import { Box } from "../../../components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
-import { Card as GluestackCard } from "../../../components/ui/card";
 import { Pressable } from "../../../components/ui/pressable";
 import { Text } from "../../../components/ui/text";
 import { VStack } from "../../../components/ui/vstack";
@@ -252,7 +251,20 @@ export function SessionManagementModal({
       const res = await fetch(`${serverBaseUrl}/api/sessions`, { signal: controller.signal });
       clearTimeout(timeoutId);
       const data = (await res.json()) as { sessions?: ApiSession[] };
-      setSessions(data.sessions ?? []);
+      const list = data.sessions ?? [];
+      setSessions(list);
+      // Clean up empty sessions 3 min after creation unless it's the current page
+      const STALE_MS = 3 * 60 * 1000;
+      const now = Date.now();
+      for (const s of list) {
+        if (
+          s.firstUserInput === "(no input)" &&
+          now - s.mtime >= STALE_MS &&
+          s.id !== currentSessionId
+        ) {
+          fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(s.id)}`, { method: "DELETE" }).catch(() => {});
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error && err.name === "AbortError"
         ? "Request timed out. Check that the server is running and reachable."
@@ -264,7 +276,7 @@ export function SessionManagementModal({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [serverBaseUrl]);
+  }, [serverBaseUrl, currentSessionId]);
 
   useEffect(() => {
     if (visible) void refresh();
@@ -379,6 +391,47 @@ export function SessionManagementModal({
     onClose();
   }, [onNewSession, onClose]);
 
+  const handleDestroyWorkspace = useCallback(
+    (targetPath: string) => {
+      if (!serverBaseUrl || !targetPath || targetPath === "(no workspace)") return;
+      triggerHaptic("medium");
+      Alert.alert(
+        "Destroy Workspace",
+        `Delete all sessions for ${formatPathForWrap(getFileName(targetPath) || targetPath)}? This cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Destroy",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const res = await fetch(`${serverBaseUrl}/api/sessions/destroy-workspace`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ path: targetPath }),
+                });
+                const data = (await res.json()) as { ok?: boolean; deletedCount?: number; error?: string };
+                if (!res.ok || !data.ok) throw new Error(data.error ?? "Destroy failed");
+                const deleted = data.deletedCount ?? 0;
+                if (
+                  currentSessionId &&
+                  sections.some((s) => s.title === targetPath && s.data.some((d) => d.id === currentSessionId))
+                ) {
+                  onNewSession();
+                }
+                await refresh();
+                if (deleted > 0) triggerHaptic("heavy");
+              } catch {
+                setSelectError("Failed to destroy workspace sessions");
+              }
+            },
+          },
+        ]
+      );
+    },
+    [serverBaseUrl, currentSessionId, sections, onNewSession, refresh]
+  );
+
   if (!visible) return null;
 
   return (
@@ -390,8 +443,12 @@ export function SessionManagementModal({
     >
       <Box style={[styles.container, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <HStack style={styles.header}>
-            <Text size="xl" bold className="text-typography-900">Sessions</Text>
+          {/* Header with accent bar */}
+          <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
+            <HStack className="flex-1 items-center gap-2">
+              <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
+              <Text size="xl" bold className="text-typography-900">Sessions</Text>
+            </HStack>
             <Button
               action="default"
               variant="link"
@@ -416,7 +473,7 @@ export function SessionManagementModal({
                     accessibilityLabel="Retry loading sessions"
                   >
                     <RefreshCwIcon size={16} color={theme.colors.accent} strokeWidth={2} />
-                    <Text size="sm" bold className="text-primary-500">
+                    <Text size="sm" bold style={{ color: theme.colors.accent }}>
                       Retry
                     </Text>
                   </AnimatedPressableView>
@@ -425,32 +482,46 @@ export function SessionManagementModal({
             </EntranceAnimation>
           )}
 
+          {/* Workspace section - tech-styled card */}
           <VStack style={styles.workspaceSection}>
-            <Text size="sm" bold className="text-typography-600 mt-4 mb-2 mx-5">
-              Workspace
-            </Text>
-            <GluestackCard variant="outline" size="md" style={styles.workspaceBox}>
-              <VStack style={styles.workspacePathContainer}>
+            <HStack className="items-center gap-2 mt-5 mb-2 mx-5">
+              <Box style={[styles.sectionAccent, { backgroundColor: theme.colors.accent }]} />
+              <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>Workspace</Text>
+            </HStack>
+            <Box
+              style={[
+                styles.workspaceBox,
+                {
+                  backgroundColor: theme.colors.accent + "08",
+                  borderLeftColor: theme.colors.accent,
+                  borderColor: theme.colors.accent + "40",
+                },
+              ]}
+              className="mx-5 rounded-xl border-l-4 border overflow-hidden"
+            >
+              <VStack style={styles.workspacePathContainer} className="px-4 py-3">
                 {workspaceLoading ? (
                   <SkeletonText lineHeight={18} lines={1} lastLineWidth="60%" />
                 ) : (
-                  <HStack style={styles.workspacePathRow}>
-                    <Text size="xs" bold className="text-typography-600 shrink-0">CWD: </Text>
+                  <VStack style={styles.workspacePathRow} className="gap-0.5">
+                    <Text size="xs" bold style={{ color: theme.colors.accent }} className="uppercase tracking-wide">
+                      CWD
+                    </Text>
                     <Text
                       size="sm"
-                      numberOfLines={3}
+                      numberOfLines={2}
                       ellipsizeMode="tail"
-                      className="flex-1 shrink min-w-0 text-typography-600 font-mono"
-                      style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
+                      className="font-mono text-typography-700 min-w-0"
+                      style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 20 }}
                     >
                       {formatPathForWrap(
                         allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
                       )}
                     </Text>
-                  </HStack>
+                  </VStack>
                 )}
               </VStack>
-              <HStack style={styles.workspaceActions}>
+              <HStack style={[styles.workspaceActions, { borderTopColor: theme.colors.accent + "25" }]} className="px-4 pb-8 pt-3">
                 {onOpenWorkspacePicker && (
                   <Box style={styles.workspaceActionWrap} className="flex-1 min-w-0">
                     <Button
@@ -458,9 +529,9 @@ export function SessionManagementModal({
                       variant="outline"
                       size="sm"
                       onPress={onOpenWorkspacePicker}
-                      className="w-full h-13 rounded-lg"
+                      style={[styles.workspaceActionButton, { borderColor: theme.colors.accent + "60" }]}
                     >
-                      <ButtonText>Change Workspace</ButtonText>
+                      <ButtonText style={{ color: theme.colors.accent }} className="font-medium">Change Workspace</ButtonText>
                     </Button>
                   </Box>
                 )}
@@ -470,18 +541,20 @@ export function SessionManagementModal({
                     variant="solid"
                     size="sm"
                     onPress={handleNewSession}
-                    className="w-full h-13 rounded-lg"
+                    style={[styles.workspaceActionButton, { backgroundColor: theme.colors.accent }]}
                   >
-                    <ButtonText className="text-typography-0 font-semibold">Start Session</ButtonText>
+                    <ButtonText style={{ color: theme.colors.textInverse }} className="font-semibold">Start Session</ButtonText>
                   </Button>
                 </Box>
               </HStack>
-            </GluestackCard>
+            </Box>
           </VStack>
 
-          <Text size="sm" bold className="text-typography-600 mt-4 mb-2 mx-5">
-            Recent Sessions
-          </Text>
+          {/* Recent Sessions section */}
+          <HStack className="items-center gap-2 mt-5 mb-2 mx-5">
+            <Box style={[styles.sectionAccent, { backgroundColor: theme.colors.accent }]} />
+            <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>Recent Sessions</Text>
+          </HStack>
 
           {loading && !listError ? (
             <Box style={styles.empty}>
@@ -492,13 +565,13 @@ export function SessionManagementModal({
           ) : sessions.length === 0 && !showActiveChat ? (
             <EntranceAnimation variant="fade" delay={100}>
               <Box style={styles.empty}>
-                <Box style={styles.emptyIconContainer}>
-                  <SessionManagementIcon size={40} color={theme.colors.textMuted} strokeWidth={1.5} />
+                <Box style={[styles.emptyIconContainer, { backgroundColor: theme.colors.accent + "15", borderWidth: 2, borderColor: theme.colors.accent + "40" }]}>
+                  <SessionManagementIcon size={40} color={theme.colors.accent} strokeWidth={1.5} />
                 </Box>
-                <Text size="lg" bold className="text-center mb-2">
+                <Text size="lg" bold className="text-center mb-2 text-typography-900">
                   {listError ? "Connection Error" : "No Sessions Yet"}
                 </Text>
-                <Text size="md" className="text-center text-typography-500" style={styles.emptySubtitle}>
+                <Text size="md" className="text-center text-typography-600" style={styles.emptySubtitle}>
                   {listError ? "Check your server connection and tap Retry above." : "Start a conversation and it will appear here."}
                 </Text>
               </Box>
@@ -521,17 +594,18 @@ export function SessionManagementModal({
                 <EntranceAnimation variant="fade" delay={100}>
                   <Pressable
                     onPress={onSelectActiveChat}
-                    style={[styles.row, styles.activeChatCard]}
+                    style={[styles.row, styles.activeChatCard, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + "14" }]}
+                    className="rounded-xl border-l-4"
                   >
                     <VStack style={styles.activeChatCardContent}>
-                      <Text size="sm" bold numberOfLines={1} className="text-primary-500">
+                      <Text size="sm" bold numberOfLines={1} style={{ color: theme.colors.accent }}>
                         Active Chat
                       </Text>
                       <Text size="xs" className="text-typography-600 mt-0.5">
                         {sessionRunning ? "Receiving updates • tap to view" : "Tap to resume"}
                       </Text>
                     </VStack>
-                    <Badge action="info" variant="solid" size="sm">
+                    <Badge action="success" variant="solid" size="sm">
                       <BadgeText>LIVE</BadgeText>
                     </Badge>
                   </Pressable>
@@ -545,6 +619,8 @@ export function SessionManagementModal({
                   : getFileName(fullPath) || fullPath;
                 const isExpanded = expandedWorkspaces.has(fullPath);
                 const isHovered = hoveredHeaderCwd === fullPath;
+                const runningCount = section.data.filter((s) => s.running).length;
+                const idlingCount = section.data.length - runningCount;
 
                 const toggleWorkspace = () => {
                   triggerHaptic("light");
@@ -568,23 +644,55 @@ export function SessionManagementModal({
                           Alert.alert("Workspace", fullPath, [{ text: "OK" }]);
                         }
                       }}
-                      style={styles.menuHeader}
-                      accessibilityLabel={`${lastName} workspace, ${section.data.length} session(s), ${isExpanded ? "expanded" : "collapsed"}`}
+                      style={[styles.menuHeader, isExpanded && { borderLeftWidth: 3, borderLeftColor: theme.colors.accent }]}
+                      accessibilityLabel={`${lastName} workspace, ${runningCount} running, ${idlingCount} idling, ${isExpanded ? "expanded" : "collapsed"}`}
                       accessibilityRole="button"
                     >
                       <Box style={styles.menuHeaderChevron}>
                         {isExpanded ? (
-                          <ChevronDownIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
+                          <ChevronDownIcon size={16} color={theme.colors.accent} strokeWidth={2} />
                         ) : (
-                          <ChevronRightIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
+                          <ChevronRightIcon size={16} color={theme.colors.textSecondary} strokeWidth={2} />
                         )}
                       </Box>
-                      <Text size="xs" bold className="flex-1 text-typography-600">
+                      <Text size="sm" bold className="flex-1 min-w-0" style={{ color: isExpanded ? theme.colors.accent : theme.colors.textPrimary }}>
                         {lastName}
                       </Text>
-                      <Text size="xs" className="ml-1 opacity-80">
-                        {section.data.length}
-                      </Text>
+                      <HStack space="xs" className="ml-1 gap-1.5 flex-row items-center shrink-0">
+                        {runningCount > 0 && (
+                          <Box
+                            style={[
+                              styles.countBadge,
+                              { backgroundColor: theme.colors.success + "20", borderColor: theme.colors.success + "50", borderWidth: 1 },
+                            ]}
+                          >
+                            <Text size="xs" bold style={{ color: theme.colors.success }}>
+                              {runningCount}
+                            </Text>
+                          </Box>
+                        )}
+                        {idlingCount > 0 && (
+                          <Box
+                            style={[styles.countBadge, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border, borderWidth: 1 }]}
+                          >
+                            <Text size="xs" bold style={{ color: theme.colors.textSecondary }}>
+                              {idlingCount}
+                            </Text>
+                          </Box>
+                        )}
+                        {fullPath !== "(no workspace)" && (
+                          <Button
+                            action="default"
+                            variant="link"
+                            size="sm"
+                            onPress={() => handleDestroyWorkspace(fullPath)}
+                            accessibilityLabel={`Destroy workspace ${lastName}`}
+                            className="min-w-9 min-h-9 opacity-70 -mr-1"
+                          >
+                            <ButtonIcon as={TrashIcon} size="sm" style={{ color: theme.colors.danger }} />
+                          </Button>
+                        )}
+                      </HStack>
                       {isHovered && fullPath !== "(no workspace)" && (
                         <Box style={[styles.sectionHeaderTooltip, { backgroundColor: theme.colors.textPrimary }]}>
                           <Text size="xs" numberOfLines={4} className="text-white" style={styles.tooltipText}>
@@ -601,26 +709,45 @@ export function SessionManagementModal({
                           const isActive = item.id === currentSessionId;
                           return (
                             <EntranceAnimation key={item.id} variant="slideUp" delay={50 * (index % 10)}>
-                              <GluestackCard
-                                variant={isActive ? "elevated" : "outline"}
-                                size="md"
-                                className="p-0"
-                                style={[
-                                  styles.sessionCard,
-                                  isActive ? styles.sessionCardActive : {}
-                                ]}
-                              >
+                              <Box
+                              style={[
+                                styles.sessionCard,
+                                !isActive && {
+                                  borderLeftWidth: 3,
+                                  borderLeftColor: theme.colors.accent + "50",
+                                  borderColor: theme.colors.border,
+                                  backgroundColor: theme.colors.surface,
+                                },
+                                isActive && {
+                                  borderLeftWidth: 4,
+                                  borderLeftColor: theme.colors.accent,
+                                  borderColor: theme.colors.accent,
+                                  backgroundColor: theme.colors.accent + "0C",
+                                  borderWidth: 2,
+                                },
+                              ]}
+                              className="rounded-xl overflow-hidden border"
+                            >
                                 <Pressable
                                   onPress={() => handleSelect(item)}
                                   disabled={isLoading}
                                   style={styles.sessionCardContentWrapper}
                                 >
                                   <Box style={styles.sessionCardContent}>
-                                    <Text size="xs" bold numberOfLines={2} className={isActive ? "text-primary-500" : "text-typography-900"}>
+                                    <Text size="xs" bold numberOfLines={2} style={{ color: isActive ? theme.colors.accent : undefined }} className={isActive ? "" : "text-typography-900"}>
                                       {item.firstUserInput || "(No Input)"}
                                     </Text>
 
                                     <Box style={styles.sessionCardMetaRow} className="flex-row items-center flex-wrap gap-1 mt-0.5">
+                                      <Text
+                                        size="xs"
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                        className="opacity-70 text-typography-500 shrink-0"
+                                      >
+                                        {fullPath === "(no workspace)" ? "(no workspace)" : (getFileName(fullPath) || fullPath)}
+                                      </Text>
+                                      <Divider orientation="vertical" spacing="1" style={{ height: 8, marginHorizontal: 4 }} />
                                       <Text
                                         size="xs"
                                         numberOfLines={1}
@@ -630,7 +757,7 @@ export function SessionManagementModal({
                                         {item.id}
                                       </Text>
                                       <Divider orientation="vertical" spacing="1" style={{ height: 8, marginHorizontal: 4 }} />
-                                      <Text size="xs" className="shrink-0 text-typography-500">
+                                      <Text size="xs" style={[styles.sessionCardTime, { alignSelf: "center" }]} className="shrink-0 text-typography-500">
                                         {formatDate(item.mtime)}
                                       </Text>
                                       {(item.running || item.model) && (
@@ -642,7 +769,7 @@ export function SessionManagementModal({
                                           )}
                                           {item.model && (
                                             <Badge action="muted" variant="solid" size="sm">
-                                              <BadgeText>{modelDisplayName(item.model, item.provider)}</BadgeText>
+                                              <BadgeText style={{ fontSize: 10 }}>{modelDisplayName(item.model, item.provider)}</BadgeText>
                                             </Badge>
                                           )}
                                         </Box>
@@ -663,7 +790,7 @@ export function SessionManagementModal({
                                     </Button>
                                   </Box>
                                 </Pressable>
-                              </GluestackCard>
+                            </Box>
                             </EntranceAnimation>
                           );
                         })}
@@ -688,6 +815,16 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     safe: {
       flex: 1,
+    },
+    accentBar: {
+      width: 4,
+      height: 22,
+      borderRadius: 2,
+    },
+    sectionAccent: {
+      width: 3,
+      height: 14,
+      borderRadius: 2,
     },
     header: {
       flexDirection: "row",
@@ -755,32 +892,24 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textSecondary,
       flexShrink: 0,
     },
-    workspacePathValue: {
-      flex: 1,
-      flexShrink: 1,
-      minWidth: 0,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 12,
-      lineHeight: 20,
-      letterSpacing: 0.2,
-      color: theme.colors.textSecondary,
-    },
     workspaceBox: {
       marginHorizontal: spacing["5"],
-      backgroundColor: theme.colors.surface,
     },
     workspaceActions: {
       flexDirection: "row",
       alignItems: "stretch",
       gap: spacing["3"],
-      marginTop: spacing["2"],
-      paddingTop: spacing["2"],
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.colors.border,
     },
     workspaceActionWrap: {
       flex: 1,
       minWidth: 0,
+    },
+    workspaceActionButton: {
+      width: "100%",
+      minHeight: 48,
+      borderRadius: 10,
     },
     workspaceButtonFill: {
       width: "100%",
@@ -817,9 +946,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     menuHeader: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: spacing["2"],
-      paddingHorizontal: spacing["1"],
-      minHeight: 44,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["3"],
+      marginBottom: spacing["2"],
+      borderRadius: radii.lg,
+      backgroundColor: theme.colors.surfaceAlt,
+      minHeight: 52,
       position: "relative",
     },
     menuHeaderChevron: {
@@ -834,6 +966,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     menuHeaderCount: {
       marginLeft: spacing["1"],
       opacity: 0.8,
+    },
+    countBadge: {
+      paddingHorizontal: spacing["2"],
+      paddingVertical: spacing["0.5"],
+      borderRadius: radii.md,
     },
     menuContent: {
       paddingLeft: spacing["4"],

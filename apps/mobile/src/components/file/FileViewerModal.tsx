@@ -1,24 +1,24 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ActivityIndicator,
   Platform,
   StatusBar,
   ScrollView,
   Image,
   Dimensions,
-  Pressable,
   type TextStyle,
   Linking,
+  Text as RNText,
 } from "react-native";
 import { Highlight, themes } from "prism-react-renderer";
 import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { Pressable } from "../../../components/ui/pressable";
 import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -249,67 +249,67 @@ export function FileViewerModal({
 
   const topInset = embedded ? 0 : insets.top;
   const contentView = (
-    <View style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
-      <View style={styles.header}>
-        <View style={styles.headerTitleWrap}>
+    <Box style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
+      <Box style={styles.header}>
+        <Box style={styles.headerTitleWrap}>
           <Text style={styles.headerLabel}>{headerLabel}</Text>
           <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
             {displayFileName}
           </Text>
-        </View>
-        <TouchableOpacity
+        </Box>
+        <Pressable
           onPress={onClose}
           style={styles.closeBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={styles.closeBtnText}>✕</Text>
-        </TouchableOpacity>
-      </View>
+        </Pressable>
+      </Box>
 
       {loading && (
-        <View style={styles.center}>
+        <Box style={styles.center}>
           <ActivityIndicator size="large" color={theme.accent} />
-        </View>
+        </Box>
       )}
 
       {error && !loading && (
-        <View style={styles.center}>
+        <Box style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
-        </View>
+        </Box>
       )}
 
       {imageUri && (
-        <View style={styles.imageWrap}>
-          <View style={styles.zoomBar}>
-            <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out">
+        <Box style={styles.imageWrap}>
+          <Box style={styles.zoomBar}>
+            <Pressable style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out">
               <Text style={styles.zoomBtnText}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.zoomLabel} onPress={zoomReset}>
+            </Pressable>
+            <Pressable style={styles.zoomLabel} onPress={zoomReset}>
               <Text style={styles.zoomLabelText}>{Math.round(imageScale * 100)}%</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in">
+            </Pressable>
+            <Pressable style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in">
               <Text style={styles.zoomBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
+            </Pressable>
+          </Box>
           <ScrollView
             style={styles.codeScroll}
             contentContainerStyle={styles.imageScrollContent}
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
           >
-            <View style={[styles.imageScaleWrap, { transform: [{ scale: imageScale }] }]}>
+            <Box style={[styles.imageScaleWrap, { transform: [{ scale: imageScale }] }]}>
               <Image
                 source={{ uri: imageUri }}
                 style={[styles.image, { width: Dimensions.get("window").width - 32 }]}
                 resizeMode="contain"
               />
-            </View>
+            </Box>
           </ScrollView>
-        </View>
+        </Box>
       )}
 
       {content !== null && !loading && !error && !isImage && isMarkdownFile(path) && (
-        <View style={styles.markdownWrap}>
+        <Box style={styles.markdownWrap}>
           <ScrollView
             style={styles.markdownScroll}
             contentContainerStyle={styles.markdownScrollContent}
@@ -327,11 +327,11 @@ export function FileViewerModal({
               {wrapBareUrlsInMarkdown(content)}
             </Markdown>
           </ScrollView>
-        </View>
+        </Box>
       )}
 
       {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
-        <View style={styles.htmlWrap}>
+        <Box style={styles.htmlWrap}>
           <WebView
             source={{ html: content }}
             style={styles.htmlWebView}
@@ -340,32 +340,32 @@ export function FileViewerModal({
             domStorageEnabled
             scalesPageToFit
           />
-        </View>
+        </Box>
       )}
 
       {content !== null && !loading && !error && !isImage && !isMarkdownFile(realPath) && !isHtmlFile(realPath) && (
-        <View style={styles.codeWrap}>
+        <Box style={styles.codeWrap}>
           {truncated && (
-            <View style={styles.truncatedBanner}>
+            <Box style={styles.truncatedBanner}>
               <Text style={styles.truncatedText}>
                 Showing first {MAX_DISPLAY_LINES} of {allLines.length} lines
               </Text>
-            </View>
+            </Box>
           )}
           {hasSelection && onAddCodeReference && (
-            <View style={styles.addRefBar}>
+            <Box style={styles.addRefBar}>
               <Text style={styles.addRefHint}>
                 {selectionStart === selectionEnd
                   ? `Line ${selectionStart}`
                   : `Lines ${selectionStart}-${selectionEnd}`}
               </Text>
-              <TouchableOpacity style={styles.addRefBtn} onPress={handleAddToPrompt} activeOpacity={0.8}>
+              <Pressable style={styles.addRefBtn} onPress={handleAddToPrompt}>
                 <Text style={styles.addRefBtnText}>Add to prompt</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelRefBtn} onPress={clearSelection}>
+              </Pressable>
+              <Pressable style={styles.cancelRefBtn} onPress={clearSelection}>
                 <Text style={styles.cancelRefBtnText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+              </Pressable>
+            </Box>
           )}
           <ScrollView
             style={styles.codeScroll}
@@ -373,7 +373,7 @@ export function FileViewerModal({
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
           >
-            <View style={styles.codeWithNumbers}>
+            <Box style={styles.codeWithNumbers}>
               {lines.map((lineContent, i) => {
                 const lineNum = i + 1;
                 const selected =
@@ -399,36 +399,36 @@ export function FileViewerModal({
                     style={[styles.codeRow, selected && styles.codeRowSelected, diffStyle]}
                     onPress={() => onLinePress(i)}
                   >
-                    <View style={[styles.lineNumCell, selected && styles.lineNumCellSelected]}>
+                    <Box style={[styles.lineNumCell, selected && styles.lineNumCellSelected]}>
                       <Text style={[styles.lineNumText, selected && styles.lineNumTextSelected]}>
                         {lineNum}
                       </Text>
-                    </View>
-                    <View style={styles.codeCell}>
+                    </Box>
+                    <Box style={styles.codeCell}>
                       <Highlight theme={themes.vsLight} code={lineContent} language={language}>
                         {({ tokens, getTokenProps }) => (
-                          <Text style={codeBaseStyle} selectable>
+                          <RNText style={codeBaseStyle} selectable>
                             {(tokens[0] ?? []).map((token, k) => {
                               const tokenProps = getTokenProps({ token });
                               const rnStyle = toRNStyle(tokenProps.style as Record<string, unknown>);
                               return (
-                                <Text key={k} style={rnStyle}>
+                                <RNText key={k} style={rnStyle}>
                                   {tokenProps.children}
-                                </Text>
+                                </RNText>
                               );
                             })}
-                          </Text>
+                          </RNText>
                         )}
                       </Highlight>
-                    </View>
+                    </Box>
                   </Pressable>
                 );
               })}
-            </View>
+            </Box>
           </ScrollView>
-        </View>
+        </Box>
       )}
-    </View>
+    </Box>
   );
 
   if (embedded) {

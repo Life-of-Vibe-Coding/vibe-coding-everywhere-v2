@@ -404,7 +404,7 @@ const ActionsheetBackdrop = React.forwardRef<
         opacity: 0,
       }}
       animate={{
-        opacity: 0.5,
+        opacity: 1,
       }}
       exit={{
         opacity: 0,

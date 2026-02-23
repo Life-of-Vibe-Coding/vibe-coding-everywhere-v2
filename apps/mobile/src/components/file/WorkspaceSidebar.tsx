@@ -1,25 +1,27 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ScrollView,
-  Pressable,
   ActivityIndicator,
-  TextInput,
   useWindowDimensions,
   Platform,
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { Pressable } from "../../../components/ui/pressable";
+import { Input, InputField } from "../../../components/ui/input";
+import { Textarea, TextareaInput } from "../../../components/ui/textarea";
+import { Badge, BadgeText } from "../../../components/ui/badge";
 import { getDefaultServerConfig } from "../../core";
 import {
   FolderIconByType,
   FileIconByType,
 } from "../icons/WorkspaceTreeIcons";
+import { EntranceAnimation, triggerHaptic } from "../../design-system";
 import { basename, dirname } from "../../utils/path";
 
 export type TreeItem = {
@@ -80,6 +82,8 @@ interface WorkspaceSidebarProps {
   onFileSelect?: (path: string) => void;
   /** When provided, replaces manual commit with "Commit by AI" flow. Always starts a new session on current workspace. */
   onCommitByAI?: (userRequest: string) => void;
+  /** Called when the active tab (files | changes | commits) changes. Use to hide InputPanel during staging/commit. */
+  onActiveTabChange?: (tab: "files" | "changes" | "commits") => void;
 }
 
 const SIDE_MARGIN = 12;
@@ -98,7 +102,7 @@ function truncatePathMiddle(path: string, maxChars: number = PATH_MAX_CHARS): st
   return `${start}${ellipsis}${file}`;
 }
 
-export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI, onActiveTabChange }: WorkspaceSidebarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -211,6 +215,10 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     if (activeTab === "commits") fetchCommits();
     else if (activeTab === "changes") fetchStatus();
   }, [visible, activeTab, fetchCommits, fetchStatus]);
+
+  useEffect(() => {
+    if (visible) onActiveTabChange?.(activeTab);
+  }, [visible, activeTab, onActiveTabChange]);
 
   useEffect(() => {
     if (!visible || refreshIntervalMs <= 0 || activeTab !== "files") return;
@@ -369,7 +377,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       if (item.type === "folder") {
         const isExpanded = expandedPaths.has(item.path);
         return (
-          <View key={item.path} style={styles.folderBlock}>
+          <Box key={item.path} style={styles.folderBlock}>
             <Pressable
               style={({ pressed }) => [
                 styles.treeRow,
@@ -379,23 +387,23 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               onPress={() => toggleFolder(item.path)}
             >
               <Text style={styles.treeIcon}>{isExpanded ? "▼" : "▶"}</Text>
-              <View style={styles.treeIconWrap}>
+              <Box style={styles.treeIconWrap}>
                 <FolderIconByType
                   name={item.name}
                   expanded={isExpanded}
                   color={ATOM_ONE_LIGHT.folder}
                 />
-              </View>
+              </Box>
               <Text style={styles.treeLabel} numberOfLines={1}>
                 {item.name}
               </Text>
             </Pressable>
             {isExpanded && item.children && item.children.length > 0 && (
-              <View style={styles.children}>
+              <Box style={styles.children}>
                 {item.children.map((child) => renderItem(child, depth + 1))}
-              </View>
+              </Box>
             )}
-          </View>
+          </Box>
         );
       }
       const fileColor = getFileColor(item.name);
@@ -411,10 +419,10 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
           ]}
           onPress={() => handleFilePress(item.path)}
         >
-          <View style={styles.treeIconChevron} />
-          <View style={styles.treeIconWrap}>
+          <Box style={styles.treeIconChevron} />
+          <Box style={styles.treeIconWrap}>
             <FileIconByType name={item.name} color={fileColor} />
-          </View>
+          </Box>
           <Text style={[styles.treeLabel, ignored && styles.treeLabelIgnored]} numberOfLines={1}>
             {item.name}
           </Text>
@@ -428,25 +436,26 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
 
   const renderFilesTab = () => (
     <>
-      <View style={styles.workspaceName}>
+      <Box style={styles.workspaceName}>
         <Text style={styles.workspaceNameText} numberOfLines={2}>
           {data?.root ?? "Workspace"}
         </Text>
-      </View>
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search files..."
-          placeholderTextColor={theme.textMuted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-        />
-      </View>
+      </Box>
+      <Box style={styles.searchBarContainer}>
+        <Input variant="outline" size="md" className="flex-1">
+          <InputField
+            placeholder="Search files..."
+            placeholderTextColor={theme.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+        </Input>
+      </Box>
       {loading && !data ? (
-        <View style={styles.loading}>
+        <Box style={styles.loading}>
           <ActivityIndicator size="small" color={theme.accent} />
-        </View>
+        </Box>
       ) : (
         <ScrollView
           style={styles.scroll}
@@ -464,143 +473,223 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     const hasStaged = stagedFiles.length > 0;
     const hasUnstaged = unstagedFiles.length > 0;
     const hasUntracked = untrackedFiles.length > 0;
+    const totalUnstaged = unstagedFiles.length + untrackedFiles.length;
+    const canCommit = hasStaged || hasUnstaged || hasUntracked;
+    const isDark = theme.mode === "dark";
+
+    const renderChangeRow = (
+      item: { file: string; isDirectory?: boolean; status?: string },
+      key: string,
+      index: number,
+      variant: "staged" | "unstaged",
+      onPress: () => void,
+      onAction?: () => void,
+      actionLabel?: string
+    ) => {
+      const fileName = basename(item.file);
+      const fileColor = item.isDirectory ? ATOM_ONE_LIGHT.folder : getFileColor(fileName);
+      return (
+        <EntranceAnimation key={key} variant="slideUp" delay={index * 35} duration={220}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.changeRow,
+              variant === "staged" && styles.changeRowStaged,
+              pressed && styles.changeRowPressed,
+            ]}
+            onPress={onPress}
+          >
+            <Box style={styles.changeRowIconWrap}>
+              {item.isDirectory ? (
+                <FolderIconByType name={item.file} expanded={false} color={fileColor} />
+              ) : (
+                <FileIconByType name={fileName} color={fileColor} />
+              )}
+            </Box>
+            <Box style={styles.changeRowContent}>
+              <Text style={styles.changeRowPath} numberOfLines={1}>
+                {truncatePathMiddle(item.file)}
+              </Text>
+            </Box>
+            {variant === "staged" && item.status != null && (
+              <Box style={styles.changeRowBadge}>
+                <Badge
+                  action={item.status === "M" || item.status === "A" || item.status === "D" ? "success" : "muted"}
+                  variant="solid"
+                  size="sm"
+                  className="shrink-0"
+                >
+                  <BadgeText>{item.status}</BadgeText>
+                </Badge>
+              </Box>
+            )}
+            {variant === "unstaged" && onAction && (
+              <Pressable
+                style={({ pressed }) => [styles.stageBtn, pressed && styles.stageBtnPressed]}
+                onPress={() => {
+                  triggerHaptic("selection");
+                  onAction();
+                }}
+                accessibilityLabel={actionLabel ?? "Stage"}
+              >
+                <Text style={styles.stageBtnText}>Stage</Text>
+              </Pressable>
+            )}
+          </Pressable>
+        </EntranceAnimation>
+      );
+    };
 
     return (
-      <View style={{ flex: 1, backgroundColor: theme.beigeBg }}>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-
-          <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionTitle}>Staged Changes</Text>
-          </View>
-          {hasStaged ? stagedFiles.map((f, i) => (
-            <View key={`staged:${f.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
-              <View style={styles.stagedPathWrap}>
-                {f.isDirectory ? (
-                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
-                    {truncatePathMiddle(f.file)}
-                  </Text>
-                ) : (
-                  <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
-                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
-                      {truncatePathMiddle(f.file)}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.statusBadgeWrap}>
-                <Text style={styles.statusLabel} numberOfLines={1}>{f.status}</Text>
-              </View>
-            </View>
-          )) : <Text style={styles.emptyText}>No staged changes</Text>}
-
-          <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionTitle}>Unstaged Changes</Text>
-            {hasUnstaged && (
-              <TouchableOpacity onPress={handleStageAll} style={styles.stageAllBtn}>
-                <Text style={styles.stageAllBtnText}>Stage All</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {hasUnstaged && unstagedFiles.map((f, i) => (
-            <View key={`unstaged:${f.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
-              {f.isDirectory ? (
-                <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
-                  {truncatePathMiddle(f.file)}
-                </Text>
-              ) : (
-                <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + f.file)}>
-                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
-                    {truncatePathMiddle(f.file)}
-                  </Text>
-                </TouchableOpacity>
+      <Box style={[styles.changesLayout, { backgroundColor: theme.beigeBg }]}>
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.changesScrollContent} showsVerticalScrollIndicator={false}>
+          {/* Staged section card */}
+          <Box style={[styles.sectionCard, isDark && styles.sectionCardDark]}>
+            <Box style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.success }]}>Staged</Text>
+              {hasStaged && (
+                <Badge action="success" variant="outline" size="sm">
+                  <BadgeText>{stagedFiles.length}</BadgeText>
+                </Badge>
               )}
-              <TouchableOpacity onPress={() => handleStageFile(f.file)} style={styles.stageBtnWrap}>
-                <Text style={styles.stageBtnText}>Stage</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          {!hasUnstaged && !hasUntracked && <Text style={styles.emptyText}>No unstaged changes</Text>}
+            </Box>
+            {hasStaged ? (
+              <Box style={styles.changeList}>
+                {stagedFiles.map((f, i) =>
+                  renderChangeRow(
+                    f,
+                    `staged:${f.file}:${i}`,
+                    i,
+                    "staged",
+                    () => !f.isDirectory && handleFilePress("__diff__:staged:" + f.file)
+                  )
+                )}
+              </Box>
+            ) : (
+              <Text style={styles.emptyText}>No staged changes</Text>
+            )}
+          </Box>
 
-          {hasUntracked && (
-            <>
-              <View style={styles.sectionHeaderWrap}>
-                <Text style={styles.sectionTitle}>Untracked Files</Text>
-              </View>
-              {untrackedFiles.map((u, i) => (
-                <View key={`untracked:${u.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
-                  {u.isDirectory ? (
-                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
-                      {truncatePathMiddle(u.file)}
-                    </Text>
-                  ) : (
-                    <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + u.file)}>
-                      <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
-                        {truncatePathMiddle(u.file)}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity onPress={() => handleStageFile(u.file)} style={styles.stageBtnWrap}>
-                    <Text style={styles.stageBtnText}>Stage</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </>
-          )}
-
+          {/* Unstaged section card */}
+          <Box style={[styles.sectionCard, isDark && styles.sectionCardDark]}>
+            <Box style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Unstaged</Text>
+              {totalUnstaged > 0 && (
+                <Badge action="muted" variant="outline" size="sm">
+                  <BadgeText>{totalUnstaged}</BadgeText>
+                </Badge>
+              )}
+              {totalUnstaged > 0 && (
+                <Pressable
+                  style={({ pressed }) => [styles.stageAllBtn, pressed && styles.stageAllBtnPressed]}
+                  onPress={() => {
+                    triggerHaptic("light");
+                    handleStageAll();
+                  }}
+                >
+                  <Text style={[styles.stageAllBtnText, { color: theme.accent }]}>Stage all</Text>
+                </Pressable>
+              )}
+            </Box>
+            {hasUnstaged ? (
+              <Box style={styles.changeList}>
+                {unstagedFiles.map((f, i) =>
+                  renderChangeRow(
+                    f,
+                    `unstaged:${f.file}:${i}`,
+                    i,
+                    "unstaged",
+                    () => !f.isDirectory && handleFilePress("__diff__:unstaged:" + f.file),
+                    () => handleStageFile(f.file)
+                  )
+                )}
+              </Box>
+            ) : null}
+            {hasUntracked ? (
+              <Box style={[styles.changeList, hasUnstaged && { marginTop: 4 }]}>
+                {untrackedFiles.map((u, i) =>
+                  renderChangeRow(
+                    u,
+                    `untracked:${u.file}:${i}`,
+                    unstagedFiles.length + i,
+                    "unstaged",
+                    () => !u.isDirectory && handleFilePress("__diff__:unstaged:" + u.file),
+                    () => handleStageFile(u.file)
+                  )
+                )}
+              </Box>
+            ) : null}
+            {!hasUnstaged && !hasUntracked && <Text style={styles.emptyText}>No unstaged changes</Text>}
+          </Box>
         </ScrollView>
-        <View style={styles.commitForm}>
+
+        {/* Commit form */}
+        <Box style={[styles.commitForm, isDark && styles.commitFormDark]}>
           {onCommitByAI ? (
             <>
-              <TextInput
-                style={styles.commitInput}
-                placeholder="Describe what to commit (e.g. fix typo, add feature). AI will use the git skill."
-                placeholderTextColor={theme.textMuted}
-                value={aiCommitQuery}
-                onChangeText={setAiCommitQuery}
-                multiline
-                editable={!actionLoading}
-              />
-              <TouchableOpacity
+              <Box style={styles.commitInputRow}>
+                <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
+                  <Textarea variant="default" size="md" className="min-h-18 max-h-28">
+                    <TextareaInput
+                      style={[styles.commitInput, styles.commitInputWithButton]}
+                      placeholder="Describe what to commit (e.g. fix typo, add feature). AI will use the git skill."
+                      placeholderTextColor={theme.textMuted}
+                      value={aiCommitQuery}
+                      onChangeText={setAiCommitQuery}
+                      editable={!actionLoading}
+                    />
+                  </Textarea>
+                </Box>
+              </Box>
+              <Pressable
                 style={[
                   styles.commitBtn,
-                  (!aiCommitQuery.trim() || (!hasStaged && !hasUnstaged && !hasUntracked)) && { opacity: 0.5 },
+                  { backgroundColor: theme.accent, shadowColor: theme.accent },
+                  (!aiCommitQuery.trim() || !canCommit) && { opacity: 0.5 },
                 ]}
                 onPress={() => {
                   const q = aiCommitQuery.trim();
-                  if (!q) return;
+                  if (!q || !canCommit) return;
+                  triggerHaptic("light");
                   onCommitByAI?.(q);
                   setAiCommitQuery("");
                   onClose();
                 }}
-                disabled={
-                  !aiCommitQuery.trim() || (!hasStaged && !hasUnstaged && !hasUntracked) || actionLoading
-                }
+                disabled={!aiCommitQuery.trim() || !canCommit || actionLoading}
               >
                 <Text style={styles.commitBtnText}>Commit by AI</Text>
-              </TouchableOpacity>
+              </Pressable>
             </>
           ) : (
             <>
-              <TextInput
-                style={styles.commitInput}
-                placeholder="Commit message..."
-                placeholderTextColor={theme.textMuted}
-                value={commitMessage}
-                onChangeText={setCommitMessage}
-                multiline
-                editable={!actionLoading}
-              />
-              <TouchableOpacity
-                style={[styles.commitBtn, (!hasStaged || !commitMessage.trim()) && { opacity: 0.5 }]}
+              <Box style={styles.commitInputRow}>
+                <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
+                  <Textarea variant="default" size="md" className="min-h-18 max-h-28">
+                    <TextareaInput
+                      style={[styles.commitInput, styles.commitInputWithButton]}
+                      placeholder="Commit message..."
+                      placeholderTextColor={theme.textMuted}
+                      value={commitMessage}
+                      onChangeText={setCommitMessage}
+                      editable={!actionLoading}
+                    />
+                  </Textarea>
+                </Box>
+              </Box>
+              <Pressable
+                style={[
+                  styles.commitBtn,
+                  { backgroundColor: theme.accent, shadowColor: theme.accent },
+                  (!hasStaged || !commitMessage.trim()) && { opacity: 0.5 },
+                ]}
                 onPress={handleCommit}
                 disabled={!hasStaged || !commitMessage.trim() || actionLoading}
               >
-                <Text style={styles.commitBtnText}>{actionLoading ? "Committing..." : "Commit"}</Text>
-              </TouchableOpacity>
+                <Text style={styles.commitBtnText}>{actionLoading ? "Committing…" : "Commit"}</Text>
+              </Pressable>
             </>
           )}
-        </View>
-      </View>
+        </Box>
+      </Box>
     );
   };
 
@@ -608,14 +697,14 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {commits.length > 0 ? commits.map(c => (
-          <View key={c.hash} style={styles.commitItem}>
-            <View style={styles.commitHeaderRow}>
+          <Box key={c.hash} style={styles.commitItem}>
+            <Box style={styles.commitHeaderRow}>
               <Text style={styles.commitHash}>{c.hash.slice(0, 7)}</Text>
               <Text style={styles.commitDate}>{c.date}</Text>
-            </View>
+            </Box>
             <Text style={styles.commitMessageTxt}>{c.message}</Text>
             <Text style={styles.commitAuthorTxt}>{c.author}</Text>
-          </View>
+          </Box>
         )) : <Text style={styles.emptyText}>No commits found</Text>}
       </ScrollView>
     );
@@ -628,47 +717,55 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     ? [styles.drawerCenter, styles.drawerCenterEmbedded, { paddingHorizontal: SIDE_MARGIN }]
     : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];
   const overlayContent = (
-    <View style={[styles.overlay, embedded && styles.overlayEmbedded, overlayPadding]}>
-      <TouchableOpacity
+    <Box style={[styles.overlay, embedded && styles.overlayEmbedded, overlayPadding]}>
+      <Pressable
         style={styles.mask}
-        activeOpacity={1}
         onPress={onClose}
       />
-      <View style={drawerCenterStyle} pointerEvents="box-none">
-        <View style={[styles.drawer, drawerSize]}>
+      <Box style={drawerCenterStyle} pointerEvents="box-none">
+        <EntranceAnimation variant="slideRight" duration={280}>
+        <Box style={[styles.drawer, drawerSize]}>
 
-          <View style={styles.tabContainer}>
-            {(["files", "changes", "commits"] as const).map(tab => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, activeTab === tab && styles.tabActive]}
-                onPress={() => setActiveTab(tab)}
+          <Box style={styles.tabContainer}>
+            <Box style={styles.tabSpacer} />
+            <Box style={styles.tabGroup}>
+              {(["files", "changes", "commits"] as const).map(tab => (
+                <Pressable
+                  key={tab}
+                  style={[styles.tab, activeTab === tab && styles.tabActive]}
+                  onPress={() => {
+                  setActiveTab(tab);
+                  onActiveTabChange?.(tab);
+                }}
+                >
+                  <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </Box>
+            <Box style={styles.tabSpacerRight}>
+              <Pressable
+                style={styles.tabCloseBtn}
+                onPress={onClose}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityLabel="Close file explorer"
               >
-                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={styles.tabCloseBtn}
-              onPress={onClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityLabel="Close file explorer"
-            >
-              <Text style={styles.tabCloseBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+                <Text style={styles.tabCloseBtnText}>✕</Text>
+              </Pressable>
+            </Box>
+          </Box>
 
           {gitLoading && activeTab !== "files" ? (
-            <View style={styles.loading}>
+            <Box style={styles.loading}>
               <ActivityIndicator size="large" color={theme.accent} />
-            </View>
+            </Box>
           ) : gitError && activeTab !== "files" ? (
             <ScrollView style={styles.scroll} contentContainerStyle={styles.errorContainer}>
               <Text style={styles.errorTitle}>Git Error</Text>
               <Text style={styles.errorText}>{gitError}</Text>
               {gitError.includes("not a git repository") && (
-                <TouchableOpacity
+                <Pressable
                   style={[styles.initGitBtn, actionLoading && styles.initGitBtnDisabled]}
                   onPress={handleGitInit}
                   disabled={actionLoading}
@@ -679,16 +776,17 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                   ) : (
                     <Text style={styles.initGitBtnText}>Initialize Git Repository</Text>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               )}
             </ScrollView>
-          ) : activeTab === "commits" ? renderCommitsTab() :
+          )           : activeTab === "commits" ? renderCommitsTab() :
             activeTab === "files" ? renderFilesTab() :
               renderChangesTab()}
 
-        </View>
-      </View>
-    </View>
+        </Box>
+        </EntranceAnimation>
+      </Box>
+    </Box>
   );
 
   if (embedded) {
@@ -756,13 +854,27 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     tabContainer: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
       backgroundColor: theme.beigeBg,
     },
-    tab: {
+    tabSpacer: {
       flex: 1,
+    },
+    tabGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    tabSpacerRight: {
+      flex: 1,
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "center",
+    },
+    tab: {
       paddingVertical: 12,
+      paddingHorizontal: 16,
       alignItems: "center",
     },
     tabActive: { borderBottomWidth: 2, borderBottomColor: theme.accent },
@@ -851,8 +963,75 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 8,
       marginTop: 6
     },
-    sectionTitle: { fontSize: 11, fontWeight: "600", color: theme.textPrimary, textTransform: "uppercase", letterSpacing: 0.4 },
-    emptyText: { paddingHorizontal: 16, paddingVertical: 10, color: theme.textMuted, fontSize: 12, fontStyle: "italic" },
+    sectionTitle: { fontSize: 13, fontWeight: "600", color: theme.textPrimary },
+    emptyText: { paddingHorizontal: 16, paddingVertical: 12, color: theme.textMuted, fontSize: 13 },
+
+    // Redesigned Changes tab
+    changesLayout: { flex: 1 },
+    changesScrollContent: { paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 20 },
+    sectionCard: {
+      backgroundColor: theme.colors?.surface ?? theme.beigeBg,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors?.border ?? "rgba(0,0,0,0.08)",
+      marginBottom: 12,
+      overflow: "hidden",
+    },
+    sectionCardDark: {
+      backgroundColor: theme.colors?.surfaceAlt ?? "rgba(255,255,255,0.04)",
+      borderColor: theme.colors?.border ?? "rgba(255,255,255,0.1)",
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors?.border ?? "rgba(0,0,0,0.06)",
+      gap: 8,
+    },
+    changeList: { paddingVertical: 4 },
+    changeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      minHeight: 44,
+    },
+    changeRowStaged: {},
+    changeRowPressed: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" },
+    changeRowIconWrap: {
+      width: 28,
+      height: 28,
+      borderRadius: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 10,
+    },
+    changeRowContent: { flex: 1, minWidth: 0 },
+    changeRowPath: {
+      fontSize: 13,
+      color: theme.textPrimary,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    },
+    changeRowBadge: { marginLeft: 8 },
+    stageBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)",
+    },
+    stageBtnPressed: { opacity: 0.8 },
+    stageBtnText: { fontSize: 12, fontWeight: "600", color: theme.accent },
+    stageAllBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)",
+      marginLeft: "auto",
+    },
+    stageAllBtnPressed: { opacity: 0.8 },
 
     changeItem: {
       flexDirection: "row",
@@ -871,15 +1050,32 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     statusBadgeWrap: { flexShrink: 0, marginLeft: 8, justifyContent: "center" },
     statusLabel: { fontSize: 11, color: theme.accent, fontWeight: "600" },
     stageBtnWrap: { flexShrink: 0, marginLeft: 8 },
-    stageAllBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)", marginLeft: 8 },
-    stageAllBtnText: { color: theme.accent, fontSize: 11, fontWeight: "600" },
-    stageBtnText: { color: theme.accent, fontSize: 12, fontWeight: "600" },
+    stageAllBtnText: { fontSize: 12, fontWeight: "600" },
 
     commitForm: {
       padding: 16,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.borderColor,
       backgroundColor: theme.beigeBg,
+      flexShrink: 0,
+    },
+    commitFormDark: {
+      backgroundColor: theme.colors?.surface ?? theme.beigeBg,
+      borderTopColor: theme.colors?.border ?? theme.borderColor,
+    },
+    commitInputRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+      marginBottom: 12,
+    },
+    commitInputWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    commitInputWrapDark: {
+      backgroundColor: "rgba(255,255,255,0.06)",
+      borderColor: "rgba(255,255,255,0.12)",
     },
     commitInput: {
       minHeight: 80,
@@ -891,9 +1087,12 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: 14,
       color: theme.textPrimary,
       textAlignVertical: "top",
-      marginBottom: 12,
       borderWidth: 1,
       borderColor: "rgba(0,0,0,0.08)",
+    },
+    commitInputWithButton: {
+      marginBottom: 0,
+      flex: 1,
     },
     commitBtn: {
       backgroundColor: theme.accent,

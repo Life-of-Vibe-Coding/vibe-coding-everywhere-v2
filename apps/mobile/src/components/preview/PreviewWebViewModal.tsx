@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
   Modal,
-  TouchableOpacity,
   ActivityIndicator,
   Platform,
-  TextInput,
   Keyboard,
   ScrollView,
   useWindowDimensions,
@@ -16,6 +12,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { Pressable } from "../../../components/ui/pressable";
+import { Input, InputField } from "../../../components/ui/input";
 import { UrlChoiceModal } from "./UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
@@ -301,20 +301,19 @@ export function PreviewWebViewModal({
       statusBarTranslucent
       supportedOrientations={["portrait", "portrait-upside-down", "landscape", "landscape-left", "landscape-right"]}
     >
-      <View style={styles.safe}>
+      <Box style={styles.safe}>
         {/* Chrome-like toolbar - hidden in full screen */}
         {!isFullScreen && (
           <>
             {/* Row 1: Close button | Tabs | Add tab */}
-            <View style={[styles.toolbar, { paddingTop: insets.top }]}>
-              <TouchableOpacity
+            <Box style={[styles.toolbar, { paddingTop: insets.top }]}>
+              <Pressable
                 style={styles.closeBtn}
                 onPress={onClose}
-                activeOpacity={0.8}
                 accessibilityLabel="Close preview"
               >
                 <Text style={styles.closeText}>✕</Text>
-              </TouchableOpacity>
+              </Pressable>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -325,17 +324,16 @@ export function PreviewWebViewModal({
                   const isActive = i === activeIndex;
                   const label = `tab ${i + 1}`;
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={tab.id}
                       style={[styles.tab, isActive && styles.tabActive]}
                       onPress={() => selectTab(i)}
-                      activeOpacity={0.8}
                     >
                       <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
                         {label}
                       </Text>
                       {tabs.length > 1 && (
-                        <TouchableOpacity
+                        <Pressable
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           style={styles.tabClose}
                           onPress={(e) => {
@@ -344,39 +342,40 @@ export function PreviewWebViewModal({
                           }}
                         >
                           <Text style={[styles.tabCloseText, isActive && styles.tabCloseTextActive]}>×</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                       )}
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </ScrollView>
-              <TouchableOpacity style={styles.addTabBtn} onPress={addTab} activeOpacity={0.8}>
+              <Pressable style={styles.addTabBtn} onPress={addTab}>
                 <Text style={styles.addTabText}>+</Text>
-              </TouchableOpacity>
-            </View>
+              </Pressable>
+            </Box>
 
             {/* Row 2: Address bar | Refresh | Fullscreen */}
-            <View style={styles.tabBar}>
-              <View style={styles.urlBarWrap}>
-                <TextInput
-                  style={styles.urlInput}
-                  value={urlInputValue}
-                  onChangeText={setUrlInputValue}
-                  placeholder="搜索或输入网址"
-                  placeholderTextColor={theme.textMuted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                  returnKeyType="go"
-                  onSubmitEditing={handleGo}
-                  selectTextOnFocus
-                />
-              </View>
-              <TouchableOpacity
+            <Box style={styles.tabBar}>
+              <Box style={styles.urlBarWrap}>
+                <Input variant="outline" size="md" className="border-0 bg-transparent flex-1">
+                  <InputField
+                    value={urlInputValue}
+                    onChangeText={setUrlInputValue}
+                    placeholder="搜索或输入网址"
+                    placeholderTextColor={theme.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                    returnKeyType="go"
+                    onSubmitEditing={handleGo}
+                    selectTextOnFocus
+                    className="text-[15px] text-text-primary p-0"
+                  />
+                </Input>
+              </Box>
+              <Pressable
                 style={[styles.iconBtn, loading && !!resolvedUrl && styles.iconBtnDisabled]}
                 onPress={handleReload}
                 disabled={loading && !!resolvedUrl}
-                activeOpacity={0.8}
                 accessibilityLabel="Reload"
               >
                 {loading && resolvedUrl ? (
@@ -384,27 +383,26 @@ export function PreviewWebViewModal({
                 ) : (
                   <Text style={styles.iconBtnText}>↵</Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
               {!!resolvedUrl && (
-                <TouchableOpacity
+                <Pressable
                   style={styles.iconBtn}
                   onPress={() => setIsFullScreen(true)}
-                  activeOpacity={0.8}
                   accessibilityLabel="Full screen"
                 >
                   <Text style={styles.iconBtnText}>⛶</Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
-            </View>
+            </Box>
           </>
         )}
 
         {!resolvedUrl ? (
-          <View style={styles.placeholder}>
+          <Box style={styles.placeholder}>
             <Text style={styles.placeholderText}>输入网址后按键盘「前往」或点击刷新加载</Text>
-          </View>
+          </Box>
         ) : (
-          <View style={styles.webContainer}>
+          <Box style={styles.webContainer}>
             {/* Render one WebView per tab so switching tabs does not remount/reload. */}
             {tabs.map((tab, i) => {
               const tabUrl = tab.url ?? "";
@@ -416,7 +414,7 @@ export function PreviewWebViewModal({
               const isActive = i === activeIndex;
               if (!tabLoadUri) return null;
               return (
-                <View
+                <Box
                   key={tab.id}
                   style={[
                     styles.webviewWrapper,
@@ -463,39 +461,38 @@ export function PreviewWebViewModal({
                     cacheEnabled={false}
                     {...(Platform.OS === "android" ? { cacheMode: "LOAD_NO_CACHE" as const } : {})}
                   />
-                </View>
+                </Box>
               );
             })}
             {loading && (
-              <View style={styles.loadingOverlay}>
+              <Box style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={theme.accent} />
                 <Text style={styles.loadingText}>加载中…</Text>
-              </View>
+              </Box>
             )}
             {error ? (
-              <View style={styles.errorBox}>
+              <Box style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Text style={styles.urlHint}>{resolvedUrl}</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={handleReload}>
+                <Pressable style={styles.retryBtn} onPress={handleReload}>
                   <Text style={styles.retryBtnText}>重试</Text>
-                </TouchableOpacity>
-              </View>
+                </Pressable>
+              </Box>
             ) : null}
-          </View>
+          </Box>
         )}
 
         {/* Floating exit fullscreen button (in landscape this closes the preview since full screen is locked) */}
         {isFullScreen && (
-          <TouchableOpacity
+          <Pressable
             style={[styles.fullScreenExit, { top: insets.top }]}
             onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
-            activeOpacity={0.8}
             accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}
           >
             <Text style={styles.fullScreenExitText}>✕</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
-      </View>
+      </Box>
 
       <UrlChoiceModal
         visible={urlChoiceVisible}

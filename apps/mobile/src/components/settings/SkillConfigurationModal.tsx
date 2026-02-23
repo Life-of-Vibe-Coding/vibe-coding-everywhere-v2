@@ -1,17 +1,16 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   ScrollView,
-  Platform,
   ActivityIndicator,
   Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { Pressable } from "../../../components/ui/pressable";
 import { CloseIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
 import { SkillDetailSheet } from "./SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
@@ -39,7 +38,6 @@ export function SkillConfigurationModal({
 }: SkillConfigurationModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(theme, insets), [theme, insets]);
 
   const [skills, setSkills] = useState<Skill[]>([]);
   const [enabledSkillIds, setEnabledSkillIds] = useState<Set<string>>(new Set());
@@ -108,32 +106,52 @@ export function SkillConfigurationModal({
 
   if (!visible) return null;
 
+  const safeStyle = {
+    paddingTop: Math.max(insets.top, 8),
+    paddingBottom: Math.max(insets.bottom, 8),
+  };
+
+  const showDetailOverlay = Boolean(selectedSkillId);
+
   return (
     <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={onClose}
-      >
-        <View style={styles.fullScreen}>
-          <View style={styles.safe}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Skill Configuration</Text>
-              <TouchableOpacity
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <Box className="flex-1 bg-background-0" style={styles.root}>
+        {showDetailOverlay ? (
+          <Box className="flex-1" style={safeStyle}>
+            <SkillDetailSheet
+              embedded
+              visible
+              skillId={selectedSkillId!}
+              serverBaseUrl={serverBaseUrl}
+              onClose={onCloseSkillDetail ?? (() => {})}
+            />
+          </Box>
+        ) : (
+          <Box className="flex-1" style={safeStyle}>
+            <Box className="flex-row items-center justify-between py-4 px-5 border-b border-outline-500">
+              <Text className="text-lg font-semibold text-text-primary">
+                Skill Configuration
+              </Text>
+              <Pressable
                 onPress={onClose}
-                style={styles.closeBtn}
                 hitSlop={12}
                 accessibilityLabel="Close skill configuration"
+                className="p-2 min-w-11 min-h-11 items-center justify-center"
               >
                 <CloseIcon size={20} color={theme.textMuted} />
-              </TouchableOpacity>
-            </View>
+              </Pressable>
+            </Box>
             <ScrollView
-              style={styles.scroll}
+              className="flex-1"
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.intro}>
+              <Text className="text-sm text-text-muted mb-5 leading-5">
                 Enable skills for the Pi agent. When enabled, skill content is
                 included in the prompt. Tap a skill to view its details.
               </Text>
@@ -144,36 +162,40 @@ export function SkillConfigurationModal({
                   style={styles.loader}
                 />
               ) : skillsError ? (
-                <Text style={styles.error}>{skillsError}</Text>
+                <Text className="text-sm text-error-500 mt-4">{skillsError}</Text>
               ) : skills.length === 0 ? (
-                <Text style={styles.empty}>
+                <Text className="text-sm text-text-muted mt-4">
                   No skills found in project skills folder.
                 </Text>
               ) : (
                 skills.map((skill) => (
-                  <View key={skill.id} style={styles.skillCard}>
-                    <TouchableOpacity
-                      style={styles.skillInfoTouchable}
+                  <Box
+                    key={skill.id}
+                    className="flex-row items-center justify-between py-3.5 px-4 rounded-xl bg-secondary-100 border border-outline-500 mb-2.5"
+                  >
+                    <Pressable
                       onPress={() => handleSkillRowPress(skill.id)}
-                      activeOpacity={0.8}
                       hitSlop={{ top: 12, bottom: 12, left: 0, right: 12 }}
                       accessibilityLabel={`${skill.name}. View details`}
                       accessibilityRole="button"
+                      className="flex-1 flex-row items-center mr-3"
                     >
-                      <View style={styles.skillInfo}>
-                        <Text style={styles.skillName}>{skill.name}</Text>
+                      <Box className="flex-1 mr-2 min-w-0">
+                        <Text className="text-[15px] font-semibold text-text-primary">
+                          {skill.name}
+                        </Text>
                         {skill.description ? (
                           <Text
-                            style={styles.skillDescription}
+                            className="text-xs text-text-muted mt-1 leading-4"
                             numberOfLines={2}
                           >
                             {skill.description}
                           </Text>
                         ) : null}
-                      </View>
+                      </Box>
                       <ChevronRightIcon size={18} color={theme.textMuted} />
-                    </TouchableOpacity>
-                    <View style={styles.switchWrapper}>
+                    </Pressable>
+                    <Box className="shrink-0">
                       <Switch
                         value={enabledSkillIds.has(skill.id)}
                         onValueChange={(val) => handleSkillToggle(skill.id, val)}
@@ -188,128 +210,28 @@ export function SkillConfigurationModal({
                             : theme.cardBg
                         }
                       />
-                    </View>
-                  </View>
+                    </Box>
+                  </Box>
                 ))
               )}
             </ScrollView>
-          </View>
-          {/* Skill detail overlay - rendered on top of config list (iOS can't stack native Modals) */}
-          {selectedSkillId && (
-            <View style={styles.detailOverlay}>
-              <SkillDetailSheet
-                embedded
-                visible
-                skillId={selectedSkillId}
-                serverBaseUrl={serverBaseUrl}
-                onClose={onCloseSkillDetail ?? (() => {})}
-              />
-            </View>
-          )}
-        </View>
-      </Modal>
+          </Box>
+        )}
+      </Box>
+    </Modal>
   );
 }
 
-function createStyles(theme: ReturnType<typeof useTheme>, insets: { top: number; bottom: number }) {
-  return StyleSheet.create({
-    fullScreen: {
-      flex: 1,
-      backgroundColor: theme.beigeBg,
-    },
-    detailOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: 10,
-      backgroundColor: theme.beigeBg,
-    },
-    safe: {
-      flex: 1,
-      paddingTop: Math.max(insets.top, 8),
-      paddingBottom: Math.max(insets.bottom, 8),
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: theme.textPrimary,
-    },
-    closeBtn: {
-      padding: 8,
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 24,
-    },
-    intro: {
-      fontSize: 14,
-      color: theme.textMuted,
-      marginBottom: 20,
-      lineHeight: 20,
-    },
-    loader: {
-      marginTop: theme.spacing?.sm ?? 16,
-    },
-    error: {
-      fontSize: 14,
-      color: theme.danger,
-      marginTop: theme.spacing?.sm ?? 16,
-    },
-    empty: {
-      fontSize: 14,
-      color: theme.textMuted,
-      marginTop: theme.spacing?.sm ?? 16,
-    },
-    skillCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderRadius: 12,
-      backgroundColor: theme.cardBg,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-      marginBottom: 10,
-    },
-    skillInfoTouchable: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      marginRight: 12,
-    },
-    skillInfo: {
-      flex: 1,
-      marginRight: 8,
-    },
-    skillName: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: theme.textPrimary,
-    },
-    skillDescription: {
-      fontSize: 12,
-      color: theme.textMuted,
-      marginTop: 4,
-      lineHeight: 16,
-    },
-    switchWrapper: {
-      flexShrink: 0,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  root: {
+    overflow: "hidden",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  loader: {
+    marginTop: 16,
+  },
+});

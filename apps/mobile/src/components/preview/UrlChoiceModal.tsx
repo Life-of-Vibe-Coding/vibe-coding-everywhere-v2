@@ -1,14 +1,10 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  Pressable,
-} from "react-native";
+import { StyleSheet, Modal, TouchableWithoutFeedback } from "react-native";
 import { useTheme } from "../../theme/index";
+import { EntranceAnimation } from "../../design-system";
+import { Box } from "../../../components/ui/box";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
 
 const MIN_TOUCH_TARGET = 44;
 const URL_PREVIEW_MAX_LEN = 40;
@@ -57,54 +53,51 @@ export function UrlChoiceModal({
       statusBarTranslucent
     >
       <TouchableWithoutFeedback onPress={onCancel}>
-        <View style={styles.backdrop}>
+        <Box style={styles.backdrop} className="flex-1 justify-center items-center p-8">
           <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={styles.card}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.description}>{description}</Text>
+            <EntranceAnimation variant="scale" duration={280}>
+            <Box style={styles.card} className="w-full max-w-90 rounded-xl p-8 bg-background-0">
+              <Text size="lg" bold className="text-typography-900 mb-4">{title}</Text>
+              <Text size="md" className="text-typography-600 mb-6 leading-5">{description}</Text>
 
-              <View style={styles.options}>
+              <Box style={styles.options} className="gap-4">
                 <Pressable
-                  style={({ pressed }) => [styles.optionPrimary, pressed && styles.optionPressed]}
                   onPress={onChooseVpn}
                   accessibilityRole="button"
                   accessibilityLabel={`Use VPN URL: ${truncateUrl(vpnUrl)}`}
                   accessibilityHint="Loads the page via Tailscale/VPN so this device can reach it"
+                  className="min-h-11 py-4 px-6 rounded-lg border border-primary-500 bg-primary-500/10"
                 >
-                  <Text style={styles.optionPrimaryLabel}>Use VPN URL</Text>
-                  <Text style={styles.optionUrl} numberOfLines={1}>
-                    {truncateUrl(vpnUrl)}
-                  </Text>
+                  <Text size="sm" bold className="text-primary-500 mb-0.5">Use VPN URL</Text>
+                  <Text size="xs" numberOfLines={1} className="text-typography-500">{truncateUrl(vpnUrl)}</Text>
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed }) => [styles.optionSecondary, pressed && styles.optionPressed]}
                   onPress={onChooseOriginal}
                   accessibilityRole="button"
                   accessibilityLabel={`Keep original URL: ${truncateUrl(originalUrl)}`}
                   accessibilityHint="Keeps localhost; may not work on this device"
+                  className="min-h-11 py-4 px-6 rounded-lg border border-outline-400 bg-background-50"
                 >
-                  <Text style={styles.optionSecondaryLabel}>Keep original</Text>
-                  <Text style={styles.optionUrl} numberOfLines={1}>
-                    {truncateUrl(originalUrl)}
-                  </Text>
+                  <Text size="sm" bold className="text-typography-900 mb-0.5">Keep original</Text>
+                  <Text size="xs" numberOfLines={1} className="text-typography-500">{truncateUrl(originalUrl)}</Text>
                 </Pressable>
-              </View>
+              </Box>
 
               {onCancel && (
-                <TouchableOpacity
-                  style={styles.cancelBtn}
+                <Pressable
                   onPress={onCancel}
-                  activeOpacity={0.7}
+                  className="min-h-11 mt-6 py-2 items-center justify-center"
                   accessibilityRole="button"
                   accessibilityLabel="Cancel"
                 >
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
+                  <Text size="sm" className="text-typography-500">Cancel</Text>
+                </Pressable>
               )}
-            </View>
+            </Box>
+            </EntranceAnimation>
           </TouchableWithoutFeedback>
-        </View>
+        </Box>
       </TouchableWithoutFeedback>
     </Modal>
   );

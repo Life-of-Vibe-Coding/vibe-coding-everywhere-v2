@@ -5,6 +5,7 @@ import { Box } from "../../../components/ui/box";
 import { Text } from "../../../components/ui/text";
 import { VStack } from "../../../components/ui/vstack";
 import { HStack } from "../../../components/ui/hstack";
+import { EntranceAnimation } from "../../design-system";
 interface PermissionDenialBannerProps {
   denials: PermissionDenial[];
   onDismiss: () => void;
@@ -24,7 +25,8 @@ export function PermissionDenialBanner({ denials, onDismiss, onAccept }: Permiss
     .join("\n");
 
   return (
-    <Box className="border border-error-500 rounded-xl p-3.5 bg-error-500/10">
+    <EntranceAnimation variant="slideUp" duration={280}>
+      <Box className="border border-error-500 rounded-xl p-3.5 bg-error-500/10">
       <VStack space="sm" className="gap-2">
         <Text size="sm" bold className="text-error-600">
           {summary}
@@ -54,6 +56,7 @@ export function PermissionDenialBanner({ denials, onDismiss, onAccept }: Permiss
         </HStack>
       </VStack>
     </Box>
+    </EntranceAnimation>
   );
 }
 
