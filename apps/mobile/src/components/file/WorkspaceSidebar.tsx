@@ -20,6 +20,7 @@ import {
   FolderIconByType,
   FileIconByType,
 } from "../icons/WorkspaceTreeIcons";
+import { basename, dirname } from "../../utils/path";
 
 export type TreeItem = {
   name: string;
@@ -83,6 +84,19 @@ interface WorkspaceSidebarProps {
 
 const SIDE_MARGIN = 12;
 const IGNORED_FILES = new Set([".gitignore", ".env", ".env.example", ".env.local"]);
+const PATH_MAX_CHARS = 42;
+
+/** Truncate long path: show start.../filename so both beginning and filename are visible. */
+function truncatePathMiddle(path: string, maxChars: number = PATH_MAX_CHARS): string {
+  if (path.length <= maxChars) return path;
+  const file = basename(path);
+  const dir = dirname(path);
+  if (!dir || dir === ".") return `...${path.slice(-(maxChars - 3))}`;
+  const ellipsis = ".../";
+  const startChars = Math.max(4, maxChars - file.length - ellipsis.length);
+  const start = dir.slice(0, startChars);
+  return `${start}${ellipsis}${file}`;
+}
 
 export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI }: WorkspaceSidebarProps) {
   const theme = useTheme();
@@ -415,7 +429,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   const renderFilesTab = () => (
     <>
       <View style={styles.workspaceName}>
-        <Text style={styles.workspaceNameText}>
+        <Text style={styles.workspaceNameText} numberOfLines={2}>
           {data?.root ?? "Workspace"}
         </Text>
       </View>
@@ -462,10 +476,14 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
             <View key={`staged:${f.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
               <View style={styles.stagedPathWrap}>
                 {f.isDirectory ? (
-                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
+                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
+                    {truncatePathMiddle(f.file)}
+                  </Text>
                 ) : (
                   <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:staged:" + f.file)}>
-                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>{f.file}</Text>
+                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
+                      {truncatePathMiddle(f.file)}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -484,12 +502,16 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
             )}
           </View>
           {hasUnstaged && unstagedFiles.map((f, i) => (
-            <View key={`unstaged:${f.file}:${i}`} style={styles.changeItem}>
+            <View key={`unstaged:${f.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
               {f.isDirectory ? (
-                <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{f.file}</Text>
+                <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
+                  {truncatePathMiddle(f.file)}
+                </Text>
               ) : (
                 <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + f.file)}>
-                  <Text style={styles.changeFileLabel} numberOfLines={1}>{f.file}</Text>
+                  <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
+                    {truncatePathMiddle(f.file)}
+                  </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => handleStageFile(f.file)} style={styles.stageBtnWrap}>
@@ -505,12 +527,16 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                 <Text style={styles.sectionTitle}>Untracked Files</Text>
               </View>
               {untrackedFiles.map((u, i) => (
-                <View key={`untracked:${u.file}:${i}`} style={styles.changeItem}>
+                <View key={`untracked:${u.file}:${i}`} style={[styles.changeItem, styles.changeItemStaged]}>
                   {u.isDirectory ? (
-                    <Text style={[styles.changeFileLabel, { flex: 1 }]} numberOfLines={1}>{u.file}</Text>
+                    <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged, { flex: 1 }]} numberOfLines={1}>
+                      {truncatePathMiddle(u.file)}
+                    </Text>
                   ) : (
                     <TouchableOpacity style={styles.changePathTouchable} onPress={() => handleFilePress("__diff__:unstaged:" + u.file)}>
-                      <Text style={styles.changeFileLabel} numberOfLines={1}>{u.file}</Text>
+                      <Text style={[styles.changeFileLabel, styles.changeFileLabelStaged]} numberOfLines={1}>
+                        {truncatePathMiddle(u.file)}
+                      </Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => handleStageFile(u.file)} style={styles.stageBtnWrap}>
@@ -740,7 +766,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
     },
     tabActive: { borderBottomWidth: 2, borderBottomColor: theme.accent },
-    tabText: { fontSize: 13, fontWeight: "600", color: theme.textMuted },
+    tabText: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
     tabTextActive: { color: theme.accent },
     tabCloseBtn: {
       width: 36,
@@ -758,11 +784,12 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.beigeBg,
     },
     workspaceNameText: {
-      fontSize: 12,
-      fontWeight: "600",
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-      color: theme.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "500",
+      letterSpacing: 0,
+      color: theme.textPrimary,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     searchBarContainer: {
       paddingHorizontal: 12,
@@ -821,32 +848,32 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 16,
-      paddingVertical: 10,
-      marginTop: 8
+      paddingVertical: 8,
+      marginTop: 6
     },
-    sectionTitle: { fontSize: 13, fontWeight: "700", color: theme.textPrimary, textTransform: "uppercase", letterSpacing: 0.5 },
-    emptyText: { paddingHorizontal: 16, paddingVertical: 12, color: theme.textMuted, fontSize: 14, fontStyle: "italic" },
+    sectionTitle: { fontSize: 11, fontWeight: "600", color: theme.textPrimary, textTransform: "uppercase", letterSpacing: 0.4 },
+    emptyText: { paddingHorizontal: 16, paddingVertical: 10, color: theme.textMuted, fontSize: 12, fontStyle: "italic" },
 
     changeItem: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       paddingHorizontal: 16,
-      paddingVertical: 10,
+      paddingVertical: 8,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: "rgba(0,0,0,0.05)",
     },
     changeItemStaged: { paddingLeft: 24 },
     stagedPathWrap: { flex: 1, minWidth: 0, flexShrink: 1 },
     changePathTouchable: { flex: 1, minWidth: 0 },
-    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 14, color: theme.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 12, color: theme.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
     changeFileLabelStaged: { fontFamily: undefined },
     statusBadgeWrap: { flexShrink: 0, marginLeft: 8, justifyContent: "center" },
-    statusLabel: { fontSize: 13, color: theme.accent, fontWeight: "600" },
+    statusLabel: { fontSize: 11, color: theme.accent, fontWeight: "600" },
     stageBtnWrap: { flexShrink: 0, marginLeft: 8 },
-    stageAllBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)", marginLeft: 8 },
-    stageAllBtnText: { color: theme.accent, fontSize: 13, fontWeight: "600" },
-    stageBtnText: { color: theme.accent, fontSize: 14, fontWeight: "600" },
+    stageAllBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: "rgba(0,0,0,0.06)", marginLeft: 8 },
+    stageAllBtnText: { color: theme.accent, fontSize: 11, fontWeight: "600" },
+    stageBtnText: { color: theme.accent, fontSize: 12, fontWeight: "600" },
 
     commitForm: {
       padding: 16,

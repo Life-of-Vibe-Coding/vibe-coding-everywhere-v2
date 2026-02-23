@@ -15,37 +15,38 @@
 
 import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useColorScheme, Platform, Dimensions, PixelRatio } from "react-native";
+import { buildTypographyScale } from "./typography";
 
 // ============================================================================
 // Brand Theme Definitions
 // ============================================================================
 
 export const claudeTheme = {
-  accent: "#b3541e",
-  accentSoft: "#f6ddc8",
-  accentMuted: "#f0d4bf",
-  accentOnDark: "#f2b07f",
+  accent: "#D97706", // More vibrant amber/orange
+  accentSoft: "#FFF7ED",
+  accentMuted: "#FFEDD5",
+  accentOnDark: "#FBBF24",
 } as const;
 
 export const geminiTheme = {
-  accent: "#1a73e8",
-  accentSoft: "#e8f0fe",
-  accentMuted: "#d2e3fc",
-  accentOnDark: "#8ab4f8",
+  accent: "#2563EB", // Modern blue
+  accentSoft: "#EFF6FF",
+  accentMuted: "#DBEAFE",
+  accentOnDark: "#60A5FA",
 } as const;
 
 export const codexTheme = {
-  accent: "#19c37d",
-  accentSoft: "#d1fae5",
-  accentMuted: "#a7f3d0",
-  accentOnDark: "#6ee7b7",
+  accent: "#059669", // Vibrant emerald
+  accentSoft: "#ECFDF5",
+  accentMuted: "#D1FAE5",
+  accentOnDark: "#34D399",
 } as const;
 
 export const piTheme = {
-  accent: "#19c37d",
-  accentSoft: "#d1fae5",
-  accentMuted: "#a7f3d0",
-  accentOnDark: "#6ee7b7",
+  accent: "#7C3AED", // Premium violet/purple
+  accentSoft: "#F5F3FF",
+  accentMuted: "#EDE9FE",
+  accentOnDark: "#A78BFA",
 } as const;
 
 export const themes = { claude: claudeTheme, gemini: geminiTheme, codex: codexTheme, pi: piTheme } as const;
@@ -56,47 +57,25 @@ export type ColorModePreference = "system" | ColorMode;
 type Brand = (typeof themes)[Provider];
 
 // ============================================================================
-// Typography System
+// Typography System (shared types + unified scale)
 // ============================================================================
 
-export type TypographyScale = {
-  display: { fontSize: number; lineHeight: number; fontWeight: "700"; letterSpacing: number };
-  title1: { fontSize: number; lineHeight: number; fontWeight: "700"; letterSpacing: number };
-  title2: { fontSize: number; lineHeight: number; fontWeight: "600"; letterSpacing: number };
-  title3: { fontSize: number; lineHeight: number; fontWeight: "600"; letterSpacing: number };
-  body: { fontSize: number; lineHeight: number; fontWeight: "400"; letterSpacing: number };
-  bodyStrong: { fontSize: number; lineHeight: number; fontWeight: "600"; letterSpacing: number };
-  callout: { fontSize: number; lineHeight: number; fontWeight: "500"; letterSpacing: number };
-  caption: { fontSize: number; lineHeight: number; fontWeight: "500"; letterSpacing: number };
-  label: { fontSize: number; lineHeight: number; fontWeight: "600"; letterSpacing: number };
-  mono: { fontSize: number; lineHeight: number; fontWeight: "500"; letterSpacing: number };
-};
+export type {
+  TypographyVariant,
+  TypographyStyle,
+  TypographyScaleRecord,
+} from "./typography";
+export { buildTypographyScale } from "./typography";
+
+// Alias for backward compatibility
+export type TypographyScale = import("./typography").TypographyScaleRecord;
 
 // Lazy init to avoid "runtime not ready" (Dimensions at module load on Hermes)
 let _typography: TypographyScale | null = null;
 
 function getTypography(): TypographyScale {
   if (_typography) return _typography;
-  const { width: screenWidth } = Dimensions.get("window");
-  const isSmallScreen = screenWidth < 375;
-  const isLargeScreen = screenWidth >= 414;
-  const responsiveSize = (base: number): number => {
-    if (isSmallScreen) return Math.round(base * 0.9);
-    if (isLargeScreen) return Math.round(base * 1.05);
-    return base;
-  };
-  _typography = {
-    display: { fontSize: responsiveSize(32), lineHeight: responsiveSize(40), fontWeight: "700", letterSpacing: -0.4 },
-    title1: { fontSize: responsiveSize(24), lineHeight: responsiveSize(32), fontWeight: "700", letterSpacing: -0.2 },
-    title2: { fontSize: responsiveSize(20), lineHeight: responsiveSize(28), fontWeight: "600", letterSpacing: -0.1 },
-    title3: { fontSize: responsiveSize(18), lineHeight: responsiveSize(26), fontWeight: "600", letterSpacing: 0 },
-    body: { fontSize: responsiveSize(16), lineHeight: responsiveSize(24), fontWeight: "400", letterSpacing: 0 },
-    bodyStrong: { fontSize: responsiveSize(16), lineHeight: responsiveSize(24), fontWeight: "600", letterSpacing: 0 },
-    callout: { fontSize: responsiveSize(14), lineHeight: responsiveSize(20), fontWeight: "500", letterSpacing: 0 },
-    caption: { fontSize: responsiveSize(12), lineHeight: responsiveSize(16), fontWeight: "500", letterSpacing: 0.2 },
-    label: { fontSize: responsiveSize(11), lineHeight: responsiveSize(14), fontWeight: "600", letterSpacing: 0.6 },
-    mono: { fontSize: responsiveSize(13), lineHeight: responsiveSize(18), fontWeight: "500", letterSpacing: 0 },
-  };
+  _typography = buildTypographyScale();
   return _typography;
 }
 
@@ -239,35 +218,35 @@ const motion = {
 function getNeutrals(mode: ColorMode, provider: Provider) {
   if (mode === "dark") {
     return {
-      background: "#0d0f14",
-      surface: "#151821",
-      surfaceAlt: "#1d202a",
-      surfaceMuted: "#262b36",
-      border: "#2e3340",
-      textPrimary: "#f5f7fb",
-      textSecondary: "#d1d7e3",
-      textMuted: "#9aa3b2",
-      textInverse: "#0d0f14",
-      overlay: "rgba(0,0,0,0.55)",
-      shadow: "rgba(0,0,0,0.5)",
-      skeleton: "#1e222d",
-      skeletonHighlight: "#2a3140",
+      background: "#0A0B10", // Deeper black
+      surface: "#12141C",
+      surfaceAlt: "#1B1E29",
+      surfaceMuted: "#252936",
+      border: "#2E3345",
+      textPrimary: "#F8FAFC",
+      textSecondary: "#CBD5E1",
+      textMuted: "#64748B",
+      textInverse: "#0A0B10",
+      overlay: "rgba(0,0,0,0.7)",
+      shadow: "rgba(0,0,0,0.6)",
+      skeleton: "#1B1E29",
+      skeletonHighlight: "#252936",
     };
   }
   return {
-    background: "#ffffff",
-    surface: "#ffffff",
-    surfaceAlt: "#f1f2f6",
-    surfaceMuted: "#e7e9ef",
-    border: "#e2e4ea",
-    textPrimary: "#12131a",
-    textSecondary: "#3e4250",
-    textMuted: "#6b7280",
-    textInverse: "#ffffff",
-    overlay: "rgba(10,12,18,0.4)",
-    shadow: "rgba(16,24,40,0.12)",
-    skeleton: "#e6e8ee",
-    skeletonHighlight: "#f5f6f9",
+    background: "#F8FAFC", // Slate-50 for a cleaner look
+    surface: "#FFFFFF",
+    surfaceAlt: "#F1F5F9",
+    surfaceMuted: "#E2E8F0",
+    border: "#E2E8F0",
+    textPrimary: "#0F172A", // Slate-900
+    textSecondary: "#475569", // Slate-600
+    textMuted: "#94A3B8", // Slate-400
+    textInverse: "#FFFFFF",
+    overlay: "rgba(15, 23, 42, 0.4)",
+    shadow: "rgba(15, 23, 42, 0.08)",
+    skeleton: "#E2E8F0",
+    skeletonHighlight: "#F1F5F9",
   };
 }
 
@@ -281,7 +260,7 @@ function buildTheme(provider: Provider, mode: ColorMode): DesignTheme {
   const danger = mode === "dark" ? "#f87171" : "#dc2626";
   const warning = mode === "dark" ? "#fbbf24" : "#d97706";
   const info = mode === "dark" ? "#60a5fa" : "#2563eb";
-  
+
   const colors = {
     ...neutral,
     accent,
@@ -333,16 +312,16 @@ export function getDefaultTheme(): DesignTheme {
 // Theme Context
 // ============================================================================
 
-type ThemeContextValue = { 
-  provider: Provider; 
+type ThemeContextValue = {
+  provider: Provider;
   colorMode: ColorModePreference;
   setProvider?: (p: Provider) => void;
   setColorMode?: (m: ColorModePreference) => void;
 };
 
-const defaultContextValue: ThemeContextValue = { 
-  provider: "pi", 
-  colorMode: "system" 
+const defaultContextValue: ThemeContextValue = {
+  provider: "pi",
+  colorMode: "system"
 };
 
 export const ThemeContext = React.createContext<ThemeContextValue>(defaultContextValue);
@@ -366,15 +345,15 @@ export function ThemeProvider({
     (p: Provider) => onProviderChange?.(p),
     [onProviderChange]
   );
-  
+
   const setColorMode = useCallback(
     (m: ColorModePreference) => onColorModeChange?.(m),
     [onColorModeChange]
   );
 
   const value = useMemo(
-    () => ({ 
-      provider, 
+    () => ({
+      provider,
       colorMode,
       setProvider,
       setColorMode,
@@ -409,11 +388,11 @@ export function useProvider(): Provider {
 export function useColorMode(): ColorMode {
   const system = useColorScheme();
   const ctx = React.useContext(ThemeContext);
-  
+
   if (ctx?.colorMode && ctx.colorMode !== "system") {
     return ctx.colorMode;
   }
-  
+
   return system === "dark" ? "dark" : "light";
 }
 
@@ -421,7 +400,7 @@ export function useTheme(): DesignTheme {
   const ctx = React.useContext(ThemeContext);
   const mode = useColorMode();
   const provider = ctx?.provider ?? "pi";
-  
+
   return useMemo(() => buildTheme(provider, mode), [provider, mode]);
 }
 
@@ -431,7 +410,7 @@ export function useTheme(): DesignTheme {
 
 export function useResponsive() {
   const { width, height, scale, fontScale } = Dimensions.get("window");
-  
+
   return useMemo(() => ({
     width,
     height,

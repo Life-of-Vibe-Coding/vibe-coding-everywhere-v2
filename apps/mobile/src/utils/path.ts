@@ -65,6 +65,22 @@ export function getRelativePath(fullPath: string, root: string): string {
   return fullPath;
 }
 
+/** Max chars for truncated path display. Keeps the line short on narrow screens. */
+const PATH_DISPLAY_MAX = 38;
+
+/**
+ * Truncate long path to show only the tail (last segment or two).
+ * Use when ellipsizeMode alone leaves the line too long.
+ */
+export function truncatePathForDisplay(path: string, maxChars: number = PATH_DISPLAY_MAX): string {
+  const p = path.replace(/\/+$/, "");
+  if (p.length <= maxChars) return p;
+  const parts = p.split("/").filter(Boolean);
+  if (parts.length <= 1) return p.length > maxChars ? `...${p.slice(-(maxChars - 3))}` : p;
+  const tail = parts.slice(-2).join("/");
+  return tail.length >= maxChars ? `.../${parts[parts.length - 1]}` : `.../${tail}`;
+}
+
 /**
  * Get parent path within root. Returns "" if at root, one level deep, or outside root.
  * Empty string means "parent is root" in path navigation state.

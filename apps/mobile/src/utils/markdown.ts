@@ -1,5 +1,5 @@
 /** Matches http/https URLs (exclude trailing punctuation; allow dots in path, : for port). */
-const URL_REGEX = /https?:\/\/[^\s\]\)\}\"']+?(?=[,;)\]}\s]|$)/g;
+export const URL_REGEX = /https?:\/\/[^\s\]\)\}\"']+?(?=[,;)\]}\s]|$)/g;
 
 const LINK_PLACEHOLDER_PREFIX = "\u200B\u200BLINK";
 const LINK_PLACEHOLDER_SUFFIX = "\u200B\u200B";
@@ -31,4 +31,24 @@ export function wrapBareUrlsInMarkdown(content: string): string {
       return `[${text}](${url})`;
     }
   );
+}
+
+/** Parse text into alternating text and URL segments for rendering clickable links in plain text (e.g. code blocks, terminal output). */
+export function parseTextWithUrlSegments(content: string): Array<{ type: "text" | "url"; value: string }> {
+  if (!content || typeof content !== "string") return [];
+  const segments: Array<{ type: "text" | "url"; value: string }> = [];
+  let lastIndex = 0;
+  let match;
+  const re = new RegExp(URL_REGEX.source, "g");
+  while ((match = re.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "text", value: content.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: "url", value: match[0] });
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    segments.push({ type: "text", value: content.slice(lastIndex) });
+  }
+  return segments.length > 0 ? segments : [{ type: "text" as const, value: content }];
 }

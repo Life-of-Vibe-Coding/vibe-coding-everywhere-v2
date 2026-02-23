@@ -186,6 +186,12 @@ export const SKILLS_DIR = _skillsDirFromEnv
 /** Path to pi CLI binary. Defaults to "pi" (must be on PATH). */
 export const PI_CLI_PATH = process.env.PI_CLI_PATH || "pi";
 
+/**
+ * Canonical sessions directory. All Pi sessions are stored here regardless of workspace.
+ * Uses projectRoot/.pi/agent so sessions are independent of the selected workspace.
+ */
+export const SESSIONS_ROOT = path.join(projectRoot, ".pi", "agent");
+
 /** Enable Docker manager page and API. Set to "1" or "true" to enable. */
 export const ENABLE_DOCKER_MANAGER = process.env.ENABLE_DOCKER_MANAGER === "1" || process.env.ENABLE_DOCKER_MANAGER === "true";
 

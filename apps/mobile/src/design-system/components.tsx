@@ -53,90 +53,98 @@ import {
 // Typography Component
 // ============================================================================
 
-type TextTone =
-  | "primary"
-  | "secondary"
-  | "tertiary"
-  | "muted"
-  | "inverse"
-  | "accent"
-  | "danger"
-  | "success"
-  | "warning";
+type TextTone = "primary" | "secondary" | "tertiary" | "muted";
+export type TypographyTone = "primary" | "secondary" | "muted" | "accent" | "success" | "danger" | "warning" | "info" | "inverse";
 type TextAlign = "left" | "center" | "right" | "justify";
 type TextTransform = "none" | "capitalize" | "uppercase" | "lowercase";
 
-interface TypographyProps {
-  variant?: TypographyVariant;
-  tone?: TextTone;
-  align?: TextAlign;
-  transform?: TextTransform;
-  numberOfLines?: number;
-  style?: StyleProp<TextStyle>;
+export interface TypographyProps {
   children: React.ReactNode;
-  accessibilityLabel?: string;
-  accessibilityRole?: "text" | "header" | "summary";
-  testID?: string;
+  variant?: TypographyVariant;
+  tone?: TypographyTone;
+  weight?: "normal" | "medium" | "semibold" | "bold";
+  align?: "left" | "center" | "right";
+  transform?: "none" | "uppercase" | "lowercase" | "capitalize";
+  italic?: boolean;
+  underline?: boolean;
+  strikeThrough?: boolean;
+  numberOfLines?: number;
+  ellipsizeMode?: "head" | "middle" | "tail" | "clip";
+  color?: string;
+  style?: StyleProp<TextStyle>;
 }
 
 export function Typography({
+  children,
   variant = "body",
   tone = "primary",
+  weight,
   align = "left",
   transform = "none",
+  italic = false,
+  underline = false,
+  strikeThrough = false,
   numberOfLines,
+  ellipsizeMode,
+  color: customColor,
   style,
-  children,
-  accessibilityLabel,
-  accessibilityRole = "text",
-  testID,
 }: TypographyProps) {
   const theme = useTheme();
-  const colors = theme.colors;
-  const typography = theme.typography[variant];
 
-  const color = useMemo(() => {
-    switch (tone) {
-      case "primary":
-        return colors.textPrimary;
-      case "secondary":
-        return colors.textSecondary;
-      case "tertiary":
-        return colors.textTertiary;
-      case "muted":
-        return colors.textMuted;
-      case "inverse":
-        return colors.textInverse;
-      case "accent":
-        return colors.accent;
-      case "danger":
-        return colors.danger;
-      case "success":
-        return colors.success;
-      case "warning":
-        return colors.warning;
-      default:
-        return colors.textPrimary;
+  const getFontWeight = (): TextStyle["fontWeight"] => {
+    if (weight) {
+      switch (weight) {
+        case "bold": return "700";
+        case "semibold": return "600";
+        case "medium": return "500";
+        case "normal": return "400";
+      }
     }
-  }, [tone, colors]);
+    return theme.typography[variant].fontWeight as TextStyle["fontWeight"];
+  };
+
+  const getToneColor = () => {
+    if (customColor) return customColor;
+    const colors = theme.colors;
+    switch (tone) {
+      case "primary": return colors.textPrimary;
+      case "secondary": return colors.textSecondary;
+      case "muted": return colors.textMuted;
+      case "accent": return colors.accent;
+      case "success": return colors.success;
+      case "danger": return colors.danger;
+      case "warning": return colors.warning;
+      case "info": return colors.info;
+      case "inverse": return colors.textInverse;
+      default: return colors.textPrimary;
+    }
+  };
 
   const textStyle = useMemo(
     () => ({
-      ...typography,
-      color,
+      ...theme.typography[variant],
+      color: getToneColor(),
       textAlign: align,
       textTransform: transform,
+      fontWeight: getFontWeight(),
+      fontStyle: (italic ? "italic" : "normal") as "italic" | "normal",
+      textDecorationLine: (underline
+        ? strikeThrough
+          ? "underline line-through"
+          : "underline"
+        : strikeThrough
+          ? "line-through"
+          : "none") as "none" | "underline" | "line-through" | "underline line-through",
     }),
-    [typography, color, align, transform]
+    [theme.typography, variant, tone, align, transform, italic, underline, strikeThrough, weight, customColor, theme.colors]
   );
 
   return (
     <Text
       style={[textStyle, style]}
       numberOfLines={numberOfLines}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole={accessibilityRole}
-      testID={testID}
+      ellipsizeMode={ellipsizeMode}
+      maxFontSizeMultiplier={1.5}
     >
       {children}
     </Text>
@@ -167,8 +175,8 @@ interface ButtonProps {
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   haptic?: Parameters<typeof triggerHaptic>[0];
-  style?: ViewStyle;
-  labelStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
   accessibilityLabel?: string;
   testID?: string;
 }
@@ -258,8 +266,13 @@ export function Button({
     [config, variant, isDisabled, backgroundColors, borderColors]
   );
 
+  const buttonContainerStyle = useMemo(() => {
+    const flatStyle = StyleSheet.flatten(style);
+    return { width: flatStyle?.width };
+  }, [style]);
+
   return (
-    <Animated.View style={[animatedStyle, { width: style?.width }]}>
+    <Animated.View style={[animatedStyle, buttonContainerStyle]}>
       <Pressable
         onPressIn={handlers.onPressIn}
         onPressOut={handlers.onPressOut}
@@ -305,7 +318,7 @@ interface IconButtonProps {
   size?: "sm" | "md" | "lg";
   disabled?: boolean;
   haptic?: Parameters<typeof triggerHaptic>[0];
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   accessibilityLabel: string;
   testID?: string;
 }
@@ -391,7 +404,7 @@ interface CardProps {
   children: React.ReactNode;
   variant?: CardVariant;
   padding?: keyof typeof spacing;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   haptic?: Parameters<typeof triggerHaptic>[0];
   accessibilityLabel?: string;
@@ -478,8 +491,8 @@ interface InputProps extends Omit<TextInputProps, "style" | "editable"> {
   disabled?: boolean;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
-  containerStyle?: ViewStyle;
-  inputStyle?: TextStyle;
+  containerStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
   hapticOnFocus?: boolean;
 }
 
@@ -605,14 +618,27 @@ type BadgeVariant =
 type BadgeSize = "sm" | "md";
 
 interface BadgeProps {
-  label: string;
+  children?: React.ReactNode;
+  label?: string;
   variant?: BadgeVariant;
   size?: BadgeSize;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   dot?: boolean;
 }
 
+const badgeStyles = StyleSheet.create({
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  badgeText: {
+    fontWeight: "600",
+  },
+});
+
 export function Badge({
+  children,
   label,
   variant = "default",
   size = "md",
@@ -622,21 +648,20 @@ export function Badge({
   const theme = useTheme();
   const colors = theme.colors;
 
-  const variantStyles: Record<BadgeVariant, { bg: string; text: string }> = {
-    default: { bg: colors.surfaceMuted, text: colors.textSecondary },
-    accent: { bg: colors.accentSoft, text: colors.accent },
-    success: { bg: colors.successSoft, text: colors.success },
-    danger: { bg: colors.dangerSoft, text: colors.danger },
-    warning: { bg: colors.warningSoft, text: colors.warning },
-    info: { bg: colors.infoSoft, text: colors.info },
+  const variantStyles: Record<BadgeVariant, { backgroundColor: string; foregroundColor: string }> = {
+    default: { backgroundColor: colors.surfaceMuted, foregroundColor: colors.textSecondary },
+    accent: { backgroundColor: colors.accentSoft, foregroundColor: colors.accent },
+    success: { backgroundColor: colors.successSoft, foregroundColor: colors.success },
+    danger: { backgroundColor: colors.dangerSoft, foregroundColor: colors.danger },
+    warning: { backgroundColor: colors.warningSoft, foregroundColor: colors.warning },
+    info: { backgroundColor: colors.infoSoft, foregroundColor: colors.info },
   };
 
-  const { bg, text } = variantStyles[variant];
+  const { backgroundColor, foregroundColor } = variantStyles[variant];
   const pad =
     size === "sm"
       ? { x: spacing["2"], y: 2 }
-      : { x: spacing["2"], y: 4 };
-  const fontSize = size === "sm" ? 11 : 12;
+      : { x: spacing["3"], y: 4 };
 
   return (
     <View
@@ -647,25 +672,21 @@ export function Badge({
           gap: spacing["1"],
           paddingHorizontal: pad.x,
           paddingVertical: pad.y,
-          backgroundColor: bg,
+          backgroundColor: backgroundColor,
           borderRadius: radii.pill,
           alignSelf: "flex-start",
         },
         style,
       ]}
     >
-      {dot && (
-        <View
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: text,
-          }}
-        />
-      )}
-      <Text style={{ fontSize: fontSize, fontWeight: "600", color: text }}>
-        {label}
+      {dot && size === "md" && <View style={[badgeStyles.badgeDot, { backgroundColor: foregroundColor }]} />}
+      <Text
+        style={[
+          badgeStyles.badgeText,
+          { color: foregroundColor, fontSize: size === "sm" ? 10 : 12 },
+        ]}
+      >
+        {children ?? label}
       </Text>
     </View>
   );
@@ -678,7 +699,7 @@ export function Badge({
 interface DividerProps {
   orientation?: "horizontal" | "vertical";
   spacing?: keyof typeof spacing;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Divider({
@@ -727,7 +748,7 @@ interface AvatarProps {
   source?: ImageSource;
   name?: string;
   size?: AvatarSize;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }
 
@@ -857,8 +878,10 @@ export function Chip({
             borderColor: selected ? colors.accent : colors.borderSubtle,
             opacity: disabled ? 0.5 : 1,
           },
-          style,
         ]}
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        accessibilityState={{ selected, disabled }}
       >
         {icon}
         <Typography
@@ -882,7 +905,7 @@ export function Chip({
           </Pressable>
         )}
       </Pressable>
-    </Animated.View>
+    </Animated.View >
   );
 }
 

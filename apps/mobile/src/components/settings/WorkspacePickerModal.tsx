@@ -11,10 +11,15 @@ import {
   LayoutChangeEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppButton } from "../../design-system";
+import { Button, Typography, IconButton, triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
-import { triggerHaptic } from "../../design-system";
-import { basename, getRelativePath, getDirname, getParentPath } from "../../utils/path";
+import { basename, getRelativePath, getDirname, getParentPath, truncatePathForDisplay } from "../../utils/path";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+} from "../icons/ChatActionIcons";
+import { FolderIcon } from "../icons/WorkspaceTreeIcons";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -284,16 +289,17 @@ export function WorkspacePickerModal({
             accessibilityLabel={`Open ${child.name}`}
             hitSlop={12}
           >
-            <Text style={styles.pickerRowChevron}>▶</Text>
-            <Text
-              style={[
-                styles.pickerRowName,
-                isCurrentWorkspace && styles.pickerRowNameCurrent,
-              ]}
-              numberOfLines={2}
+            <FolderIcon color={theme.colors.textSecondary} />
+            <ChevronRightIcon size={14} color={theme.accent} strokeWidth={2.5} />
+            <Typography
+              variant="footnote"
+              tone={isCurrentWorkspace ? "accent" : "primary"}
+              numberOfLines={1}
+              ellipsizeMode="head"
+              style={styles.pickerRowName}
             >
               {child.name}
-            </Text>
+            </Typography>
             {isLoading ? (
               <ActivityIndicator
                 size="small"
@@ -302,10 +308,10 @@ export function WorkspacePickerModal({
               />
             ) : null}
           </TouchableOpacity>
-          <AppButton
+          <Button
             label="Select"
             variant="primary"
-            size="sm"
+            size="xs"
             onPress={() => handleSelectWorkspace(child.path)}
             disabled={pickerLoading}
           />
@@ -344,24 +350,64 @@ export function WorkspacePickerModal({
                 accessibilityLabel="Go back to parent folder"
                 accessibilityRole="button"
               >
-                <Text style={styles.prevButtonText}>← Parent</Text>
+                <ChevronLeftIcon size={18} color={theme.colors.accent} strokeWidth={2} />
+                <Typography variant="caption" tone="accent" style={styles.prevButtonText}>
+                  Parent
+                </Typography>
               </TouchableOpacity>
             ) : (
               <View style={styles.headerSideBtn} />
             )}
-            <Text style={styles.title}>Select workspace</Text>
-            <TouchableOpacity
+            <View style={styles.titleContainer} pointerEvents="box-none">
+              {pickerRoot ? (
+                (() => {
+                  const displayPath = currentPath || pickerRoot;
+                  const shortPath = truncatePathForDisplay(displayPath);
+                  const parentPath = getDirname(displayPath);
+                  const hasBoldParent = parentPath && parentPath.length > 1 && shortPath === displayPath;
+                  const suffix = hasBoldParent ? displayPath.slice(parentPath.length) : "";
+                  return (
+                    <Text
+                      numberOfLines={1}
+                      ellipsizeMode="head"
+                      style={[styles.title, styles.titlePath]}
+                    >
+                      {hasBoldParent ? (
+                        <>
+                          <Text style={[styles.title, styles.titlePath, styles.titlePathBold]}>
+                            {parentPath}
+                          </Text>
+                          <Text style={[styles.title, styles.titlePath]}>
+                            {suffix}
+                          </Text>
+                        </>
+                      ) : (
+                        shortPath
+                      )}
+                    </Text>
+                  );
+                })()
+              ) : (
+                <Typography
+                  variant="subhead"
+                  numberOfLines={1}
+                  style={[styles.title, styles.titlePath]}
+                >
+                  Select workspace
+                </Typography>
+              )}
+            </View>
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={<CloseIcon size={18} color={theme.colors.textMuted} strokeWidth={2} />}
               onPress={() => {
                 triggerHaptic("selection");
                 onClose();
               }}
-              style={styles.closeBtn}
-              hitSlop={12}
               accessibilityLabel="Close"
-              accessibilityRole="button"
-            >
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
+              style={styles.closeBtn}
+            />
           </View>
 
           {!pickerRoot ? (
@@ -374,9 +420,15 @@ export function WorkspacePickerModal({
             <>
               {currentRelativePath ? (
                 <View style={styles.breadcrumb}>
-                  <Text style={styles.breadcrumbPath} numberOfLines={2}>
-                    {currentRelativePath}
-                  </Text>
+                  <Typography
+                    variant="caption"
+                    tone="secondary"
+                    numberOfLines={1}
+                    ellipsizeMode="head"
+                    style={styles.breadcrumbPath}
+                  >
+                    {truncatePathForDisplay(currentRelativePath)}
+                  </Typography>
                 </View>
               ) : null}
 
@@ -391,13 +443,21 @@ export function WorkspacePickerModal({
                     : undefined
                 }
               >
-                <Text style={styles.pickerRootLabel}>
-                  📁 {basename(currentPath || pickerRoot) || "."}
-                </Text>
-                <AppButton
+                <View style={styles.pickerRootLabelRow}>
+                  <FolderIcon color={theme.colors.textSecondary} />
+                  <Typography
+                    variant="footnote"
+                    numberOfLines={1}
+                    ellipsizeMode="head"
+                    style={styles.pickerRootLabel}
+                  >
+                    {basename(currentPath || pickerRoot) || "."}
+                  </Typography>
+                </View>
+                <Button
                   label="Select"
                   variant="primary"
-                  size="sm"
+                  size="xs"
                   onPress={() =>
                     handleSelectWorkspace(currentPath || pickerRoot)
                   }
@@ -406,7 +466,9 @@ export function WorkspacePickerModal({
               </View>
 
               {pickerError ? (
-                <Text style={styles.pickerError}>{pickerError}</Text>
+                <Typography variant="caption" tone="danger" style={styles.pickerError}>
+                  {pickerError}
+                </Typography>
               ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
                 <ActivityIndicator
                   size="large"
@@ -445,70 +507,81 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
     },
+    titleContainer: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 8,
+    },
     title: {
-      fontSize: 20,
-      fontWeight: "600",
-      color: theme.textPrimary,
+      textAlign: "center",
+      width: "100%",
+    },
+    titlePath: {
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 11,
+      color: theme.colors.textPrimary,
+    },
+    titlePathBold: {
+      fontWeight: "700",
     },
     headerSideBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
       minWidth: 72,
       minHeight: MIN_TOUCH_TARGET,
-      alignItems: "flex-start",
-      justifyContent: "center",
+      justifyContent: "flex-start",
+      flexShrink: 0,
+    },
+    prevButtonText: {
+      marginLeft: 2,
     },
     closeBtn: {
-      minWidth: MIN_TOUCH_TARGET,
-      minHeight: MIN_TOUCH_TARGET,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    closeBtnText: {
-      fontSize: 22,
-      color: theme.textMuted,
+      marginRight: -8,
+      flexShrink: 0,
     },
     breadcrumb: {
-      paddingHorizontal: 20,
-      paddingVertical: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
     },
     breadcrumbPath: {
-      fontSize: 16,
-      lineHeight: 24,
-      color: theme.colors.textSecondary,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-    prevButtonText: {
-      fontSize: 17,
-      color: theme.accent,
-      fontWeight: "500",
+      fontSize: 10,
+      lineHeight: 14,
     },
     pickerRootRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
     },
-    pickerRootLabel: {
-      fontSize: 17,
-      lineHeight: 24,
+    pickerRootLabelRow: {
       flex: 1,
-      color: theme.colors.textPrimary,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    pickerRootLabel: {
+      flex: 1,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 12,
+      lineHeight: 16,
     },
     pickerError: {
-      fontSize: 16,
-      lineHeight: 24,
-      color: theme.danger,
-      marginHorizontal: 20,
-      marginTop: 16,
+      marginHorizontal: 16,
+      marginTop: 12,
     },
     pickerLoader: {
       marginVertical: 32,
@@ -523,12 +596,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 14,
-      paddingHorizontal: 20,
-      paddingRight: 20,
+      paddingVertical: 6,
+      paddingRight: 14,
+      paddingLeft: 16,
+      marginLeft: 8,
+      borderLeftWidth: 2,
+      borderLeftColor: theme.accentLight,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
-      minHeight: MIN_TOUCH_TARGET + 12,
+      minHeight: MIN_TOUCH_TARGET + 4,
     },
     pickerRowCurrent: {
       backgroundColor: theme.accentLight,
@@ -537,24 +613,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
+      gap: 8,
       minHeight: MIN_TOUCH_TARGET,
       justifyContent: "flex-start",
     },
-    pickerRowChevron: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      width: 20,
-    },
     pickerRowName: {
-      fontSize: 17,
-      lineHeight: 24,
       flex: 1,
-      color: theme.colors.textPrimary,
-    },
-    pickerRowNameCurrent: {
-      fontWeight: "600",
-      color: theme.accent,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 12,
+      lineHeight: 16,
     },
     pickerRowLoader: {
       marginLeft: 8,

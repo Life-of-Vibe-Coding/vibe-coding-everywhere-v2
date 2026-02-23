@@ -44,6 +44,15 @@ export function ChevronRightIcon({ color = "currentColor", size = 14, strokeWidt
   );
 }
 
+export function ChevronLeftIcon({ color = "currentColor", size = 14, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path {...stroke} d="m15 6-6 6 6 6" />
+    </Svg>
+  );
+}
+
 export function GlobeIcon({ color = "currentColor", size = 18, strokeWidth = 1.8 }: IconProps) {
   const stroke = getStrokeProps(color, strokeWidth);
   return (
@@ -119,6 +128,17 @@ export function SessionManagementIcon({ color = "currentColor", size = 18, strok
 }
 
 /** Trash icon (lucide:trash-2) - for delete actions. */
+/** Refresh icon (lucide:refresh-cw) - for retry/refresh actions. */
+export function RefreshCwIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path {...stroke} d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <Path {...stroke} d="M3 3v5h5" />
+    </Svg>
+  );
+}
+
 export function TrashIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {
   const stroke = getStrokeProps(color, strokeWidth);
   return (

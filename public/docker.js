@@ -60,7 +60,13 @@
   function formatDate(iso) {
     if (!iso) return "-";
     const d = new Date(iso);
-    return d.toLocaleString();
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   async function action(id, op, label) {

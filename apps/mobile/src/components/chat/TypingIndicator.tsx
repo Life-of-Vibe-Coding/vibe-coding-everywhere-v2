@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../../theme/index";
+import { Typography } from "../../design-system";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
 
 interface TypingIndicatorProps {
@@ -145,13 +146,15 @@ export function TypingIndicator({ visible, provider = "pi", activity }: TypingIn
         </Animated.View>
       </View>
       {displayActivity ? (
-        <Text
-          style={[styles.activityText, { color: theme.colors.textSecondary }]}
+        <Typography
+          variant="caption"
+          tone="secondary"
+          weight="medium"
           numberOfLines={2}
-          ellipsizeMode="tail"
+          style={styles.activityText}
         >
           {displayActivity}
-        </Text>
+        </Typography>
       ) : null}
     </View>
   );

@@ -1,3 +1,5 @@
+import "./global.css";
+
 /**
  * Main Application Component - Enhanced with Modern Design System
  * 
@@ -317,7 +319,7 @@ export default function App() {
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
-  // Load last used provider/model on mount (sessions come from server .pi/sessions)
+  // Load last used provider/model on mount (sessions come from server .pi/agent/sessions)
   const hasRestoredProviderModel = useRef(false);
   useEffect(() => {
     if (hasRestoredProviderModel.current) return;
@@ -334,7 +336,7 @@ export default function App() {
     }).catch(() => { });
   }, []);
 
-  // Persist provider/model preference when they change (sessions come from server .pi/sessions)
+  // Persist provider/model preference when they change (sessions come from server .pi/agent/sessions)
   useEffect(() => {
     sessionStore.setLastUsedProviderModel(provider, model);
   }, [provider, model]);
@@ -649,7 +651,7 @@ export default function App() {
                         accessibilityLabel={sessionId != null ? `Session ${sessionId}` : "No session"}
                       >
                         {sessionId != null
-                          ? `Session: ${sessionId.split("-")[0] ?? sessionId}`
+                          ? `Session: ${sessionId}`
                           : workspacePath != null
                             ? basename(workspacePath)
                             : "Start a new conversation"}
@@ -807,7 +809,24 @@ export default function App() {
               setSessionManagementVisible(false);
               setWorkspacePickerVisible(true);
             }}
-            onSelectSession={(s) => {
+            onSelectSession={async (s) => {
+              // Switch workspace to session's cwd when different from current
+              const sessionCwd = s.cwd ?? null;
+              if (sessionCwd && sessionCwd !== workspacePath) {
+                try {
+                  const res = await fetch(`${serverConfig.getBaseUrl()}/api/workspace-path`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ path: sessionCwd }),
+                  });
+                  if (res.ok) {
+                    const data = (await res.json()) as { path?: string };
+                    if (typeof data?.path === "string") setWorkspacePath(data.path);
+                  }
+                } catch {
+                  // Proceed with load even if switch fails; session may still be viewable
+                }
+              }
               lastSwitchedSessionRef.current = {
                 id: s.id,
                 provider: s.provider ?? undefined,
@@ -917,12 +936,12 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       letterSpacing: 0.3,
     },
     sessionIdText: {
-      fontSize: 12,
-      fontWeight: "400",
+      fontSize: 14,
+      fontWeight: "500",
       letterSpacing: 0.2,
-      lineHeight: 16,
+      lineHeight: 20,
       textAlign: "center",
-      color: theme.colors.textMuted,
+      color: theme.colors.textPrimary,
     },
     menuButtonOverlay: {
       position: "absolute",

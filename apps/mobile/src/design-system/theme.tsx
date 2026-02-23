@@ -10,6 +10,7 @@
  */
 
 import { useColorScheme, Platform, Dimensions, PixelRatio } from "react-native";
+import { buildTypographyScale } from "../theme/typography";
 import React, { createContext, useContext, useMemo, useCallback } from "react";
 
 // ============================================================================
@@ -116,135 +117,22 @@ export const brandColors = {
 } as const;
 
 // ============================================================================
-// Typography System
+// Typography System (shared types from theme/typography)
 // ============================================================================
 
-export type TypographyVariant = 
-  | "display" 
-  | "title1" 
-  | "title2" 
-  | "title3" 
-  | "headline"
-  | "body"
-  | "bodyStrong"
-  | "callout"
-  | "subhead"
-  | "footnote"
-  | "caption"
-  | "caption2"
-  | "label"
-  | "mono";
+import type {
+  TypographyVariant,
+  TypographyStyle,
+  TypographyScaleRecord,
+} from "../theme/typography";
+export type { TypographyVariant, TypographyStyle, TypographyScaleRecord } from "../theme/typography";
 
-export interface TypographyStyle {
-  fontSize: number;
-  lineHeight: number;
-  fontWeight: "400" | "500" | "600" | "700" | "800";
-  letterSpacing: number;
-  fontFamily?: string;
-}
-
-// Dynamic font sizing - lazy init to avoid "runtime not ready" (Dimensions/Platform at module load)
-export type TypographyScaleRecord = Record<TypographyVariant, TypographyStyle>;
-
+// Lazy init to avoid "runtime not ready" (Dimensions at module load on Hermes)
 let _typographyScale: TypographyScaleRecord | null = null;
 
 function getTypographyScale(): TypographyScaleRecord {
   if (_typographyScale) return _typographyScale;
-  const { width: screenWidth } = Dimensions.get("window");
-  const isSmallScreen = screenWidth < 375;
-  const isLargeScreen = screenWidth >= 414;
-  const getResponsiveSize = (base: number): number => {
-    if (isSmallScreen) return base * 0.9;
-    if (isLargeScreen) return base * 1.05;
-    return base;
-  };
-  _typographyScale = {
-    display: {
-      fontSize: getResponsiveSize(34),
-      lineHeight: getResponsiveSize(42),
-      fontWeight: "700",
-      letterSpacing: -0.5,
-    },
-    title1: {
-      fontSize: getResponsiveSize(28),
-      lineHeight: getResponsiveSize(36),
-      fontWeight: "700",
-      letterSpacing: -0.3,
-    },
-    title2: {
-      fontSize: getResponsiveSize(22),
-      lineHeight: getResponsiveSize(30),
-      fontWeight: "600",
-      letterSpacing: -0.2,
-    },
-    title3: {
-      fontSize: getResponsiveSize(20),
-      lineHeight: getResponsiveSize(28),
-      fontWeight: "600",
-      letterSpacing: -0.1,
-    },
-    headline: {
-      fontSize: getResponsiveSize(18),
-      lineHeight: getResponsiveSize(26),
-      fontWeight: "600",
-      letterSpacing: 0,
-    },
-    body: {
-      fontSize: getResponsiveSize(16),
-      lineHeight: getResponsiveSize(24),
-      fontWeight: "400",
-      letterSpacing: 0,
-    },
-    bodyStrong: {
-      fontSize: getResponsiveSize(16),
-      lineHeight: getResponsiveSize(24),
-      fontWeight: "600",
-      letterSpacing: 0,
-    },
-    callout: {
-      fontSize: getResponsiveSize(15),
-      lineHeight: getResponsiveSize(22),
-      fontWeight: "500",
-      letterSpacing: 0,
-    },
-    subhead: {
-      fontSize: getResponsiveSize(14),
-      lineHeight: getResponsiveSize(20),
-      fontWeight: "400",
-      letterSpacing: 0.1,
-    },
-    footnote: {
-      fontSize: getResponsiveSize(13),
-      lineHeight: getResponsiveSize(18),
-      fontWeight: "400",
-      letterSpacing: 0.1,
-    },
-    caption: {
-      fontSize: getResponsiveSize(12),
-      lineHeight: getResponsiveSize(16),
-      fontWeight: "500",
-      letterSpacing: 0.2,
-    },
-    caption2: {
-      fontSize: getResponsiveSize(11),
-      lineHeight: getResponsiveSize(14),
-      fontWeight: "500",
-      letterSpacing: 0.3,
-    },
-    label: {
-      fontSize: getResponsiveSize(11),
-      lineHeight: getResponsiveSize(14),
-      fontWeight: "600",
-      letterSpacing: 0.6,
-    },
-    mono: {
-      fontSize: getResponsiveSize(13),
-      lineHeight: getResponsiveSize(18),
-      fontWeight: "500",
-      letterSpacing: 0,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-  };
+  _typographyScale = buildTypographyScale();
   return _typographyScale;
 }
 

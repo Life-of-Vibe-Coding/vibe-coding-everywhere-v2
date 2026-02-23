@@ -34,7 +34,7 @@ export function getGitCommits(cwd, limit = 50) {
     try {
         // Format: Hash|%h, Author|%an, Date|%cd, Message|%s
         // Use an exotic delimiter like `|||` to split safely, and quote it so the shell doesn't pipe!
-        const output = execGitCmd(cwd, "log", "-n", limit.toString(), '"--pretty=format:%H|||%an|||%cd|||%s"', "--abbrev-commit");
+        const output = execGitCmd(cwd, "log", "-n", limit.toString(), '"--pretty=format:%H|||%an|||%cd|||%s"', '"--date=format:%a %b %d %H:%M:%S %Y"', "--abbrev-commit");
 
         if (!output) return [];
 
@@ -79,7 +79,7 @@ export function getGitTree(cwd, dirPath = "") {
 
         let lastCommit = null;
         try {
-            const logOutput = execGitCmd(cwd, "log", "-n", "1", '"--pretty=format:%H|||%an|||%cd|||%s"', "--", `"${relPath}"`);
+            const logOutput = execGitCmd(cwd, "log", "-n", "1", '"--pretty=format:%H|||%an|||%cd|||%s"', '"--date=format:%a %b %d %H:%M:%S %Y"', "--", `"${relPath}"`);
             if (logOutput) {
                 const parts = logOutput.split("|||");
                 if (parts.length >= 4) {

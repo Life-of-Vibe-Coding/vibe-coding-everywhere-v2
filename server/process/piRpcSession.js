@@ -14,6 +14,7 @@ import {
   SKILLS_DIR,
   projectRoot,
   PORT,
+  SESSIONS_ROOT,
 } from "../config/index.js";
 import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
 import { getPreviewHost } from "../utils/index.js";
@@ -275,12 +276,11 @@ export function createPiRpcSession({
     const rawModel = options.model ?? (piProvider === "anthropic" ? "claude-sonnet-4-5" : piProvider === "openai" || piProvider === "openai-codex" ? "gpt-4o" : "gemini-2.0-flash");
     const piModel = toPiModel(rawModel, piProvider);
     const cwd = getWorkspaceCwd();
-    // Use unique session-dir per session to avoid Pi's workspace lock contention (enables concurrent runs)
-    const defaultSessionDir = path.join(cwd, ".pi", "sessions");
+    // Session dir = sessions/{sessionId}. Dir name is just the session id.
     const sessionDir =
       sessionId && typeof sessionId === "string"
-        ? path.join(cwd, ".pi", "sessions-" + sessionId.replace(/[^a-zA-Z0-9_-]/g, "_"))
-        : defaultSessionDir;
+        ? path.join(SESSIONS_ROOT, "sessions", sessionId)
+        : path.join(SESSIONS_ROOT, "sessions");
 
     try {
       fs.mkdirSync(sessionDir, { recursive: true });

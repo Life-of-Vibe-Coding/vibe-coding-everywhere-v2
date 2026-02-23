@@ -1,22 +1,44 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
   Alert,
-  FlatList,
+  ScrollView,
+  RefreshControl,
   Platform,
+  Pressable,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppButton } from "../../design-system";
-import { triggerHaptic } from "../../design-system";
+import {
+  Button,
+  Typography,
+  Card,
+  Divider,
+  Badge,
+  IconButton,
+  triggerHaptic,
+  Skeleton,
+  SkeletonText,
+  EntranceAnimation,
+  AnimatedPressableView,
+  spacing,
+  radii,
+} from "../../design-system";
 import { useTheme } from "../../theme/index";
-import { TrashIcon } from "../icons/ChatActionIcons";
+import {
+  TrashIcon,
+  CloseIcon,
+  RefreshCwIcon,
+  SessionManagementIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "../icons/ChatActionIcons";
+import { getFileName } from "../../utils/path";
 import type { Message } from "../../core/types";
 
-/** Session from GET /api/sessions (disk .pi/sessions) */
+/** Session from GET /api/sessions (disk .pi/agent/sessions) */
 export interface ApiSession {
   id: string;
   fileStem: string;
@@ -26,6 +48,8 @@ export interface ApiSession {
   mtime: number;
   sseConnected: boolean;
   running: boolean;
+  /** Workspace cwd this session was created in. */
+  cwd?: string | null;
 }
 
 /** Loaded session passed to onSelectSession (id + messages from GET /api/sessions/:id/messages) */
@@ -38,6 +62,25 @@ export interface LoadedSession {
   running?: boolean;
   /** Whether session has SSE subscribers. */
   sseConnected?: boolean;
+  /** Workspace cwd this session belongs to. Used to auto-switch workspace when selecting. */
+  cwd?: string | null;
+}
+
+/** Insert break opportunities after path separators so wrapping avoids mid-segment breaks. */
+function formatPathForWrap(path: string): string {
+  return path.split("/").join("/\u200B");
+}
+
+/** Strip provider prefix from model id for display (e.g. claude-sonnet-4-5 → sonnet-4-5). */
+function modelDisplayName(model: string | null | undefined, provider: string | null | undefined): string {
+  if (!model) return "";
+  const m = model.trim();
+  if (!m) return "";
+  if (m.startsWith("claude-")) return m.slice(7);
+  if (m.startsWith("anthropic/")) return m.slice(10);
+  if (provider === "gemini" && m.startsWith("gemini-")) return m.slice(8);
+  if ((provider === "pi" || provider === "codex") && m.startsWith("gpt-")) return m.slice(4);
+  return m;
 }
 
 /** Get relative path from root to fullPath. */
@@ -48,6 +91,29 @@ function getRelativePath(fullPath: string, root: string): string {
     return fullPath.slice(rootNorm.length + 1);
   }
   return fullPath;
+}
+
+/** Group sessions by workspace cwd for sectioned list. */
+function groupSessionsByWorkspace(
+  sessions: ApiSession[],
+  fallbackWorkspacePath?: string
+): { title: string; data: ApiSession[] }[] {
+  const byCwd = new Map<string, ApiSession[]>();
+  for (const s of sessions) {
+    // Use cwd from API; fallback to current workspace when missing
+    const key = (typeof s.cwd === "string" && s.cwd.trim()) ? s.cwd : (fallbackWorkspacePath ?? "");
+    if (!byCwd.has(key)) byCwd.set(key, []);
+    byCwd.get(key)!.push(s);
+  }
+  const entries = Array.from(byCwd.entries()).sort((a, b) => {
+    if (a[0] === "") return 1;
+    if (b[0] === "") return -1;
+    return a[0].localeCompare(b[0]);
+  });
+  return entries.map(([cwd, data]) => ({
+    title: cwd || "(no workspace)",
+    data,
+  }));
 }
 
 export interface SessionManagementModalProps {
@@ -118,10 +184,34 @@ export function SessionManagementModal({
 
   const [sessions, setSessions] = useState<ApiSession[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
   const [selectError, setSelectError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [hoveredHeaderCwd, setHoveredHeaderCwd] = useState<string | null>(null);
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sections = useMemo(
+    () => groupSessionsByWorkspace(sessions, workspacePath ?? undefined),
+    [sessions, workspacePath]
+  );
+
+  // Expand current workspace and any section containing current session on first load
+  useEffect(() => {
+    if (!visible || sections.length === 0) return;
+    setExpandedWorkspaces((prev) => {
+      const next = new Set(prev);
+      const currentCwd = (workspacePath ?? "").trim();
+      if (currentCwd) next.add(currentCwd);
+      const sectionWithCurrent = sections.find((s) =>
+        s.data.some((session) => session.id === currentSessionId)
+      );
+      if (sectionWithCurrent) next.add(sectionWithCurrent.title);
+      return next.size > prev.size ? next : prev;
+    });
+  }, [visible, sections, workspacePath, currentSessionId]);
 
   useEffect(() => {
     if (!visible) {
@@ -130,6 +220,7 @@ export function SessionManagementModal({
         transitionTimeoutRef.current = null;
       }
       setSelectError(null);
+      setListError(null);
     }
   }, [visible]);
 
@@ -145,17 +236,33 @@ export function SessionManagementModal({
   const currentRelativePath =
     allowedRoot && workspacePath ? getRelativePath(workspacePath, allowedRoot) : "";
 
-  const refresh = useCallback(async () => {
+  const FETCH_TIMEOUT_MS = 15_000;
+
+  const refresh = useCallback(async (isPullRefresh = false) => {
     if (!serverBaseUrl) return;
-    setLoading(true);
+    if (isPullRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setListError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const res = await fetch(`${serverBaseUrl}/api/sessions`);
+      const res = await fetch(`${serverBaseUrl}/api/sessions`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = (await res.json()) as { sessions?: ApiSession[] };
       setSessions(data.sessions ?? []);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "Request timed out. Check that the server is running and reachable."
+        : "Failed to load sessions. Check server connection.";
+      setListError(msg);
       setSessions([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
+      setRefreshing(false);
     }
   }, [serverBaseUrl]);
 
@@ -184,7 +291,7 @@ export function SessionManagementModal({
             return changed ? next : prev;
           });
         })
-        .catch(() => {});
+        .catch(() => { });
     }, 3000);
     return () => clearInterval(interval);
   }, [visible, serverBaseUrl]);
@@ -207,9 +314,10 @@ export function SessionManagementModal({
           if (!res.ok) throw new Error("Failed to load session");
           return res.json();
         })
-        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean }) => {
+        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean; cwd?: string | null }) => {
           const messages = data.messages ?? [];
           const id = data.sessionId ?? session.id;
+          const cwd = data.cwd ?? session.cwd ?? null;
           onSelectSession({
             id,
             messages,
@@ -217,6 +325,7 @@ export function SessionManagementModal({
             model: data.model ?? session.model,
             running: data.running ?? session.running,
             sseConnected: data.sseConnected ?? session.sseConnected,
+            cwd,
           });
           onClose();
         })
@@ -236,7 +345,7 @@ export function SessionManagementModal({
       const title = session.firstUserInput.slice(0, 50) + (session.firstUserInput.length > 50 ? "…" : "");
       Alert.alert(
         "Delete session",
-        `Remove "${title}" from .pi/sessions?`,
+        `Remove "${title}" from sessions?`,
         [
           { text: "Cancel", style: "cancel" },
           {
@@ -282,122 +391,282 @@ export function SessionManagementModal({
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Sessions</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={12}>
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
+            <Typography variant="title2" style={styles.title}>Sessions</Typography>
+            <IconButton
+              variant="ghost"
+              icon={<CloseIcon size={20} color={theme.colors.textMuted} strokeWidth={2} />}
+              onPress={onClose}
+              accessibilityLabel="Close"
+              style={styles.closeButton}
+            />
           </View>
 
-          {selectError && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{selectError}</Text>
-            </View>
+          {(selectError || listError) && (
+            <EntranceAnimation variant="fade">
+              <View style={styles.errorBanner}>
+                <Typography variant="callout" tone="danger">{selectError ?? listError}</Typography>
+                {listError && (
+                  <AnimatedPressableView
+                    onPress={() => void refresh(false)}
+                    haptic="light"
+                    style={styles.retryButton}
+                    accessibilityLabel="Retry loading sessions"
+                  >
+                    <RefreshCwIcon size={16} color={theme.colors.accent} strokeWidth={2} />
+                    <Typography variant="callout" tone="accent" style={styles.retryText}>
+                      Retry
+                    </Typography>
+                  </AnimatedPressableView>
+                )}
+              </View>
+            </EntranceAnimation>
           )}
 
           <View style={styles.workspaceSection}>
-            <Text style={styles.sectionTitle}>Workspace</Text>
-            <View style={styles.workspaceBox}>
-              <Text style={styles.workspacePathText} numberOfLines={2}>
-                {workspaceLoading ? "Loading…" : allowedRoot ? (currentRelativePath || "(root)") : (workspacePath ?? "—")}
-              </Text>
+            <Typography variant="callout" tone="secondary" style={styles.sectionTitle}>
+              Workspace
+            </Typography>
+            <Card variant="outlined" padding="3" style={styles.workspaceBox}>
+              <View style={styles.workspacePathContainer}>
+                {workspaceLoading ? (
+                  <SkeletonText lineHeight={18} lines={1} lastLineWidth="60%" />
+                ) : (
+                  <View style={styles.workspacePathRow}>
+                    <Typography style={styles.workspacePathLabel}>CWD: </Typography>
+                    <Typography
+                      variant="body"
+                      tone="secondary"
+                      weight="normal"
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                      style={styles.workspacePathValue}
+                    >
+                      {formatPathForWrap(
+                        allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
+                      )}
+                    </Typography>
+                  </View>
+                )}
+              </View>
               <View style={styles.workspaceActions}>
                 {onOpenWorkspacePicker && (
-                  <View style={styles.workspaceActionBtn}>
-                    <AppButton
-                      label="Change workspace"
-                      variant="secondary"
+                  <View style={styles.workspaceActionWrap}>
+                    <Button
+                      label="Change Workspace"
+                      variant="tertiary"
                       size="sm"
                       onPress={onOpenWorkspacePicker}
-                      style={{ height: 52 }}
-                      labelStyle={{ textAlign: "center" }}
+                      style={[styles.workspaceButtonFill, styles.workspaceChangeButton]}
+                      labelStyle={styles.workspaceActionLabel}
                     />
                   </View>
                 )}
-                <View style={styles.workspaceActionBtn}>
-                  <AppButton
-                    label="New session"
+                <View style={styles.workspaceActionWrap}>
+                  <Button
+                    label="Start Session"
                     variant="primary"
                     size="sm"
                     onPress={handleNewSession}
-                    style={{ backgroundColor: theme.colors.accentSoft, height: 52 }}
-                    labelStyle={{ color: theme.colors.textPrimary, textAlign: "center" }}
+                    style={[styles.workspaceButtonFill, styles.workspaceNewSessionButton]}
+                    labelStyle={[styles.workspaceActionLabel, styles.workspaceNewSessionLabel]}
                   />
                 </View>
               </View>
-            </View>
+            </Card>
           </View>
 
-          <Text style={styles.sectionTitle}>From .pi/sessions</Text>
+          <Typography variant="callout" tone="secondary" style={styles.sectionTitle}>
+            Recent Sessions
+          </Typography>
 
-          {loading ? (
+          {loading && !listError ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>Loading…</Text>
+              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
+              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
+              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
             </View>
           ) : sessions.length === 0 && !showActiveChat ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>No sessions in .pi/sessions.</Text>
-              <Text style={styles.emptySub}>Start a conversation to create one.</Text>
-            </View>
+            <EntranceAnimation variant="fade" delay={100}>
+              <View style={styles.empty}>
+                <View style={styles.emptyIconContainer}>
+                  <SessionManagementIcon size={40} color={theme.colors.textMuted} strokeWidth={1.5} />
+                </View>
+                <Typography variant="title3" tone="primary" align="center" style={styles.emptyTitle}>
+                  {listError ? "Connection Error" : "No Sessions Yet"}
+                </Typography>
+                <Typography variant="body" tone="muted" align="center" style={styles.emptySubtitle}>
+                  {listError ? "Check your server connection and tap Retry above." : "Start a conversation and it will appear here."}
+                </Typography>
+              </View>
+            </EntranceAnimation>
           ) : (
-            <>
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.list}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => void refresh(true)}
+                  tintColor={theme.colors.accent}
+                  colors={[theme.colors.accent]}
+                />
+              }
+              showsVerticalScrollIndicator
+            >
               {showActiveChat && onSelectActiveChat && (
-                <TouchableOpacity
-                  style={[styles.row, styles.sessionCard, styles.activeChatCard]}
-                  onPress={onSelectActiveChat}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.sessionCardContent}>
-                    <Text style={[styles.sessionTitle, { color: theme.colors.accent }]} numberOfLines={1}>
-                      Active chat
-                    </Text>
-                    <Text style={styles.sessionMeta}>
-                      {sessionRunning ? "Receiving updates — tap to view" : "Tap to view"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              <FlatList
-                data={sessions}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
-                renderItem={({ item }) => {
-                  const isLoading = loadingSessionId === item.id;
-                  return (
-                    <View style={[styles.row, styles.sessionCard, item.id === currentSessionId && styles.sessionCardActive]}>
-                      <TouchableOpacity
-                        style={styles.sessionCardContent}
-                        onPress={() => handleSelect(item)}
-                        disabled={isLoading}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.sessionTitle} numberOfLines={1}>
-                          {item.firstUserInput || "(no input)"}
-                        </Text>
-                        <Text style={styles.sessionId}>{item.id}</Text>
-                        <Text style={styles.sessionMeta}>
-                          {item.running ? (
-                            <Text style={[styles.sessionMeta, { color: theme.colors.accent, fontWeight: "600" }]}>
-                              Running{item.sseConnected ? " · streaming" : ""} ·{" "}
-                            </Text>
-                          ) : null}
-                          {item.model ?? ""}
-                          {item.model ? " · " : ""}
-                          {formatDate(item.mtime)}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.deleteBtn}
-                        onPress={() => handleDelete(item)}
-                        hitSlop={8}
-                        accessibilityLabel={`Delete session ${item.firstUserInput.slice(0, 30)}`}
-                      >
-                        <TrashIcon color={theme.colors.textMuted} size={20} />
-                      </TouchableOpacity>
+                <EntranceAnimation variant="fade" delay={100}>
+                  <TouchableOpacity
+                    style={[styles.row, styles.activeChatCard]}
+                    onPress={onSelectActiveChat}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.activeChatCardContent}>
+                      <Typography variant="subhead" tone="accent" numberOfLines={1} weight="semibold">
+                        Active Chat
+                      </Typography>
+                      <Typography variant="caption2" tone="secondary" style={{ marginTop: 1 }}>
+                        {sessionRunning ? "Receiving updates • tap to view" : "Tap to resume"}
+                      </Typography>
                     </View>
-                  );
-                }}
-              />
-            </>
+                    <Badge label="LIVE" variant="accent" dot size="sm" />
+                  </TouchableOpacity>
+                </EntranceAnimation>
+              )}
+
+              {sections.map((section) => {
+                const fullPath = section.title;
+                const lastName = fullPath === "(no workspace)"
+                  ? "(no workspace)"
+                  : getFileName(fullPath) || fullPath;
+                const isExpanded = expandedWorkspaces.has(fullPath);
+                const isHovered = hoveredHeaderCwd === fullPath;
+
+                const toggleWorkspace = () => {
+                  triggerHaptic("light");
+                  setExpandedWorkspaces((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(fullPath)) next.delete(fullPath);
+                    else next.add(fullPath);
+                    return next;
+                  });
+                };
+
+                return (
+                  <View key={fullPath} style={styles.menuSection}>
+                    <Pressable
+                      onHoverIn={() => setHoveredHeaderCwd(fullPath)}
+                      onHoverOut={() => setHoveredHeaderCwd(null)}
+                      onPress={toggleWorkspace}
+                      onLongPress={() => {
+                        if (fullPath !== "(no workspace)") {
+                          triggerHaptic("light");
+                          Alert.alert("Workspace", fullPath, [{ text: "OK" }]);
+                        }
+                      }}
+                      style={styles.menuHeader}
+                      accessibilityLabel={`${lastName} workspace, ${section.data.length} session(s), ${isExpanded ? "expanded" : "collapsed"}`}
+                      accessibilityRole="button"
+                    >
+                      <View style={styles.menuHeaderChevron}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
+                        ) : (
+                          <ChevronRightIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
+                        )}
+                      </View>
+                      <Typography variant="caption" tone="secondary" weight="semibold" style={styles.menuHeaderText}>
+                        {lastName}
+                      </Typography>
+                      <Typography variant="caption2" tone="muted" style={styles.menuHeaderCount}>
+                        {section.data.length}
+                      </Typography>
+                      {isHovered && fullPath !== "(no workspace)" && (
+                        <View style={[styles.sectionHeaderTooltip, { backgroundColor: theme.colors.textPrimary }]}>
+                          <Typography variant="caption2" color="#fff" numberOfLines={4} style={styles.tooltipText}>
+                            {formatPathForWrap(fullPath)}
+                          </Typography>
+                        </View>
+                      )}
+                    </Pressable>
+
+                    {isExpanded && (
+                      <View style={styles.menuContent}>
+                        {section.data.map((item, index) => {
+                          const isLoading = loadingSessionId === item.id;
+                          const isActive = item.id === currentSessionId;
+                          return (
+                            <EntranceAnimation key={item.id} variant="slideUp" delay={50 * (index % 10)}>
+                              <Card
+                                variant={isActive ? "default" : "outlined"}
+                                padding="0"
+                                style={[
+                                  styles.sessionCard,
+                                  isActive ? styles.sessionCardActive : {}
+                                ]}
+                              >
+                                <TouchableOpacity
+                                  style={styles.sessionCardContentWrapper}
+                                  onPress={() => handleSelect(item)}
+                                  disabled={isLoading}
+                                  activeOpacity={0.7}
+                                >
+                                  <View style={styles.sessionCardContent}>
+                                    <Typography variant="footnote" numberOfLines={2} tone={isActive ? "accent" : "primary"} weight="semibold">
+                                      {item.firstUserInput || "(No Input)"}
+                                    </Typography>
+
+                                    <View style={styles.sessionCardMetaRow}>
+                                      <Typography
+                                        variant="caption2"
+                                        tone="muted"
+                                        numberOfLines={1}
+                                        ellipsizeMode="middle"
+                                        style={styles.sessionId}
+                                      >
+                                        {item.id}
+                                      </Typography>
+                                      <Divider orientation="vertical" spacing="1" style={{ height: 8, marginHorizontal: 4 }} />
+                                      <Typography variant="caption2" tone="muted" style={styles.sessionCardTime}>
+                                        {formatDate(item.mtime)}
+                                      </Typography>
+                                      {(item.running || item.model) && (
+                                        <View style={styles.sessionCardBadgeWrap}>
+                                          {item.running && (
+                                            <Badge
+                                              label={item.sseConnected ? "STREAMING" : "RUNNING"}
+                                              variant="success"
+                                              size="sm"
+                                              dot
+                                              style={{ marginRight: 4 }}
+                                            />
+                                          )}
+                                          {item.model && (
+                                            <Badge label={modelDisplayName(item.model, item.provider)} variant="default" size="sm" />
+                                          )}
+                                        </View>
+                                      )}
+                                    </View>
+                                  </View>
+
+                                  <IconButton
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={<TrashIcon color={theme.colors.textMuted} size={16} />}
+                                    onPress={() => handleDelete(item)}
+                                    accessibilityLabel="Delete session"
+                                    style={styles.deleteBtn}
+                                  />
+                                </TouchableOpacity>
+                              </Card>
+                            </EntranceAnimation>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
           )}
         </SafeAreaView>
       </View>
@@ -409,7 +678,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
     },
     safe: {
       flex: 1,
@@ -418,142 +687,267 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["5"],
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: theme.textPrimary,
+      fontWeight: "700",
+      color: theme.colors.textPrimary,
     },
-    closeBtn: {
-      padding: 8,
-    },
-    closeBtnText: {
-      fontSize: 20,
-      color: theme.textMuted,
+    closeButton: {
+      minWidth: 44,
+      minHeight: 44,
+      marginRight: -spacing["2"],
     },
     errorBanner: {
-      padding: 12,
-      marginHorizontal: 20,
-      marginTop: 8,
-      backgroundColor: "rgba(228, 86, 73, 0.12)",
-      borderRadius: 8,
+      padding: spacing["4"],
+      marginHorizontal: spacing["5"],
+      marginTop: spacing["2"],
+      backgroundColor: theme.colors.danger + "12",
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.danger + "25",
     },
-    errorText: {
-      fontSize: 14,
-      color: theme.colors.danger ?? "#E45649",
+    retryButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing["2"],
+      marginTop: spacing["3"],
+      paddingVertical: spacing["2"],
+      paddingHorizontal: spacing["2"],
+      alignSelf: "flex-start",
+      minHeight: 44,
+    },
+    retryText: {
+      fontWeight: "600",
     },
     workspaceSection: {
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      paddingBottom: spacing["4"],
     },
     sectionTitle: {
-      ...theme.typography.label,
-      fontSize: theme.typography.label.fontSize,
+      marginTop: spacing["4"],
+      marginBottom: spacing["2"],
+      marginHorizontal: spacing["5"],
+      fontWeight: "600",
+    },
+    workspacePathContainer: {
+      minHeight: 28,
+      justifyContent: "center",
+    },
+    workspacePathRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "flex-start",
+      gap: 0,
+    },
+    workspacePathLabel: {
+      fontWeight: "700",
+      fontSize: 12,
+      lineHeight: 20,
       color: theme.colors.textSecondary,
-      marginBottom: theme.spacing.sm,
-      marginTop: theme.spacing.sm,
-      marginHorizontal: 20,
-      textTransform: "uppercase" as const,
-      letterSpacing: 0.6,
+      flexShrink: 0,
+    },
+    workspacePathValue: {
+      flex: 1,
+      flexShrink: 1,
+      minWidth: 0,
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 12,
+      lineHeight: 20,
+      letterSpacing: 0.2,
+      color: theme.colors.textSecondary,
     },
     workspaceBox: {
-      marginHorizontal: 20,
-      padding: theme.spacing.sm,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.cardBg,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-    },
-    workspacePathText: {
-      ...theme.typography.mono,
-      fontSize: 13,
-      color: theme.colors.textPrimary,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      letterSpacing: 0.3,
-      lineHeight: 20,
-      marginBottom: theme.spacing.xs,
+      marginHorizontal: spacing["5"],
+      backgroundColor: theme.colors.surface,
     },
     workspaceActions: {
       flexDirection: "row",
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.sm,
+      alignItems: "stretch",
+      gap: spacing["3"],
+      marginTop: spacing["2"],
+      paddingTop: spacing["2"],
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.border,
     },
-    workspaceActionBtn: {
+    workspaceActionWrap: {
       flex: 1,
       minWidth: 0,
     },
+    workspaceButtonFill: {
+      width: "100%",
+      height: 52,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["4"],
+    },
+    workspaceActionLabel: {
+      fontSize: 11,
+    },
+    workspaceChangeButton: {
+      backgroundColor: theme.colors.surfaceMuted,
+      borderColor: theme.colors.border,
+    },
+    workspaceNewSessionButton: {
+      backgroundColor: "#93C5FD", // light blue
+      borderColor: "#93C5FD",
+    },
+    workspaceNewSessionLabel: {
+      color: "#1E40AF", // dark blue for contrast on light blue
+      fontWeight: "600",
+    },
+    scrollView: {
+      flex: 1,
+    },
     list: {
-      paddingHorizontal: 20,
-      paddingBottom: 24,
+      paddingHorizontal: spacing["5"],
+      paddingBottom: spacing["8"],
+    },
+    menuSection: {
+      marginTop: spacing["3"],
+      position: "relative",
+    },
+    menuHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: spacing["2"],
+      paddingHorizontal: spacing["1"],
+      minHeight: 44,
+      position: "relative",
+    },
+    menuHeaderChevron: {
+      width: 20,
+      marginRight: spacing["1"],
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    menuHeaderText: {
+      flex: 1,
+    },
+    menuHeaderCount: {
+      marginLeft: spacing["1"],
+      opacity: 0.8,
+    },
+    menuContent: {
+      paddingLeft: spacing["4"],
+      paddingTop: spacing["1"],
+      paddingBottom: spacing["2"],
+    },
+    sectionHeader: {
+      paddingVertical: spacing["1"],
+      paddingHorizontal: 0,
+      marginTop: spacing["3"],
+      marginBottom: spacing["1"],
+      position: "relative",
+    },
+    sectionHeaderTooltip: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      marginTop: spacing["0.5"],
+      paddingVertical: spacing["2"],
+      paddingHorizontal: spacing["3"],
+      borderRadius: radii.md,
+      maxWidth: 320,
+      zIndex: 10,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    tooltipText: {
+      color: "#fff",
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 8,
+      marginBottom: spacing["2"],
     },
     sessionCard: {
+      marginBottom: spacing["2"],
+      overflow: "hidden",
+    },
+    sessionCardActive: {
+      borderColor: theme.colors.accent,
+      backgroundColor: theme.colors.accent + "05",
+      borderWidth: 2,
+    },
+    sessionCardContentWrapper: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      borderRadius: 10,
-      backgroundColor: theme.cardBg,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
+      paddingVertical: spacing["2"],
+      paddingHorizontal: spacing["3"],
     },
     sessionCardContent: {
       flex: 1,
+      marginRight: spacing["1"],
+      minWidth: 0,
     },
-    sessionCardActive: {
-      borderColor: theme.accent,
-      backgroundColor: theme.accentLight,
+    sessionCardMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: spacing["0.5"],
+      gap: spacing["1"],
+    },
+    sessionCardCwd: {
+      marginTop: spacing["1"],
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 10,
+      opacity: 0.8,
+    },
+    sessionCardTime: {
+      flexShrink: 0,
+    },
+    sessionCardBadgeWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginLeft: "auto",
     },
     activeChatCard: {
-      borderColor: theme.accent,
-      backgroundColor: theme.accentLight,
-      marginHorizontal: 20,
-      marginBottom: 12,
+      padding: spacing["3"],
+      borderRadius: radii.lg,
+      backgroundColor: theme.colors.accent + "12",
+      borderWidth: 1.5,
+      borderColor: theme.colors.accent,
+      marginBottom: spacing["3"],
     },
-    sessionTitle: {
-      fontSize: 15,
-      fontWeight: "500",
-      color: theme.colors.textPrimary,
+    activeChatCardContent: {
+      flex: 1,
     },
     sessionId: {
-      fontSize: 11,
-      color: theme.colors.textMuted,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      marginTop: 2,
-    },
-    sessionMeta: {
-      fontSize: 12,
-      color: theme.colors.textMuted,
-      marginTop: 4,
+      opacity: 0.7,
     },
     deleteBtn: {
-      padding: 8,
-      marginLeft: 8,
+      opacity: 0.7,
+      minWidth: 36,
+      minHeight: 36,
+      marginLeft: spacing["0.5"],
     },
     empty: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      padding: 24,
+      padding: spacing["10"],
     },
-    emptyText: {
-      fontSize: 16,
-      color: theme.colors.textMuted,
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: radii.xl,
+      backgroundColor: theme.colors.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing["4"],
     },
-    emptySub: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-      marginTop: 8,
+    emptyTitle: {
+      marginBottom: spacing["2"],
+    },
+    emptySubtitle: {
+      lineHeight: 22,
+      maxWidth: 280,
+      opacity: 0.9,
     },
   });
 }

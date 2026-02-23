@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { createSession, getSession, removeSession, subscribeToSession, resolveSession } from "../sessionRegistry.js";
 import { formatSessionLogTimestamp } from "../process/index.js";
-import { getWorkspaceCwd } from "../config/index.js";
+import { getWorkspaceCwd, SESSIONS_ROOT } from "../config/index.js";
 
 export function registerSessionsRoutes(app) {
     const router = Router();
@@ -25,12 +25,22 @@ export function registerSessionsRoutes(app) {
         return null;
     }
 
-    /** Parse JSONL to extract session id, first user input, and last model_change (provider, modelId). */
+    /** Derive cwd from session file path. Returns null when file is in central SESSIONS_ROOT (no workspace in path). */
+    function deriveCwdFromFilePath(filePath) {
+        const dir = path.dirname(filePath);
+        const parent = path.dirname(dir);
+        if (path.basename(parent) === ".pi") return path.dirname(parent);
+        if (path.basename(parent) === "agent") return null; // central .pi/agent/sessions - no workspace in path
+        return parent;
+    }
+
+    /** Parse JSONL to extract session id, first user input, cwd, and last model_change (provider, modelId). */
     function parseSessionMetadata(filePath) {
         let sessionId = null;
         let firstUserInput = null;
         let provider = null;
         let modelId = null;
+        let cwd = null;
         try {
             const raw = fs.readFileSync(filePath, "utf-8");
             const lines = raw.split("\n").filter((l) => l.trim());
@@ -39,6 +49,7 @@ export function registerSessionsRoutes(app) {
                     const obj = JSON.parse(line);
                     if (obj.type === "session" && typeof obj.id === "string") {
                         sessionId = obj.id;
+                        if (typeof obj.cwd === "string" && obj.cwd) cwd = obj.cwd;
                     }
                     if (obj.type === "model_change" && typeof obj.modelId === "string") {
                         provider = mapProvider(obj.provider) || provider;
@@ -60,10 +71,11 @@ export function registerSessionsRoutes(app) {
                     /* skip malformed lines */
                 }
             }
+            if (!cwd) cwd = deriveCwdFromFilePath(filePath);
         } catch (e) {
             console.error("[sessions] Failed to parse metadata:", filePath, e?.message);
         }
-        return { sessionId, firstUserInput, provider, modelId };
+        return { sessionId, firstUserInput, provider, modelId, cwd };
     }
 
     // GET /api/sessions/status - Lightweight health check
@@ -71,37 +83,28 @@ export function registerSessionsRoutes(app) {
         res.json({ ok: true });
     });
 
-    /** Sanitize sessionId for use in dir names (matches piRpcSession). */
-    function sanitizeSessionIdForDir(id) {
-        return (id || "").replace(/[^a-zA-Z0-9_-]/g, "_");
+    /** Session dir = sessions/{sessionId}. Dir name is just the session id. */
+    function getSessionDir(sessionId) {
+        return path.join(SESSIONS_ROOT, "sessions", sessionId);
     }
 
-    /** Resolve session file path. Checks .pi/sessions first, then .pi/sessions-{sanitizedId}/ (concurrent runs). */
-    function resolveSessionFilePath(root, sessionId) {
-        const defaultDir = path.join(root, ".pi", "sessions");
-        let filePath = path.join(defaultDir, `${sessionId}.jsonl`);
-        if (fs.existsSync(filePath)) return filePath;
-        const files = fs.existsSync(defaultDir) ? fs.readdirSync(defaultDir) : [];
-        const match = files.find((n) => n.endsWith(`_${sessionId}.jsonl`));
-        if (match) return path.join(defaultDir, match);
-        const perSessionDir = path.join(root, ".pi", "sessions-" + sanitizeSessionIdForDir(sessionId));
-        if (fs.existsSync(perSessionDir)) {
-            const perFiles = fs.readdirSync(perSessionDir);
-            const perMatch = perFiles.find((n) => n.endsWith(".jsonl") && (n === `${sessionId}.jsonl` || n.endsWith(`_${sessionId}.jsonl`)));
-            if (perMatch) return path.join(perSessionDir, perMatch);
-        }
-        return null;
+    /** Find .jsonl file in a session dir. */
+    function findJsonlInDir(dir) {
+        if (!fs.existsSync(dir)) return null;
+        const entries = fs.readdirSync(dir);
+        const jsonl = entries.find((n) => n.endsWith(".jsonl"));
+        return jsonl ? path.join(dir, jsonl) : null;
     }
 
-    /** Create initial session file. Uses per-session dir for concurrent runs (e.g. smoke-concurrent-*)
-     * so files land inside the session folder instead of .pi/sessions. */
-    function createNewSessionFile(sessionId, cwd, usePerSessionDir = false) {
-        const defaultSessionDir = path.join(cwd, ".pi", "sessions");
-        const sessionDir = usePerSessionDir && sessionId
-            ? path.join(cwd, ".pi", "sessions-" + sanitizeSessionIdForDir(sessionId))
-            : defaultSessionDir;
+    /** Resolve session file path. Session dir is sessions/{sessionId}. */
+    function resolveSessionFilePath(sessionId) {
+        return findJsonlInDir(getSessionDir(sessionId));
+    }
+
+    /** Create initial session file. Always uses sessions/{sessionId}/. */
+    function createNewSessionFile(sessionId, cwd) {
+        const sessionDir = getSessionDir(sessionId);
         try {
-            fs.mkdirSync(path.dirname(defaultSessionDir), { recursive: true });
             fs.mkdirSync(sessionDir, { recursive: true });
         } catch (_) {}
         const iso = new Date().toISOString().replace(/:/g, "-").replace(".", "-");
@@ -120,9 +123,8 @@ export function registerSessionsRoutes(app) {
 
     // POST /api/sessions/new - Initialize a new session (like "pi -new"), returns real sessionId.
     router.post("/new", (req, res) => {
-        const root = getWorkspaceCwd();
         const sessionId = crypto.randomUUID();
-        const filePath = createNewSessionFile(sessionId, root);
+        const filePath = createNewSessionFile(sessionId, getWorkspaceCwd());
         const session = createSession(sessionId, "pi", "gemini-2.5-flash", {
             existingSessionPath: filePath,
             sessionLogTimestamp: formatSessionLogTimestamp(),
@@ -131,56 +133,44 @@ export function registerSessionsRoutes(app) {
         res.status(200).json({ sessionId, ok: true });
     });
 
-    // GET /api/sessions - List PI-managed sessions from .pi/sessions and .pi/sessions-*/
+    // GET /api/sessions - List sessions. Each subdir of sessions/ is session id; discover by id.
     router.get("/", (req, res) => {
-        const root = getWorkspaceCwd();
-        const piDir = path.join(root, ".pi");
+        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
         const discovered = [];
-        const seenIds = new Set();
         try {
-            const dirsToScan = [path.join(piDir, "sessions")];
-            const piExists = fs.existsSync(piDir);
-            if (piExists) {
-                const entries = fs.readdirSync(piDir, { withFileTypes: true });
-                for (const e of entries) {
-                    if (e.isDirectory() && e.name.startsWith("sessions-")) {
-                        dirsToScan.push(path.join(piDir, e.name));
-                    }
-                }
+            if (!fs.existsSync(sessionsBase)) {
+                return res.json({ sessions: discovered, projectRootPath: getWorkspaceCwd() });
             }
-            for (const sessionDir of dirsToScan) {
-                if (!fs.existsSync(sessionDir)) continue;
-                const files = fs.readdirSync(sessionDir);
-                for (const name of files) {
-                    if (!name.endsWith(".jsonl")) continue;
-                    const filePath = path.join(sessionDir, name);
-                    const stat = fs.statSync(filePath);
-                    const fileStem = name.replace(/\.jsonl$/, "");
-                    const fileUuid = uuidFromFileStem(fileStem);
-                    const { sessionId, firstUserInput, provider, modelId } = parseSessionMetadata(filePath);
-                    const id = sessionId || fileUuid;
-                    if (seenIds.has(id)) continue;
-                    seenIds.add(id);
-                    const activeSession = resolveSession(id) || resolveSession(fileUuid);
-                    const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
-                    const running = activeSession?.processManager?.processRunning?.() ?? false;
-                    discovered.push({
-                        id,
-                        fileStem,
-                        firstUserInput: firstUserInput || "(no input)",
-                        provider: provider || null,
-                        model: modelId || null,
-                        mtime: stat.mtimeMs,
-                        sseConnected,
-                        running,
-                    });
-                }
+            const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
+            for (const d of subdirs) {
+                const sessionId = d.name;
+                const filePath = findJsonlInDir(path.join(sessionsBase, sessionId));
+                if (!filePath) continue;
+                const stat = fs.statSync(filePath);
+                const fileStem = path.basename(filePath, ".jsonl");
+                const { sessionId: metaId, firstUserInput, provider, modelId, cwd } = parseSessionMetadata(filePath);
+                const id = metaId || sessionId;
+                const activeSession = resolveSession(id);
+                const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
+                const running = activeSession?.processManager?.processRunning?.() ?? false;
+                const resolvedCwd = (typeof cwd === "string" && cwd.trim()) ? cwd : (deriveCwdFromFilePath(filePath) || getWorkspaceCwd());
+                discovered.push({
+                    id,
+                    fileStem,
+                    firstUserInput: firstUserInput || "(no input)",
+                    provider: provider || null,
+                    model: modelId || null,
+                    mtime: stat.mtimeMs,
+                    sseConnected,
+                    running,
+                    cwd: resolvedCwd || getWorkspaceCwd(),
+                });
             }
             discovered.sort((a, b) => b.mtime - a.mtime);
         } catch (e) {
-            console.error("[sessions] Failed to list .pi/sessions:", e?.message);
+            console.error("[sessions] Failed to list .pi/agent/sessions:", e?.message);
         }
-        res.json({ sessions: discovered, projectRootPath: root });
+        res.json({ sessions: discovered, projectRootPath: getWorkspaceCwd() });
     });
 
     // POST /api/sessions
@@ -209,11 +199,9 @@ export function registerSessionsRoutes(app) {
             if (!sessionId) {
                 sessionId = crypto.randomUUID();
             }
-            const root = getWorkspaceCwd();
-            const usePerSessionDir = sessionId && (sessionId.startsWith("smoke-concurrent-") || sessionId.startsWith("smoke-switch-"));
-            let existingPath = resolveSessionFilePath(root, sessionId);
+            let existingPath = resolveSessionFilePath(sessionId);
             if (!existingPath) {
-                existingPath = createNewSessionFile(sessionId, root, usePerSessionDir);
+                existingPath = createNewSessionFile(sessionId, getWorkspaceCwd());
             }
             session = createSession(sessionId, provider, model, {
                 existingSessionPath: existingPath,
@@ -253,11 +241,10 @@ export function registerSessionsRoutes(app) {
         res.json({ ok: true });
     });
 
-    // GET /api/sessions/:sessionId/messages - Load messages from .pi/sessions or .pi/sessions-{id}/
+    // GET /api/sessions/:sessionId/messages - Load messages from central .pi/agent/sessions
     router.get("/:sessionId/messages", (req, res) => {
         const { sessionId } = req.params;
-        const root = getWorkspaceCwd();
-        const filePath = resolveSessionFilePath(root, sessionId);
+        const filePath = resolveSessionFilePath(sessionId);
         if (!filePath || !fs.existsSync(filePath)) {
             return res.status(404).json({ error: "Session not found" });
         }
@@ -319,7 +306,7 @@ export function registerSessionsRoutes(app) {
                     content: pendingAssistantContent.join("\n\n").trim(),
                 });
             }
-            const { provider, modelId } = parseSessionMetadata(filePath);
+            const { provider, modelId, cwd } = parseSessionMetadata(filePath);
             const activeSession = resolveSession(sessionId) || resolveSession(canonicalSessionId);
             const running = activeSession?.processManager?.processRunning?.() ?? false;
             const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
@@ -330,6 +317,7 @@ export function registerSessionsRoutes(app) {
                 model: modelId || null,
                 running,
                 sseConnected,
+                cwd: cwd || getWorkspaceCwd(),
             });
         } catch (e) {
             console.error("[sessions] Failed to load messages:", e?.message);
@@ -340,8 +328,7 @@ export function registerSessionsRoutes(app) {
     // DELETE /api/sessions/:sessionId - Remove session file and optionally clean up active registry
     router.delete("/:sessionId", (req, res) => {
         const { sessionId } = req.params;
-        const root = getWorkspaceCwd();
-        const filePath = resolveSessionFilePath(root, sessionId);
+        const filePath = resolveSessionFilePath(sessionId);
         if (!filePath || !fs.existsSync(filePath)) {
             return res.status(404).json({ error: "Session not found" });
         }
@@ -378,10 +365,9 @@ export function registerSessionsRoutes(app) {
         const activeOnly = req.query.activeOnly === "1" || req.query.activeOnly === "true";
         const processRunning = session.processManager.processRunning?.() || false;
         let sentLines = 0;
-        // Replay history from physical Pi session file (.pi/sessions or .pi/sessions-{id}/)
+        // Replay history from physical Pi session file (central .pi/agent/sessions)
         if (!sessionId.startsWith("temp-")) {
-            const root = getWorkspaceCwd();
-            const filePath = resolveSessionFilePath(root, sessionId);
+            const filePath = resolveSessionFilePath(sessionId);
             if (filePath && fs.existsSync(filePath)) {
                 try {
                     const raw = fs.readFileSync(filePath, "utf-8");
@@ -391,7 +377,7 @@ export function registerSessionsRoutes(app) {
                         sentLines++;
                     }
                 } catch (e) {
-                    console.error("[sessions] Failed to read .pi/sessions for replay:", e?.message);
+                    console.error("[sessions] Failed to read .pi/agent/sessions for replay:", e?.message);
                 }
             }
         }
@@ -400,7 +386,7 @@ export function registerSessionsRoutes(app) {
             res.end();
             return;
         }
-        console.log(`[SSE] sessionId=${sessionId} connected. Sent ${sentLines} lines from .pi/sessions.`);
+        console.log(`[SSE] sessionId=${sessionId} connected. Sent ${sentLines} lines from .pi/agent/sessions.`);
 
         // Subscribe to live events
         subscribeToSession(sessionId, res);

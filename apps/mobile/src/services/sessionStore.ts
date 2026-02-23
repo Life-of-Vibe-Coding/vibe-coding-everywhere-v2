@@ -1,7 +1,7 @@
 /**
  * Session Store - Persist provider/model preference only.
  *
- * Sessions come from the server (.pi/sessions on disk). We only persist
+ * Sessions come from the server (central .pi/agent/sessions on disk). We only persist
  * the last used provider and model for UX.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
