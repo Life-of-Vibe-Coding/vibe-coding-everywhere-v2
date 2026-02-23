@@ -1000,12 +1000,12 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 
   const bubbleContent = (
     <>
-      {message.content && message.content.trim() !== "" ? (
-        isTerminatedLabel ? (
-          <Text style={styles.bubbleTextTerminated} italic className="text-typography-500">
-            {message.content}
-          </Text>
-        ) : isUser || isSystem ? (
+      {isTerminatedLabel ? (
+        <Text style={styles.bubbleTextTerminated} italic className="text-typography-500">
+          Terminated
+        </Text>
+      ) : (message.content && message.content.trim() !== "" ? (
+        isUser || isSystem ? (
           <Text
             style={isSystem ? styles.bubbleTextSystem : styles.bubbleText}
             className={isSystem ? "text-typography-500" : "text-typography-900"}
@@ -1035,7 +1035,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         <Text className="text-typography-500" style={styles.bubbleTextPlaceholder}>
           …
         </Text>
-      ) : null}
+      ) : null) }
       {refs.length > 0 && (
         <Box style={[styles.refPills, message.content ? styles.refPillsWithContent : null]} className="flex-row flex-wrap gap-2">
           {refs.map((ref, index) => (

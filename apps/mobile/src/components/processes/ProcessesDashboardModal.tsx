@@ -9,12 +9,13 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic } from "../../design-system";
-import { CloseIcon } from "../icons/ChatActionIcons";
+import { triggerHaptic, spacing, radii, EntranceAnimation } from "../../design-system";
+import { CloseIcon, TerminalIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
-import { Badge, BadgeText } from "../../../components/ui/badge";
 import { Box } from "../../../components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
+import { HStack } from "../../../components/ui/hstack";
+import { VStack } from "../../../components/ui/vstack";
 import { Pressable } from "../../../components/ui/pressable";
 import { Text } from "../../../components/ui/text";
 
@@ -154,8 +155,12 @@ export function ProcessesDashboardModal({
     >
       <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
-            <Text size="lg" bold className="text-typography-900">Running Processes</Text>
+          {/* Header with accent bar */}
+          <HStack style={[styles.header, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.borderColor }]}>
+            <HStack className="flex-1 items-center gap-2">
+              <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+              <Text size="xl" bold className="text-typography-900">Running Processes</Text>
+            </HStack>
             <Button
               action="default"
               variant="link"
@@ -166,20 +171,24 @@ export function ProcessesDashboardModal({
             >
               <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
             </Button>
-          </Box>
+          </HStack>
 
           {error && (
-            <Box style={styles.errorBanner} className="bg-error-500/10 px-5 py-3.5">
-              <Text size="sm" className="text-error-600">{error}</Text>
-              <Text size="xs" className="text-error-600 mt-2 leading-4.5 opacity-95">
-                Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
-              </Text>
-            </Box>
+            <EntranceAnimation variant="fade">
+              <VStack style={[styles.errorBanner, { backgroundColor: theme.colors?.danger ? theme.colors.danger + "12" : undefined, borderColor: theme.colors?.danger ? theme.colors.danger + "25" : undefined }]} className="gap-2">
+                <Text size="sm" className="text-error-600">{error}</Text>
+                <Text size="xs" className="text-error-600 leading-4.5 opacity-90">
+                  Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
+                </Text>
+              </VStack>
+            </EntranceAnimation>
           )}
           {warning && !error && (
-            <Box style={styles.warningBanner} className="px-5 py-3">
-              <Text size="sm" className="text-typography-900">{warning}</Text>
-            </Box>
+            <EntranceAnimation variant="fade">
+              <Box style={[styles.warningBanner, { backgroundColor: theme.accentLight ?? theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)" }]}>
+                <Text size="sm" className="text-typography-900">{warning}</Text>
+              </Box>
+            </EntranceAnimation>
           )}
 
           <ScrollView
@@ -203,72 +212,92 @@ export function ProcessesDashboardModal({
             {!loading && (
               <>
                 {hasOther && (
-                  <Box style={styles.section} className="mb-4">
-                    <Text size="xs" bold className="text-typography-500 uppercase tracking-wider mb-2.5">Port-bound processes</Text>
+                  <VStack style={styles.section} className="gap-3">
+                    <HStack className="items-center gap-2">
+                      <Box style={[styles.sectionAccent, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+                      <Text size="xs" bold style={{ color: theme.colors?.textSecondary ?? theme.textMuted }} className="uppercase tracking-wider">Port-bound processes</Text>
+                    </HStack>
                     {[...apiProcesses]
                       .sort((a, b) => b.pid - a.pid)
                       .map((proc) => {
                       const logPaths = proc.logPaths ?? [];
+                      const accent = theme.colors?.accent ?? theme.accent;
                       return (
-                        <Box key={`${proc.pid}-${proc.port}`} style={styles.row} className="flex-col py-2.5 px-3 rounded-lg mb-2.5 gap-2 border border-outline-400 bg-background-0">
-                          <Box style={styles.rowMain} className="min-w-0">
-                            <Box style={styles.pidPortRow} className="flex-row flex-wrap gap-1.5 mb-1.5">
-                              <Badge action="info" variant="outline" size="sm" className="py-0.5 px-1.5 rounded">
-                                <BadgeText>PID {proc.pid}</BadgeText>
-                              </Badge>
-                              <Badge action="info" variant="outline" size="sm" className="py-0.5 px-1.5 rounded">
-                                <BadgeText>Port {proc.port}</BadgeText>
-                              </Badge>
-                            </Box>
-                            <Text
-                              size="xs"
-                              numberOfLines={4}
-                              selectable
-                              className="font-semibold text-typography-900 font-mono"
-                              style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
-                            >
-                              {proc.command}
-                            </Text>
-                          </Box>
-                          <Box style={styles.rowActions} className="flex-row items-center gap-1.5 flex-wrap shrink-0">
-                            {logPaths.map((logPath) => {
-                              const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
-                              return (
-                                <Pressable
-                                  key={logPath}
-                                  onPress={() => handleViewLog(logPath)}
-                                  className="py-1.5 px-2 rounded-md border border-primary-500 bg-primary-500/15 min-w-16"
-                                  accessibilityLabel={`View log ${label}`}
-                                >
-                                  <Text size="xs" bold className="text-primary-500">Log: {label}</Text>
-                                </Pressable>
-                              );
-                            })}
-                            <Box style={styles.killButtonWrap} className="min-h-9 justify-center">
-                              <Button
-                                action="negative"
-                                variant="solid"
-                                size="sm"
-                                onPress={() => handleKillApiProcess(proc)}
-                                isDisabled={killingPid === proc.pid}
+                        <EntranceAnimation key={`${proc.pid}-${proc.port}`} variant="slideUp" delay={0}>
+                          <Box
+                            style={[
+                              styles.row,
+                              {
+                                backgroundColor: accent + "08",
+                                borderLeftColor: accent,
+                                borderColor: accent + "40",
+                              },
+                            ]}
+                            className="flex-col overflow-hidden rounded-xl"
+                          >
+                            <Box style={styles.rowMain} className="min-w-0">
+                              <HStack style={styles.pidPortRow} className="flex-wrap gap-2 mb-2">
+                                <Box style={[styles.pill, { backgroundColor: accent + "12", borderColor: accent + "30" }]}>
+                                  <Text size="xs" bold style={{ color: accent }}>PID {proc.pid}</Text>
+                                </Box>
+                                <Box style={[styles.pill, { backgroundColor: accent + "12", borderColor: accent + "30" }]}>
+                                  <Text size="xs" bold style={{ color: accent }}>Port {proc.port}</Text>
+                                </Box>
+                              </HStack>
+                              <Text
+                                size="xs"
+                                numberOfLines={4}
+                                selectable
+                                className="font-semibold text-typography-900 font-mono"
+                                style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
                               >
-                                <ButtonText>{killingPid === proc.pid ? "…" : "Kill"}</ButtonText>
-                              </Button>
+                                {proc.command}
+                              </Text>
                             </Box>
+                            <HStack style={styles.rowActions} className="flex-wrap gap-2">
+                              {logPaths.map((logPath) => {
+                                const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
+                                return (
+                                  <Pressable
+                                    key={logPath}
+                                    onPress={() => handleViewLog(logPath)}
+                                    style={[styles.logButton, { backgroundColor: accent + "12", borderColor: accent + "40" }]}
+                                    accessibilityLabel={`View log ${label}`}
+                                  >
+                                    <Text size="xs" bold style={{ color: accent }}>Log: {label}</Text>
+                                  </Pressable>
+                                );
+                              })}
+                              <Box style={styles.killButtonWrap}>
+                                <Button
+                                  action="negative"
+                                  variant="solid"
+                                  size="sm"
+                                  onPress={() => handleKillApiProcess(proc)}
+                                  isDisabled={killingPid === proc.pid}
+                                  style={styles.killButton}
+                                >
+                                  <ButtonText>{killingPid === proc.pid ? "…" : "Kill"}</ButtonText>
+                                </Button>
+                              </Box>
+                            </HStack>
                           </Box>
-                        </Box>
+                        </EntranceAnimation>
                       );
                     })}
-                  </Box>
+                  </VStack>
                 )}
 
                 {empty && (
-                  <Box style={styles.empty} className="py-8 items-center">
-                    <Text size="sm" bold className="text-typography-500 mb-1.5">No running processes found.</Text>
-                    <Text size="xs" className="text-typography-500 text-center max-w-70 leading-4.5">
-                      Port-bound processes (e.g. dev servers on 3000, 8000) will appear here.
+                  <VStack style={styles.empty} className="items-center gap-4 py-12">
+                    <Box style={[styles.emptyIconContainer, { backgroundColor: (theme.colors?.accent ?? theme.accent) + "15", borderColor: (theme.colors?.accent ?? theme.accent) + "40" }]}>
+                      <TerminalIcon size={40} color={theme.colors?.accent ?? theme.accent} strokeWidth={1.5} />
+                    </Box>
+                    <Text size="md" bold className="text-typography-600">No running processes found</Text>
+                    <Text size="xs" className="text-typography-500 text-center max-w-70 leading-5">
+                      Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active.
                     </Text>
-                  </Box>
+                  </VStack>
                 )}
               </>
             )}
@@ -286,10 +315,13 @@ export function ProcessesDashboardModal({
         >
           <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
-            <Box style={styles.logViewerHeader} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
-              <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900">
-                {logViewer.name}
-              </Text>
+            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.borderColor }]}>
+              <HStack className="flex-1 items-center gap-2 min-w-0">
+                <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+                <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900 min-w-0">
+                  {logViewer.name}
+                </Text>
+              </HStack>
               <Button
                 action="default"
                 variant="link"
@@ -300,7 +332,7 @@ export function ProcessesDashboardModal({
               >
                 <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
               </Button>
-            </Box>
+            </HStack>
             <ScrollView
               style={styles.logViewerScroll}
               contentContainerStyle={styles.logViewerContent}
@@ -332,12 +364,22 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     safe: {
       flex: 1,
     },
+    accentBar: {
+      width: 4,
+      height: 22,
+      borderRadius: 2,
+    },
+    sectionAccent: {
+      width: 3,
+      height: 14,
+      borderRadius: 2,
+    },
     header: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 12,
-      paddingHorizontal: 16,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["5"],
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
     },
@@ -356,9 +398,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginVertical: -8,
     },
     errorBanner: {
-      backgroundColor: (theme as { colors?: { errorBg?: string } }).colors?.errorBg ?? "#fee2e2",
-      paddingHorizontal: 20,
-      paddingVertical: 14,
+      marginHorizontal: spacing["5"],
+      marginTop: spacing["2"],
+      padding: spacing["4"],
+      borderRadius: radii.lg,
+      borderWidth: 1,
     },
     errorText: {
       color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.danger ?? "#dc2626",
@@ -372,9 +416,10 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       opacity: 0.95,
     },
     warningBanner: {
-      backgroundColor: theme.accentLight ?? "rgba(255,193,7,0.2)",
-      paddingHorizontal: 20,
-      paddingVertical: 12,
+      marginHorizontal: spacing["5"],
+      marginTop: spacing["2"],
+      padding: spacing["4"],
+      borderRadius: radii.lg,
     },
     warningText: {
       color: theme.textPrimary,
@@ -384,9 +429,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
     },
     scrollContent: {
-      paddingHorizontal: 16,
-      paddingTop: 12,
-      paddingBottom: 20,
+      paddingHorizontal: spacing["5"],
+      paddingTop: spacing["4"],
+      paddingBottom: spacing["6"],
     },
     loading: {
       paddingVertical: 32,
@@ -398,7 +443,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.textMuted,
     },
     section: {
-      marginBottom: 16,
+      marginBottom: spacing["4"],
     },
     sectionTitle: {
       fontSize: 10,
@@ -410,14 +455,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     row: {
       flexDirection: "column",
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      backgroundColor: theme.cardBg,
-      borderRadius: 10,
-      marginBottom: 10,
-      gap: 8,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["4"],
+      borderRadius: radii.lg,
+      marginBottom: spacing["3"],
+      gap: spacing["2"],
       borderWidth: 1,
-      borderColor: theme.borderColor,
+      borderLeftWidth: 4,
     },
     rowMain: {
       minWidth: 0,
@@ -425,17 +469,16 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     rowActions: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: spacing["2"],
       flexWrap: "wrap",
       flexShrink: 0,
     },
     logButton: {
-      paddingVertical: 5,
-      paddingHorizontal: 9,
-      borderRadius: 6,
-      backgroundColor: theme.accentLight ?? "rgba(0,122,255,0.15)",
+      paddingVertical: spacing["2"],
+      paddingHorizontal: spacing["3"],
+      borderRadius: radii.md,
       borderWidth: 1,
-      borderColor: theme.accent,
+      minWidth: 64,
     },
     logButtonVisible: {
       minWidth: 64,
@@ -448,16 +491,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     pidPortRow: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 6,
-      marginBottom: 6,
+      gap: spacing["2"],
     },
     pill: {
-      paddingVertical: 2,
-      paddingHorizontal: 7,
-      borderRadius: 5,
-      backgroundColor: theme.accentLight ?? "rgba(0,122,255,0.12)",
+      paddingVertical: spacing["0.5"],
+      paddingHorizontal: spacing["2"],
+      borderRadius: radii.sm,
       borderWidth: 1,
-      borderColor: theme.accent,
     },
     pillText: {
       fontSize: 11,
@@ -476,13 +516,23 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 36,
       justifyContent: "center",
     },
+    killButton: {
+      borderRadius: radii.md,
+    },
     killButtonLabel: {
       fontSize: 12,
       fontWeight: "700",
     },
     empty: {
-      paddingVertical: 32,
       alignItems: "center",
+    },
+    emptyIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: radii.xl,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
     },
     emptyText: {
       fontSize: 14,
@@ -505,8 +555,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 12,
-      paddingHorizontal: 16,
+      paddingVertical: spacing["3"],
+      paddingHorizontal: spacing["5"],
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.borderColor,
     },
@@ -520,8 +570,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
     },
     logViewerContent: {
-      padding: 16,
-      paddingBottom: 32,
+      padding: spacing["5"],
+      paddingBottom: spacing["6"],
     },
     logViewerText: {
       fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",

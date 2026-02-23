@@ -87,6 +87,7 @@ export function PreviewWebViewModal({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const pendingUrlChoice = useRef<{ normalized: string; thenApply: (u: string) => void } | null>(null);
   const initializedRef = useRef(false);
+  const lastInitUrlRef = useRef<string>("");
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
@@ -148,30 +149,39 @@ export function PreviewWebViewModal({
   useEffect(() => {
     if (!visible) {
       initializedRef.current = false;
+      lastInitUrlRef.current = "";
       setIsFullScreen(false);
       return;
     }
+    const initialUrl = (url?.trim() ?? "") || "";
+    const normalized = initialUrl ? normalizeUrl(initialUrl) : "";
+    // Re-init when user clicks a new link (url prop changed while modal was open)
+    if (normalized && lastInitUrlRef.current !== normalized) {
+      initializedRef.current = false;
+    }
     if (!initializedRef.current) {
       initializedRef.current = true;
-      const initialUrl = (url?.trim() ?? "") || "";
-      const normalized = initialUrl ? normalizeUrl(initialUrl) : "";
+      lastInitUrlRef.current = normalized;
 
       (async () => {
-        try {
-          const raw = await AsyncStorage.getItem(PREVIEW_TABS_KEY);
-          const stored = raw ? (JSON.parse(raw) as { tabs: { id: string; url: string }[]; activeIndex: number }) : null;
-          if (stored?.tabs?.length) {
-            const restored: TabState[] = stored.tabs.map((t) => ({ ...t, loadKey: t.url ? Date.now() : 0 }));
-            const idx = Math.min(Math.max(0, stored.activeIndex ?? 0), restored.length - 1);
-            setTabs(restored);
-            setActiveIndex(idx);
-            setUrlInputValue(restored[idx]?.url ?? "");
-            setError(null);
-            setLoading(!!restored[idx]?.url);
-            return;
+        // When user explicitly clicks a link, always use that URL instead of restored tabs
+        if (!normalized) {
+          try {
+            const raw = await AsyncStorage.getItem(PREVIEW_TABS_KEY);
+            const stored = raw ? (JSON.parse(raw) as { tabs: { id: string; url: string }[]; activeIndex: number }) : null;
+            if (stored?.tabs?.length) {
+              const restored: TabState[] = stored.tabs.map((t) => ({ ...t, loadKey: t.url ? Date.now() : 0 }));
+              const idx = Math.min(Math.max(0, stored.activeIndex ?? 0), restored.length - 1);
+              setTabs(restored);
+              setActiveIndex(idx);
+              setUrlInputValue(restored[idx]?.url ?? "");
+              setError(null);
+              setLoading(!!restored[idx]?.url);
+              return;
+            }
+          } catch {
+            // Fall through to empty init
           }
-        } catch {
-          // Fall through to url-based init
         }
 
         const willShowChoice = !!normalized && !!resolvePreviewUrl && isLocalhostUrl(normalized);

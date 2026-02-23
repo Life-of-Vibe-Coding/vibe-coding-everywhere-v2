@@ -52,7 +52,7 @@ const CWD_TEST_WS = process.env.CWD_TEST_WS || "/Users/yifanxu/machine_learning/
 const RUNS = [
   {
     provider: "codex",
-    model: "gpt-5.2-codex",
+    model: "gpt-5.1-codex",
     label: "session-A",
     cwd: CWD_PROJECT,
     prompt: "Examine the current project root thoroughly. List all key files and directories, explain the purpose of each major component, and describe how they connect. Be detailed and substantive. In your final reply, include this exact token: {TOKEN}.",
@@ -65,15 +65,15 @@ const RUNS = [
     prompt: "Summarize the full project structure. Walk through each top-level directory, list important files, and explain the architecture. Be thorough. In your final reply, include this exact token: {TOKEN}.",
   },
   {
-    provider: "claude",
-    model: "sonnet4.5",
+    provider: "gemini",
+    model: "gemini-2.5-flash",
     label: "session-C",
     cwd: CWD_PROJECT,
     prompt: "Describe what the backend does in detail. Inspect the server code, routes, API definitions, and database models. Explain the main flows and dependencies. Be comprehensive. In your final reply, include this exact token: {TOKEN}.",
   },
   {
-    provider: "claude",
-    model: "sonnet4.5",
+    provider: "gemini",
+    model: "gemini-2.5-flash",
     label: "session-D",
     cwd: CWD_TEST_WS,
     prompt: "Analyze what skills or tools this project uses. Look at configuration files, package.json or requirements, and any skill definitions. Explain how each is used. Be thorough. In your final reply, include this exact token: {TOKEN}.",

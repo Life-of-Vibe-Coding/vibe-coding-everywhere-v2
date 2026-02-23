@@ -295,7 +295,8 @@ export function isPiStreamOutput(data: unknown): data is PiStreamOutput {
 }
 
 export const RENDER_CMD_REGEX = /Run the following command for render:\s*"([^"]+)"/i;
-export const RENDER_URL_REGEX = /URL for preview:\s*"([^"]+)"/i;
+/** Matches both quoted "url" and bare http(s) URLs for agent output flexibility (keyin). */
+export const RENDER_URL_REGEX = /URL for preview:\s*(?:"([^"]+)"|(https?:\/\/[^\s"'<>]+))/i;
 /** Message is "not verified" (need permission) — do not show verified-style run bar. */
 export const NEED_PERMISSION_REGEX = /Need permission for the following commands:/i;
 
@@ -376,8 +377,9 @@ export function extractRenderCommandAndUrl(text: string | null | undefined): { c
   if (NEED_PERMISSION_REGEX.test(text)) return null;
   const cmdMatch = text.match(RENDER_CMD_REGEX);
   const urlMatch = text.match(RENDER_URL_REGEX);
-  if (!cmdMatch?.[1] || !urlMatch?.[1]) return null;
-  return { command: cmdMatch[1].trim(), url: urlMatch[1].trim() };
+  const url = urlMatch?.[1] ?? urlMatch?.[2]; // quoted group 1 or bare group 2
+  if (!cmdMatch?.[1] || !url) return null;
+  return { command: cmdMatch[1].trim(), url: url.trim() };
 }
 
 /** Payload is AskUserQuestion tool call (tool_name + tool_input.questions). */

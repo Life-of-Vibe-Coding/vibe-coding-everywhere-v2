@@ -244,6 +244,43 @@ export function WorkspacePickerModal({
     loadInitial();
   }, [visible, pickerRoot, serverBaseUrl, workspacePath, fetchPickerChildren]);
 
+  // Fallback: when at root and children for current folder were not loaded (e.g. initial load failed or raced), load them
+  const loadRootChildren = useCallback(async () => {
+    if (!pickerRoot) return;
+    const key = "";
+    setLoadingPaths((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    try {
+      const children = await fetchPickerChildren(pickerRoot);
+      setTreeCache((prev) => ({ ...prev, [key]: children }));
+      setPickerError(null);
+    } catch (e) {
+      setPickerError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoadingPaths((prev) => {
+        const n = new Set(prev);
+        n.delete(key);
+        return n;
+      });
+    }
+  }, [pickerRoot, fetchPickerChildren]);
+
+  useEffect(() => {
+    if (
+      !visible ||
+      !pickerRoot ||
+      currentPath !== "" ||
+      loadingPaths.has("")
+    ) return;
+    if (treeCache[""] === undefined) {
+      loadRootChildren();
+    }
+  }, [visible, pickerRoot, currentPath, treeCache, loadingPaths, loadRootChildren]);
+
   // Reset state when closing
   useEffect(() => {
     if (!visible) {

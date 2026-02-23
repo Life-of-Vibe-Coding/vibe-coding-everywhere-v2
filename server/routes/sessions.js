@@ -423,11 +423,11 @@ export function registerSessionsRoutes(app) {
         }
 
         const activeOnly = req.query.activeOnly === "1" || req.query.activeOnly === "true";
+        const skipReplay = req.query.skipReplay === "1" || req.query.skipReplay === "true";
         const processRunning = session.processManager.processRunning?.() || false;
         let sentLines = 0;
-        // Replay history from physical Pi session file (central .pi/agent/sessions)
-        // Use session.existingSessionPath when available (survives migrateSessionId; file stays at original path)
-        if (!sessionId.startsWith("temp-")) {
+        // Replay history from disk unless client already has it (skipReplay=1 when resuming with preseeded messages)
+        if (!skipReplay && !sessionId.startsWith("temp-")) {
             const filePath = session.existingSessionPath && fs.existsSync(session.existingSessionPath)
                 ? session.existingSessionPath
                 : resolveSessionFilePath(sessionId);

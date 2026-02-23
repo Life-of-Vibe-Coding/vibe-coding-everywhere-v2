@@ -124,12 +124,21 @@ describe("stripCommandStyleTags / stripTrailingIncompleteTag", () => {
 });
 
 describe("extractRenderCommandAndUrl", () => {
-  it("extracts command and URL when both present", () => {
+  it("extracts command and URL when both present (quoted)", () => {
     const text = `Run the following command for render: "npm run dev"
 URL for preview: "http://localhost:5173"`;
     expect(extractRenderCommandAndUrl(text)).toEqual({
       command: "npm run dev",
       url: "http://localhost:5173",
+    });
+  });
+
+  it("extracts command and URL when URL is bare (keyin)", () => {
+    const text = `Run the following command for render: "npm run dev"
+URL for preview: http://yifans-macbook-pro-tail145574.net/`;
+    expect(extractRenderCommandAndUrl(text)).toEqual({
+      command: "npm run dev",
+      url: "http://yifans-macbook-pro-tail145574.net/",
     });
   });
 
@@ -210,8 +219,13 @@ describe("RENDER_CMD_REGEX and RENDER_URL_REGEX", () => {
     expect(m?.[1]).toBe("npm start");
   });
 
-  it("RENDER_URL_REGEX matches expected format", () => {
+  it("RENDER_URL_REGEX matches quoted URL", () => {
     const m = `URL for preview: "https://example.com"`.match(RENDER_URL_REGEX);
     expect(m?.[1]).toBe("https://example.com");
+  });
+
+  it("RENDER_URL_REGEX matches bare URL (keyin)", () => {
+    const m = `URL for preview: http://yifans-macbook-pro-tail145574.net/`.match(RENDER_URL_REGEX);
+    expect(m?.[2]).toBe("http://yifans-macbook-pro-tail145574.net/");
   });
 });

@@ -321,6 +321,8 @@ export function SessionManagementModal({
       }
       setSelectError(null);
       setLoadingSessionId(session.id);
+      // Always load conversation from disk first (GET /messages reads .pi/agent/sessions).
+      // Then onSelectSession will connect SSE only if session is running.
       fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(session.id)}/messages`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load session");

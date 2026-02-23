@@ -135,6 +135,10 @@ export function useSocket(options: UseSocketOptions = {}) {
   const appendAssistantTextRef = useRef<(chunk: string) => void>(() => {});
   const addMessageRef = useRef<(role: Message["role"], content: string, codeReferences?: CodeReference[]) => string>(() => "");
   const finalizeAssistantMessageRef = useRef<() => void>(() => {});
+  const streamFlushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const STREAM_UPDATE_THROTTLE_MS = 80;
+  /** When set, the next SSE open for this session should use skipReplay=1 (client already has disk state). */
+  const skipReplayForSessionRef = useRef<string | null>(null);
 
   const syncSessionToReact = useCallback((sid: string | null) => {
     if (!sid) return;
@@ -281,21 +285,33 @@ export function useSocket(options: UseSocketOptions = {}) {
   addMessageRef.current = addMessage;
 
   /**
-   * Switch to a live/running session.
-   * - Drops chat logs from previous turns (completed Q&A) to avoid stale state.
-   * - Reconnects SSE (closes existing if any) so we get a fresh replay + live stream.
-   * - Full history comes from SSE: server replays from disk on connect, then streams live events.
-   * - initialMessages is ignored for running sessions; SSE delivers the canonical history.
+   * Switch to a running session: show disk-loaded conversation first, then connect SSE for new output only.
+   * Call only when session is running (server returns running/sseConnected from GET /messages).
+   * Seeds session state from initialMessages (from disk) so the list is stable; SSE uses skipReplay and appends new output.
    */
   const resumeLiveSession = useCallback(
-    (sid: string, _initialMessages?: Message[]) => {
+    (sid: string, initialMessages?: Message[]) => {
       const state = getOrCreateSessionState(sid);
-      // Drop previous turns of running chat (completed conversational Q&A) — clear state
-      state.messages = [];
-      state.outputBuffer = "";
-      state.currentAssistantContent = "";
+      if (initialMessages && initialMessages.length > 0) {
+        let maxN = 0;
+        for (const m of initialMessages) {
+          const match = /^msg-(\d+)$/.exec(m.id);
+          if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
+        }
+        nextIdRef.current = Math.max(nextIdRef.current, maxN);
+        const deduped = deduplicateMessageIds(initialMessages);
+        state.messages = [...deduped];
+        state.outputBuffer = "";
+        state.currentAssistantContent = "";
+        setLiveSessionMessages([...deduped]);
+        liveMessagesRef.current = state.messages;
+        skipReplayForSessionRef.current = sid; // SSE effect will add skipReplay=1 so server does not replay
+      } else {
+        state.messages = [];
+        state.outputBuffer = "";
+        state.currentAssistantContent = "";
+      }
 
-      // Force reconnect: close existing SSE so we get a fresh connection with full replay
       const existingSse = eventSourceMapRef.current.get(sid);
       if (existingSse) {
         if (__DEV__) console.log("[sse] disconnect (resumeLiveSession reconnect)", { sessionId: sid });
@@ -304,10 +320,10 @@ export function useSocket(options: UseSocketOptions = {}) {
       }
 
       setSessionId(sid);
-      setViewingLiveSession(true);
+      setViewingLiveSession(true); // SSE effect will open connection
       syncSessionToReact(sid);
     },
-    [getOrCreateSessionState, syncSessionToReact]
+    [deduplicateMessageIds, getOrCreateSessionState, syncSessionToReact]
   );
 
   const appendAssistantText = useCallback(
@@ -326,11 +342,20 @@ export function useSocket(options: UseSocketOptions = {}) {
         state.messages = [...state.messages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }];
       }
       state.typingIndicator = true;
+      currentAssistantContentRef.current = next;
+      liveMessagesRef.current = state.messages;
       if (displayedSessionIdRef.current === sid) {
-        setLiveSessionMessages([...state.messages]);
-        setTypingIndicator(true);
-        currentAssistantContentRef.current = next;
-        liveMessagesRef.current = state.messages;
+        if (!streamFlushTimeoutRef.current) {
+          streamFlushTimeoutRef.current = setTimeout(() => {
+            streamFlushTimeoutRef.current = null;
+            const currentSid = currentSessionIdRef.current;
+            if (currentSid) {
+              const s = getOrCreateSessionState(currentSid);
+              setLiveSessionMessages([...s.messages]);
+              setTypingIndicator(true);
+            }
+          }, STREAM_UPDATE_THROTTLE_MS);
+        }
       }
     },
     [getOrCreateSessionState]
@@ -339,6 +364,10 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   const finalizeAssistantMessage = useCallback(
     () => {
+      if (streamFlushTimeoutRef.current) {
+        clearTimeout(streamFlushTimeoutRef.current);
+        streamFlushTimeoutRef.current = null;
+      }
       const sid = currentSessionIdRef.current;
       if (!sid) return;
       const state = getOrCreateSessionState(sid);
@@ -437,9 +466,11 @@ export function useSocket(options: UseSocketOptions = {}) {
   }, [sessionId, serverUrl, getOrCreateSessionState]);
 
   // ===== EventSource Connection Setup (multi-SSE: do not close on session switch) ===== //
+  // Only open SSE when viewingLiveSession is true (running session). When user switches to an
+  // idle session via loadSession, viewingLiveSession is false so we do not connect.
   useEffect(() => {
     if (!sessionId || !viewingLiveSession) {
-      // Do NOT close any SSE - keep all connections open
+      // Do NOT open SSE for idle/saved sessions; do not close existing connections
       setConnected(sessionId != null && eventSourceMapRef.current.has(sessionId));
       return;
     }
@@ -465,7 +496,12 @@ export function useSocket(options: UseSocketOptions = {}) {
     const handlers = createSessionHandlers(connectionSessionIdRef);
     const state = getOrCreateSessionState(sid);
 
-    const sse = new EventSource(`${serverUrl}/api/sessions/${sid}/stream?activeOnly=1`);
+    let streamUrl = `${serverUrl}/api/sessions/${sid}/stream?activeOnly=1`;
+    if (skipReplayForSessionRef.current === sid) {
+      streamUrl += "&skipReplay=1";
+      skipReplayForSessionRef.current = null;
+    }
+    const sse = new EventSource(streamUrl);
     eventSourceMapRef.current.set(sid, sse);
 
     const setSessionIdWithRekey = (newId: string | null) => {
@@ -942,8 +978,13 @@ export function useSocket(options: UseSocketOptions = {}) {
     setViewingLiveSession(true);
   }, [sessionId, serverUrl]);
 
-  const loadSession = useCallback((loadedMessages: Message[]) => {
-    if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs");
+  /**
+   * Load a session from persisted conversation (disk).
+   * Does NOT connect SSE — use for idle/finished sessions only.
+   * When session is running, call resumeLiveSession instead so SSE is connected.
+   */
+  const loadSession = useCallback((loadedMessages: Message[], sessionIdToResume?: string | null) => {
+    if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs", { sessionIdToResume });
     let maxN = 0;
     for (const m of loadedMessages) {
       const match = /^msg-(\d+)$/.exec(m.id);
@@ -952,13 +993,22 @@ export function useSocket(options: UseSocketOptions = {}) {
     nextIdRef.current = Math.max(nextIdRef.current, maxN);
     const deduped = deduplicateMessageIds(loadedMessages);
     setSavedSessionMessages(deduped);
-    setViewingLiveSession(false);
+    setViewingLiveSession(false); // No SSE for this session
+    // When loading an idle session: set sessionId and populate session state + liveSessionMessages
+    // so that when user submits (switchToLiveSession), past history is preserved instead of blanking
+    if (sessionIdToResume && !sessionIdToResume.startsWith("temp-")) {
+      setSessionId(sessionIdToResume);
+      const state = getOrCreateSessionState(sessionIdToResume);
+      state.messages = [...deduped];
+      setLiveSessionMessages([...deduped]);
+      liveMessagesRef.current = state.messages;
+    }
     // Reset running state when loading a past/finished session - we're viewing history, not live
     setAgentRunning(false);
     setTypingIndicator(false);
     setWaitingForUserInput(false);
     setCurrentActivity(null);
-  }, [deduplicateMessageIds]);
+  }, [deduplicateMessageIds, getOrCreateSessionState]);
 
   const switchToLiveSession = useCallback(() => {
     if (__DEV__) console.log("[sse] switchToLiveSession", { sessionId, openCount: eventSourceMapRef.current.size });

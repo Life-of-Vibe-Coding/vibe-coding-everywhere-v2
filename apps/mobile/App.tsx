@@ -611,17 +611,33 @@ export default function App() {
   // Always show full conversation (user input + previous turns), including while streaming.
   const displayMessages = messages;
 
+  // When streaming, keep list data stable (exclude last message) so VirtualizedList doesn't
+  // re-run on every chunk; render the streaming message in the footer instead.
+  const useStreamingList =
+    !!typingIndicator &&
+    displayMessages.length > 0 &&
+    displayMessages[displayMessages.length - 1]?.role === "assistant";
+  const listIdsKey = useMemo(
+    () => displayMessages.map((m) => m.id).join(","),
+    [displayMessages]
+  );
+  const listDataStable = useMemo(
+    () => displayMessages.slice(0, -1),
+    [displayMessages.length, listIdsKey]
+  );
+  const chatListData = useStreamingList ? listDataStable : displayMessages;
+
   const flatListExtraData = useMemo(
-    () => `${lastSessionTerminated}-${displayMessages.length}`,
-    [lastSessionTerminated, displayMessages.length]
+    () => `${lastSessionTerminated}-${chatListData.length}`,
+    [lastSessionTerminated, chatListData.length]
   );
 
   const renderMessageItem = useCallback(
     ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
-      const isLast = index === displayMessages.length - 1;
+      const isLast =
+        !useStreamingList && index === displayMessages.length - 1;
       const showTerminated =
         lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
-      const messageToShow = showTerminated ? { ...item, content: "Terminated" } : item;
       const hasCodeOrFileContent =
         hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
       const showTailBox =
@@ -631,7 +647,7 @@ export default function App() {
         hasCodeOrFileContent;
       return (
         <MessageBubble
-          message={messageToShow}
+          message={item}
           isTerminatedLabel={showTerminated}
           showAsTailBox={showTailBox}
           tailBoxMaxHeight={tailBoxMaxHeight}
@@ -643,6 +659,7 @@ export default function App() {
       );
     },
     [
+      useStreamingList,
       displayMessages.length,
       lastSessionTerminated,
       typingIndicator,
@@ -684,6 +701,41 @@ export default function App() {
       retryAfterPermission,
     ]
   );
+
+  // When streaming, render the last (streaming) message in the footer so the list data stays stable.
+  const streamingFooterContent = useMemo(() => {
+    const last = displayMessages[displayMessages.length - 1];
+    if (!last) return chatListFooter;
+    const hasCodeOrFileContent =
+      hasFileActivityContent(last.content) || hasCodeBlockContent(last.content);
+    const showTailBox =
+      !!(last.content && last.content.trim()) && hasCodeOrFileContent;
+    return (
+      <>
+        <MessageBubble
+          message={last}
+          isTerminatedLabel={false}
+          showAsTailBox={showTailBox}
+          tailBoxMaxHeight={tailBoxMaxHeight}
+          provider={provider}
+          onOpenUrl={handleOpenPreviewInApp}
+          onFileSelect={handleFileSelectFromChat}
+          isStreaming
+        />
+        {chatListFooter}
+      </>
+    );
+  }, [
+    displayMessages,
+    chatListFooter,
+    tailBoxMaxHeight,
+    provider,
+    handleOpenPreviewInApp,
+    handleFileSelectFromChat,
+  ]);
+
+  const flatListFooterComponent =
+    useStreamingList ? streamingFooterContent : chatListFooter;
 
   // ============================================================================
   // Render
@@ -779,7 +831,7 @@ export default function App() {
                     showsHorizontalScrollIndicator={false}
                     keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
-                    data={displayMessages}
+                    data={chatListData}
                     extraData={flatListExtraData}
                     keyExtractor={(item) => item.id}
                     renderItem={renderMessageItem}
@@ -787,7 +839,7 @@ export default function App() {
                     maxToRenderPerBatch={10}
                     windowSize={10}
                     removeClippedSubviews={Platform.OS === "android"}
-                    ListFooterComponent={chatListFooter}
+                    ListFooterComponent={flatListFooterComponent}
                     onContentSizeChange={() => {
                       const now = Date.now();
                       if (now - lastScrollToEndTimeRef.current < 400) return;
@@ -1003,10 +1055,12 @@ export default function App() {
               if (s.provider) setProvider(s.provider as BrandProvider);
               if (s.model) setModel(s.model);
               if (s.provider && s.model) sessionStore.setLastUsedProviderModel(s.provider, s.model);
+              // Conversation was already loaded from disk (GET /api/sessions/:id/messages).
+              // Connect SSE only when session is running; otherwise show persisted messages only (no SSE).
               if (s.running || s.sseConnected) {
                 resumeLiveSession(s.id, s.messages);
               } else {
-                loadSession(s.messages);
+                loadSession(s.messages, s.id);
               }
               // Scroll to bottom after modal closes and list has laid out
               InteractionManager.runAfterInteractions(() => {
