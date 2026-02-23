@@ -356,9 +356,13 @@ export function registerSessionsRoutes(app) {
             const activeSession = resolveSession(sessionId) || resolveSession(canonicalSessionId);
             const running = activeSession?.processManager?.processRunning?.() ?? false;
             const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
+            // When session is running, registry may have migrated to a different id (e.g. Pi session_id).
+            // Return that id so the client connects to the correct stream and does not open a duplicate that gets "end".
+            const activeSessionId = activeSession?.id ?? canonicalSessionId;
             res.json({
                 messages,
                 sessionId: canonicalSessionId,
+                activeSessionId: running || sseConnected ? activeSessionId : undefined,
                 provider: provider || null,
                 model: modelId || null,
                 running,

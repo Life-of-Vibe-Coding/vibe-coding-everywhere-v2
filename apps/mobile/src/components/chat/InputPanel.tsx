@@ -27,6 +27,9 @@ import { cn } from "../../utils/cn";
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 const INPUT_PLACEHOLDER = "Type response for Claude…";
+const LINE_HEIGHT = 24;
+const MAX_LINES = 4;
+const MAX_INPUT_HEIGHT = LINE_HEIGHT * MAX_LINES;
 
 export type PendingCodeRef = {
   path: string;
@@ -84,6 +87,7 @@ export function InputPanel({
   const [prompt, setPrompt] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [plusMenuVisible, setPlusMenuVisible] = useState(false);
+  const [inputHeight, setInputHeight] = useState(LINE_HEIGHT);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -97,6 +101,14 @@ export function InputPanel({
 
   const disabled = !waitingForUserInput && agentRunning;
   const placeholder = waitingForUserInput ? INPUT_PLACEHOLDER : DEFAULT_PLACEHOLDER;
+
+  const handleContentSizeChange = useCallback(
+    (_evt: { nativeEvent: { contentSize: { height: number } } }) => {
+      const h = _evt.nativeEvent.contentSize.height;
+      setInputHeight(Math.min(Math.max(h, LINE_HEIGHT), MAX_INPUT_HEIGHT));
+    },
+    []
+  );
 
   const handleSubmit = useCallback(() => {
     const trimmed = prompt.trim();
@@ -191,6 +203,9 @@ export function InputPanel({
               value={prompt}
               onChangeText={setPrompt}
               editable={!disabled}
+              multiline
+              scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+              onContentSizeChange={handleContentSizeChange}
               maxLength={8000}
               blurOnSubmit={false}
               onSubmitEditing={handleSubmit}
@@ -203,7 +218,11 @@ export function InputPanel({
                 "flex-1 text-base py-2 min-h-6",
                 Platform.OS === "android" && "text-start"
               )}
-              style={{ color: theme.colors.textPrimary }}
+              style={{
+                color: theme.colors.textPrimary,
+                height: inputHeight,
+                maxHeight: MAX_INPUT_HEIGHT,
+              }}
               placeholderTextColor={theme.colors.textMuted}
             />
           </Textarea>

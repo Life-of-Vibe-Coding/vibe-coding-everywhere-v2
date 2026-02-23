@@ -326,9 +326,11 @@ export function SessionManagementModal({
           if (!res.ok) throw new Error("Failed to load session");
           return res.json();
         })
-        .then((data: { messages?: Message[]; sessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean; cwd?: string | null }) => {
+        .then((data: { messages?: Message[]; sessionId?: string; activeSessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean; cwd?: string | null }) => {
           const messages = data.messages ?? [];
-          const id = data.sessionId ?? session.id;
+          const canonicalId = data.sessionId ?? session.id;
+          // Use activeSessionId when session is running so we connect to the stream id (avoids duplicate SSE that gets "end" and blanks the UI).
+          const id = (data.running || data.sseConnected) && data.activeSessionId ? data.activeSessionId : canonicalId;
           const cwd = data.cwd ?? session.cwd ?? null;
           onSelectSession({
             id,
@@ -503,21 +505,37 @@ export function SessionManagementModal({
                 {workspaceLoading ? (
                   <SkeletonText lineHeight={18} lines={1} lastLineWidth="60%" />
                 ) : (
-                  <VStack style={styles.workspacePathRow} className="gap-0.5">
+                  <VStack style={styles.workspacePathRow} className="gap-2">
                     <Text size="xs" bold style={{ color: theme.colors.accent }} className="uppercase tracking-wide">
                       CWD
                     </Text>
-                    <Text
-                      size="sm"
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                      className="font-mono text-typography-700 min-w-0"
-                      style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", lineHeight: 20 }}
+                    <Box
+                      style={[
+                        styles.cwdPathBox,
+                        {
+                          backgroundColor: theme.colors.accent + "12",
+                          borderColor: theme.colors.accent + "30",
+                        },
+                      ]}
+                      className="rounded-lg border px-3 py-2"
                     >
-                      {formatPathForWrap(
-                        allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
-                      )}
-                    </Text>
+                      <Text
+                        size="sm"
+                        bold
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                        className="font-mono text-typography-800 min-w-0"
+                        style={{
+                          fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                          lineHeight: 20,
+                          color: theme.colors.textPrimary,
+                        }}
+                      >
+                        {formatPathForWrap(
+                          allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
+                        )}
+                      </Text>
+                    </Box>
                   </VStack>
                 )}
               </VStack>
@@ -884,6 +902,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexWrap: "wrap",
       alignItems: "flex-start",
       gap: 0,
+    },
+    cwdPathBox: {
+      width: "100%",
     },
     workspacePathLabel: {
       fontWeight: "700",

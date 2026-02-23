@@ -46,7 +46,6 @@ import {
   FlashAnimation,
   usePerformanceMonitor,
   spacing,
-  Skeleton,
 } from "./src/design-system";
 import { Box } from "./components/ui/box";
 import { Text as GluestackText } from "./components/ui/text";
@@ -58,6 +57,7 @@ import {
   getDefaultServerConfig,
   createWorkspaceFileService,
   type PendingAskUserQuestion,
+  type Message,
 } from "./src/core";
 
 // Component Imports
@@ -247,6 +247,7 @@ export default function App() {
   // Refs
   const flatListRef = useRef<FlatList>(null);
   const lastScrollToEndTimeRef = useRef(0);
+  const messagesRef = useRef<Message[]>([]);
   const didOpenInitialPreview = useRef(false);
   /** When switching sessions, store the selected session's provider/model so the persist effect uses them instead of possibly stale state. */
   const lastSwitchedSessionRef = useRef<{ id: string; provider?: string | null; model?: string | null } | null>(null);
@@ -278,6 +279,8 @@ export default function App() {
     liveSessionMessages,
     lastSessionTerminated,
   } = useSocket({ provider, model });
+
+  messagesRef.current = messages;
 
   /** When user switches provider: start new session, update provider+model. */
   const handleProviderChange = useCallback(
@@ -345,6 +348,22 @@ export default function App() {
       setCurrentSessionId(sessionId);
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
+
+  // Session switch while streaming: show only last message until stream ends, then full history.
+  // Live+streaming (no switch): full history. Finished idle: full history.
+  const [minimalDisplayForStreamingSwitch, setMinimalDisplayForStreamingSwitch] = useState(false);
+  const prevSessionKeyRef = useRef(`${sessionId}-${viewingLiveSession}`);
+  useEffect(() => {
+    const key = `${sessionId}-${viewingLiveSession}`;
+    const justSwitched = prevSessionKeyRef.current !== key;
+    prevSessionKeyRef.current = key;
+    if (justSwitched) setMinimalDisplayForStreamingSwitch(true);
+  }, [sessionId, viewingLiveSession]);
+  useEffect(() => {
+    if (!agentRunning && !typingIndicator) {
+      setMinimalDisplayForStreamingSwitch(false);
+    }
+  }, [agentRunning, typingIndicator]);
 
   // Clean up empty sessions 3 minutes after creation, unless it is the current page
   const EMPTY_SESSION_CLEANUP_MS = 3 * 60 * 1000;
@@ -600,9 +619,32 @@ export default function App() {
   // FlatList performance: compute once to avoid per-item Dimensions.get
   const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
 
+  // Session switch while streaming: last message + stream until end. Otherwise: full history.
+  const displayMessages = useMemo(() => {
+    if (
+      viewingLiveSession &&
+      minimalDisplayForStreamingSwitch &&
+      (agentRunning || typingIndicator)
+    ) {
+      return messages.slice(-1);
+    }
+    return messages;
+  }, [
+    messages,
+    viewingLiveSession,
+    minimalDisplayForStreamingSwitch,
+    agentRunning,
+    typingIndicator,
+  ]);
+
+  const flatListExtraData = useMemo(
+    () => `${lastSessionTerminated}-${displayMessages.length}`,
+    [lastSessionTerminated, displayMessages.length]
+  );
+
   const renderMessageItem = useCallback(
     ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
-      const isLast = index === messages.length - 1;
+      const isLast = index === displayMessages.length - 1;
       const showTerminated =
         lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
       const messageToShow = showTerminated ? { ...item, content: "Terminated" } : item;
@@ -627,7 +669,7 @@ export default function App() {
       );
     },
     [
-      messages.length,
+      displayMessages.length,
       lastSessionTerminated,
       typingIndicator,
       provider,
@@ -651,7 +693,7 @@ export default function App() {
             onDismiss={dismissPermission}
             onAccept={() => {
               const backend = getBackendPermissionMode(permissionModeUI, provider);
-              const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+              const lastUserMsg = [...messagesRef.current].reverse().find((m) => m.role === "user");
               retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
             }}
           />
@@ -665,7 +707,6 @@ export default function App() {
       permissionDenials,
       dismissPermission,
       permissionModeUI,
-      messages,
       retryAfterPermission,
     ]
   );
@@ -700,106 +741,50 @@ export default function App() {
                       accessibilityLabel="Open Explorer"
                       delay={100}
                     />
-                    <VStack style={styles.sessionIdCenter} pointerEvents="none" flexShrink={1} className="min-w-0 flex-1 items-center justify-center">
-                      {(() => {
-                        const displaySessionId = viewingLiveSession ? sessionId : currentSessionId;
-                        const isWorkspaceLoaded = workspacePath != null;
-                        const showHeaderSkeleton = !isWorkspaceLoaded;
-
-                        if (showHeaderSkeleton) {
-                          return (
-                            <VStack className="items-center gap-1.5">
-                              <HStack className="flex-row items-center gap-1.5 shrink min-w-0 justify-center" style={{ maxWidth: "100%" }}>
-                                <Skeleton width={6} height={6} borderRadius={3} style={{ marginRight: 2 }} />
-                                <Skeleton width={56} height={10} borderRadius={theme.radii.sm} />
-                              </HStack>
-                              <Skeleton width={90} height={12} borderRadius={theme.radii.sm} />
-                            </VStack>
-                          );
-                        }
-
-                        const agentActive = viewingLiveSession && (agentRunning || typingIndicator);
-                        const isRunning = agentActive && !waitingForUserInput;
-                        const isWaiting = agentActive && waitingForUserInput;
-                        const isIdling = !agentActive;
-                        const workspaceLabel = basename(workspacePath!);
-                        const isWaitingForSession = viewingLiveSession && displaySessionId == null;
-                        const showSessionSkeleton = isWaitingForSession && sessionInitLoading;
-                        const shortId =
-                          displaySessionId != null
-                            ? (() => {
-                                const beforeDash = displaySessionId.split("-")[0];
-                                return beforeDash.length > 20 ? beforeDash.slice(0, 20) : beforeDash;
-                              })()
-                            : null;
-                        const sessionLabel =
-                          shortId == null
-                            ? "—"
-                            : isRunning
-                              ? "Running"
-                              : isWaiting
-                                ? `Waiting: ${shortId}`
-                                : shortId;
-                        const headerTextStyle = { fontSize: 11, lineHeight: 14 };
-                        const workspaceTextStyle = { ...headerTextStyle, fontWeight: "700" as const, color: theme.colors.accent };
-                        const statusColor =
-                          isRunning ? theme.colors.success
-                          : isWaiting ? theme.colors.warning
-                          : theme.colors.textMuted;
-                        return (
-                          <VStack className="items-center gap-1 shrink min-w-0" style={{ maxWidth: "100%" }}>
-                            <GluestackText
-                              size="2xs"
-                              numberOfLines={2}
-                              style={[styles.sessionIdText, workspaceTextStyle]}
-                              className="shrink min-w-0 text-center"
-                            >
-                              {workspaceLabel}
-                            </GluestackText>
-                            <HStack className="flex-row items-center gap-1.5 shrink min-w-0 justify-center">
-                              {showSessionSkeleton ? (
-                                <>
-                                  <Skeleton width={6} height={6} borderRadius={3} />
-                                  <Skeleton width={80} height={10} borderRadius={theme.radii.sm} />
-                                </>
-                              ) : isRunning ? (
-                                <FlashAnimation minOpacity={0.35} duration={700}>
-                                  <Box
-                                    style={{
-                                      width: 6,
-                                      height: 6,
-                                      borderRadius: 3,
-                                      backgroundColor: statusColor,
-                                    }}
-                                    accessibilityLabel="Session running"
-                                  />
-                                </FlashAnimation>
-                              ) : (
-                                <Box
-                                  style={[
-                                    styles.sessionDotIdle,
-                                    { backgroundColor: statusColor },
-                                  ]}
-                                  accessibilityLabel={
-                                    isWaiting ? "Session waiting for input" : messages.length > 0 ? "Session idle" : "Session not started"
-                                  }
-                                />
-                              )}
-                              {!showSessionSkeleton && (
-                                <GluestackText
-                                  size="2xs"
-                                  numberOfLines={1}
-                                  style={[headerTextStyle, { color: statusColor }]}
-                                  className="font-normal tracking-wider shrink min-w-0"
-                                >
-                                  {sessionLabel}
-                                </GluestackText>
-                              )}
+                    <Box style={[styles.sessionIdCenter, { flexShrink: 1 }]} className="min-w-0 flex-1">
+                      <VStack style={styles.headerStatusStack} className="gap-0.5 items-center">
+                        <GluestackText
+                          size="xs"
+                          numberOfLines={2}
+                          style={{ color: theme.colors.accent }}
+                          className="font-medium text-center"
+                        >
+                          {workspacePath ? basename(workspacePath) : "—"}
+                        </GluestackText>
+                        {typingIndicator ? (
+                          <FlashAnimation style={styles.headerStatusRow} duration={600}>
+                            <HStack style={styles.headerStatusRow} className="items-center gap-1.5">
+                              <Box
+                                style={[
+                                  styles.runningDot,
+                                  { backgroundColor: theme.colors.success },
+                                ]}
+                              />
+                              <GluestackText size="xs" style={{ color: theme.colors.success }} className="font-medium">
+                                Running
+                              </GluestackText>
                             </HStack>
-                          </VStack>
-                        );
-                      })()}
-                    </VStack>
+                          </FlashAnimation>
+                        ) : (
+                          <GluestackText
+                            size="xs"
+                            numberOfLines={1}
+                            ellipsizeMode="middle"
+                            style={{
+                              color: agentRunning && waitingForUserInput
+                                ? theme.colors.warning
+                                : theme.colors.textMuted,
+                            }}
+                            className="font-medium"
+                          >
+                            {agentRunning && waitingForUserInput ? "Wait" : "Idle"}
+                            {": "}
+                            {((viewingLiveSession ? sessionId : currentSessionId) ?? "")
+                              .split("-")[0] || "—"}
+                          </GluestackText>
+                        )}
+                      </VStack>
+                    </Box>
                     <HeaderButton
                       icon={<SettingsIcon color={theme.colors.textPrimary} />}
                       onPress={() => setSessionManagementVisible(true)}
@@ -812,7 +797,7 @@ export default function App() {
                 {/* Chat Area */}
                 <Box style={styles.chatShell}>
                   <FlatList
-                    key={viewingLiveSession ? "live" : "saved"}
+                    key="chat"
                     ref={flatListRef}
                     style={styles.chatArea}
                     contentContainerStyle={styles.chatMessages}
@@ -820,8 +805,8 @@ export default function App() {
                     showsHorizontalScrollIndicator={false}
                     keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
-                    data={messages}
-                    extraData={`${lastSessionTerminated}-${messages.length}`}
+                    data={displayMessages}
+                    extraData={flatListExtraData}
                     keyExtractor={(item) => item.id}
                     renderItem={renderMessageItem}
                     initialNumToRender={15}
@@ -1104,12 +1089,6 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       height: 58,
       backgroundColor: theme.colors.pageAccentTint,
     },
-    sessionDotIdle: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: theme.colors.textMuted,
-    },
     safeArea: {
       flex: 1,
       backgroundColor: theme.colors.background,
@@ -1154,13 +1133,18 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       paddingHorizontal: spacing[1],
       minHeight: 40,
     },
-    sessionIdText: {
-      fontSize: 14,
-      fontWeight: "500",
-      letterSpacing: 0.2,
-      lineHeight: 20,
-      textAlign: "center",
-      color: theme.colors.textPrimary,
+    headerStatusStack: {
+      maxWidth: "100%",
+    },
+    headerStatusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    runningDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
     },
     menuButtonOverlay: {
       position: "absolute",

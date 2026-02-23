@@ -732,7 +732,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               {(["files", "changes", "commits"] as const).map(tab => (
                 <Pressable
                   key={tab}
-                  style={[styles.tab, activeTab === tab && styles.tabActive]}
+                  style={[styles.tab, activeTab === tab && styles.tabActive, tab === "changes" && { marginLeft: 4 }]}
                   onPress={() => {
                   setActiveTab(tab);
                   onActiveTabChange?.(tab);

@@ -53,7 +53,10 @@ For development with auto-restart:
 ```bash
 npm run dev
 ```
-
+test smoke test
+```bash
+RAPID_MODE=1 node scripts/smoke-pi-rpc-sse-session-switch.mjs
+```
 ### Access the Web Client
 
 Open http://localhost:3456 in your browser.
