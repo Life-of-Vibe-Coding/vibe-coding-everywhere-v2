@@ -189,9 +189,12 @@ export function killProcess(pid) {
 
 const TAIL_LINES = 200;
 
+/** Max depth to search for log files under workspace (e.g. apps/web/frontend.log). */
+const FIND_LOG_MAX_DEPTH = 5;
+
 /**
  * Find a log file under workspace by name (e.g. backend.log).
- * Searches workspace root and one level of subdirs.
+ * Searches workspace root and subdirs up to FIND_LOG_MAX_DEPTH levels.
  *
  * @param {string} workspacePath - Absolute workspace path
  * @param {string} name - Filename (e.g. backend.log)
@@ -204,12 +207,19 @@ function findLogFile(workspacePath, name) {
   const atRoot = path.join(workspacePath, safe);
   if (fs.existsSync(atRoot) && fs.statSync(atRoot).isFile()) return atRoot;
   try {
-    const entries = fs.readdirSync(workspacePath, { withFileTypes: true });
-    for (const e of entries) {
-      if (!e.isDirectory() || e.name.startsWith(".")) continue;
-      const sub = path.join(workspacePath, e.name, safe);
-      if (fs.existsSync(sub) && fs.statSync(sub).isFile()) return sub;
+    function search(dir, depth) {
+      if (depth <= 0) return null;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const e of entries) {
+        if (!e.isDirectory() || e.name.startsWith(".")) continue;
+        const sub = path.join(dir, e.name, safe);
+        if (fs.existsSync(sub) && fs.statSync(sub).isFile()) return sub;
+        const found = search(path.join(dir, e.name), depth - 1);
+        if (found) return found;
+      }
+      return null;
     }
+    return search(workspacePath, FIND_LOG_MAX_DEPTH);
   } catch (_) {}
   return null;
 }

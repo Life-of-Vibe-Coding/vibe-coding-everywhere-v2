@@ -366,7 +366,7 @@ export function PreviewWebViewModal({
             {/* Row 2: Address bar | Refresh | Fullscreen */}
             <Box style={styles.tabBar}>
               <Box style={styles.urlBarWrap}>
-                <Input variant="outline" size="md" className="border-0 bg-transparent flex-1">
+                <Input variant="outline" size="md" className="border-0 bg-transparent flex-1 min-w-0">
                   <InputField
                     value={urlInputValue}
                     onChangeText={setUrlInputValue}
@@ -379,6 +379,7 @@ export function PreviewWebViewModal({
                     onSubmitEditing={handleGo}
                     selectTextOnFocus
                     className="text-[15px] text-text-primary p-0"
+                    style={styles.urlInput}
                   />
                 </Input>
               </Box>
@@ -552,6 +553,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   urlBarWrap: {
     flex: 1,
+    minWidth: 0,
     height: 36,
     borderRadius: 18,
     backgroundColor: theme.borderColor,
@@ -563,6 +565,9 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.textPrimary,
     paddingVertical: 0,
     paddingHorizontal: 0,
+    ...(Platform.OS === "web"
+      ? { whiteSpace: "nowrap" as const, overflowX: "auto" as const }
+      : {}),
   },
   iconBtn: {
     width: 36,

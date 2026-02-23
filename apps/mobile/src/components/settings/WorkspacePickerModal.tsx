@@ -3,6 +3,7 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
+  View,
   Platform,
   ActivityIndicator,
   LayoutChangeEvent,
@@ -10,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { triggerHaptic, EntranceAnimation, AnimatedPressableView } from "../../design-system";
 import { useTheme } from "../../theme/index";
-import { basename, getRelativePath, getDirname, getParentPath, truncatePathForDisplay } from "../../utils/path";
+import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, basename } from "../../utils/path";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -76,6 +77,10 @@ export function WorkspacePickerModal({
       const q = params.toString() ? `?${params.toString()}` : "";
       const res = await fetch(`${serverBaseUrl}/api/workspace-allowed-children${q}`);
       const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error ?? res.statusText;
+        throw new Error(msg);
+      }
       const children = data?.children ?? [];
       return children;
     },
@@ -95,6 +100,7 @@ export function WorkspacePickerModal({
         setTreeCache((prev) => ({ ...prev, [cacheKey]: children }));
       } catch (e) {
         setPickerError(e instanceof Error ? e.message : "Failed to load");
+        setTreeCache((prev) => ({ ...prev, [cacheKey]: [] }));
       } finally {
         setLoadingPaths((prev) => {
           const next = new Set(prev);
@@ -210,6 +216,7 @@ export function WorkspacePickerModal({
         setTreeCache((prev) => ({ ...prev, "": children }));
       } catch (e) {
         setPickerError(e instanceof Error ? e.message : "Failed to load");
+        setTreeCache((prev) => ({ ...prev, "": [] }));
       } finally {
         setLoadingPaths((prev) => {
           const n = new Set(prev);
@@ -260,6 +267,7 @@ export function WorkspacePickerModal({
       setPickerError(null);
     } catch (e) {
       setPickerError(e instanceof Error ? e.message : "Failed to load");
+      setTreeCache((prev) => ({ ...prev, [key]: [] }));
     } finally {
       setLoadingPaths((prev) => {
         const n = new Set(prev);
@@ -331,24 +339,26 @@ export function WorkspacePickerModal({
             accessibilityRole="button"
             accessibilityLabel={`Open ${child.name}`}
           >
-            <FolderIcon color={theme.colors.textSecondary} />
-            <ChevronRightIcon size={14} color={theme.colors?.accent ?? theme.accent} strokeWidth={2.5} />
-            <GText
-              size="sm"
-              numberOfLines={1}
-              ellipsizeMode="head"
-              className={isCurrentWorkspace ? "text-primary-500 flex-1 font-mono" : "text-typography-900 flex-1 font-mono"}
-              style={styles.pickerRowName}
-            >
-              {child.name}
-            </GText>
-            {isLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors?.accent ?? theme.accent}
-                style={styles.pickerRowLoader}
-              />
-            ) : null}
+            <View style={styles.pickerRowInner}>
+              <FolderIcon color={theme.colors.textSecondary} />
+              <ChevronRightIcon size={14} color={theme.colors?.accent ?? theme.accent} strokeWidth={2.5} />
+              <GText
+                size="sm"
+                numberOfLines={1}
+                ellipsizeMode="head"
+                className={isCurrentWorkspace ? "text-primary-500 flex-1 font-mono" : "text-typography-900 flex-1 font-mono"}
+                style={styles.pickerRowName}
+              >
+                {child.name}
+              </GText>
+              {isLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors?.accent ?? theme.accent}
+                  style={styles.pickerRowLoader}
+                />
+              ) : null}
+            </View>
           </AnimatedPressableView>
           <Button action="primary" variant="solid" size="xs" onPress={() => handleSelectWorkspace(child.path)} isDisabled={pickerLoading}>
             <ButtonText>Select</ButtonText>
@@ -396,39 +406,16 @@ export function WorkspacePickerModal({
               <Box style={styles.headerSideBtn} />
             )}
             <Box style={styles.titleContainer} pointerEvents="box-none" className="flex-1 min-w-0 justify-center items-center px-2">
-              {pickerRoot ? (
-                (() => {
-                  const displayPath = currentPath || pickerRoot;
-                  const shortPath = truncatePathForDisplay(displayPath);
-                  const parentPath = getDirname(displayPath);
-                  const hasBoldParent = parentPath && parentPath.length > 1 && shortPath === displayPath;
-                  const suffix = hasBoldParent ? displayPath.slice(parentPath.length) : "";
-                  return (
-                    <GText
-                      numberOfLines={1}
-                      ellipsizeMode="head"
-                      style={[styles.title, styles.titlePath]}
-                    >
-                      {hasBoldParent ? (
-                        <>
-                          <GText style={[styles.title, styles.titlePath, styles.titlePathBold]}>
-                            {parentPath}
-                          </GText>
-                          <GText style={[styles.title, styles.titlePath]}>
-                            {suffix}
-                          </GText>
-                        </>
-                      ) : (
-                        shortPath
-                      )}
-                    </GText>
-                  );
-                })()
-              ) : (
-                <GText size="sm" bold numberOfLines={1} className="text-center w-full" style={[styles.title, styles.titlePath]}>
-                  Select workspace
-                </GText>
-              )}
+              <GText
+                size="sm"
+                bold
+                numberOfLines={1}
+                ellipsizeMode="head"
+                className="text-center w-full text-typography-900 font-mono"
+                style={styles.headerPath}
+              >
+                {pickerRoot ? truncatePathForDisplay(currentPath || pickerRoot) || "/" : "Select workspace"}
+              </GText>
             </Box>
             <Button action="default" variant="link" size="sm" onPress={() => { triggerHaptic("selection"); onClose(); }} accessibilityLabel="Close" className="-mr-2 min-w-11 min-h-11">
               <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors.textMuted }} />
@@ -446,60 +433,74 @@ export function WorkspacePickerModal({
             </EntranceAnimation>
           ) : pickerRoot ? (
             <EntranceAnimation variant="fade" duration={200} delay={60}>
-            <>
-              {currentRelativePath ? (
-                <Box style={styles.breadcrumb} className="px-4 py-2 border-b border-outline-200 bg-background-0 rounded-b-lg">
-                  <GText size="xs" numberOfLines={1} ellipsizeMode="head" className="text-typography-600 font-mono" style={styles.breadcrumbPath}>
-                    {truncatePathForDisplay(currentRelativePath)}
-                  </GText>
-                </Box>
-              ) : null}
-
-              <Box
-                style={[
-                  styles.pickerRootRow,
-                  !currentPath && !currentRelativePath && styles.pickerRowCurrent,
-                ]}
-                className={!currentPath && !currentRelativePath ? "rounded-lg mx-2 border-l-4 border-primary-500" : "rounded-lg mx-2"}
-                onLayout={
-                  !currentPath && !currentRelativePath
-                    ? handleCurrentWorkspaceLayout
-                    : undefined
-                }
-              >
-                <Box style={styles.pickerRootLabelRow} className="flex-1 flex-row items-center gap-2">
-                  <FolderIcon color={theme.colors.textSecondary} />
-                  <GText size="sm" numberOfLines={1} ellipsizeMode="head" className="flex-1 font-mono text-typography-900" style={styles.pickerRootLabel}>
-                    {basename(currentPath || pickerRoot) || "."}
-                  </GText>
-                </Box>
-                <Button action="primary" variant="solid" size="xs" onPress={() => handleSelectWorkspace(currentPath || pickerRoot)} isDisabled={pickerLoading}>
-                  <ButtonText>Select</ButtonText>
-                </Button>
-              </Box>
-
-              {pickerError ? (
-                <GText size="xs" className="text-error-600 mx-4 mt-3">
-                  {pickerError}
-                </GText>
-              ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
-                <ActivityIndicator
-                  size="large"
-                  color={theme.colors?.accent ?? theme.accent}
-                  style={styles.pickerLoader}
-                />
-              ) : (
-                <ScrollView
-                  ref={scrollRef}
-                  style={styles.pickerList}
-                  contentContainerStyle={styles.pickerListContent}
-                  showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled
+              <Box style={styles.pickerContent}>
+                {/* First row: current workspace path (always visible, primary action) */}
+                <Box
+                  style={[
+                    styles.pickerRootRow,
+                    !currentPath && !currentRelativePath && styles.pickerRowCurrent,
+                  ]}
+                  className={!currentPath && !currentRelativePath ? "rounded-lg mx-2 mt-2 border-l-4 border-primary-500" : "rounded-lg mx-2 mt-2"}
+                  onLayout={
+                    !currentPath && !currentRelativePath
+                      ? handleCurrentWorkspaceLayout
+                      : undefined
+                  }
                 >
-                  {viewChildren.map((child, index) => renderChildRow(child, index))}
-                </ScrollView>
-              )}
-            </>
+                  <AnimatedPressableView
+                    onPress={() => {
+                      if (!currentPath && viewChildren.length === 0 && !viewLoading) {
+                        loadRootChildren();
+                      }
+                    }}
+                    style={styles.pickerRootLabelRow}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Current location ${truncatePathForDisplay(currentPath || pickerRoot)}`}
+                  >
+                    <View style={styles.pickerRootLabelInner}>
+                      <FolderIcon color={theme.colors.textSecondary} />
+                      <GText size="sm" numberOfLines={1} ellipsizeMode="head" className={`flex-1 font-mono ${!currentPath && !currentRelativePath ? "text-primary-500" : "text-typography-900"}`} style={styles.pickerRootLabel}>
+                        {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
+                      </GText>
+                      {!currentPath && viewLoading ? (
+                        <ActivityIndicator size="small" color={theme.colors?.accent ?? theme.accent} />
+                      ) : null}
+                    </View>
+                  </AnimatedPressableView>
+                  <Button action="primary" variant="solid" size="xs" onPress={() => handleSelectWorkspace(currentPath || pickerRoot)} isDisabled={pickerLoading}>
+                    <ButtonText>Select</ButtonText>
+                  </Button>
+                </Box>
+
+                {pickerError ? (
+                  <GText size="xs" className="text-error-600 mx-4 mt-3">
+                    {pickerError}
+                  </GText>
+                ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
+                  <Box style={styles.pickerLoaderContainer}>
+                    <ActivityIndicator
+                      size="large"
+                      color={theme.colors?.accent ?? theme.accent}
+                      style={styles.pickerLoader}
+                    />
+                  </Box>
+                ) : (
+                  <ScrollView
+                    ref={scrollRef}
+                    style={styles.pickerList}
+                    contentContainerStyle={styles.pickerListContent}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled
+                  >
+                    {viewChildren.map((child, index) => renderChildRow(child, index))}
+                    {!pickerError && viewChildren.length === 0 && !viewLoading ? (
+                      <GText size="xs" className="text-typography-500 mx-4 mt-2 px-2">
+                        No subfolders here. Tap the folder name above to refresh.
+                      </GText>
+                    ) : null}
+                  </ScrollView>
+                )}
+              </Box>
             </EntranceAnimation>
           ) : null}
         </SafeAreaView>
@@ -540,6 +541,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textAlign: "center",
       width: "100%",
     },
+    headerPath: {
+      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontSize: 13,
+      color: theme.colors.textPrimary,
+    },
     titlePath: {
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 11,
@@ -564,16 +570,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginRight: -8,
       flexShrink: 0,
     },
-    breadcrumb: {
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+    pickerContent: {
+      flex: 1,
+      minHeight: 0,
     },
-    breadcrumbPath: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 10,
-      lineHeight: 14,
+    pickerLoaderContainer: {
+      flex: 1,
+      minHeight: 120,
+      justifyContent: "center",
     },
     pickerRootRow: {
       flexDirection: "row",
@@ -589,8 +593,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     pickerRootLabelRow: {
       flex: 1,
+      minWidth: 0,
+    },
+    pickerRootLabelInner: {
       flexDirection: "row",
       alignItems: "center",
+      flex: 1,
+      minWidth: 0,
       gap: 8,
     },
     pickerRootLabel: {
@@ -608,6 +617,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     pickerList: {
       flex: 1,
+      minHeight: 120,
     },
     pickerListContent: {
       paddingBottom: 32,
@@ -633,11 +643,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     pickerRowExpand: {
       flex: 1,
+      minWidth: 0,
+      minHeight: MIN_TOUCH_TARGET,
+    },
+    pickerRowInner: {
       flexDirection: "row",
       alignItems: "center",
+      flex: 1,
+      minWidth: 0,
       gap: 8,
-      minHeight: MIN_TOUCH_TARGET,
-      justifyContent: "flex-start",
     },
     pickerRowName: {
       flex: 1,

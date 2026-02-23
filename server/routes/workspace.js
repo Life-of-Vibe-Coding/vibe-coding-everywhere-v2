@@ -50,8 +50,11 @@ function handleWorkspaceAllowedChildren(req, res) {
       if (!candidate.startsWith(WORKSPACE_ALLOWED_ROOT) && candidate !== WORKSPACE_ALLOWED_ROOT) {
         return res.status(403).json({ error: "Root must be under allowed workspace" });
       }
-      if (!fs.existsSync(candidate) || !fs.statSync(candidate).isDirectory()) {
-        return res.json({ children: [] });
+      if (!fs.existsSync(candidate)) {
+        return res.status(404).json({ error: "Path not found on server", children: [] });
+      }
+      if (!fs.statSync(candidate).isDirectory()) {
+        return res.status(400).json({ error: "Not a directory", children: [] });
       }
       rootDir = candidate;
     } else {
@@ -77,8 +80,11 @@ function handleWorkspaceAllowedChildren(req, res) {
     if (base !== "os" && !resolvedDir.startsWith(WORKSPACE_ALLOWED_ROOT) && resolvedDir !== WORKSPACE_ALLOWED_ROOT) {
       return res.status(403).json({ error: "Path outside allowed workspace" });
     }
-    if (!fs.existsSync(resolvedDir) || !fs.statSync(resolvedDir).isDirectory()) {
-      return res.json({ children: [] });
+    if (!fs.existsSync(resolvedDir)) {
+      return res.status(404).json({ error: "Path not found on server", children: [] });
+    }
+    if (!fs.statSync(resolvedDir).isDirectory()) {
+      return res.status(400).json({ error: "Not a directory", children: [] });
     }
 
     const entries = fs.readdirSync(resolvedDir, { withFileTypes: true });
