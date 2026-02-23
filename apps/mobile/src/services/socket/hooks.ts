@@ -138,7 +138,11 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   const syncSessionToReact = useCallback((sid: string | null) => {
     if (!sid) return;
-    const s = sessionStatesRef.current.get(sid);
+    let s = sessionStatesRef.current.get(sid);
+    // Fallback: state may be keyed by migrated id (e.g. Pi session_id) while sid is stale
+    if (!s && displayedSessionIdRef.current) {
+      s = sessionStatesRef.current.get(displayedSessionIdRef.current);
+    }
     if (s) {
       setLiveSessionMessages(s.messages);
       setAgentRunning(s.agentRunning);
@@ -466,6 +470,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
     const setSessionIdWithRekey = (newId: string | null) => {
       const currentSid = connectionSessionIdRef.current;
+      const isDisplayedSession = displayedSessionIdRef.current === currentSid;
       if (newId && newId !== currentSid && !newId.startsWith("temp-")) {
         const existing = eventSourceMapRef.current.get(currentSid);
         if (existing) {
@@ -479,7 +484,11 @@ export function useSocket(options: UseSocketOptions = {}) {
         }
         connectionSessionIdRef.current = newId;
       }
-      setSessionId(newId);
+      // Only update global sessionId when this SSE is for the displayed session.
+      // Background sessions' session-started events must not steal the view (would cause "messages gone").
+      if (isDisplayedSession) {
+        setSessionId(newId);
+      }
     };
 
     const dispatchProviderEvent = createEventDispatcher({
@@ -944,6 +953,11 @@ export function useSocket(options: UseSocketOptions = {}) {
     const deduped = deduplicateMessageIds(loadedMessages);
     setSavedSessionMessages(deduped);
     setViewingLiveSession(false);
+    // Reset running state when loading a past/finished session - we're viewing history, not live
+    setAgentRunning(false);
+    setTypingIndicator(false);
+    setWaitingForUserInput(false);
+    setCurrentActivity(null);
   }, [deduplicateMessageIds]);
 
   const switchToLiveSession = useCallback(() => {

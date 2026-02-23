@@ -32,6 +32,8 @@ export function createSession(sessionId, provider, model, options = {}) {
     provider,
     model,
     sessionLogTimestamp: options.sessionLogTimestamp ?? null,
+    /** File path for replay; survives migrateSessionId (file stays at original path). */
+    existingSessionPath: options.existingSessionPath ?? null,
   };
 
   const onPiSessionId = (piId) => migrateSessionId(sessionId, piId);

@@ -287,6 +287,16 @@ export function registerSessionsRoutes(app) {
         res.json({ ok: true });
     });
 
+    // POST /api/sessions/:sessionId/finished - Client notifies that it has observed the session as idle/finished
+    router.post("/:sessionId/finished", (req, res) => {
+        const { sessionId } = req.params;
+        const activeSession = resolveSession(sessionId);
+        if (activeSession) {
+            // Optional: server could update last-seen-idle or clear client state here
+        }
+        res.json({ ok: true });
+    });
+
     // GET /api/sessions/:sessionId/messages - Load messages from central .pi/agent/sessions
     router.get("/:sessionId/messages", (req, res) => {
         const { sessionId } = req.params;
@@ -416,8 +426,11 @@ export function registerSessionsRoutes(app) {
         const processRunning = session.processManager.processRunning?.() || false;
         let sentLines = 0;
         // Replay history from physical Pi session file (central .pi/agent/sessions)
+        // Use session.existingSessionPath when available (survives migrateSessionId; file stays at original path)
         if (!sessionId.startsWith("temp-")) {
-            const filePath = resolveSessionFilePath(sessionId);
+            const filePath = session.existingSessionPath && fs.existsSync(session.existingSessionPath)
+                ? session.existingSessionPath
+                : resolveSessionFilePath(sessionId);
             if (filePath && fs.existsSync(filePath)) {
                 try {
                     const raw = fs.readFileSync(filePath, "utf-8");

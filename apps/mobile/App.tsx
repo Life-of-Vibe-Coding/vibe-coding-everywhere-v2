@@ -320,9 +320,14 @@ export default function App() {
   useEffect(() => {
     if (prevAgentRunningRef.current && !agentRunning) {
       void notifyAgentFinished();
+      // Notify server that this session is observed as finished (chat panel showing Idle)
+      if (sessionId && !sessionId.startsWith("temp-")) {
+        const baseUrl = serverConfig.getBaseUrl();
+        fetch(`${baseUrl}/api/sessions/${encodeURIComponent(sessionId)}/finished`, { method: "POST" }).catch(() => {});
+      }
     }
     prevAgentRunningRef.current = agentRunning;
-  }, [agentRunning]);
+  }, [agentRunning, sessionId, serverConfig]);
 
   useEffect(() => {
     const approvalNeeded =
@@ -348,22 +353,6 @@ export default function App() {
       setCurrentSessionId(sessionId);
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
-
-  // Session switch while streaming: show only last message until stream ends, then full history.
-  // Live+streaming (no switch): full history. Finished idle: full history.
-  const [minimalDisplayForStreamingSwitch, setMinimalDisplayForStreamingSwitch] = useState(false);
-  const prevSessionKeyRef = useRef(`${sessionId}-${viewingLiveSession}`);
-  useEffect(() => {
-    const key = `${sessionId}-${viewingLiveSession}`;
-    const justSwitched = prevSessionKeyRef.current !== key;
-    prevSessionKeyRef.current = key;
-    if (justSwitched) setMinimalDisplayForStreamingSwitch(true);
-  }, [sessionId, viewingLiveSession]);
-  useEffect(() => {
-    if (!agentRunning && !typingIndicator) {
-      setMinimalDisplayForStreamingSwitch(false);
-    }
-  }, [agentRunning, typingIndicator]);
 
   // Clean up empty sessions 3 minutes after creation, unless it is the current page
   const EMPTY_SESSION_CLEANUP_MS = 3 * 60 * 1000;
@@ -619,23 +608,8 @@ export default function App() {
   // FlatList performance: compute once to avoid per-item Dimensions.get
   const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
 
-  // Session switch while streaming: last message + stream until end. Otherwise: full history.
-  const displayMessages = useMemo(() => {
-    if (
-      viewingLiveSession &&
-      minimalDisplayForStreamingSwitch &&
-      (agentRunning || typingIndicator)
-    ) {
-      return messages.slice(-1);
-    }
-    return messages;
-  }, [
-    messages,
-    viewingLiveSession,
-    minimalDisplayForStreamingSwitch,
-    agentRunning,
-    typingIndicator,
-  ]);
+  // Always show full conversation (user input + previous turns), including while streaming.
+  const displayMessages = messages;
 
   const flatListExtraData = useMemo(
     () => `${lastSessionTerminated}-${displayMessages.length}`,
@@ -1045,7 +1019,7 @@ export default function App() {
               setCurrentSessionId(null);
               startNewSession();
             }}
-            showActiveChat={!viewingLiveSession && liveSessionMessages.length > 0}
+            showActiveChat={false}
             sessionRunning={agentRunning || typingIndicator}
             onSelectActiveChat={() => {
               switchToLiveSession();
