@@ -181,13 +181,14 @@ interface ButtonProps {
   testID?: string;
 }
 
+/* UI/UX Pro Max: sm/md at least 44px height for touch targets */
 const buttonSizeConfig: Record<
   ButtonSize,
   { height: number; padding: number; fontSize: number }
 > = {
   xs: { height: 28, padding: spacing["2"], fontSize: 12 },
-  sm: { height: 32, padding: spacing["2"], fontSize: 13 },
-  md: { height: 40, padding: spacing["3"], fontSize: 14 },
+  sm: { height: 44, padding: spacing["2"], fontSize: 13 },
+  md: { height: 44, padding: spacing["3"], fontSize: 14 },
   lg: { height: 48, padding: spacing["4"], fontSize: 16 },
   xl: { height: 56, padding: spacing["5"], fontSize: 17 },
 };
@@ -323,9 +324,10 @@ interface IconButtonProps {
   testID?: string;
 }
 
+/* UI/UX Pro Max: minimum 44x44px touch targets */
 const iconButtonSizes = {
-  sm: 32,
-  md: 40,
+  sm: 44,
+  md: 44,
   lg: 48,
 };
 

@@ -11,6 +11,11 @@
       "sourceType": "github",
       "computedHash": "d46ca590d97215674b986dbc8d0085739032117669483bead7eba739948abbdd"
     },
+    "migrate-nativewind-to-uniwind": {
+      "source": "uni-stack/uniwind",
+      "sourceType": "github",
+      "computedHash": "b4744b2223872aa2ea542c6f2dedf79893f7797decec348109a8278c05cb9ef2"
+    },
     "refactor": {
       "source": "github/awesome-copilot",
       "sourceType": "github",

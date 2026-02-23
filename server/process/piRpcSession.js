@@ -276,11 +276,10 @@ export function createPiRpcSession({
     const rawModel = options.model ?? (piProvider === "anthropic" ? "claude-sonnet-4-5" : piProvider === "openai" || piProvider === "openai-codex" ? "gpt-4o" : "gemini-2.0-flash");
     const piModel = toPiModel(rawModel, piProvider);
     const cwd = getWorkspaceCwd();
-    // Session dir = sessions/{sessionId}. Dir name is just the session id.
-    const sessionDir =
-      sessionId && typeof sessionId === "string"
-        ? path.join(SESSIONS_ROOT, "sessions", sessionId)
-        : path.join(SESSIONS_ROOT, "sessions");
+    // Session dir = base sessions folder (sessions/). Pi expects this base; it creates
+    // sessions/{sessionId}/ internally. Passing sessions/sessionId causes Pi to create
+    // "sessions-{sessionId}" (path separators replaced by -) as a sibling folder.
+    const sessionDir = path.join(SESSIONS_ROOT, "sessions");
 
     try {
       fs.mkdirSync(sessionDir, { recursive: true });

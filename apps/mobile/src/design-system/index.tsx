@@ -122,6 +122,8 @@ export {
   type AvatarSize,
 } from "./components";
 
+export { cn } from "../utils/cn";
+
 // ============================================================================
 // Legacy Exports (Backward Compatibility)
 // ============================================================================

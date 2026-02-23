@@ -36,6 +36,9 @@ import {
   useTheme,
   type Provider as BrandProvider,
 } from "./src/theme/index";
+import { GluestackUIProvider } from "./components/ui/gluestack-ui-provider";
+import { HStack } from "./components/ui/hstack";
+import { VStack } from "./components/ui/vstack";
 
 import {
   AnimatedPressableView,
@@ -44,6 +47,9 @@ import {
   usePerformanceMonitor,
   spacing,
 } from "./src/design-system";
+import { Box } from "./components/ui/box";
+import { Text as GluestackText } from "./components/ui/text";
+import { cn } from "./src/utils/cn";
 
 // Service Imports
 import { useSocket } from "./src/services/socket/hooks";
@@ -105,6 +111,11 @@ const DEFAULT_CLAUDE_MODEL = "sonnet4.5";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_PI_MODEL = "gpt-5.1-codex-mini";
 
+/** Theme mode - light only (no dark mode) */
+function getThemeModeForProvider(_provider: BrandProvider): "light" | "dark" {
+  return "light";
+}
+
 // ============================================================================
 // Enhanced Header Button Component
 // ============================================================================
@@ -150,7 +161,8 @@ export default function App() {
   // Theme and Provider State
   const [provider, setProvider] = useState<BrandProvider>("pi");
   const [model, setModel] = useState(DEFAULT_PI_MODEL);
-  const theme = useMemo(() => getTheme(provider, "light"), [provider]);
+  const themeMode = useMemo(() => getThemeModeForProvider(provider), [provider]);
+  const theme = useMemo(() => getTheme(provider, themeMode), [provider, themeMode]);
   const styles = useMemo(() => createAppStyles(theme), [theme]);
 
   // Model Management
@@ -606,7 +618,8 @@ export default function App() {
   // ============================================================================
 
   return (
-    <ThemeProvider provider={provider} colorMode="light">
+    <ThemeProvider provider={provider} colorMode={themeMode}>
+      <GluestackUIProvider mode={themeMode}>
       <SafeAreaView style={styles.safeArea} edges={["left", "right", "bottom"]}>
         <ExpoStatusBar style={theme.mode === "dark" ? "light" : "dark"} />
         <KeyboardAvoidingView
@@ -621,30 +634,31 @@ export default function App() {
               <View style={styles.contentArea}>
                 {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
                 {!sidebarVisible && (
-                  <View style={styles.menuButtonOverlay} pointerEvents="box-none">
+                  <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
                     <HeaderButton
                       icon={<MenuIcon color={theme.colors.textPrimary} />}
                       onPress={() => setSidebarVisible(true)}
                       accessibilityLabel="Open Explorer"
                       delay={100}
                     />
-                    <View style={styles.sessionIdCenter} pointerEvents="none">
-                      <View style={styles.sessionStatusRow}>
-                        <View
-                          style={[
-                            styles.sessionStatusDot,
-                            { backgroundColor: agentRunning || typingIndicator ? theme.colors.accent : theme.colors.textMuted },
-                          ]}
+                    <VStack style={styles.sessionIdCenter} pointerEvents="none">
+                      <HStack className="flex-row items-center gap-1.5 mb-0.5">
+                        <Box
+                          className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            (viewingLiveSession && (agentRunning || typingIndicator)) ? "bg-primary-500" : "bg-background-400"
+                          )}
                         />
-                        <Text
-                          style={[styles.sessionStatusText, { color: theme.colors.textMuted }]}
+                        <GluestackText
+                          size="2xs"
+                          className="font-medium tracking-wider text-typography-500"
                           accessibilityLabel={
                             (viewingLiveSession && (agentRunning || typingIndicator)) ? "Session running" : "Session idle"
                           }
                         >
                           {(viewingLiveSession && (agentRunning || typingIndicator)) ? "Running" : "Idle"}
-                        </Text>
-                      </View>
+                        </GluestackText>
+                      </HStack>
                       <Text
                         style={styles.sessionIdText}
                         numberOfLines={1}
@@ -656,14 +670,14 @@ export default function App() {
                             ? basename(workspacePath)
                             : "Start a new conversation"}
                       </Text>
-                    </View>
+                    </VStack>
                     <HeaderButton
                       icon={<SettingsIcon color={theme.colors.textPrimary} />}
                       onPress={() => setSessionManagementVisible(true)}
                       accessibilityLabel="Manage sessions"
                       delay={200}
                     />
-                  </View>
+                  </HStack>
                 )}
 
                 {/* Chat Area */}
@@ -865,6 +879,7 @@ export default function App() {
           />
         </KeyboardAvoidingView>
       </SafeAreaView>
+      </GluestackUIProvider>
     </ThemeProvider>
   );
 }
@@ -918,22 +933,6 @@ function createAppStyles(theme: ReturnType<typeof getTheme>) {
       alignItems: "center",
       paddingHorizontal: spacing[1],
       minHeight: 40,
-    },
-    sessionStatusRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      marginBottom: 2,
-    },
-    sessionStatusDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    sessionStatusText: {
-      fontSize: 11,
-      fontWeight: "500",
-      letterSpacing: 0.3,
     },
     sessionIdText: {
       fontSize: 14,

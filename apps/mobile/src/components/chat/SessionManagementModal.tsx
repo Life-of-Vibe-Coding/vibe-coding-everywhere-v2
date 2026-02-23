@@ -1,31 +1,31 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
-  View,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   Alert,
   ScrollView,
   RefreshControl,
   Platform,
-  Pressable,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Button,
-  Typography,
-  Card,
-  Divider,
-  Badge,
-  IconButton,
   triggerHaptic,
   Skeleton,
   SkeletonText,
   EntranceAnimation,
   AnimatedPressableView,
+  Divider,
   spacing,
   radii,
 } from "../../design-system";
+import { Badge, BadgeText } from "../../../components/ui/badge";
+import { Box } from "../../../components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
+import { Card as GluestackCard } from "../../../components/ui/card";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
+import { VStack } from "../../../components/ui/vstack";
+import { HStack } from "../../../components/ui/hstack";
 import { useTheme } from "../../theme/index";
 import {
   TrashIcon,
@@ -388,23 +388,26 @@ export function SessionManagementModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <Box style={[styles.container, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <View style={styles.header}>
-            <Typography variant="title2" style={styles.title}>Sessions</Typography>
-            <IconButton
-              variant="ghost"
-              icon={<CloseIcon size={20} color={theme.colors.textMuted} strokeWidth={2} />}
+          <HStack style={styles.header}>
+            <Text size="xl" bold className="text-typography-900">Sessions</Text>
+            <Button
+              action="default"
+              variant="link"
+              size="md"
               onPress={onClose}
               accessibilityLabel="Close"
-              style={styles.closeButton}
-            />
-          </View>
+              className="min-w-11 min-h-11 -mr-2"
+            >
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+            </Button>
+          </HStack>
 
           {(selectError || listError) && (
             <EntranceAnimation variant="fade">
-              <View style={styles.errorBanner}>
-                <Typography variant="callout" tone="danger">{selectError ?? listError}</Typography>
+              <HStack style={styles.errorBanner}>
+                <Text size="sm" className="text-error-600 flex-1">{selectError ?? listError}</Text>
                 {listError && (
                   <AnimatedPressableView
                     onPress={() => void refresh(false)}
@@ -413,91 +416,92 @@ export function SessionManagementModal({
                     accessibilityLabel="Retry loading sessions"
                   >
                     <RefreshCwIcon size={16} color={theme.colors.accent} strokeWidth={2} />
-                    <Typography variant="callout" tone="accent" style={styles.retryText}>
+                    <Text size="sm" bold className="text-primary-500">
                       Retry
-                    </Typography>
+                    </Text>
                   </AnimatedPressableView>
                 )}
-              </View>
+              </HStack>
             </EntranceAnimation>
           )}
 
-          <View style={styles.workspaceSection}>
-            <Typography variant="callout" tone="secondary" style={styles.sectionTitle}>
+          <VStack style={styles.workspaceSection}>
+            <Text size="sm" bold className="text-typography-600 mt-4 mb-2 mx-5">
               Workspace
-            </Typography>
-            <Card variant="outlined" padding="3" style={styles.workspaceBox}>
-              <View style={styles.workspacePathContainer}>
+            </Text>
+            <GluestackCard variant="outline" size="md" style={styles.workspaceBox}>
+              <VStack style={styles.workspacePathContainer}>
                 {workspaceLoading ? (
                   <SkeletonText lineHeight={18} lines={1} lastLineWidth="60%" />
                 ) : (
-                  <View style={styles.workspacePathRow}>
-                    <Typography style={styles.workspacePathLabel}>CWD: </Typography>
-                    <Typography
-                      variant="body"
-                      tone="secondary"
-                      weight="normal"
+                  <HStack style={styles.workspacePathRow}>
+                    <Text size="xs" bold className="text-typography-600 shrink-0">CWD: </Text>
+                    <Text
+                      size="sm"
                       numberOfLines={3}
                       ellipsizeMode="tail"
-                      style={styles.workspacePathValue}
+                      className="flex-1 shrink min-w-0 text-typography-600 font-mono"
+                      style={{ fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
                     >
                       {formatPathForWrap(
                         allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
                       )}
-                    </Typography>
-                  </View>
+                    </Text>
+                  </HStack>
                 )}
-              </View>
-              <View style={styles.workspaceActions}>
+              </VStack>
+              <HStack style={styles.workspaceActions}>
                 {onOpenWorkspacePicker && (
-                  <View style={styles.workspaceActionWrap}>
+                  <Box style={styles.workspaceActionWrap} className="flex-1 min-w-0">
                     <Button
-                      label="Change Workspace"
-                      variant="tertiary"
+                      action="secondary"
+                      variant="outline"
                       size="sm"
                       onPress={onOpenWorkspacePicker}
-                      style={[styles.workspaceButtonFill, styles.workspaceChangeButton]}
-                      labelStyle={styles.workspaceActionLabel}
-                    />
-                  </View>
+                      className="w-full h-13 rounded-lg"
+                    >
+                      <ButtonText>Change Workspace</ButtonText>
+                    </Button>
+                  </Box>
                 )}
-                <View style={styles.workspaceActionWrap}>
+                <Box style={styles.workspaceActionWrap} className="flex-1 min-w-0">
                   <Button
-                    label="Start Session"
-                    variant="primary"
+                    action="primary"
+                    variant="solid"
                     size="sm"
                     onPress={handleNewSession}
-                    style={[styles.workspaceButtonFill, styles.workspaceNewSessionButton]}
-                    labelStyle={[styles.workspaceActionLabel, styles.workspaceNewSessionLabel]}
-                  />
-                </View>
-              </View>
-            </Card>
-          </View>
+                    className="w-full h-13 rounded-lg"
+                  >
+                    <ButtonText className="text-typography-0 font-semibold">Start Session</ButtonText>
+                  </Button>
+                </Box>
+              </HStack>
+            </GluestackCard>
+          </VStack>
 
-          <Typography variant="callout" tone="secondary" style={styles.sectionTitle}>
+          <Text size="sm" bold className="text-typography-600 mt-4 mb-2 mx-5">
             Recent Sessions
-          </Typography>
+          </Text>
 
           {loading && !listError ? (
-            <View style={styles.empty}>
+            <Box style={styles.empty}>
               <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
               <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
               <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
-            </View>
+            </Box>
           ) : sessions.length === 0 && !showActiveChat ? (
             <EntranceAnimation variant="fade" delay={100}>
-              <View style={styles.empty}>
-                <View style={styles.emptyIconContainer}>
+              <Box style={styles.empty}>
+                <Box style={styles.emptyIconContainer}>
                   <SessionManagementIcon size={40} color={theme.colors.textMuted} strokeWidth={1.5} />
-                </View>
-                <Typography variant="title3" tone="primary" align="center" style={styles.emptyTitle}>
+                </Box>
+                <Text size="lg" bold className="text-center mb-2">
                   {listError ? "Connection Error" : "No Sessions Yet"}
-                </Typography>
-                <Typography variant="body" tone="muted" align="center" style={styles.emptySubtitle}>
+                </Text>
+                <Text size="md" className="text-center text-typography-500" style={styles.emptySubtitle}>
                   {listError ? "Check your server connection and tap Retry above." : "Start a conversation and it will appear here."}
-                </Typography>
-              </View>
+                </Text>
+              </Box>
             </EntranceAnimation>
           ) : (
             <ScrollView
@@ -515,21 +519,22 @@ export function SessionManagementModal({
             >
               {showActiveChat && onSelectActiveChat && (
                 <EntranceAnimation variant="fade" delay={100}>
-                  <TouchableOpacity
-                    style={[styles.row, styles.activeChatCard]}
+                  <Pressable
                     onPress={onSelectActiveChat}
-                    activeOpacity={0.8}
+                    style={[styles.row, styles.activeChatCard]}
                   >
-                    <View style={styles.activeChatCardContent}>
-                      <Typography variant="subhead" tone="accent" numberOfLines={1} weight="semibold">
+                    <VStack style={styles.activeChatCardContent}>
+                      <Text size="sm" bold numberOfLines={1} className="text-primary-500">
                         Active Chat
-                      </Typography>
-                      <Typography variant="caption2" tone="secondary" style={{ marginTop: 1 }}>
+                      </Text>
+                      <Text size="xs" className="text-typography-600 mt-0.5">
                         {sessionRunning ? "Receiving updates • tap to view" : "Tap to resume"}
-                      </Typography>
-                    </View>
-                    <Badge label="LIVE" variant="accent" dot size="sm" />
-                  </TouchableOpacity>
+                      </Text>
+                    </VStack>
+                    <Badge action="info" variant="solid" size="sm">
+                      <BadgeText>LIVE</BadgeText>
+                    </Badge>
+                  </Pressable>
                 </EntranceAnimation>
               )}
 
@@ -552,7 +557,7 @@ export function SessionManagementModal({
                 };
 
                 return (
-                  <View key={fullPath} style={styles.menuSection}>
+                  <Box key={fullPath} style={styles.menuSection}>
                     <Pressable
                       onHoverIn={() => setHoveredHeaderCwd(fullPath)}
                       onHoverOut={() => setHoveredHeaderCwd(null)}
@@ -567,109 +572,110 @@ export function SessionManagementModal({
                       accessibilityLabel={`${lastName} workspace, ${section.data.length} session(s), ${isExpanded ? "expanded" : "collapsed"}`}
                       accessibilityRole="button"
                     >
-                      <View style={styles.menuHeaderChevron}>
+                      <Box style={styles.menuHeaderChevron}>
                         {isExpanded ? (
                           <ChevronDownIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
                         ) : (
                           <ChevronRightIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
                         )}
-                      </View>
-                      <Typography variant="caption" tone="secondary" weight="semibold" style={styles.menuHeaderText}>
+                      </Box>
+                      <Text size="xs" bold className="flex-1 text-typography-600">
                         {lastName}
-                      </Typography>
-                      <Typography variant="caption2" tone="muted" style={styles.menuHeaderCount}>
+                      </Text>
+                      <Text size="xs" className="ml-1 opacity-80">
                         {section.data.length}
-                      </Typography>
+                      </Text>
                       {isHovered && fullPath !== "(no workspace)" && (
-                        <View style={[styles.sectionHeaderTooltip, { backgroundColor: theme.colors.textPrimary }]}>
-                          <Typography variant="caption2" color="#fff" numberOfLines={4} style={styles.tooltipText}>
+                        <Box style={[styles.sectionHeaderTooltip, { backgroundColor: theme.colors.textPrimary }]}>
+                          <Text size="xs" numberOfLines={4} className="text-white" style={styles.tooltipText}>
                             {formatPathForWrap(fullPath)}
-                          </Typography>
-                        </View>
+                          </Text>
+                        </Box>
                       )}
                     </Pressable>
 
                     {isExpanded && (
-                      <View style={styles.menuContent}>
+                      <Box style={styles.menuContent}>
                         {section.data.map((item, index) => {
                           const isLoading = loadingSessionId === item.id;
                           const isActive = item.id === currentSessionId;
                           return (
                             <EntranceAnimation key={item.id} variant="slideUp" delay={50 * (index % 10)}>
-                              <Card
-                                variant={isActive ? "default" : "outlined"}
-                                padding="0"
+                              <GluestackCard
+                                variant={isActive ? "elevated" : "outline"}
+                                size="md"
+                                className="p-0"
                                 style={[
                                   styles.sessionCard,
                                   isActive ? styles.sessionCardActive : {}
                                 ]}
                               >
-                                <TouchableOpacity
-                                  style={styles.sessionCardContentWrapper}
+                                <Pressable
                                   onPress={() => handleSelect(item)}
                                   disabled={isLoading}
-                                  activeOpacity={0.7}
+                                  style={styles.sessionCardContentWrapper}
                                 >
-                                  <View style={styles.sessionCardContent}>
-                                    <Typography variant="footnote" numberOfLines={2} tone={isActive ? "accent" : "primary"} weight="semibold">
+                                  <Box style={styles.sessionCardContent}>
+                                    <Text size="xs" bold numberOfLines={2} className={isActive ? "text-primary-500" : "text-typography-900"}>
                                       {item.firstUserInput || "(No Input)"}
-                                    </Typography>
+                                    </Text>
 
-                                    <View style={styles.sessionCardMetaRow}>
-                                      <Typography
-                                        variant="caption2"
-                                        tone="muted"
+                                    <Box style={styles.sessionCardMetaRow} className="flex-row items-center flex-wrap gap-1 mt-0.5">
+                                      <Text
+                                        size="xs"
                                         numberOfLines={1}
                                         ellipsizeMode="middle"
-                                        style={styles.sessionId}
+                                        className="opacity-70 text-typography-500"
                                       >
                                         {item.id}
-                                      </Typography>
+                                      </Text>
                                       <Divider orientation="vertical" spacing="1" style={{ height: 8, marginHorizontal: 4 }} />
-                                      <Typography variant="caption2" tone="muted" style={styles.sessionCardTime}>
+                                      <Text size="xs" className="shrink-0 text-typography-500">
                                         {formatDate(item.mtime)}
-                                      </Typography>
+                                      </Text>
                                       {(item.running || item.model) && (
-                                        <View style={styles.sessionCardBadgeWrap}>
+                                        <Box style={styles.sessionCardBadgeWrap} className="flex-row items-center ml-auto">
                                           {item.running && (
-                                            <Badge
-                                              label={item.sseConnected ? "STREAMING" : "RUNNING"}
-                                              variant="success"
-                                              size="sm"
-                                              dot
-                                              style={{ marginRight: 4 }}
-                                            />
+                                            <Badge action="success" variant="solid" size="sm" className="mr-1">
+                                              <BadgeText>{item.sseConnected ? "STREAMING" : "RUNNING"}</BadgeText>
+                                            </Badge>
                                           )}
                                           {item.model && (
-                                            <Badge label={modelDisplayName(item.model, item.provider)} variant="default" size="sm" />
+                                            <Badge action="muted" variant="solid" size="sm">
+                                              <BadgeText>{modelDisplayName(item.model, item.provider)}</BadgeText>
+                                            </Badge>
                                           )}
-                                        </View>
+                                        </Box>
                                       )}
-                                    </View>
-                                  </View>
+                                    </Box>
+                                  </Box>
 
-                                  <IconButton
-                                    variant="ghost"
-                                    size="sm"
-                                    icon={<TrashIcon color={theme.colors.textMuted} size={16} />}
-                                    onPress={() => handleDelete(item)}
-                                    accessibilityLabel="Delete session"
-                                    style={styles.deleteBtn}
-                                  />
-                                </TouchableOpacity>
-                              </Card>
+                                  <Box className="min-w-11 min-h-11 items-center justify-center ml-0.5">
+                                    <Button
+                                      action="default"
+                                      variant="link"
+                                      size="sm"
+                                      onPress={() => handleDelete(item)}
+                                      accessibilityLabel="Delete session"
+                                      className="min-w-11 min-h-11 opacity-70"
+                                    >
+                                      <ButtonIcon as={TrashIcon} size="sm" style={{ color: theme.colors.textMuted }} />
+                                    </Button>
+                                  </Box>
+                                </Pressable>
+                              </GluestackCard>
                             </EntranceAnimation>
                           );
                         })}
-                      </View>
+                      </Box>
                     )}
-                  </View>
+                  </Box>
                 );
               })}
             </ScrollView>
           )}
         </SafeAreaView>
-      </View>
+      </Box>
     </Modal>
   );
 }
@@ -783,18 +789,18 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: spacing["4"],
     },
     workspaceActionLabel: {
-      fontSize: 11,
+      fontSize: 13,
     },
     workspaceChangeButton: {
       backgroundColor: theme.colors.surfaceMuted,
       borderColor: theme.colors.border,
     },
     workspaceNewSessionButton: {
-      backgroundColor: "#93C5FD", // light blue
-      borderColor: "#93C5FD",
+      backgroundColor: theme.colors.accent,
+      borderColor: theme.colors.accent,
     },
     workspaceNewSessionLabel: {
-      color: "#1E40AF", // dark blue for contrast on light blue
+      color: theme.colors.textInverse,
       fontWeight: "600",
     },
     scrollView: {
@@ -922,8 +928,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     deleteBtn: {
       opacity: 0.7,
-      minWidth: 36,
-      minHeight: 36,
+      minWidth: 44,
+      minHeight: 44,
       marginLeft: spacing["0.5"],
     },
     empty: {

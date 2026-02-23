@@ -1,8 +1,10 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useTheme } from "../../theme/index";
+import React from "react";
 import type { PermissionDenial } from "../../services/socket/hooks";
-
+import { Button, ButtonText } from "../../../components/ui/button";
+import { Box } from "../../../components/ui/box";
+import { Text } from "../../../components/ui/text";
+import { VStack } from "../../../components/ui/vstack";
+import { HStack } from "../../../components/ui/hstack";
 interface PermissionDenialBannerProps {
   denials: PermissionDenial[];
   onDismiss: () => void;
@@ -10,41 +12,6 @@ interface PermissionDenialBannerProps {
 }
 
 export function PermissionDenialBanner({ denials, onDismiss, onAccept }: PermissionDenialBannerProps) {
-  const theme = useTheme();
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          borderWidth: 1,
-          borderColor: theme.danger,
-          backgroundColor: "#fff3f3",
-          borderRadius: 12,
-          padding: 14,
-        },
-        summary: { fontWeight: "600" as const, color: theme.danger, marginBottom: 6 },
-        detail: { fontSize: 14, color: theme.textPrimary, marginBottom: 10 },
-        actions: { flexDirection: "row" as const, gap: 10, flexWrap: "wrap" as const },
-        btnReject: {
-          paddingVertical: 6,
-          paddingHorizontal: 14,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: theme.danger,
-          backgroundColor: theme.surfaceBg,
-        },
-        btnRejectText: { fontWeight: "500" as const, color: theme.danger },
-        btnAccept: {
-          paddingVertical: 6,
-          paddingHorizontal: 14,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: theme.danger,
-          backgroundColor: theme.danger,
-        },
-        btnAcceptText: { fontWeight: "500" as const, color: "#fff" },
-      }),
-    [theme]
-  );
   if (!denials || denials.length === 0) return null;
 
   const summary = denials.length === 1 ? "Permission denied" : "Permissions denied";
@@ -57,18 +24,36 @@ export function PermissionDenialBanner({ denials, onDismiss, onAccept }: Permiss
     .join("\n");
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.summary}>{summary}</Text>
-      <Text style={styles.detail}>{detail}</Text>
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.btnReject} onPress={onDismiss} activeOpacity={0.8}>
-          <Text style={styles.btnRejectText}>Dismiss</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btnAccept} onPress={onAccept} activeOpacity={0.8}>
-          <Text style={styles.btnAcceptText}>Accept & retry</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <Box className="border border-error-500 rounded-xl p-3.5 bg-error-500/10">
+      <VStack space="sm" className="gap-2">
+        <Text size="sm" bold className="text-error-600">
+          {summary}
+        </Text>
+        <Text size="md" className="text-typography-900">
+          {detail}
+        </Text>
+        <HStack space="sm" className="flex-row flex-wrap gap-2.5">
+          <Button
+            variant="outline"
+            action="negative"
+            size="md"
+            onPress={onDismiss}
+            className="min-h-11"
+          >
+            <ButtonText>Dismiss</ButtonText>
+          </Button>
+          <Button
+            variant="solid"
+            action="negative"
+            size="md"
+            onPress={onAccept}
+            className="min-h-11"
+          >
+            <ButtonText>Accept & retry</ButtonText>
+          </Button>
+        </HStack>
+      </VStack>
+    </Box>
   );
 }
 

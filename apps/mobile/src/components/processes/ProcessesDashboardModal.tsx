@@ -1,8 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   ScrollView,
@@ -12,9 +9,14 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppButton, triggerHaptic } from "../../design-system";
+import { triggerHaptic } from "../../design-system";
 import { CloseIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
+import { Badge, BadgeText } from "../../../components/ui/badge";
+import { Box } from "../../../components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
+import { Pressable } from "../../../components/ui/pressable";
+import { Text } from "../../../components/ui/text";
 
 /** Minimum touch target per UI/UX Pro Max (44x44px). */
 const MIN_TOUCH_TARGET = 44;
@@ -150,34 +152,34 @@ export function ProcessesDashboardModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Running Processes</Text>
-            <TouchableOpacity
+          <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
+            <Text size="lg" bold className="text-typography-900">Running Processes</Text>
+            <Button
+              action="default"
+              variant="link"
+              size="md"
               onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={12}
-              activeOpacity={0.7}
               accessibilityLabel="Close"
-              accessibilityRole="button"
+              className="min-w-11 min-h-11 -mr-2"
             >
-              <CloseIcon size={22} color={theme.textMuted} />
-            </TouchableOpacity>
-          </View>
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+            </Button>
+          </Box>
 
           {error && (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{error}</Text>
-              <Text style={styles.errorHint}>
+            <Box style={styles.errorBanner} className="bg-error-500/10 px-5 py-3.5">
+              <Text size="sm" className="text-error-600">{error}</Text>
+              <Text size="xs" className="text-error-600 mt-2 leading-4.5 opacity-95">
                 Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
               </Text>
-            </View>
+            </Box>
           )}
           {warning && !error && (
-            <View style={styles.warningBanner}>
-              <Text style={styles.warningText}>{warning}</Text>
-            </View>
+            <Box style={styles.warningBanner} className="px-5 py-3">
+              <Text size="sm" className="text-typography-900">{warning}</Text>
+            </Box>
           )}
 
           <ScrollView
@@ -187,91 +189,92 @@ export function ProcessesDashboardModal({
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={() => load(true)}
-                tintColor={theme.accent}
+                tintColor={theme.colors?.accent ?? theme.accent}
               />
             }
           >
             {loading && !refreshing && (
-              <View style={styles.loading}>
-                <ActivityIndicator size="large" color={theme.accent} />
-                <Text style={styles.loadingText}>Loading processes…</Text>
-              </View>
+              <Box style={styles.loading} className="py-8 items-center gap-2.5">
+                <ActivityIndicator size="large" color={theme.colors?.accent ?? theme.accent} />
+                <Text size="xs" className="text-typography-500">Loading processes…</Text>
+              </Box>
             )}
 
             {!loading && (
               <>
                 {hasOther && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Port-bound processes</Text>
+                  <Box style={styles.section} className="mb-4">
+                    <Text size="xs" bold className="text-typography-500 uppercase tracking-wider mb-2.5">Port-bound processes</Text>
                     {[...apiProcesses]
                       .sort((a, b) => b.pid - a.pid)
                       .map((proc) => {
                       const logPaths = proc.logPaths ?? [];
                       return (
-                        <View key={`${proc.pid}-${proc.port}`} style={styles.row}>
-                          <View style={styles.rowMain}>
-                            <View style={styles.pidPortRow}>
-                              <View style={styles.pill}>
-                                <Text style={styles.pillText}>PID {proc.pid}</Text>
-                              </View>
-                              <View style={styles.pill}>
-                                <Text style={styles.pillText}>Port {proc.port}</Text>
-                              </View>
-                            </View>
+                        <Box key={`${proc.pid}-${proc.port}`} style={styles.row} className="flex-col py-2.5 px-3 rounded-lg mb-2.5 gap-2 border border-outline-400 bg-background-0">
+                          <Box style={styles.rowMain} className="min-w-0">
+                            <Box style={styles.pidPortRow} className="flex-row flex-wrap gap-1.5 mb-1.5">
+                              <Badge action="info" variant="outline" size="sm" className="py-0.5 px-1.5 rounded">
+                                <BadgeText>PID {proc.pid}</BadgeText>
+                              </Badge>
+                              <Badge action="info" variant="outline" size="sm" className="py-0.5 px-1.5 rounded">
+                                <BadgeText>Port {proc.port}</BadgeText>
+                              </Badge>
+                            </Box>
                             <Text
-                              style={styles.command}
+                              size="xs"
                               numberOfLines={4}
                               selectable
+                              className="font-semibold text-typography-900 font-mono"
+                              style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
                             >
                               {proc.command}
                             </Text>
-                          </View>
-                          <View style={styles.rowActions}>
+                          </Box>
+                          <Box style={styles.rowActions} className="flex-row items-center gap-1.5 flex-wrap shrink-0">
                             {logPaths.map((logPath) => {
                               const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
                               return (
-                                <TouchableOpacity
+                                <Pressable
                                   key={logPath}
                                   onPress={() => handleViewLog(logPath)}
-                                  style={[styles.logButton, logPaths.length > 0 && styles.logButtonVisible]}
-                                  activeOpacity={0.7}
+                                  className="py-1.5 px-2 rounded-md border border-primary-500 bg-primary-500/15 min-w-16"
                                   accessibilityLabel={`View log ${label}`}
-                                  accessibilityRole="button"
                                 >
-                                  <Text style={styles.logButtonText}>Log: {label}</Text>
-                                </TouchableOpacity>
+                                  <Text size="xs" bold className="text-primary-500">Log: {label}</Text>
+                                </Pressable>
                               );
                             })}
-                            <View style={styles.killButtonWrap}>
-                              <AppButton
-                                label={killingPid === proc.pid ? "…" : "Kill"}
-                                variant="danger"
+                            <Box style={styles.killButtonWrap} className="min-h-9 justify-center">
+                              <Button
+                                action="negative"
+                                variant="solid"
                                 size="sm"
                                 onPress={() => handleKillApiProcess(proc)}
-                                disabled={killingPid === proc.pid}
-                                labelStyle={styles.killButtonLabel}
-                              />
-                            </View>
-                          </View>
-                        </View>
+                                isDisabled={killingPid === proc.pid}
+                              >
+                                <ButtonText>{killingPid === proc.pid ? "…" : "Kill"}</ButtonText>
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Box>
                       );
                     })}
-                  </View>
+                  </Box>
                 )}
 
                 {empty && (
-                  <View style={styles.empty}>
-                    <Text style={styles.emptyText}>No running processes found.</Text>
-                    <Text style={styles.emptyHint}>
+                  <Box style={styles.empty} className="py-8 items-center">
+                    <Text size="sm" bold className="text-typography-500 mb-1.5">No running processes found.</Text>
+                    <Text size="xs" className="text-typography-500 text-center max-w-70 leading-4.5">
                       Port-bound processes (e.g. dev servers on 3000, 8000) will appear here.
                     </Text>
-                  </View>
+                  </Box>
                 )}
               </>
             )}
           </ScrollView>
         </SafeAreaView>
-      </View>
+      </Box>
 
       {logViewer && (
         <Modal
@@ -281,37 +284,39 @@ export function ProcessesDashboardModal({
           onRequestClose={() => setLogViewer(null)}
           statusBarTranslucent
         >
-          <View style={[styles.fullScreen, { paddingTop: insets.top }]}>
+          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
-            <View style={styles.logViewerHeader}>
-              <Text style={styles.logViewerTitle} numberOfLines={1}>
+            <Box style={styles.logViewerHeader} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
+              <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900">
                 {logViewer.name}
               </Text>
-              <TouchableOpacity
+              <Button
+                action="default"
+                variant="link"
+                size="md"
                 onPress={() => setLogViewer(null)}
-                style={styles.closeBtn}
-                hitSlop={12}
-                activeOpacity={0.7}
                 accessibilityLabel="Close log viewer"
-                accessibilityRole="button"
+                className="min-w-11 min-h-11 -mr-2"
               >
-                <CloseIcon size={20} color={theme.textMuted} />
-              </TouchableOpacity>
-            </View>
+                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+              </Button>
+            </Box>
             <ScrollView
               style={styles.logViewerScroll}
               contentContainerStyle={styles.logViewerContent}
               horizontal={false}
             >
               <Text
-                style={styles.logViewerText}
+                size="xs"
                 selectable
+                className="text-typography-900 font-mono"
+                style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
               >
                 {logViewer.content || "(empty)"}
               </Text>
             </ScrollView>
             </SafeAreaView>
-          </View>
+          </Box>
         </Modal>
       )}
     </Modal>

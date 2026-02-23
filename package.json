@@ -15,7 +15,8 @@
     "icons:convert": "node scripts/convert-atom-icons.mjs",
     "smoke:sse": "node scripts/smoke-pi-rpc-sse-multi-client.mjs",
     "smoke:concurrent": "node scripts/smoke-pi-rpc-sse-concurrent.mjs",
-    "smoke:session-switch": "node scripts/smoke-pi-rpc-sse-session-switch.mjs"
+    "smoke:session-switch": "node scripts/smoke-pi-rpc-sse-session-switch.mjs",
+    "smoke:session-folder": "node scripts/smoke-session-folder.mjs"
   },
   "dependencies": {
     "dockerode": "^4.0.9",
