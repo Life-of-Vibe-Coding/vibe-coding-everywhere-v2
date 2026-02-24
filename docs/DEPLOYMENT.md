@@ -186,9 +186,11 @@ eas build --platform android --profile production
 npm run android
 ```
 
-## OpenZiti Setup (Mobile Overlay)
+## Mobile from a different network
 
-For remote mobile access without a VPN app on the device, use the OpenZiti overlay. See `scripts/setup-ziti-network.sh` and `scripts/start-mobile-ziti.mjs` for setup. Set `OVERLAY_NETWORK=ziti` and run `npm run dev:ziti` with the mobile app started via `npm run dev:mobile:ziti`.
+For remote mobile access (e.g. cellular or another WiFi), use **Cloudflare Tunnel** so the app can reach your dev server without opening ports. See [Cloudflare Tunnel guide](./CLOUDFLARE_TUNNEL.md).
+
+**Quick start:** From repo root run `npm run dev:cloudflare`; when the tunnel URL appears, run `EXPO_PUBLIC_SERVER_URL=https://YOUR_TUNNEL_URL npm run dev:mobile:cloudflare` in a second terminal.
 
 ## Security Considerations
 
@@ -318,7 +320,7 @@ which gemini && gemini --version
 # Check firewall
 sudo ufw status
 
-# Test from another device (use your server host or Ziti overlay URL)
+# Test from another device (use your server host or tunnel URL)
 curl http://your-server:3456/api/config
 ```
 

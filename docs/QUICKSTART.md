@@ -6,7 +6,7 @@ Get up and running in 5 minutes.
 
 - Node.js 18+
 - **Pi** coding agent: `npm i -g @mariozechner/pi-coding-agent`, then `pi --version`. Pi supports Claude, Codex, and Gemini via subscription auth—run `pi` and `/login` once; no API keys needed.
-- (Optional) OpenZiti for mobile overlay access
+- (Optional) Cloudflare Tunnel for mobile from a different network
 
 ## 1. Install
 
@@ -42,14 +42,12 @@ npm start
 npm run dev:mobile
 ```
 
-### Physical Device (OpenZiti)
+### Physical Device (different network)
+
+Use [Cloudflare Tunnel](CLOUDFLARE_TUNNEL.md): run `npm run dev:cloudflare`, then start the app with the tunnel URL:
 
 ```bash
-# Terminal 1: start server with Ziti
-npm run dev:ziti
-
-# Terminal 2: start mobile with Ziti
-npm run dev:mobile:ziti
+EXPO_PUBLIC_SERVER_URL=https://YOUR_TUNNEL_URL npm run dev:mobile:cloudflare
 ```
 
 Scan QR code with Expo Go app.
@@ -93,5 +91,5 @@ PORT=3457 npm start
 # Check server
 curl http://localhost:3456/api/config
 
-# For Ziti: ensure tunneler and proxy are running
+# For tunnel: ensure proxy is running (npm run proxy) when using Cloudflare
 ```
