@@ -70,14 +70,14 @@ npm run dev:mobile
 
 Press `i` for iOS Simulator or `a` for Android Emulator.
 
-#### Option 2: Physical Device (Tailscale)
+#### Option 2: Physical Device (OpenZiti)
 
 ```bash
-# Terminal 1: Start server
-npm start
+# Terminal 1: Start server with Ziti
+npm run dev:ziti
 
-# Terminal 2: Start with tunnel
-npm run dev:mobile:funnel
+# Terminal 2: Start mobile with Ziti
+npm run dev:mobile:ziti
 ```
 
 Scan QR code with Expo Go app.
@@ -238,8 +238,7 @@ npx react-native log-android
 # Check server is running
 curl http://localhost:3456/api/config
 
-# Check Tailscale status (if using)
-tailscale status
+# For Ziti: ensure tunneler and proxy are running
 ```
 
 **Claude not found:**
@@ -353,7 +352,7 @@ npx expo build:android
 - [ ] Server starts without errors
 - [ ] Web client loads and connects
 - [ ] Mobile app connects (local)
-- [ ] Mobile app connects (Tailscale)
+- [ ] Mobile app connects (Ziti overlay)
 - [ ] AI session starts (Claude or Gemini)
 - [ ] Messages display correctly
 - [ ] File tree loads

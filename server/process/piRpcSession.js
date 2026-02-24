@@ -17,7 +17,7 @@ import {
   SESSIONS_ROOT,
 } from "../config/index.js";
 import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
-import { getPreviewHost } from "../utils/index.js";
+import { getPreviewHost, getActiveOverlay } from "../utils/index.js";
 
 const CLIENT_PROVIDER_TO_PI = {
   claude: "anthropic", // OAuth from auth.json
@@ -55,14 +55,29 @@ function getRemoteHostFromSocket(socket) {
 
 /**
  * Derive connection context from socket for Pi agent awareness.
+ * Supports Ziti (overlay proxy) and localhost connections.
  * @param {import('socket.io').Socket} socket
- * @returns {string} "localhost", "Tailscale VPN remote host", or "remote"
+ * @returns {string} "localhost", "Ziti overlay remote host", or "remote"
  */
 function getConnectionContext(socket) {
   const addr = String(socket?.handshake?.address ?? socket?.conn?.remoteAddress ?? "");
   const host = String((socket?.handshake?.headers?.host ?? "").split(":")[0] ?? "");
   const raw = `${addr} ${host}`.toLowerCase();
-  if (/^100\.|tailscale|\.ts\.net/i.test(raw)) return "Tailscale VPN remote host";
+
+  // Check for Ziti overlay (connection comes through the Ziti proxy on localhost)
+  const overlay = getActiveOverlay();
+  if (overlay === "ziti") {
+    // When using Ziti, the connection arrives at the reverse proxy on localhost,
+    // but the actual client is remote (on the phone via the overlay).
+    // Check for Ziti proxy header to distinguish from true localhost.
+    const zitiHeader = socket?.handshake?.headers?.["x-ziti-proxy"];
+    if (zitiHeader) return "Ziti overlay remote host";
+    // If the overlay is ziti but no proxy header, it could be a localhost connection
+    // directly to the server (e.g. from the same machine).
+    if (/^127\.|::1|localhost/i.test(raw)) return "localhost";
+    return "Ziti overlay remote host";
+  }
+
   if (/^127\.|::1|localhost/i.test(raw)) return "localhost";
   return "remote";
 }
@@ -289,16 +304,22 @@ export function createPiRpcSession({
       "When running terminal commands: (1) MANDATORY: use the Bash tool for every terminal command step — never use run_terminal_cmd, run_command, or alternatives; (2) use ad-hoc bash, not persistent shells; (3) when starting background servers, ALWAYS use nohup + disown: nohup bash -c 'cd dir && ... && python run.py' >> log 2>&1 & disown — Pi's Bash tool waits for children, so nohup+disown prevents the call from hanging;";
     const connectionType = getConnectionContext(socket);
     const previewHost = getPreviewHost();
-    const tailscaleHint =
-      previewHost && previewHost !== "(not set)"
-        ? ` Prefer Tailscale hostname (${previewHost}) for preview URLs so the remote client can reach the server.`
-        : "";
+    const overlay = getActiveOverlay();
+
+    // Build overlay-specific hint for preview URLs
+    let overlayHint = "";
+    if (overlay === "ziti" && previewHost.startsWith("ziti-proxy:")) {
+      overlayHint = " The user connects via Ziti overlay network. Preview URLs should use localhost — the mobile app will route them through the Ziti proxy automatically.";
+    } else if (previewHost && previewHost !== "(not set)") {
+      overlayHint = ` Prefer hostname (${previewHost}) for preview URLs so the remote client can reach the server.`;
+    }
+
     const connectionContext =
-      connectionType === "Tailscale VPN remote host"
-        ? `The user is connecting via Tailscale VPN remote host.${tailscaleHint}`
+      connectionType === "Ziti overlay remote host"
+        ? `The user is connecting via Ziti overlay network (OpenZiti).${overlayHint}`
         : connectionType === "localhost"
-          ? "The user is connecting via localhost."
-          : `The user is connecting from a remote host (not localhost).${tailscaleHint}`;
+            ? "The user is connecting via localhost."
+            : `The user is connecting from a remote host (not localhost).${overlayHint}`;
     const criticalPrompt = `CRITICAL: You are running within a process with PID ${process.pid}. The application that manages you is listening on port ${PORT}. You MUST NEVER kill this process (PID ${process.pid}) or occupy its port (${PORT}). If you kill this process, you will immediately terminate yourself.`;
     const connectionPrompt = `Connection context: ${connectionContext}`;
     const workspace = getWorkspaceCwd();

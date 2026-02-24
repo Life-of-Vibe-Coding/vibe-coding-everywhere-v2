@@ -3,19 +3,25 @@
  */
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import { getOverlayNetwork, ZITI_PROXY_PORT } from "../config/index.js";
 
-/** Cached preview host (Tailscale or PREVIEW_HOST) for system prompt substitution. */
+/** Cached preview host (Ziti or PREVIEW_HOST) for system prompt substitution. */
 let cachedPreviewHost = null;
 
 /**
- * Get the preview host for this session (Tailscale hostname or env).
+ * Get the preview host for this session.
  * Used to inject into system prompt so the agent outputs URLs the mobile client can open.
- * @returns {string} Hostname (e.g. your-machine.tail123456.ts.net) or "(not set)" if unavailable
+ *
+ * Resolution order:
+ *   1. PREVIEW_HOST env var (explicit override)
+ *   2. Ziti: returns a marker indicating Ziti overlay (mobile resolves via proxy)
+ *   3. "(not set)"
+ *
+ * @returns {string} Hostname or overlay marker
  */
 export function getPreviewHost() {
   if (cachedPreviewHost !== null) return cachedPreviewHost;
-  const fromEnv = (process.env.PREVIEW_HOST || process.env.TAILSCALE_PREVIEW_HOST || "").trim();
+  const fromEnv = (process.env.PREVIEW_HOST || "").trim();
   if (fromEnv) {
     try {
       const u = fromEnv.startsWith("http") ? fromEnv : `http://${fromEnv}`;
@@ -26,32 +32,28 @@ export function getPreviewHost() {
       return cachedPreviewHost;
     }
   }
-  try {
-    const stdout = execSync("tailscale status --json", {
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-      maxBuffer: 64 * 1024,
-    });
-    const payload = JSON.parse(stdout);
-    const self = payload?.Self;
-    if (self && typeof self === "object") {
-      if (typeof self.DNSName === "string" && self.DNSName.trim()) {
-        cachedPreviewHost = self.DNSName.replace(/\.$/, "").trim();
-        return cachedPreviewHost;
-      }
-      if (Array.isArray(self.TailscaleIPs) && self.TailscaleIPs.length) {
-        const ip = self.TailscaleIPs.find((x) => typeof x === "string" && x.trim());
-        if (ip) {
-          cachedPreviewHost = ip.trim();
-          return cachedPreviewHost;
-        }
-      }
-    }
-  } catch (_) {
-    // Tailscale not installed, not running, or parse error
+
+  const overlay = getOverlayNetwork();
+
+  if (overlay === "ziti") {
+    // With Ziti, the mobile app routes through the overlay proxy.
+    // Preview URLs are rewritten on the client side using X-Target-Port headers.
+    // The "host" for the agent to use is the proxy's perspective: localhost.
+    // The mobile app handles URL rewriting through its connection layer.
+    cachedPreviewHost = `ziti-proxy:${ZITI_PROXY_PORT}`;
+    return cachedPreviewHost;
   }
+
   cachedPreviewHost = "(not set)";
   return cachedPreviewHost;
+}
+
+/**
+ * Get the overlay network type for display / context.
+ * @returns {"ziti" | "none"}
+ */
+export function getActiveOverlay() {
+  return getOverlayNetwork();
 }
 
 const ANSI_REGEX =

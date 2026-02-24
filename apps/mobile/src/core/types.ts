@@ -143,7 +143,7 @@ export interface IPermissionState {
 export interface IServerConfig {
   /** Get the server base URL */
   getBaseUrl(): string;
-  /** Resolve a preview URL (handles localhost -> Tailscale conversion) */
+  /** Resolve a preview URL (handles localhost -> overlay network conversion for Ziti) */
   resolvePreviewUrl(previewUrl: string): string;
 }
 

@@ -195,5 +195,33 @@ export const SESSIONS_ROOT = path.join(projectRoot, ".pi", "agent");
 /** Enable Docker manager page and API. Set to "1" or "true" to enable. */
 export const ENABLE_DOCKER_MANAGER = process.env.ENABLE_DOCKER_MANAGER === "1" || process.env.ENABLE_DOCKER_MANAGER === "true";
 
+// ── Overlay Network Configuration ──────────────────────────────────────────
+// Supports "ziti" (OpenZiti overlay) or "none" (localhost only).
+// Set OVERLAY_NETWORK env to switch. Default: auto-detect (Ziti identity → ziti; else none).
+
+/** Ziti reverse proxy port. The tunneler binds the service to this port. */
+export const ZITI_PROXY_PORT = parseInt(process.env.ZITI_PROXY_PORT || "9443", 10);
+
+/** Path to Ziti server identity JSON (for tunneler). */
+export const ZITI_SERVER_IDENTITY = process.env.ZITI_SERVER_IDENTITY
+  ? path.resolve(process.env.ZITI_SERVER_IDENTITY)
+  : path.join(projectRoot, ".ziti", "identities", "vibe-server.json");
+
+/**
+ * Detect active overlay network.
+ * Priority: OVERLAY_NETWORK env > Ziti identity exists > none.
+ * @returns {"ziti" | "none"}
+ */
+export function getOverlayNetwork() {
+  const env = (process.env.OVERLAY_NETWORK || "").trim().toLowerCase();
+  if (env === "ziti") return "ziti";
+  if (env === "none") return "none";
+
+  // Auto-detect: check for Ziti identity file
+  if (fs.existsSync(ZITI_SERVER_IDENTITY)) return "ziti";
+
+  return "none";
+}
+
 // Export project paths for use in other modules
 export { projectRoot, __dirname };

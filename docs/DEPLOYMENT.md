@@ -186,48 +186,9 @@ eas build --platform android --profile production
 npm run android
 ```
 
-## Tailscale Setup
+## OpenZiti Setup (Mobile Overlay)
 
-For remote mobile access:
-
-### Install Tailscale
-
-```bash
-# macOS
-brew install tailscale
-
-# Linux
-curl -fsSL https://tailscale.com/install.sh | sh
-
-# Windows
-# Download from https://tailscale.com/download
-```
-
-### Configure
-
-```bash
-# Login
-tailscale up
-
-# Check status
-tailscale status
-
-# Get your machine's Tailscale IP
-tailscale ip -4
-```
-
-### Mobile Connection
-
-1. Install Tailscale app on phone
-2. Sign in with same account
-3. Use Tailscale IP or MagicDNS name as server URL
-
-Example:
-
-```bash
-# In start-mobile-funnel.mjs script
-EXPO_PUBLIC_SERVER_URL=http://your-machine.tailnet-name.ts.net:3456
-```
+For remote mobile access without a VPN app on the device, use the OpenZiti overlay. See `scripts/setup-ziti-network.sh` and `scripts/start-mobile-ziti.mjs` for setup. Set `OVERLAY_NETWORK=ziti` and run `npm run dev:ziti` with the mobile app started via `npm run dev:mobile:ziti`.
 
 ## Security Considerations
 
@@ -354,14 +315,11 @@ which gemini && gemini --version
 ### Mobile Can't Connect
 
 ```bash
-# Verify Tailscale
-tailscale status
-
 # Check firewall
 sudo ufw status
 
-# Test from another device
-curl http://your-tailscale-ip:3456/api/config
+# Test from another device (use your server host or Ziti overlay URL)
+curl http://your-server:3456/api/config
 ```
 
 ### Performance Issues

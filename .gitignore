@@ -32,6 +32,7 @@ Thumbs.db
 *~
 
 # Tool / agent folders (ignore all folders starting with .)
+# Includes .ziti/ (OpenZiti identity files — secrets, must never be committed)
 .*/
 !.github/
 !.vscode/
