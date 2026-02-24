@@ -7,7 +7,11 @@ const config = getDefaultConfig(__dirname);
 config.resolver ??= {};
 config.resolver.unstable_enablePackageExports = false;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (["uniwind", "culori"].some((prefix) => moduleName.startsWith(prefix))) {
+  // tailwindcss v4 exposes subpaths (e.g. tailwindcss/plugin) only via package.json "exports"
+  const usePackageExports = ["uniwind", "culori", "tailwindcss"].some((prefix) =>
+    moduleName === prefix || moduleName.startsWith(prefix + "/")
+  );
+  if (usePackageExports) {
     return context.resolveRequest(
       { ...context, unstable_enablePackageExports: true },
       moduleName,
