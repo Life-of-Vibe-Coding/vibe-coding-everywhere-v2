@@ -563,9 +563,19 @@ export function useSocket(options: UseSocketOptions = {}) {
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) setConnected(true);
     });
 
-    sse.addEventListener("error", (err) => {
-      if (__DEV__) console.log("[sse] disconnected (error)", { sessionId: connectionSessionIdRef.current });
-      console.error("[sse] error:", err);
+    sse.addEventListener("error", (err: unknown) => {
+      const e = err as { xhrStatus?: number; xhrState?: number; message?: string };
+      const isExpectedServerClose =
+        e?.xhrStatus === 200 &&
+        e?.xhrState === 4 &&
+        (typeof e?.message === "string" && e.message.toLowerCase().includes("connection abort"));
+      if (isExpectedServerClose) {
+        // Server closed the stream (e.g. after event: end). Android XHR reports this as "Software caused connection abort".
+        if (__DEV__) console.log("[sse] stream ended (server closed)", { sessionId: connectionSessionIdRef.current });
+      } else {
+        if (__DEV__) console.log("[sse] disconnected (error)", { sessionId: connectionSessionIdRef.current });
+        console.error("[sse] error:", err);
+      }
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) setConnected(false);
     });
 
