@@ -2,28 +2,28 @@ import type { IServerConfig } from "../../core/types";
 
 /**
  * Connection mode for the mobile app.
- *   - "direct"   : Direct URL connection (localhost, LAN, etc.)
- *   - "ziti"     : OpenZiti overlay — base URL goes through Ziti proxy with X-Target-Port
- *   - "ziti-sdk" : OpenZiti embedded SDK (future) — local proxy on device
+ *   - "direct"     : Direct URL connection (localhost, LAN, etc.)
+ *   - "cloudflare" : Cloudflare Tunnel — base URL is tunnel URL; proxy uses X-Target-Port / _targetPort
  */
-type ConnectionMode = "direct" | "ziti" | "ziti-sdk";
+type ConnectionMode = "direct" | "cloudflare";
 
 function getConnectionMode(): ConnectionMode {
   const mode =
     typeof process !== "undefined" ? (process.env?.EXPO_PUBLIC_CONNECTION_MODE ?? "").trim().toLowerCase() : "";
-  if (mode === "ziti" || mode === "ziti-sdk" || mode === "direct") {
+  if (mode === "direct" || mode === "cloudflare") {
     return mode as ConnectionMode;
   }
   return "direct";
 }
 
 /**
- * Get the Ziti proxy port (used for X-Target-Port based routing).
- * When using Ziti, the reverse proxy on the Mac routes based on this header.
+ * Get the tunnel proxy port (used for X-Target-Port / _targetPort routing).
  */
-function getZitiProxyPort(): number {
+function getTunnelProxyPort(): number {
   const port =
-    typeof process !== "undefined" ? (process.env?.EXPO_PUBLIC_ZITI_PROXY_PORT ?? "").trim() : "";
+    typeof process !== "undefined"
+      ? (process.env?.EXPO_PUBLIC_TUNNEL_PROXY_PORT ?? "").trim()
+      : "";
   return port ? parseInt(port, 10) || 9443 : 9443;
 }
 
@@ -49,33 +49,32 @@ export function createDefaultServerConfig(): IServerConfig {
         const baseParsed = new URL(base);
         const parsed = new URL(previewUrl);
 
-        // ── Ziti mode: preview URLs route through the same Ziti proxy ──
-        // The reverse proxy on the Mac uses X-Target-Port to forward to the right port.
-        // For WebView, we can't set custom headers, so we use a query parameter
-        // that the proxy can also read: ?_targetPort=<port>
-        if (connectionMode === "ziti" || connectionMode === "ziti-sdk") {
+        // ── Cloudflare (tunnel) mode: preview URLs route through the proxy ──
+        // The reverse proxy (e.g. behind Cloudflare Tunnel) uses X-Target-Port
+        // to forward to the right port. For WebView we use query param _targetPort.
+        if (connectionMode === "cloudflare") {
           const isPreviewLocalhost =
             parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
           const basePort = baseParsed.port || (baseParsed.protocol === "https:" ? "443" : "80");
           const previewPort = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
 
           if (isPreviewLocalhost) {
-            // Rewrite the URL to go through the Ziti proxy base URL
-            // The proxy will forward based on the _targetPort query param
+            // Rewrite the URL to go through the proxy base URL (Cloudflare tunnel URL)
             const targetPort = previewPort !== basePort ? previewPort : basePort;
             const proxyUrl = new URL(base);
             proxyUrl.pathname = parsed.pathname || "/";
             proxyUrl.search = parsed.search || "";
             proxyUrl.hash = parsed.hash || "";
 
-            // Add target port hint for the proxy (only if different from default)
             if (targetPort !== basePort) {
               proxyUrl.searchParams.set("_targetPort", targetPort);
             }
 
             const resolved = proxyUrl.toString();
             console.log(
-              "[PreviewURL] resolvePreviewUrl (ziti): incoming=" +
+              "[PreviewURL] resolvePreviewUrl (" +
+                connectionMode +
+                "): incoming=" +
                 previewUrl +
                 " | resolved=" +
                 resolved
@@ -83,8 +82,7 @@ export function createDefaultServerConfig(): IServerConfig {
             return resolved;
           }
 
-          // Non-localhost preview URL: keep as-is (external service)
-          console.log("[PreviewURL] resolvePreviewUrl (ziti): keep as-is | incoming=" + previewUrl);
+          console.log("[PreviewURL] resolvePreviewUrl (" + connectionMode + "): keep as-is | incoming=" + previewUrl);
           return previewUrl;
         }
 
