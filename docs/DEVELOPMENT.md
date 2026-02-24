@@ -70,17 +70,18 @@ npm run dev:mobile
 
 Press `i` for iOS Simulator or `a` for Android Emulator.
 
-#### Option 2: Physical Device (OpenZiti)
+#### Option 2: Physical Device (Cloudflare Tunnel)
 
 ```bash
-# Terminal 1: Start server with Ziti
-npm run dev:ziti
+# Terminal 1: Start proxy + server + tunnel
+npm run dev:cloudflare
+# When tunnel URL appears, copy it.
 
-# Terminal 2: Start mobile with Ziti
-npm run dev:mobile:ziti
+# Terminal 2: Start mobile with tunnel URL
+EXPO_PUBLIC_SERVER_URL=https://YOUR_TUNNEL_URL npm run dev:mobile:cloudflare
 ```
 
-Scan QR code with Expo Go app.
+Scan QR code with Expo Go app. See [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md).
 
 ## Project Structure
 
@@ -238,7 +239,7 @@ npx react-native log-android
 # Check server is running
 curl http://localhost:3456/api/config
 
-# For Ziti: ensure tunneler and proxy are running
+# For tunnel: ensure proxy is running (npm run proxy) when using Cloudflare
 ```
 
 **Claude not found:**
@@ -352,7 +353,7 @@ npx expo build:android
 - [ ] Server starts without errors
 - [ ] Web client loads and connects
 - [ ] Mobile app connects (local)
-- [ ] Mobile app connects (Ziti overlay)
+- [ ] Mobile app connects (tunnel/Cloudflare)
 - [ ] AI session starts (Claude or Gemini)
 - [ ] Messages display correctly
 - [ ] File tree loads

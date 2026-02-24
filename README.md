@@ -170,18 +170,16 @@ node server.js --workspace /path/to/project
 
 3. Open in iOS Simulator or Android emulator.
 
-### Option B: Physical Device with OpenZiti
+### Option B: Physical Device (different network)
 
-1. Set up OpenZiti overlay (see [Ziti setup](scripts/setup-ziti-network.sh) and server identity).
-2. Start the server with Ziti:
+Use **Cloudflare Tunnel** so the app can reach your dev server from any network. See [Cloudflare Tunnel guide](docs/CLOUDFLARE_TUNNEL.md).
+
+1. From repo root: `npm run dev:cloudflare` (starts proxy, dev server, and tunnel).
+2. When the tunnel URL appears, in a second terminal run:
    ```bash
-   npm run dev:ziti
+   EXPO_PUBLIC_SERVER_URL=https://YOUR_TUNNEL_URL npm run dev:mobile:cloudflare
    ```
-3. Start the mobile app with Ziti:
-   ```bash
-   npm run dev:mobile:ziti
-   ```
-4. Scan the QR code with Expo Go on your phone
+3. Scan the QR code with Expo Go on your phone.
 
 ### Mobile Environment Variables
 
@@ -242,7 +240,7 @@ npm run dev            # Start with nodemon
 
 # Mobile
 npm run dev:mobile     # Start Expo with local server
-npm run dev:mobile:ziti   # Start with OpenZiti overlay
+npm run dev:mobile:cloudflare   # Start with Cloudflare tunnel URL
 
 # Other
 npm run icons:convert  # Convert icons
@@ -278,7 +276,7 @@ npm run icons:convert  # Convert icons
 
 - Ensure server is running and accessible
 - Check firewall settings
-- For Ziti: ensure tunneler and proxy are running and identity is enrolled
+- For tunnel: ensure proxy is running (e.g. `npm run proxy`) when using Cloudflare
 
 ### Pi not found
 
