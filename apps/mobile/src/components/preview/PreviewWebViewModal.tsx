@@ -57,7 +57,7 @@ interface PreviewWebViewModalProps {
   url: string;
   title?: string;
   onClose: () => void;
-  /** Resolver for localhost/127.0.0.1 -> overlay network (Ziti). When set, prompts user to use overlay URL when localhost is detected. */
+  /** Resolver for localhost/127.0.0.1 -> tunnel URL. When set, prompts user to use tunnel URL when localhost is detected. */
   resolvePreviewUrl?: (url: string) => string;
 }
 

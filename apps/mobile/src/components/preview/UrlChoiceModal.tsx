@@ -26,7 +26,7 @@ interface UrlChoiceModalProps {
 }
 
 /**
- * Modal for choosing between original (localhost) URL and overlay (Ziti) URL.
+ * Modal for choosing between original (localhost) URL and tunnel URL.
  * Follows UI/UX Pro Max: 44px touch targets, WCAG contrast, clear hierarchy, accessibility.
  */
 export function UrlChoiceModal({
@@ -65,7 +65,7 @@ export function UrlChoiceModal({
                   onPress={onChooseVpn}
                   accessibilityRole="button"
                   accessibilityLabel={`Use VPN URL: ${truncateUrl(vpnUrl)}`}
-                  accessibilityHint="Loads the page via overlay network (Ziti) so this device can reach it"
+                  accessibilityHint="Loads the page via tunnel so this device can reach it"
                   className="min-h-11 py-4 px-6 rounded-lg border border-primary-500 bg-primary-500/10"
                 >
                   <Text size="sm" bold className="text-primary-500 mb-0.5">Use VPN URL</Text>
