@@ -3,9 +3,9 @@
  */
 import fs from "fs";
 import path from "path";
-import { getOverlayNetwork, ZITI_PROXY_PORT } from "../config/index.js";
+import { getOverlayNetwork, TUNNEL_PROXY_PORT } from "../config/index.js";
 
-/** Cached preview host (Ziti or PREVIEW_HOST) for system prompt substitution. */
+/** Cached preview host (tunnel proxy or PREVIEW_HOST) for system prompt substitution. */
 let cachedPreviewHost = null;
 
 /**
@@ -14,7 +14,7 @@ let cachedPreviewHost = null;
  *
  * Resolution order:
  *   1. PREVIEW_HOST env var (explicit override)
- *   2. Ziti: returns a marker indicating Ziti overlay (mobile resolves via proxy)
+ *   2. Tunnel: returns a marker so mobile resolves preview via proxy (_targetPort)
  *   3. "(not set)"
  *
  * @returns {string} Hostname or overlay marker
@@ -35,12 +35,8 @@ export function getPreviewHost() {
 
   const overlay = getOverlayNetwork();
 
-  if (overlay === "ziti") {
-    // With Ziti, the mobile app routes through the overlay proxy.
-    // Preview URLs are rewritten on the client side using X-Target-Port headers.
-    // The "host" for the agent to use is the proxy's perspective: localhost.
-    // The mobile app handles URL rewriting through its connection layer.
-    cachedPreviewHost = `ziti-proxy:${ZITI_PROXY_PORT}`;
+  if (overlay === "tunnel") {
+    cachedPreviewHost = `tunnel-proxy:${TUNNEL_PROXY_PORT}`;
     return cachedPreviewHost;
   }
 
@@ -50,7 +46,7 @@ export function getPreviewHost() {
 
 /**
  * Get the overlay network type for display / context.
- * @returns {"ziti" | "none"}
+ * @returns {"tunnel" | "none"}
  */
 export function getActiveOverlay() {
   return getOverlayNetwork();

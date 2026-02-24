@@ -55,27 +55,21 @@ function getRemoteHostFromSocket(socket) {
 
 /**
  * Derive connection context from socket for Pi agent awareness.
- * Supports Ziti (overlay proxy) and localhost connections.
+ * Supports tunnel (dev proxy, e.g. Cloudflare) and localhost connections.
  * @param {import('socket.io').Socket} socket
- * @returns {string} "localhost", "Ziti overlay remote host", or "remote"
+ * @returns {string} "localhost", "tunnel remote host", or "remote"
  */
 function getConnectionContext(socket) {
   const addr = String(socket?.handshake?.address ?? socket?.conn?.remoteAddress ?? "");
   const host = String((socket?.handshake?.headers?.host ?? "").split(":")[0] ?? "");
   const raw = `${addr} ${host}`.toLowerCase();
 
-  // Check for Ziti overlay (connection comes through the Ziti proxy on localhost)
   const overlay = getActiveOverlay();
-  if (overlay === "ziti") {
-    // When using Ziti, the connection arrives at the reverse proxy on localhost,
-    // but the actual client is remote (on the phone via the overlay).
-    // Check for Ziti proxy header to distinguish from true localhost.
-    const zitiHeader = socket?.handshake?.headers?.["x-ziti-proxy"];
-    if (zitiHeader) return "Ziti overlay remote host";
-    // If the overlay is ziti but no proxy header, it could be a localhost connection
-    // directly to the server (e.g. from the same machine).
+  if (overlay === "tunnel") {
+    const tunnelHeader = socket?.handshake?.headers?.["x-tunnel-proxy"];
+    if (tunnelHeader) return "tunnel remote host";
     if (/^127\.|::1|localhost/i.test(raw)) return "localhost";
-    return "Ziti overlay remote host";
+    return "tunnel remote host";
   }
 
   if (/^127\.|::1|localhost/i.test(raw)) return "localhost";
@@ -308,15 +302,15 @@ export function createPiRpcSession({
 
     // Build overlay-specific hint for preview URLs
     let overlayHint = "";
-    if (overlay === "ziti" && previewHost.startsWith("ziti-proxy:")) {
-      overlayHint = " The user connects via Ziti overlay network. Preview URLs should use localhost — the mobile app will route them through the Ziti proxy automatically.";
+    if (overlay === "tunnel" && previewHost.startsWith("tunnel-proxy:")) {
+      overlayHint = " The user connects via tunnel (e.g. Cloudflare). Preview URLs should use localhost — the mobile app will route them through the proxy automatically.";
     } else if (previewHost && previewHost !== "(not set)") {
       overlayHint = ` Prefer hostname (${previewHost}) for preview URLs so the remote client can reach the server.`;
     }
 
     const connectionContext =
-      connectionType === "Ziti overlay remote host"
-        ? `The user is connecting via Ziti overlay network (OpenZiti).${overlayHint}`
+      connectionType === "tunnel remote host"
+        ? `The user is connecting via tunnel (e.g. Cloudflare Tunnel).${overlayHint}`
         : connectionType === "localhost"
             ? "The user is connecting via localhost."
             : `The user is connecting from a remote host (not localhost).${overlayHint}`;

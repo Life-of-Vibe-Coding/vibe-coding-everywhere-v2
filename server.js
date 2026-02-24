@@ -31,9 +31,9 @@ httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Skills dir: ${SKILLS_DIR}`);
   console.log(`[Docker] ENABLE_DOCKER_MANAGER: ${ENABLE_DOCKER_MANAGER} (env raw: "${process.env.ENABLE_DOCKER_MANAGER ?? "(unset)"}")`);
   console.log(`Overlay network: ${overlay}`);
-  if (overlay === "ziti") {
-    console.log(`Ziti preview host: ${previewHost}`);
-    console.log(`Ziti mode: traffic routed through OpenZiti overlay via reverse proxy`);
+  if (overlay === "tunnel") {
+    console.log(`Tunnel preview host: ${previewHost}`);
+    console.log(`Tunnel mode: traffic via dev proxy (e.g. Cloudflare Tunnel)`);
   } else {
     console.log(`Preview host: ${previewHost}`);
     console.log(`Listening on 0.0.0.0`);
