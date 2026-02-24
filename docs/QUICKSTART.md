@@ -6,7 +6,7 @@ Get up and running in 5 minutes.
 
 - Node.js 18+
 - **Pi** coding agent: `npm i -g @mariozechner/pi-coding-agent`, then `pi --version`. Pi supports Claude, Codex, and Gemini via subscription auth—run `pi` and `/login` once; no API keys needed.
-- (Optional) Tailscale account for mobile access
+- (Optional) OpenZiti for mobile overlay access
 
 ## 1. Install
 
@@ -42,17 +42,14 @@ npm start
 npm run dev:mobile
 ```
 
-### Physical Device (Tailscale)
+### Physical Device (OpenZiti)
 
 ```bash
-# Install Tailscale
-tailscale up
+# Terminal 1: start server with Ziti
+npm run dev:ziti
 
-# Terminal 1
-npm start
-
-# Terminal 2
-npm run dev:mobile:funnel
+# Terminal 2: start mobile with Ziti
+npm run dev:mobile:ziti
 ```
 
 Scan QR code with Expo Go app.
@@ -93,9 +90,8 @@ PORT=3457 npm start
 
 **Mobile won't connect?**
 ```bash
-# Check Tailscale
-tailscale status
-
 # Check server
 curl http://localhost:3456/api/config
+
+# For Ziti: ensure tunneler and proxy are running
 ```

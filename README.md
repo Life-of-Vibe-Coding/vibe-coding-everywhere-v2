@@ -32,7 +32,6 @@ See [Quick Start Guide](docs/QUICKSTART.md) for the fastest setup.
 
 - Node.js (v18+)
 - [Pi](https://github.com/badlogic/pi-mono) coding agent: `npm i -g @mariozechner/pi-coding-agent`. Pi supports Claude, Codex, and Gemini via subscription-based auth; run `pi` and `/login` once to authenticate. No API keys required.
-- (Optional) [Tailscale](https://tailscale.com) for mobile access
 
 ### Installation
 
@@ -171,22 +170,18 @@ node server.js --workspace /path/to/project
 
 3. Open in iOS Simulator or Android emulator.
 
-### Option B: Physical Device with Tailscale
+### Option B: Physical Device with OpenZiti
 
-1. Install [Tailscale](https://tailscale.com) on your desktop and mobile device
-2. Ensure both are on the same tailnet:
+1. Set up OpenZiti overlay (see [Ziti setup](scripts/setup-ziti-network.sh) and server identity).
+2. Start the server with Ziti:
    ```bash
-   tailscale up
+   npm run dev:ziti
    ```
-3. Start the server:
+3. Start the mobile app with Ziti:
    ```bash
-   npm start
+   npm run dev:mobile:ziti
    ```
-4. Start the mobile app with tunnel:
-   ```bash
-   npm run dev:mobile:funnel
-   ```
-5. Scan the QR code with Expo Go on your phone
+4. Scan the QR code with Expo Go on your phone
 
 ### Mobile Environment Variables
 
@@ -247,7 +242,7 @@ npm run dev            # Start with nodemon
 
 # Mobile
 npm run dev:mobile     # Start Expo with local server
-npm run dev:mobile:funnel  # Start with Tailscale tunnel
+npm run dev:mobile:ziti   # Start with OpenZiti overlay
 
 # Other
 npm run icons:convert  # Convert icons
@@ -283,7 +278,7 @@ npm run icons:convert  # Convert icons
 
 - Ensure server is running and accessible
 - Check firewall settings
-- For Tailscale: verify both devices show in `tailscale status`
+- For Ziti: ensure tunneler and proxy are running and identity is enrolled
 
 ### Pi not found
 

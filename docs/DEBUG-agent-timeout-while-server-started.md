@@ -44,7 +44,7 @@ Layer 4: Agent conclusion
 
 **The agent starts verification too soon.** FastAPI + Uvicorn + SQLAlchemy DB init typically needs 5–15 seconds. The verify script runs immediately after the start command returns. The first few curl attempts hit the server while it is still initializing (before "Application startup complete"), so they fail. The agent interprets repeated verification failures as "server start timeout" even though the server is running.
 
-**Alternative:** REMOTE_HOST may be wrong (e.g. localhost when user is on Tailscale), causing curl to fail regardless of server state.
+**Alternative:** REMOTE_HOST may be wrong (e.g. localhost when user is on overlay/remote), causing curl to fail regardless of server state.
 
 ### 4. Distinction
 
