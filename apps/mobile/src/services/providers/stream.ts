@@ -406,8 +406,6 @@ export function isProviderStream(data: unknown): data is ProviderStreamOutput | 
   );
 }
 
-/** @deprecated Use isProviderStream */
-export const isClaudeStream = isProviderStream;
 
 export function deniedToolToAllowedPattern(toolName: string | null | undefined): string | null {
   if (!toolName || typeof toolName !== "string") return null;

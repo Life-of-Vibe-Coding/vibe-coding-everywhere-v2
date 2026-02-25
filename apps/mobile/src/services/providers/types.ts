@@ -84,7 +84,9 @@ export function applySessionStartMetadata(
     info.push(`Model: ${data.model}`);
   }
   if (data.cwd) info.push(`Working Directory: ${data.cwd}`);
-  if (info.length) console.log("[session]", info.join("\n"));
+  if (info.length && __DEV__) {
+    console.log("[session]", info.join("\n"));
+  }
 }
 
 /** Append one tool-use display line in a consistent format. */
@@ -202,9 +204,3 @@ export function formatToolUseForDisplay(name: string, input: unknown): string {
       return file ? `**${n}** \`${file}\`` : `**${n}**`;
   }
 }
-
-// Backward compatibility aliases
-/** @deprecated Use EventContext */
-export type ClaudeEventContext = EventContext;
-/** @deprecated Use EventHandler */
-export type ClaudeEventHandler = EventHandler;

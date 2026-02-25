@@ -1,5 +1,5 @@
 /**
- * useSocket hook - Main state management for SSE connection and AI sessions.
+ * useSse hook - Main state management for SSE connection and AI sessions.
  *
  * This hook manages:
  * - SSE EventSource connection lifecycle
@@ -31,7 +31,7 @@ import { createEventDispatcher } from "../providers/eventDispatcher";
 import type { Provider } from "../../theme/index";
 import type { CodeRefPayload } from "../../components/file/FileViewerModal";
 
-// Re-export types for consumers that import from useSocket
+// Re-export types for consumers that import from useSse
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };
 
 type EventSourceLike = {
@@ -50,22 +50,22 @@ function toWorkspaceRelativePath(filePath: string, workspaceRoot: string | null)
   return rel || normalized;
 }
 
-export interface UseSocketOptions {
+export interface UseSseOptions {
   serverConfig?: IServerConfig;
   provider?: Provider;
   model?: string;
-  sessionid?: string | null;
+  sessionId?: string | null;
   status?: boolean;
 }
 
-export function useSocket(options: UseSocketOptions = {}) {
+export function useSse(options: UseSseOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();
   const serverUrl = serverConfig.getBaseUrl();
   const provider = options.provider ?? "codex";
   const defaultModel =
     provider === "claude" ? "sonnet4.5" : provider === "codex" ? "gpt-5.1-codex-mini" : "gemini-2.5-flash";
   const model = options.model ?? defaultModel;
-  const sessionidFromOptions = options.sessionid;
+  const sessionIdFromOptions = options.sessionId;
   const status = options.status ?? true;
 
   const [connected, setConnected] = useState(false);
@@ -515,7 +515,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   // ===== EventSource Connection Setup (single active SSE) ===== //
   useEffect(() => {
-    const targetSessionId = sessionidFromOptions;
+    const targetSessionId = sessionIdFromOptions ?? sessionId;
     if (!targetSessionId || !status) {
       closeActiveSse("inactive");
       return;
@@ -685,7 +685,11 @@ export function useSocket(options: UseSocketOptions = {}) {
           }
 
           if (parsed.type === "agent_end") {
-            console.log("[stream] agent_end event received");
+            if (__DEV__) {
+            if (__DEV__) {
+              console.log("[stream] agent_end event received");
+            }
+            }
           }
 
           if (isProviderStream(parsed)) {
@@ -701,7 +705,11 @@ export function useSocket(options: UseSocketOptions = {}) {
             try {
               const parsed = JSON.parse(clean.slice(jsonStart));
               if (parsed?.type === "agent_end") {
-                console.log("[stream fallback] agent_end event received");
+                if (__DEV__) {
+                if (__DEV__) {
+                  console.log("[stream fallback] agent_end event received");
+                }
+                }
               }
               if (isProviderStream(parsed)) {
                 dispatchProviderEvent(parsed as Record<string, unknown>);
@@ -772,7 +780,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     createSessionHandlers,
     getOrCreateSessionState,
     serverUrl,
-    sessionidFromOptions,
+    sessionIdFromOptions,
     sessionId,
     status,
     syncSessionToReact,

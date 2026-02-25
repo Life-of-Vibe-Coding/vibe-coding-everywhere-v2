@@ -12,12 +12,12 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { triggerHaptic, spacing, radii, EntranceAnimation } from "../../design-system";
 import { CloseIcon, TerminalIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
-import { HStack } from "../../../components/ui/hstack";
-import { VStack } from "../../../components/ui/vstack";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { HStack } from "../ui/hstack";
+import { VStack } from "../ui/vstack";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 
 /** Minimum touch target per UI/UX Pro Max (44x44px). */
 const MIN_TOUCH_TARGET = 44;
@@ -156,7 +156,7 @@ export function ProcessesDashboardModal({
       <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {/* Header with accent bar */}
-          <HStack style={[styles.header, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.borderColor }]}>
+          <HStack style={[styles.header, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.colors.border }]}>
             <HStack className="flex-1 items-center gap-2">
               <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
               <Text size="xl" bold className="text-typography-900">Running Processes</Text>
@@ -169,7 +169,7 @@ export function ProcessesDashboardModal({
               accessibilityLabel="Close"
               className="min-w-11 min-h-11 -mr-2"
             >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
             </Button>
           </HStack>
 
@@ -185,7 +185,7 @@ export function ProcessesDashboardModal({
           )}
           {warning && !error && (
             <EntranceAnimation variant="fade">
-              <Box style={[styles.warningBanner, { backgroundColor: theme.accentLight ?? theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)" }]}>
+              <Box style={[styles.warningBanner, { backgroundColor: theme.colors.accentSoft ?? theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)" }]}>
                 <Text size="sm" className="text-typography-900">{warning}</Text>
               </Box>
             </EntranceAnimation>
@@ -215,7 +215,7 @@ export function ProcessesDashboardModal({
                   <VStack style={styles.section} className="gap-3">
                     <HStack className="items-center gap-2">
                       <Box style={[styles.sectionAccent, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
-                      <Text size="xs" bold style={{ color: theme.colors?.textSecondary ?? theme.textMuted }} className="uppercase tracking-wider">Port-bound processes</Text>
+                      <Text size="xs" bold style={{ color: theme.colors?.textSecondary ?? theme.colors.textSecondary }} className="uppercase tracking-wider">Port-bound processes</Text>
                     </HStack>
                     {[...apiProcesses]
                       .sort((a, b) => b.pid - a.pid)
@@ -315,7 +315,7 @@ export function ProcessesDashboardModal({
         >
           <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
-            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.borderColor }]}>
+            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.colors.border }]}>
               <HStack className="flex-1 items-center gap-2 min-w-0">
                 <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
                 <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900 min-w-0">
@@ -330,7 +330,7 @@ export function ProcessesDashboardModal({
                 accessibilityLabel="Close log viewer"
                 className="min-w-11 min-h-11 -mr-2"
               >
-                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
               </Button>
             </HStack>
             <ScrollView
@@ -359,7 +359,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
     },
     safe: {
       flex: 1,
@@ -381,12 +381,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: spacing["3"],
       paddingHorizontal: spacing["5"],
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     title: {
       fontSize: 17,
       fontWeight: "700",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       letterSpacing: -0.3,
     },
     closeBtn: {
@@ -405,11 +405,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderWidth: 1,
     },
     errorText: {
-      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.danger ?? "#dc2626",
+      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.colors.danger ?? "#dc2626",
       fontSize: 14,
     },
     errorHint: {
-      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.danger ?? "#dc2626",
+      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.colors.danger ?? "#dc2626",
       fontSize: 12,
       marginTop: 8,
       lineHeight: 18,
@@ -422,7 +422,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: radii.lg,
     },
     warningText: {
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontSize: 13,
     },
     scroll: {
@@ -440,7 +440,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     loadingText: {
       fontSize: 12,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     section: {
       marginBottom: spacing["4"],
@@ -448,7 +448,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sectionTitle: {
       fontSize: 10,
       fontWeight: "700",
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       textTransform: "uppercase",
       letterSpacing: 0.8,
       marginBottom: 10,
@@ -509,7 +509,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: 12,
       lineHeight: 18,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
     },
     killButtonWrap: {
@@ -537,19 +537,19 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     emptyText: {
       fontSize: 14,
       fontWeight: "700",
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginBottom: 6,
     },
     emptyHint: {
       fontSize: 12,
       lineHeight: 18,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       textAlign: "center",
       maxWidth: 280,
     },
     logViewerSafe: {
       flex: 1,
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
     },
     logViewerHeader: {
       flexDirection: "row",
@@ -558,12 +558,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: spacing["3"],
       paddingHorizontal: spacing["5"],
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     logViewerTitle: {
       fontSize: 16,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       flex: 1,
     },
     logViewerScroll: {
@@ -576,7 +576,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logViewerText: {
       fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 11,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
   });
 }

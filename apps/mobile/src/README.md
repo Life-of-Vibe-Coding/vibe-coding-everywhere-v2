@@ -26,8 +26,8 @@ src/
 │   ├── types.ts        # Domain types (Message, TerminalState, etc.)
 │   └── index.ts        # Re-exports
 ├── services/           # Services organized by domain
-│   ├── socket/         # Socket.IO integration
-│   │   └── hooks.ts    # useSocket hook
+│   ├── sse/            # SSE integration
+│   │   └── hooks.ts    # useSse hook
 │   ├── server/         # Server configuration
 │   │   ├── config.ts   # Server URL/config
 │   │   └── url.ts      # URL utilities
@@ -58,6 +58,6 @@ import { MessageBubble } from "./components/chat/MessageBubble";
 import type { Message, TerminalState } from "./core/types";
 
 // From services
-import { useSocket } from "./services/socket/hooks";
+import { useSse } from "./services/sse/hooks";
 import { theme } from "./theme/index";
 ```

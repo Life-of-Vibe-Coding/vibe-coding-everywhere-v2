@@ -10,10 +10,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { Pressable } from "../../../components/ui/pressable";
-import { Button, ButtonText } from "../../../components/ui/button";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { Pressable } from "../ui/pressable";
+import { Button, ButtonText } from "../ui/button";
 import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "../../utils/markdown";
 
@@ -47,15 +47,15 @@ export function SkillDetailSheet({
   const insets = useSafeAreaInsets();
   const markdownStyles = useMemo(
     () => ({
-      body: { color: theme.textPrimary },
-      text: { fontSize: 15, lineHeight: 24, color: theme.textPrimary },
+      body: { color: theme.colors.textPrimary },
+      text: { fontSize: 15, lineHeight: 24, color: theme.colors.textPrimary },
       paragraph: { marginTop: 8, marginBottom: 8 },
-      heading1: { fontSize: 20, lineHeight: 28, fontWeight: "700" as const, color: theme.textPrimary, marginTop: 16, marginBottom: 8 },
-      heading2: { fontSize: 18, lineHeight: 26, fontWeight: "600" as const, color: theme.textPrimary, marginTop: 14, marginBottom: 6 },
-      heading3: { fontSize: 16, lineHeight: 24, fontWeight: "600" as const, color: theme.textPrimary, marginTop: 12, marginBottom: 4 },
-      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.textPrimary },
-      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.textPrimary },
-      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.textPrimary },
+      heading1: { fontSize: 20, lineHeight: 28, fontWeight: "700" as const, color: theme.colors.textPrimary, marginTop: 16, marginBottom: 8 },
+      heading2: { fontSize: 18, lineHeight: 26, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 14, marginBottom: 6 },
+      heading3: { fontSize: 16, lineHeight: 24, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 12, marginBottom: 4 },
+      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
+      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
+      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
       link: { color: theme.accent, textDecorationLine: "underline" as const },
       code_inline: {
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
@@ -69,12 +69,12 @@ export function SkillDetailSheet({
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
         fontSize: 13,
         lineHeight: 20,
-        color: theme.textPrimary,
+        color: theme.colors.textPrimary,
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
         padding: 12,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: theme.borderColor,
+        borderColor: theme.colors.border,
       },
       blockquote: {
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
@@ -84,7 +84,7 @@ export function SkillDetailSheet({
         paddingVertical: 8,
         marginVertical: 8,
       },
-      strong: { fontWeight: "600" as const, color: theme.textPrimary },
+      strong: { fontWeight: "600" as const, color: theme.colors.textPrimary },
       bullet_list: {
         marginTop: 8,
         marginBottom: 10,
@@ -93,7 +93,7 @@ export function SkillDetailSheet({
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: theme.borderColor,
+        borderColor: theme.colors.border,
       },
       ordered_list: {
         marginTop: 8,
@@ -103,7 +103,7 @@ export function SkillDetailSheet({
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: theme.borderColor,
+        borderColor: theme.colors.border,
       },
       list_item: { flexDirection: "row" as const, marginBottom: 4, minHeight: 22, alignItems: "flex-start" as const },
     }),
@@ -191,9 +191,9 @@ export function SkillDetailSheet({
           >
             <Box className="mr-1.5">
               {isExpanded ? (
-                <ChevronDownIcon size={12} color={theme.textMuted} />
+                <ChevronDownIcon size={12} color={theme.colors.textSecondary} />
               ) : (
-                <ChevronRightIcon size={12} color={theme.textMuted} />
+                <ChevronRightIcon size={12} color={theme.colors.textSecondary} />
               )}
             </Box>
             <Text className="text-[13px] text-text-primary font-mono font-semibold">{child.name}</Text>
@@ -293,7 +293,7 @@ export function SkillDetailSheet({
             accessibilityLabel="Close skill details"
             className="p-2 min-w-11 min-h-11 items-center justify-center"
           >
-            <CloseIcon size={20} color={theme.textMuted} />
+            <CloseIcon size={20} color={theme.colors.textSecondary} />
           </Pressable>
         </Box>
         <ScrollView

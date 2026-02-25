@@ -3,10 +3,10 @@ import { StyleSheet, Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { PendingAskUserQuestion, AskUserQuestionItem } from "../../core/types";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonText } from "../../../components/ui/button";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Button, ButtonText } from "../ui/button";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 import { EntranceAnimation, AnimatedPressableView, triggerHaptic } from "../../design-system";
 
 export interface AskQuestionModalProps {
@@ -210,7 +210,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       maxHeight: "80%",
     },
     card: {
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingTop: 16,
@@ -218,7 +218,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 20,
       borderWidth: 1,
       borderBottomWidth: 0,
-      borderColor: theme.borderColor,
+      borderColor: theme.colors.border,
     },
     titleRow: {
       flexDirection: "row",
@@ -229,7 +229,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
     title: {
       fontSize: 18,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
     stepper: {
       flexDirection: "row",
@@ -239,21 +239,21 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       width: 10,
       height: 10,
       borderRadius: 5,
-      backgroundColor: theme.borderColor,
+      backgroundColor: theme.colors.border,
     },
     dotActive: {
       backgroundColor: theme.accent,
       transform: [{ scale: 1.2 }],
     },
     dotAnswered: {
-      backgroundColor: theme.success,
+      backgroundColor: theme.colors.success,
     },
     flashcard: {
       minHeight: 180,
     },
     progressText: {
       fontSize: 13,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginTop: 8,
     },
     scroll: {
@@ -268,12 +268,12 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
     header: {
       fontSize: 16,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       marginBottom: 4,
     },
     questionText: {
       fontSize: 14,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginBottom: 10,
     },
     options: {
@@ -284,29 +284,29 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 14,
       borderRadius: 12,
       borderWidth: 1.5,
-      borderColor: theme.borderColor,
-      backgroundColor: theme.cardBg,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
     },
     optionSelected: {
       borderColor: theme.accent,
-      backgroundColor: theme.accentLight,
+      backgroundColor: theme.colors.accentSoft,
     },
     optionLabel: {
       fontSize: 15,
       fontWeight: "500",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
     optionLabelSelected: {
       color: theme.accent,
     },
     optionDesc: {
       fontSize: 13,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginTop: 2,
     },
     hint: {
       fontSize: 13,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginTop: 8,
     },
     actions: {
@@ -342,7 +342,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
     },
     btnCancelText: {
       fontSize: 16,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       fontWeight: "500",
     },
     btnConfirm: {
@@ -352,7 +352,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.accent,
     },
     btnConfirmDisabled: {
-      backgroundColor: theme.borderColor,
+      backgroundColor: theme.colors.border,
     },
     btnConfirmText: {
       fontSize: 16,
@@ -360,7 +360,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       fontWeight: "600",
     },
     btnConfirmTextDisabled: {
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
   });
 }

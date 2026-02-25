@@ -13,11 +13,11 @@ import * as Clipboard from "expo-clipboard";
 import { Skeleton, triggerHaptic } from "../../design-system";
 import { useTheme } from "../../theme/index";
 import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "./DockerTabIcons";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
-import { Input, InputField } from "../../../components/ui/input";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Input, InputField } from "../ui/input";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 
 export type DockerTab = "containers" | "images" | "volumes";
 
@@ -437,7 +437,7 @@ export function DockerManagerModal({
   const tabColor = (t: DockerTab) =>
     activeTab === t
       ? (theme.accent ?? theme.colors.accent)
-      : (theme.textMuted ?? theme.colors.textSecondary);
+      : (theme.colors.textSecondary);
 
   return (
     <Modal
@@ -461,13 +461,13 @@ export function DockerManagerModal({
                 accessibilityLabel={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
               >
                 {sidebarVisible ? (
-                  <ChevronLeftIcon color={theme.colors?.textMuted ?? theme.textMuted ?? theme.colors?.textSecondary} />
+                  <ChevronLeftIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary ?? theme.colors?.textSecondary} />
                 ) : (
-                  <PanelLeftIcon color={theme.colors?.textMuted ?? theme.textMuted ?? theme.colors?.textSecondary} />
+                  <PanelLeftIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary ?? theme.colors?.textSecondary} />
                 )}
               </Pressable>
               <Box style={styles.headerTitleRow} className="flex-row items-center gap-2 min-w-0 flex-1">
-                <DockerIcon color={theme.colors?.textPrimary ?? theme.textPrimary} size={24} />
+                <DockerIcon color={theme.colors?.textPrimary ?? theme.colors.textPrimary} size={24} />
                 <Text style={styles.title} size="lg" bold className="text-typography-900">Docker</Text>
               </Box>
             </Box>
@@ -479,7 +479,7 @@ export function DockerManagerModal({
               accessibilityLabel="Close Docker manager"
               className="min-w-11 min-h-11 -mr-2"
             >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
             </Button>
           </Box>
 
@@ -590,7 +590,7 @@ export function DockerManagerModal({
                         style={styles.copyBtn}
                         accessibilityLabel="Copy container ID"
                       >
-                        <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                        <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
                       </Pressable>
                       <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
                         <Text size="xs">{c.status || "—"}</Text>
@@ -691,7 +691,7 @@ export function DockerManagerModal({
                                 style={styles.copyBtn}
                                 accessibilityLabel="Copy image ID"
                               >
-                                <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                                <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
                               </Pressable>
                             </Box>
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
@@ -724,7 +724,7 @@ export function DockerManagerModal({
                         value={volumeSearch}
                         onChangeText={setVolumeSearch}
                         accessibilityLabel="Search volumes by name or mount point"
-                        placeholderTextColor={theme.colors?.textMuted ?? theme.textMuted}
+                        placeholderTextColor={theme.colors?.textMuted ?? theme.colors.textSecondary}
                       />
                     </Input>
                     <Button action="secondary" variant="outline" size="sm" onPress={handlePruneVolumes} isDisabled={loading}>
@@ -774,7 +774,7 @@ export function DockerManagerModal({
                             <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
                               <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{v.name}</Text>
                               <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
-                                <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                                <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
                               </Pressable>
                             </Box>
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
@@ -786,7 +786,7 @@ export function DockerManagerModal({
                               <Box style={styles.cardValueRow} className="flex-1 flex-row items-start gap-2 min-w-0">
                                 <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{v.mountpoint || "—"}</Text>
                                 <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
-                                  <CopyIcon color={theme.colors?.textMuted ?? theme.textMuted} size={18} />
+                                  <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
                                 </Pressable>
                               </Box>
                             </Box>
@@ -826,7 +826,7 @@ export function DockerManagerModal({
                   Logs: {logsFor.name}
                 </Text>
                 <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
-                  <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+                  <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
                 </Button>
               </Box>
               {logsLoading ? (
@@ -856,7 +856,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
-      backgroundColor: theme.beigeBg ?? theme.colors.background,
+      backgroundColor: theme.colors.background ?? theme.colors.background,
     },
     safe: {
       flex: 1,
@@ -868,12 +868,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor ?? theme.colors.border,
+      borderBottomColor: theme.colors.border ?? theme.colors.border,
     },
     title: {
       fontSize: 18,
       fontWeight: "600",
-      color: theme.textPrimary ?? theme.colors.textPrimary,
+      color: theme.colors.textPrimary,
     },
     headerLeft: {
       flexDirection: "row",
@@ -907,8 +907,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 12,
       paddingHorizontal: 8,
       borderRightWidth: StyleSheet.hairlineWidth,
-      borderRightColor: theme.borderColor ?? theme.colors.border,
-      backgroundColor: theme.cardBg ?? theme.colors.surfaceMuted,
+      borderRightColor: theme.colors.border ?? theme.colors.border,
+      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
     },
     tabItem: {
       flexDirection: "row",
@@ -922,11 +922,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: 8,
     },
     tabItemActive: {
-      backgroundColor: theme.accentLight ?? theme.colors.accent + "20",
+      backgroundColor: theme.colors.accentSoft ?? theme.colors.accent + "20",
     },
     tabLabel: {
       fontSize: 14,
-      color: theme.textMuted ?? theme.colors.textSecondary,
+      color: theme.colors.textSecondary,
     },
     tabLabelActive: {
       color: theme.accent ?? theme.colors.accent,
@@ -942,7 +942,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 20,
       paddingVertical: 12,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor ?? theme.colors.border,
+      borderBottomColor: theme.colors.border ?? theme.colors.border,
     },
     searchInput: {
       flex: 1,
@@ -968,14 +968,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 6,
       paddingHorizontal: 14,
       borderRadius: 8,
-      backgroundColor: theme.cardBg ?? theme.colors.surfaceMuted,
+      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
     },
     filterChipActive: {
-      backgroundColor: theme.accentLight ?? theme.colors.accent + "20",
+      backgroundColor: theme.colors.accentSoft ?? theme.colors.accent + "20",
     },
     filterChipText: {
       fontSize: 14,
-      color: theme.textMuted ?? theme.colors.textSecondary,
+      color: theme.colors.textSecondary,
     },
     filterChipTextActive: {
       color: theme.accent ?? theme.colors.accent,
@@ -1024,9 +1024,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginBottom: 16,
       padding: 16,
       borderRadius: 12,
-      backgroundColor: theme.cardBg ?? theme.colors.surfaceMuted,
+      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
       borderWidth: 1,
-      borderColor: theme.borderColor ?? theme.colors.border,
+      borderColor: theme.colors.border ?? theme.colors.border,
     },
     cardHeader: {
       flexDirection: "row",
@@ -1039,7 +1039,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       fontSize: 16,
       fontWeight: "600",
-      color: theme.textPrimary ?? theme.colors.textPrimary,
+      color: theme.colors.textPrimary,
     },
     statusBadge: {
       paddingVertical: 4,
@@ -1060,7 +1060,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     statusText: {
       fontSize: 12,
-      color: theme.textPrimary ?? theme.colors.textPrimary,
+      color: theme.colors.textPrimary,
     },
     cardRow: {
       marginBottom: 8,
@@ -1069,13 +1069,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: 11,
       textTransform: "uppercase",
       letterSpacing: 0.5,
-      color: theme.textMuted ?? theme.colors.textSecondary,
+      color: theme.colors.textSecondary,
       marginBottom: 2,
     },
     cardValue: {
       fontSize: 14,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      color: theme.textPrimary ?? theme.colors.textPrimary,
+      color: theme.colors.textPrimary,
     },
     actions: {
       flexDirection: "row",
@@ -1084,7 +1084,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginTop: 14,
       paddingTop: 12,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.borderColor ?? theme.colors.border,
+      borderTopColor: theme.colors.border ?? theme.colors.border,
     },
     logsContent: {
       padding: 16,
@@ -1093,7 +1093,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logsText: {
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 12,
-      color: theme.textPrimary ?? theme.colors.textPrimary,
+      color: theme.colors.textPrimary,
       lineHeight: 18,
     },
   });

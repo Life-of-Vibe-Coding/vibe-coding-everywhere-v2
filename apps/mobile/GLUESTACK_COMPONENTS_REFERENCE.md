@@ -1,6 +1,6 @@
 # gluestack-ui Components Reference
 
-Use this for code generation. Import path: `@/components/ui/<component>` or `../../../components/ui/<component>` relative to `apps/mobile/src`.
+Use this for code generation. Import path: `@/components/ui/<component>`.
 
 ---
 
@@ -167,6 +167,6 @@ import { HStack } from "@/components/ui/hstack";
 
 - Use `className` with Tailwind/Uniwind utilities, not StyleSheet
 - Semantic tokens: `bg-primary-500`, `text-typography-900`, `bg-background-muted`, `border-outline-100`
-- Import from `@/components/ui/<name>` or relative `../../../components/ui/<name>`
+- Import from `@/components/ui/<name>`
 - Prefer VStack/HStack over Box for layout
 - Images: use unsplash.com only

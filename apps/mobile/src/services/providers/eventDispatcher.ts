@@ -10,6 +10,27 @@ import type { EventContext, EventHandler } from "./types";
 import { appendSnapshotTextDelta, appendToolUseDisplayLine, formatToolUseForDisplay } from "./types";
 import { isAskUserQuestionPayload } from "./stream";
 
+const READ_FILE_TOOL_NAMES = new Set(["read_file", "readfile", "read"]);
+const BASH_TOOL_NAMES = new Set([
+  "bash",
+  "run_shell_command",
+  "run_command",
+  "run_shell",
+  "execute_command",
+  "execute_shell",
+]);
+
+function isReadFileTool(name: string | undefined): boolean {
+  if (!name || typeof name !== "string") return false;
+  const normalized = name.toLowerCase();
+  return READ_FILE_TOOL_NAMES.has(normalized) || /^read[_\-]?file/.test(normalized);
+}
+
+function isBashTool(name: string | undefined): boolean {
+  if (!name || typeof name !== "string") return false;
+  return BASH_TOOL_NAMES.has(name.toLowerCase());
+}
+
 function normalizeAskUserQuestionPayload(data: Record<string, unknown>): PendingAskUserQuestion | null {
   const toolUseId = String(data.tool_use_id ?? "");
   const input = data.tool_input as Record<string, unknown> | undefined;
@@ -87,21 +108,15 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
   registry.set("tool_execution_start", (data) => {
     const toolName = data.toolName as string | undefined;
     const args = data.args as Record<string, unknown> | undefined;
-    if (toolName) {
+      if (toolName) {
       ctx.setCurrentActivity(formatToolUseForDisplay(toolName, args ?? {}));
     }
   });
   registry.set("tool_execution_update", () => {});
-  const isReadFileTool = (name: string | undefined) => {
-    if (!name || typeof name !== "string") return false;
-    const n = name.toLowerCase();
-    return n === "read_file" || n === "readfile" || n === "read" || /^read[_\-]?file/.test(n);
-  };
 
   registry.set("tool_execution_end", (data) => {
     ctx.setCurrentActivity(null);
     const result = data.result as { content?: Array<{ type?: string; text?: string }> } | undefined;
-    const isError = data.isError as boolean | undefined;
     const toolName = (data.toolName ?? data.tool_name ?? data.tool) as string | undefined;
 
     if (result && Array.isArray(result.content)) {
@@ -109,13 +124,12 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
         .filter((c) => c.type === "text" && c.text)
         .map((c) => c.text)
         .join("");
-      const isBash = toolName === "bash" || toolName === "run_shell_command" || toolName === "run_command" || toolName === "run_shell" || toolName === "execute_command" || toolName === "execute_shell";
 
       if (isReadFileTool(toolName)) {
         return;
       }
       if (text) {
-        if (isBash) {
+        if (isBashTool(toolName)) {
           ctx.appendAssistantText(`\n\n<think>\nOutput:\n\`\`\`\n${text.trim()}\n\`\`\`\n</think>\n\n`);
         } else {
           ctx.appendAssistantText(`\n\n<think>\nRead result: ${text.length} chars\n</think>\n\n`);
@@ -137,11 +151,7 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
   registry.set("turn_start", () => {});
   registry.set("agent_start", () => {});
   // agent_end is stream-only lifecycle metadata; completion is driven by mobile SSE "end"/"done" events.
-  registry.set("agent_end", () => {
-    if (__DEV__) {
-      console.debug("[dispatcher] agent_end received (no-op; SSE end/done drives completion)");
-    }
-  });
+  registry.set("agent_end", () => {});
   registry.set("message_start", () => {});
   registry.set("message_end", () => {});
   registry.set("response", () => {});
@@ -176,9 +186,6 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
     const curTrim = current.trim();
     const resultTrim = resultText.trim();
     const willAppend = !curTrim.endsWith(resultTrim) && resultTrim.length > 0;
-    // #region agent log
-    fetch('http://127.0.0.1:7648/ingest/90b82ca6-2c33-4285-83a2-301e58d458f5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'90f72f'},body:JSON.stringify({sessionId:'90f72f',location:'eventDispatcher.ts:result',message:'result event',data:{resultLen:resultText.length,willAppend},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-    // #endregion
     if (willAppend) {
       ctx.appendAssistantText("\n\n<think>\n---\n\n" + resultText + "\n</think>\n\n");
     }
@@ -229,6 +236,3 @@ export function createEventDispatcher(ctx: EventContext): (data: Record<string, 
     }
   };
 }
-
-/** @deprecated Use createEventDispatcher */
-export const createClaudeEventDispatcher = createEventDispatcher;

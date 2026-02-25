@@ -155,18 +155,22 @@ export function createDefaultServerConfig(): IServerConfig {
             }
 
             const resolved = proxyUrl.toString();
-            console.log(
-              "[PreviewURL] resolvePreviewUrl (" +
-                connectionMode +
-                "): incoming=" +
-                previewUrl +
-                " | resolved=" +
-                resolved
-            );
+            if (__DEV__) {
+              console.log(
+                "[PreviewURL] resolvePreviewUrl (" +
+                  connectionMode +
+                  "): incoming=" +
+                  previewUrl +
+                  " | resolved=" +
+                  resolved
+              );
+            }
             return resolved;
           }
 
-          console.log("[PreviewURL] resolvePreviewUrl (" + connectionMode + "): keep as-is | incoming=" + previewUrl);
+          if (__DEV__) {
+            console.log("[PreviewURL] resolvePreviewUrl (" + connectionMode + "): keep as-is | incoming=" + previewUrl);
+          }
           return previewUrl;
         }
 
@@ -181,7 +185,9 @@ export function createDefaultServerConfig(): IServerConfig {
         if (isSameHost && isSamePort) {
           const pathname = (parsed.pathname || "/").replace(/^\//, "") || "index.html";
           const cleanUrl = `${base.replace(/\/$/, "")}/${pathname}${parsed.search || ""}${parsed.hash || ""}`;
-          console.log("[PreviewURL] resolvePreviewUrl: base=" + base + " | incoming=" + previewUrl + " | resolved=" + cleanUrl);
+          if (__DEV__) {
+            console.log("[PreviewURL] resolvePreviewUrl: base=" + base + " | incoming=" + previewUrl + " | resolved=" + cleanUrl);
+          }
           return cleanUrl;
         }
         // Different port: port-to-port — replace localhost with a host the device can reach.
@@ -200,13 +206,19 @@ export function createDefaultServerConfig(): IServerConfig {
           }
           const portSuffix = parsed.port ? `:${parsed.port}` : "";
           const rewritten = `${baseParsed.protocol}//${portToPortHost}${portSuffix}${parsed.pathname || "/"}${parsed.search || ""}${parsed.hash || ""}`;
-          console.log("[PreviewURL] resolvePreviewUrl: port-to-port | incoming=" + previewUrl + " | resolved=" + rewritten);
+          if (__DEV__) {
+            console.log("[PreviewURL] resolvePreviewUrl: port-to-port | incoming=" + previewUrl + " | resolved=" + rewritten);
+          }
           return rewritten;
         }
-        console.log("[PreviewURL] resolvePreviewUrl: keep as-is | incoming=" + previewUrl);
+        if (__DEV__) {
+          console.log("[PreviewURL] resolvePreviewUrl: keep as-is | incoming=" + previewUrl);
+        }
         return previewUrl;
       } catch (e) {
-        console.log("[PreviewURL] resolvePreviewUrl: parse error, using as-is | incoming=" + previewUrl + " | error=" + String(e));
+        if (__DEV__) {
+          console.log("[PreviewURL] resolvePreviewUrl: parse error, using as-is | incoming=" + previewUrl + " | error=" + String(e));
+        }
         return previewUrl;
       }
     },

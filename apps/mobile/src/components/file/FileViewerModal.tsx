@@ -16,9 +16,9 @@ import { Highlight, themes } from "prism-react-renderer";
 import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { Pressable } from "../../../components/ui/pressable";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { Pressable } from "../ui/pressable";
 import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -138,20 +138,20 @@ export function FileViewerModal({
   const styles = useMemo(() => createFileViewerStyles(theme), [theme]);
   const markdownStyles = useMemo(
     () => ({
-      body: { color: theme.textPrimary },
-      text: { fontSize: 15, lineHeight: 24, color: theme.textPrimary },
+      body: { color: theme.colors.textPrimary },
+      text: { fontSize: 15, lineHeight: 24, color: theme.colors.textPrimary },
       paragraph: { marginTop: 8, marginBottom: 8 },
-      heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: theme.textPrimary, marginTop: 16, marginBottom: 8 },
-      heading2: { fontSize: 19, lineHeight: 27, fontWeight: "600" as const, color: theme.textPrimary, marginTop: 14, marginBottom: 6 },
-      heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: theme.textPrimary, marginTop: 12, marginBottom: 4 },
-      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.textPrimary },
-      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.textPrimary },
-      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.textPrimary },
+      heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: theme.colors.textPrimary, marginTop: 16, marginBottom: 8 },
+      heading2: { fontSize: 19, lineHeight: 27, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 14, marginBottom: 6 },
+      heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 12, marginBottom: 4 },
+      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
+      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
+      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
       link: { color: theme.accent, textDecorationLine: "underline" as const },
       code_inline: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-      fence: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, lineHeight: 20, color: theme.textPrimary, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.borderColor },
+      fence: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, lineHeight: 20, color: theme.colors.textPrimary, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
       blockquote: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderLeftColor: theme.accent, borderLeftWidth: 4, paddingLeft: 12, paddingVertical: 8, marginVertical: 8 },
-      strong: { fontWeight: "600" as const, color: theme.textPrimary },
+      strong: { fontWeight: "600" as const, color: theme.colors.textPrimary },
       bullet_list: {
         marginTop: 8,
         marginBottom: 10,
@@ -160,7 +160,7 @@ export function FileViewerModal({
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: theme.borderColor,
+        borderColor: theme.colors.border,
       },
       ordered_list: {
         marginTop: 8,
@@ -170,7 +170,7 @@ export function FileViewerModal({
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: theme.borderColor,
+        borderColor: theme.colors.border,
       },
       list_item: { flexDirection: "row" as const, marginBottom: 4, minHeight: 22, alignItems: "flex-start" as const },
     }),
@@ -452,7 +452,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
       borderRadius: 12,
       overflow: "hidden",
     },
@@ -463,9 +463,9 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 48,
       paddingHorizontal: 16,
       paddingVertical: 10,
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
       borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     headerTitleWrap: {
       flex: 1,
@@ -474,7 +474,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     headerLabel: {
       fontSize: 11,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       marginBottom: 2,
       textTransform: "uppercase",
       letterSpacing: 0.5,
@@ -482,7 +482,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     path: {
       fontSize: 15,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
     closeBtn: {
       padding: 4,
@@ -499,7 +499,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     errorText: {
       fontSize: 14,
-      color: theme.danger,
+      color: theme.colors.danger,
     },
     imageWrap: {
       flex: 1,
@@ -512,21 +512,21 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 10,
       paddingHorizontal: 16,
       borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.surfaceBg,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceAlt,
     },
     zoomBtn: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: theme.borderColor,
+      backgroundColor: theme.colors.border,
       alignItems: "center",
       justifyContent: "center",
     },
     zoomBtnText: {
       fontSize: 24,
       fontWeight: "300",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
     zoomLabel: {
       minWidth: 56,
@@ -534,7 +534,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     zoomLabelText: {
       fontSize: 14,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
       fontWeight: "500",
     },
     imageScaleWrap: {
@@ -546,7 +546,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     markdownScroll: {
       flex: 1,
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
     },
     markdownScrollContent: {
       paddingHorizontal: 20,
@@ -558,7 +558,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     htmlWebView: {
       flex: 1,
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
     },
     codeWrap: {
       flex: 1,
@@ -566,13 +566,13 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     truncatedBanner: {
       paddingVertical: 8,
       paddingHorizontal: 16,
-      backgroundColor: theme.accentLight,
+      backgroundColor: theme.colors.accentSoft,
       borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     truncatedText: {
       fontSize: 13,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     addRefBar: {
       flexDirection: "row",
@@ -581,12 +581,12 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 8,
       paddingHorizontal: 16,
       borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.accentLight,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.accentSoft,
     },
     addRefHint: {
       fontSize: 13,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
     addRefBtn: {
       paddingVertical: 6,
@@ -605,11 +605,11 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     cancelRefBtnText: {
       fontSize: 14,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     codeScroll: {
       flex: 1,
-      backgroundColor: theme.surfaceBg,
+      backgroundColor: theme.colors.surfaceAlt,
     },
     codeScrollContent: {
       paddingVertical: 12,
@@ -626,13 +626,13 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "flex-start",
     },
     codeRowSelected: {
-      backgroundColor: theme.accentLight,
+      backgroundColor: theme.colors.accentSoft,
     },
     lineNumCell: {
       minWidth: 28,
       paddingRight: 6,
       borderRightWidth: 1,
-      borderRightColor: theme.borderColor,
+      borderRightColor: theme.colors.border,
       minHeight: LINE_HEIGHT,
       justifyContent: "flex-start",
       paddingVertical: 2,
@@ -644,7 +644,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     lineNumText: {
       fontSize: FONT_SIZE,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     lineNumTextSelected: {
       color: theme.accent,

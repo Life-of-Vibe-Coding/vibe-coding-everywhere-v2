@@ -3,7 +3,7 @@ import { StyleSheet, Linking, ScrollView, Platform, Dimensions, Animated } from 
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "../../theme/index";
 import { spacing, radii, triggerHaptic } from "../../design-system";
-import type { Message } from "../../services/socket/hooks";
+import type { Message } from "../../services/sse/hooks";
 import { stripTrailingIncompleteTag } from "../../services/providers/stream";
 import { TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
 import { BookOpenIcon, PencilIcon, FilePenIcon } from "../icons/FileActivityIcons";
@@ -17,10 +17,10 @@ import {
   collapseIdenticalCommandSteps,
 } from "../../utils/bashContent";
 import { EntranceAnimation } from "../../design-system";
-import { Badge, BadgeText } from "../../../components/ui/badge";
-import { Box } from "../../../components/ui/box";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Badge, BadgeText } from "../ui/badge";
+import { Box } from "../ui/box";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -37,7 +37,7 @@ function replaceHighlightWithTextColor(content: string, highlightColor: string):
 
 const BASH_LANGUAGES = new Set(["bash", "sh", "shell", "zsh"]);
 
-/** Supports both emoji (legacy) and non-emoji prefixes for backward compatibility. Groups: 1=prefix, 2=label, 3=encodedPath. */
+/** Supports both emoji and non-emoji prefixes. Groups: 1=prefix, 2=label, 3=encodedPath. */
 const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
 
 /** Matches "Running command:" or "🖥 Running command:" followed by newlines, `cmd`, optional Output block, and optional status (→ or ->). */
@@ -140,7 +140,7 @@ function parseFileActivitySegments(content: string): FileActivitySegment[] {
     try {
       path = decodeURIComponent(encodedPath);
     } catch {
-      // Keep original path when decode fails for malformed legacy links.
+      path = encodedPath;
     }
     return { kind: "file" as const, prefix, fileName, path };
   });
@@ -375,10 +375,10 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const theme = useTheme();
   const codeBlockBg = theme.colors.surfaceMuted;
   const codeTextColor = theme.accent;
-  const quoteBg = theme.cardBg;
+  const quoteBg = theme.colors.surface;
   const bashHeaderBg = theme.colors.surfaceMuted;
   const terminalBg = TERMINAL_BG;
-  const terminalBorder = theme.borderColor;
+  const terminalBorder = theme.colors.border;
   const terminalText = TERMINAL_TEXT;
   const terminalPrompt = TERMINAL_PROMPT;
   const isUser = message.role === "user";
@@ -387,8 +387,8 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const tailScrollRef = useRef<ScrollView>(null);
   const markdownStyles = useMemo(
     () => ({
-      body: { color: theme.textPrimary },
-      text: { fontSize: 16, lineHeight: 26, color: theme.textPrimary },
+      body: { color: theme.colors.textPrimary },
+      text: { fontSize: 16, lineHeight: 26, color: theme.colors.textPrimary },
       paragraph: { marginTop: 4, marginBottom: 4 },
       heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: theme.colors.textPrimary },
       heading2: { fontSize: 19, lineHeight: 28, fontWeight: "700" as const, color: theme.colors.textPrimary },
@@ -492,7 +492,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         fileActivityLine: { marginTop: 4, marginBottom: 4 },
-        fileActivityFileName: { color: theme.textPrimary, fontWeight: "600" as const },
+        fileActivityFileName: { color: theme.colors.textPrimary, fontWeight: "600" as const },
         fileActivityContainer: {
           marginLeft: -18,
           paddingLeft: 8,
@@ -550,7 +550,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           overflow: "hidden" as const,
           backgroundColor: codeBlockBg,
           borderWidth: 1,
-          borderColor: theme.borderColor,
+          borderColor: theme.colors.border,
         },
         bashCodeBlockHeader: {
           flexDirection: "row" as const,
@@ -559,7 +559,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           paddingHorizontal: 10,
           paddingVertical: 6,
           borderBottomWidth: 1,
-          borderBottomColor: theme.borderColor,
+          borderBottomColor: theme.colors.border,
           backgroundColor: bashHeaderBg,
         },
         bashCodeBlockHeaderSpacer: { flex: 1 },
@@ -638,7 +638,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         try {
           path = decodeURIComponent(encodedPath);
         } catch {
-          // Backward compatibility
+          path = encodedPath;
         }
         onFileSelect?.(path);
         return false;

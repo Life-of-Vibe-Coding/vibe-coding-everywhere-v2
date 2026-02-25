@@ -8,9 +8,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { Pressable } from "../../../components/ui/pressable";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { Pressable } from "../ui/pressable";
 import { CloseIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
 import { SkillDetailSheet } from "./SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
@@ -143,7 +143,7 @@ export function SkillConfigurationModal({
                 accessibilityLabel="Close skill configuration"
                 className="p-2 min-w-11 min-h-11 items-center justify-center"
               >
-                <CloseIcon size={20} color={theme.textMuted} />
+                <CloseIcon size={20} color={theme.colors.textSecondary} />
               </Pressable>
             </Box>
             <ScrollView
@@ -193,7 +193,7 @@ export function SkillConfigurationModal({
                           </Text>
                         ) : null}
                       </Box>
-                      <ChevronRightIcon size={18} color={theme.textMuted} />
+                      <ChevronRightIcon size={18} color={theme.colors.textSecondary} />
                     </Pressable>
                     <Box className="shrink-0">
                       <Switch
@@ -201,13 +201,13 @@ export function SkillConfigurationModal({
                         onValueChange={(val) => handleSkillToggle(skill.id, val)}
                         disabled={skillsSaving}
                         trackColor={{
-                          false: theme.borderColor,
-                          true: theme.accentLight,
+                          false: theme.colors.border,
+                          true: theme.colors.accentSoft,
                         }}
                         thumbColor={
                           enabledSkillIds.has(skill.id)
                             ? theme.accent
-                            : theme.cardBg
+                            : theme.colors.surface
                         }
                       />
                     </Box>

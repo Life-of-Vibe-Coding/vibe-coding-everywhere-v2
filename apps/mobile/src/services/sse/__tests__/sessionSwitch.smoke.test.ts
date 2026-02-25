@@ -3,7 +3,7 @@
  */
 import { act } from "react";
 import { renderHook } from "@testing-library/react-native";
-import { useSocket } from "../hooks";
+import { useSse } from "../hooks";
 
 interface MockListener {
   (event: any): void;
@@ -79,10 +79,10 @@ describe("session switch smoke test", () => {
 
   it("opens a stream only for selected active session", () => {
     const { result } = renderHook(() =>
-      useSocket({
+      useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionid: "running-session",
+        sessionId: "running-session",
         status: true,
       })
     );
@@ -99,16 +99,16 @@ describe("session switch smoke test", () => {
   });
 
   it("does not open SSE when selected stream is not running", () => {
-      const { rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
-        useSocket({
+      const { rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
+        useSse({
           provider: "codex",
           model: "gpt-5.1-codex-mini",
-          sessionid: props.sessionid,
+          sessionId: props.sessionId,
           status: props.status,
       })
     , {
       initialProps: {
-        sessionid: "running-session",
+        sessionId: "running-session",
         status: false,
       },
     });
@@ -116,23 +116,23 @@ describe("session switch smoke test", () => {
     expect(getAllSources()).toHaveLength(0);
 
     act(() => {
-      rerender({ sessionid: "running-session", status: true });
+      rerender({ sessionId: "running-session", status: true });
     });
 
     expect(getAllSources()).toHaveLength(1);
   });
 
   it("switches sessions with close-before-open semantics", () => {
-    const { rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
-      useSocket({
+    const { rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
+      useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionid: props.sessionid,
+        sessionId: props.sessionId,
         status: props.status,
       })
     , {
       initialProps: {
-        sessionid: "session-a",
+        sessionId: "session-a",
         status: true,
       },
     });
@@ -144,7 +144,7 @@ describe("session switch smoke test", () => {
     });
 
     act(() => {
-      rerender({ sessionid: "session-b", status: true });
+      rerender({ sessionId: "session-b", status: true });
     });
 
     const second = getLatestSource();
@@ -166,16 +166,16 @@ describe("session switch smoke test", () => {
       { id: "msg-2", role: "assistant" as const, content: "Message" },
     ];
 
-    const { result, rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
-      useSocket({
+    const { result, rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
+      useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionid: props.sessionid,
+        sessionId: props.sessionId,
         status: props.status,
       })
     , {
       initialProps: {
-        sessionid: "seed-session",
+        sessionId: "seed-session",
         status: false,
       },
     });
@@ -185,7 +185,7 @@ describe("session switch smoke test", () => {
     });
 
     act(() => {
-      rerender({ sessionid: "seed-session-active", status: true });
+      rerender({ sessionId: "seed-session-active", status: true });
     });
 
     const source = getLatestSource();
@@ -194,10 +194,10 @@ describe("session switch smoke test", () => {
 
   it("finalizes and closes stream on end without auto-reconnecting", () => {
     const { result } = renderHook(() =>
-      useSocket({
+      useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionid: "ending-session",
+        sessionId: "ending-session",
         status: true,
       })
     );
@@ -222,10 +222,10 @@ describe("session switch smoke test", () => {
 
   it("re-keys an in-memory stream when backend migrates session id", () => {
     const { result } = renderHook(() =>
-      useSocket({
+      useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionid: "legacy-session",
+        sessionId: "legacy-session",
         status: true,
       })
     );

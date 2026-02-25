@@ -10,12 +10,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { Pressable } from "../../../components/ui/pressable";
-import { Input, InputField } from "../../../components/ui/input";
-import { Textarea, TextareaInput } from "../../../components/ui/textarea";
-import { Badge, BadgeText } from "../../../components/ui/badge";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { Pressable } from "../ui/pressable";
+import { Input, InputField } from "../ui/input";
+import { Textarea, TextareaInput } from "../ui/textarea";
+import { Badge, BadgeText } from "../ui/badge";
 import { getDefaultServerConfig } from "../../core";
 import {
   FolderIconByType,
@@ -445,7 +445,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
         <Input variant="outline" size="md" className="flex-1">
           <InputField
             placeholder="Search files..."
-            placeholderTextColor={theme.textMuted}
+            placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -540,7 +540,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
     };
 
     return (
-      <Box style={[styles.changesLayout, { backgroundColor: theme.beigeBg }]}>
+      <Box style={[styles.changesLayout, { backgroundColor: theme.colors.background }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.changesScrollContent} showsVerticalScrollIndicator={false}>
           {/* Staged section card */}
           <Box style={[styles.sectionCard, isDark && styles.sectionCardDark]}>
@@ -632,7 +632,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                     <TextareaInput
                       style={[styles.commitInput, styles.commitInputWithButton]}
                       placeholder="Describe what to commit (e.g. fix typo, add feature). AI will use the git skill."
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={theme.colors.textSecondary}
                       value={aiCommitQuery}
                       onChangeText={setAiCommitQuery}
                       editable={!actionLoading}
@@ -667,7 +667,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                     <TextareaInput
                       style={[styles.commitInput, styles.commitInputWithButton]}
                       placeholder="Commit message..."
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={theme.colors.textSecondary}
                       value={commitMessage}
                       onChangeText={setCommitMessage}
                       editable={!actionLoading}
@@ -815,10 +815,10 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
     drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
       borderRadius: 24,
       borderWidth: 1,
-      borderColor: theme.borderColor,
+      borderColor: theme.colors.border,
       overflow: "hidden",
       shadowColor: "#000",
       shadowOffset: { width: 4, height: 0 },
@@ -833,13 +833,13 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 12,
       paddingHorizontal: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
     },
     headerTitle: {
       fontSize: 16,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     closeBtn: {
@@ -850,14 +850,14 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       justifyContent: "center",
     },
-    closeBtnText: { fontSize: 18, color: theme.textMuted },
+    closeBtnText: { fontSize: 18, color: theme.colors.textSecondary },
     tabContainer: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
     },
     tabSpacer: {
       flex: 1,
@@ -878,7 +878,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
     },
     tabActive: { borderBottomWidth: 2, borderBottomColor: theme.accent },
-    tabText: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+    tabText: { fontSize: 12, fontWeight: "600", color: theme.colors.textSecondary },
     tabTextActive: { color: theme.accent },
     tabCloseBtn: {
       width: 36,
@@ -887,28 +887,28 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "center",
       marginLeft: 4,
     },
-    tabCloseBtnText: { fontSize: 18, color: theme.textMuted, fontWeight: "600" },
+    tabCloseBtnText: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: "600" },
     workspaceName: {
       paddingVertical: 6,
       paddingHorizontal: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
     },
     workspaceNameText: {
       fontSize: 14,
       lineHeight: 20,
       fontWeight: "500",
       letterSpacing: 0,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     searchBarContainer: {
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
     },
     searchInput: {
       backgroundColor: "rgba(0,0,0,0.06)",
@@ -916,12 +916,12 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 8,
       paddingHorizontal: 12,
       fontSize: 14,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       borderWidth: 1,
       borderColor: "rgba(0,0,0,0.08)",
     },
-    loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: theme.beigeBg },
-    scroll: { flex: 1, minHeight: 0, backgroundColor: theme.beigeBg },
+    loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: theme.colors.background },
+    scroll: { flex: 1, minHeight: 0, backgroundColor: theme.colors.background },
     scrollContent: { paddingVertical: 8, paddingBottom: 24 },
     folderBlock: { marginBottom: 0 },
     treeRow: {
@@ -934,17 +934,17 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       marginHorizontal: 8,
     },
     treeRowPressed: { backgroundColor: "rgba(0,0,0,0.06)" },
-    treeIcon: { width: 14, marginRight: 4, fontSize: 10, color: theme.textMuted },
+    treeIcon: { width: 14, marginRight: 4, fontSize: 10, color: theme.colors.textSecondary },
     treeIconChevron: { width: 14, marginRight: 4 },
     treeIconWrap: { width: 22, height: 22, borderRadius: 6, overflow: "hidden", alignItems: "center", justifyContent: "center", marginRight: 6 },
-    treeLabel: { flex: 1, fontSize: 14, color: theme.textPrimary },
-    treeLabelIgnored: { color: theme.textMuted },
+    treeLabel: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
+    treeLabelIgnored: { color: theme.colors.textSecondary },
     children: { marginLeft: 0 },
 
     // Git specific
     errorContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
     errorTitle: { fontSize: 18, fontWeight: "700", color: theme.colors.warning, marginBottom: 8 },
-    errorText: { fontSize: 14, color: theme.textMuted, textAlign: "center", lineHeight: 20 },
+    errorText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: "center", lineHeight: 20 },
     initGitBtn: {
       marginTop: 20,
       paddingVertical: 12,
@@ -963,14 +963,14 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 8,
       marginTop: 6
     },
-    sectionTitle: { fontSize: 13, fontWeight: "600", color: theme.textPrimary },
-    emptyText: { paddingHorizontal: 16, paddingVertical: 12, color: theme.textMuted, fontSize: 13 },
+    sectionTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.textPrimary },
+    emptyText: { paddingHorizontal: 16, paddingVertical: 12, color: theme.colors.textSecondary, fontSize: 13 },
 
     // Redesigned Changes tab
     changesLayout: { flex: 1 },
     changesScrollContent: { paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 20 },
     sectionCard: {
-      backgroundColor: theme.colors?.surface ?? theme.beigeBg,
+      backgroundColor: theme.colors?.surface ?? theme.colors.background,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: theme.colors?.border ?? "rgba(0,0,0,0.08)",
@@ -1012,7 +1012,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     changeRowContent: { flex: 1, minWidth: 0 },
     changeRowPath: {
       fontSize: 13,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     },
     changeRowBadge: { marginLeft: 8 },
@@ -1045,7 +1045,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     changeItemStaged: { paddingLeft: 24 },
     stagedPathWrap: { flex: 1, minWidth: 0, flexShrink: 1 },
     changePathTouchable: { flex: 1, minWidth: 0 },
-    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 12, color: theme.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    changeFileLabel: { flex: 1, minWidth: 0, fontSize: 12, color: theme.colors.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
     changeFileLabelStaged: { fontFamily: undefined },
     statusBadgeWrap: { flexShrink: 0, marginLeft: 8, justifyContent: "center" },
     statusLabel: { fontSize: 11, color: theme.accent, fontWeight: "600" },
@@ -1055,13 +1055,13 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     commitForm: {
       padding: 16,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.borderColor,
-      backgroundColor: theme.beigeBg,
+      borderTopColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
       flexShrink: 0,
     },
     commitFormDark: {
-      backgroundColor: theme.colors?.surface ?? theme.beigeBg,
-      borderTopColor: theme.colors?.border ?? theme.borderColor,
+      backgroundColor: theme.colors?.surface ?? theme.colors.background,
+      borderTopColor: theme.colors?.border ?? theme.colors.border,
     },
     commitInputRow: {
       flexDirection: "row",
@@ -1085,7 +1085,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       padding: 12,
       paddingTop: 12,
       fontSize: 14,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       textAlignVertical: "top",
       borderWidth: 1,
       borderColor: "rgba(0,0,0,0.08)",
@@ -1110,7 +1110,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     commitItem: {
       padding: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     commitHeaderRow: {
       flexDirection: "row",
@@ -1119,8 +1119,8 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       marginBottom: 6,
     },
     commitHash: { fontSize: 12, color: theme.accent, fontWeight: "700", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
-    commitDate: { fontSize: 12, color: theme.textMuted },
-    commitMessageTxt: { fontSize: 14, color: theme.textPrimary, marginBottom: 4, fontWeight: "500" },
-    commitAuthorTxt: { fontSize: 12, color: theme.textMuted, opacity: 0.8 },
+    commitDate: { fontSize: 12, color: theme.colors.textSecondary },
+    commitMessageTxt: { fontSize: 14, color: theme.colors.textPrimary, marginBottom: 4, fontWeight: "500" },
+    commitAuthorTxt: { fontSize: 12, color: theme.colors.textSecondary, opacity: 0.8 },
   });
 }

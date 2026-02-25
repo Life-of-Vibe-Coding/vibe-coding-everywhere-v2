@@ -12,10 +12,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../theme/index";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { Pressable } from "../../../components/ui/pressable";
-import { Input, InputField } from "../../../components/ui/input";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { Pressable } from "../ui/pressable";
+import { Input, InputField } from "../ui/input";
 import { UrlChoiceModal } from "./UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
@@ -371,7 +371,7 @@ export function PreviewWebViewModal({
                     value={urlInputValue}
                     onChangeText={setUrlInputValue}
                     placeholder="搜索或输入网址"
-                    placeholderTextColor={theme.textMuted}
+                    placeholderTextColor={theme.colors.textSecondary}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
@@ -525,30 +525,30 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: theme.surfaceBg,
+    backgroundColor: theme.colors.surfaceAlt,
   },
   toolbar: {
     flexDirection: "row",
     alignItems: "center",
     paddingBottom: 8,
     paddingHorizontal: 8,
-    backgroundColor: theme.surfaceBg,
+    backgroundColor: theme.colors.surfaceAlt,
     borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
+    borderBottomColor: theme.colors.border,
     minHeight: toolbarHeight,
   },
   closeBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.borderColor,
+    backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   closeText: {
     fontSize: 18,
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     fontWeight: "400",
   },
   urlBarWrap: {
@@ -556,13 +556,13 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     minWidth: 0,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.borderColor,
+    backgroundColor: theme.colors.border,
     justifyContent: "center",
     paddingHorizontal: 16,
   },
   urlInput: {
     fontSize: 15,
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     paddingVertical: 0,
     paddingHorizontal: 0,
     ...(Platform.OS === "web"
@@ -573,7 +573,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.borderColor,
+    backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 6,
@@ -583,7 +583,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   iconBtnText: {
     fontSize: 22,
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     fontWeight: "300",
   },
   tabBar: {
@@ -592,8 +592,8 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: theme.borderColor,
-    backgroundColor: theme.surfaceBg,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceAlt,
   },
   tabBarScroll: {
     flex: 1,
@@ -611,7 +611,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     paddingLeft: 10,
     paddingRight: 8,
     borderRadius: 8,
-    backgroundColor: theme.borderColor,
+    backgroundColor: theme.colors.border,
     maxWidth: 85,
   },
   tabActive: {
@@ -619,12 +619,12 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   tabText: {
     fontSize: 13,
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: "center",
   },
   tabTextActive: {
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     fontWeight: "600",
   },
   tabClose: {
@@ -633,24 +633,24 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   tabCloseText: {
     fontSize: 16,
-    color: theme.textMuted,
+    color: theme.colors.textSecondary,
     lineHeight: 16,
   },
   tabCloseTextActive: {
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
   },
   addTabBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.borderColor,
+    backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
   },
   addTabText: {
     fontSize: 20,
-    color: theme.textPrimary,
+    color: theme.colors.textPrimary,
     fontWeight: "300",
     lineHeight: 22,
   },
@@ -659,11 +659,11 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: theme.surfaceBg,
+    backgroundColor: theme.colors.surfaceAlt,
   },
   placeholderText: {
     fontSize: 14,
-    color: theme.textMuted,
+    color: theme.colors.textSecondary,
     textAlign: "center",
   },
   webContainer: {
@@ -679,11 +679,11 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   webview: {
     flex: 1,
-    backgroundColor: theme.surfaceBg,
+    backgroundColor: theme.colors.surfaceAlt,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.surfaceBg,
+    backgroundColor: theme.colors.surfaceAlt,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1,
@@ -691,7 +691,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   loadingText: {
     marginTop: 8,
     fontSize: 14,
-    color: theme.textMuted,
+    color: theme.colors.textSecondary,
   },
   errorBox: {
     flex: 1,
@@ -701,13 +701,13 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   errorText: {
     fontSize: 16,
-    color: theme.danger,
+    color: theme.colors.danger,
     textAlign: "center",
   },
   urlHint: {
     marginTop: 8,
     fontSize: 12,
-    color: theme.textMuted,
+    color: theme.colors.textSecondary,
   },
   retryBtn: {
     marginTop: 16,

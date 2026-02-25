@@ -18,13 +18,13 @@ import {
   spacing,
   radii,
 } from "../../design-system";
-import { Badge, BadgeText } from "../../../components/ui/badge";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
-import { VStack } from "../../../components/ui/vstack";
-import { HStack } from "../../../components/ui/hstack";
+import { Badge, BadgeText } from "../ui/badge";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
+import { VStack } from "../ui/vstack";
+import { HStack } from "../ui/hstack";
 import { useTheme } from "../../theme/index";
 import {
   TrashIcon,

@@ -1,8 +1,7 @@
 /**
  * Theme System - Unified Theme Management
  * 
- * This module provides a comprehensive theming solution that bridges
- * the legacy theme system with the modern design system.
+ * This module provides a comprehensive theming solution for the mobile app.
  * 
  * Features:
  * - Light/Dark mode support with system preference detection
@@ -60,7 +59,6 @@ export type {
 } from "./typography";
 export { buildTypographyScale } from "./typography";
 
-// Alias for backward compatibility
 export type TypographyScale = import("./typography").TypographyScaleRecord;
 
 // Lazy init to avoid "runtime not ready" (Dimensions at module load on Hermes)
@@ -129,20 +127,6 @@ export type DesignTheme = {
     };
   };
   grid: number;
-  // Legacy theme properties for backward compatibility
-  beigeBg: string;
-  cardBg: string;
-  surfaceBg: string;
-  borderColor: string;
-  textPrimary: string;
-  textMuted: string;
-  assistantBg: string;
-  userBg: string;
-  accent: string;
-  accentLight: string;
-  success: string;
-  danger: string;
-  shadow: string;
 };
 
 // ============================================================================
@@ -313,20 +297,6 @@ function buildTheme(provider: Provider, mode: ColorMode): DesignTheme {
     radii,
     motion,
     grid: 8,
-    // Legacy properties
-    beigeBg: colors.background,
-    cardBg: colors.surface,
-    surfaceBg: colors.surfaceAlt,
-    borderColor: colors.border,
-    textPrimary: colors.textPrimary,
-    textMuted: colors.textSecondary,
-    assistantBg: colors.surfaceAlt,
-    userBg: colors.surface,
-    accent: colors.accent,
-    accentLight: colors.accentSoft,
-    success: colors.success,
-    danger: colors.danger,
-    shadow: colors.shadow,
   };
 }
 

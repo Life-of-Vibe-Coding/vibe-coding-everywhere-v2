@@ -2,9 +2,9 @@ import React, { useMemo } from "react";
 import { StyleSheet, Modal, TouchableWithoutFeedback } from "react-native";
 import { useTheme } from "../../theme/index";
 import { EntranceAnimation } from "../../design-system";
-import { Box } from "../../../components/ui/box";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 
 const MIN_TOUCH_TARGET = 44;
 const URL_PREVIEW_MAX_LEN = 40;

@@ -1,6 +1,6 @@
 import { StyleSheet, Platform } from "react-native";
-import { spacing } from "../../src/design-system";
-import type { getTheme } from "../../src/theme/index";
+import { spacing } from "../../design-system";
+import type { getTheme } from "../../theme/index";
 
 export function createAppStyles(theme: ReturnType<typeof getTheme>) {
   return StyleSheet.create({
@@ -31,10 +31,10 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
       minHeight: 0,
       position: "relative",
       overflow: Platform.OS === "ios" ? "visible" : "hidden",
-      paddingBottom: 130,
     },
     contentArea: {
-      ...StyleSheet.absoluteFillObject,
+      flex: 1,
+      minHeight: 0,
       overflow: Platform.OS === "ios" ? "visible" : "hidden",
     },
     sidebarOverlay: {

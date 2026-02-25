@@ -18,7 +18,7 @@ npx gluestack-ui add input
 npx gluestack-ui add --all
 ```
 
-Components are added under `components/ui/` and use Tailwind/Uniwind classes.
+Components are added under `src/components/ui/` and use Tailwind/Uniwind classes.
 
 ## Usage Example
 

@@ -1,0 +1,161 @@
+import React, { useCallback, useState } from "react";
+
+import { triggerHaptic } from "../../design-system";
+import { getSubmitPermissionConfig } from "../../features/app/appConfig";
+import type { PermissionModeUI } from "../../utils/permission";
+import { type Message, type useSse } from "../../services/sse/hooks";
+import type { CodeRefPayload } from "../file/FileViewerModal";
+import type { BrandProvider } from "../../theme/index";
+
+type SseApi = ReturnType<typeof useSse>;
+
+export type ChatActionControllerProps = {
+  provider: BrandProvider;
+  permissionModeUI: PermissionModeUI;
+  messages: Message[];
+  switchToLiveSession: () => void;
+  setSelectedSseSessionRunning: (running: boolean) => void;
+  submitPrompt: SseApi["submitPrompt"];
+  submitAskQuestionAnswer: SseApi["submitAskQuestionAnswer"];
+  dismissAskQuestion: SseApi["dismissAskQuestion"];
+  retryAfterPermission: SseApi["retryAfterPermission"];
+  closeFileViewer: () => void;
+  resetSession: () => void;
+  onSubmitSideEffects: () => void;
+  children: (state: ChatActionControllerState) => React.ReactNode;
+};
+
+export type ChatActionControllerState = {
+  pendingCodeRefs: CodeRefPayload[];
+  onSubmitPrompt: (prompt: string) => void;
+  onAddCodeReference: (payload: CodeRefPayload) => void;
+  onRemoveCodeRef: (index: number) => void;
+  onAskQuestionSubmit: (answers: Array<{ header: string; selected: string[] }>) => void;
+  onAskQuestionCancel: () => void;
+  onRetryPermission: () => void;
+  onCommitByAI: (userRequest: string) => void;
+  onOpenWebPreview: () => void;
+  onOpenPreviewInApp: (url: string) => void;
+  previewUrl: string | null;
+  onClosePreview: () => void;
+};
+
+export function ChatActionController({
+  provider,
+  permissionModeUI,
+  messages,
+  switchToLiveSession,
+  setSelectedSseSessionRunning,
+  submitPrompt,
+  submitAskQuestionAnswer,
+  dismissAskQuestion,
+  retryAfterPermission,
+  closeFileViewer,
+  resetSession,
+  onSubmitSideEffects,
+  children,
+}: ChatActionControllerProps) {
+  const [pendingCodeRefs, setPendingCodeRefs] = useState<CodeRefPayload[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const onSubmitPrompt = useCallback(
+    (prompt: string) => {
+      switchToLiveSession();
+      setSelectedSseSessionRunning(true);
+      const { backend, codexOptions } = getSubmitPermissionConfig(permissionModeUI, provider);
+      submitPrompt(
+        prompt,
+        backend.permissionMode,
+        undefined,
+        pendingCodeRefs.length ? pendingCodeRefs : undefined,
+        backend.approvalMode,
+        codexOptions
+      );
+
+      if (pendingCodeRefs.length) {
+        setPendingCodeRefs([]);
+      }
+
+      onSubmitSideEffects();
+    },
+    [
+      onSubmitSideEffects,
+      permissionModeUI,
+      provider,
+      setSelectedSseSessionRunning,
+      submitPrompt,
+      switchToLiveSession,
+      pendingCodeRefs,
+    ]
+  );
+
+  const onAddCodeReference = useCallback((payload: CodeRefPayload) => {
+    triggerHaptic("light");
+    setPendingCodeRefs((prev) => [...prev, payload]);
+  }, []);
+
+  const onRemoveCodeRef = useCallback((index: number) => {
+    triggerHaptic("selection");
+    setPendingCodeRefs((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const onAskQuestionSubmit = useCallback(
+    (answers: Array<{ header: string; selected: string[] }>) => {
+      submitAskQuestionAnswer(answers);
+    },
+    [submitAskQuestionAnswer]
+  );
+
+  const onAskQuestionCancel = useCallback(() => {
+    dismissAskQuestion();
+  }, [dismissAskQuestion]);
+
+  const onRetryPermission = useCallback(() => {
+    const { backend } = getSubmitPermissionConfig(permissionModeUI, provider);
+    const lastUserMessage = [...messages].reverse().find((msg) => msg.role === "user");
+    retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMessage?.content);
+  }, [messages, permissionModeUI, provider, retryAfterPermission]);
+
+  const onCommitByAI = useCallback(
+    (userRequest: string) => {
+      setSelectedSseSessionRunning(false);
+      resetSession();
+      onSubmitPrompt(userRequest);
+      closeFileViewer();
+    },
+    [closeFileViewer, onSubmitPrompt, resetSession, setSelectedSseSessionRunning]
+  );
+
+  const onOpenPreviewInApp = useCallback((url: string) => {
+    if (url) {
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl("");
+    }
+  }, []);
+
+  const onOpenWebPreview = useCallback(() => {
+    setPreviewUrl("");
+  }, []);
+
+  const onClosePreview = useCallback(() => {
+    setPreviewUrl(null);
+  }, []);
+
+  const state: ChatActionControllerState = {
+    pendingCodeRefs,
+    onSubmitPrompt,
+    onAddCodeReference,
+    onRemoveCodeRef,
+    onAskQuestionSubmit,
+    onAskQuestionCancel,
+    onRetryPermission,
+    onCommitByAI,
+    onOpenWebPreview,
+    onOpenPreviewInApp,
+    previewUrl,
+    onClosePreview,
+  };
+
+  return <>{children(state)}</>;
+}

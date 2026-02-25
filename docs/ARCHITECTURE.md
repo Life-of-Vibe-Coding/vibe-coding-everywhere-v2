@@ -152,7 +152,7 @@ Two main managers:
 │  - etc.                             │
 ├─────────────────────────────────────┤
 │  Hook Layer                         │
-│  - useSocket (main state)           │
+│  - useSse (main state)             │
 │  - Custom hooks                     │
 ├─────────────────────────────────────┤
 │  Service Layer                      │
@@ -181,7 +181,7 @@ components/
 
 ### State Management
 
-Single source of truth in `useSocket` hook:
+Single source of truth in `useSse` hook:
 
 ```typescript
 // Key state pieces

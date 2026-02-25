@@ -1,8 +1,8 @@
 // Event dispatcher (combines Claude + Gemini handlers)
-export { createEventDispatcher, createClaudeEventDispatcher } from "./eventDispatcher";
+export { createEventDispatcher } from "./eventDispatcher";
 
 // Types
-export type { EventContext, EventHandler, ClaudeEventContext, ClaudeEventHandler } from "./types";
+export type { EventContext, EventHandler } from "./types";
 export { formatToolUseForDisplay } from "./types";
 
 // Stream utilities (shared by both providers)
@@ -14,7 +14,6 @@ export {
   extractRenderCommandAndUrl,
   isAskUserQuestionPayload,
   isProviderStream,
-  isClaudeStream,
   isProviderSystemNoise,
   deniedToolToAllowedPattern,
   getAllowedToolsFromDenials,

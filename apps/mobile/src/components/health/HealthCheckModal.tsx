@@ -10,11 +10,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { EntranceAnimation, radii, spacing } from "../../design-system";
 import { CloseIcon, RefreshCwIcon } from "../icons/ChatActionIcons";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon } from "../../../components/ui/button";
-import { HStack } from "../../../components/ui/hstack";
-import { VStack } from "../../../components/ui/vstack";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon } from "../ui/button";
+import { HStack } from "../ui/hstack";
+import { VStack } from "../ui/vstack";
+import { Text } from "../ui/text";
 import { useTheme, type Provider as BrandProvider } from "../../theme/index";
 import type { SessionStatus } from "../../state/sessionManagementStore";
 
@@ -280,7 +280,7 @@ export function HealthCheckModal({
               <Text size="xl" bold>
                 Health Check
               </Text>
-              <Text size="xs" style={{ color: theme.textMuted }}>
+              <Text size="xs" style={{ color: theme.colors.textSecondary }}>
                 Last checked {lastChecked}
               </Text>
             </VStack>
@@ -305,7 +305,7 @@ export function HealthCheckModal({
               accessibilityLabel="Close health check"
               className="w-11 h-11 rounded-xl active:opacity-80"
             >
-              <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.textMuted }} />
+              <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors.textSecondary }} />
             </Button>
           </HStack>
         </HStack>
@@ -338,7 +338,7 @@ export function HealthCheckModal({
           {loading && !refreshing ? (
             <Box style={styles.loading}>
               <ActivityIndicator size="large" color={theme.colors.accent} />
-              <Text size="xs" style={{ color: theme.textMuted }}>
+              <Text size="xs" style={{ color: theme.colors.textSecondary }}>
                 Checking server health...
               </Text>
             </Box>
@@ -429,10 +429,10 @@ export function HealthCheckModal({
                       style={{
                         color:
                           systemDockerEnabled === null
-                            ? theme.textMuted
+                            ? theme.colors.textSecondary
                             : systemDockerEnabled
                               ? theme.colors.success
-                              : theme.textMuted,
+                              : theme.colors.textSecondary,
                       }}
                     >
                       {systemDockerEnabled === null ? "Unknown" : systemDockerEnabled ? "Enabled" : "Disabled"}
@@ -495,7 +495,7 @@ export function HealthCheckModal({
                             color:
                               activeSessionState.status === "running"
                                 ? theme.colors.success
-                                : theme.textMuted,
+                                : theme.colors.textSecondary,
                           }}
                         >
                           {activeSessionState.status}
@@ -529,7 +529,7 @@ export function HealthCheckModal({
                   </Text>
                   <VStack className="gap-2">
                     {recentSessions.length === 0 ? (
-                      <Text size="xs" style={{ color: theme.textMuted }}>
+                      <Text size="xs" style={{ color: theme.colors.textSecondary }}>
                         No recent sessions.
                       </Text>
                     ) : (
@@ -539,7 +539,7 @@ export function HealthCheckModal({
                             <Text size="xs" bold className="text-typography-900">
                               {truncateId(entry.id)}
                             </Text>
-                            <Text size="xs" style={{ color: theme.textMuted }} numberOfLines={1}>
+                            <Text size="xs" style={{ color: theme.colors.textSecondary }} numberOfLines={1}>
                               {entry.model ? `Model: ${entry.model}` : "Model: unknown"} · CWD:{" "}
                               {entry.cwd ?? "unknown"}
                             </Text>
@@ -549,7 +549,7 @@ export function HealthCheckModal({
                             bold
                             style={{
                               color:
-                                entry.status === "running" ? theme.colors.success : theme.textMuted,
+                                entry.status === "running" ? theme.colors.success : theme.colors.textSecondary,
                             }}
                           >
                             {entry.status}
@@ -565,12 +565,12 @@ export function HealthCheckModal({
                 <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
                   Running process ports
                 </Text>
-                <Text size="xs" style={{ color: theme.textMuted }}>
+                <Text size="xs" style={{ color: theme.colors.textSecondary }}>
                   {processes.length} process{processes.length === 1 ? "" : "es"} detected on monitored ports.
                 </Text>
                 <VStack className="gap-2 mt-2">
                   {processes.length === 0 ? (
-                    <Text size="xs" style={{ color: theme.textMuted }}>
+                    <Text size="xs" style={{ color: theme.colors.textSecondary }}>
                       No process listeners found on monitored ports.
                     </Text>
                   ) : (
@@ -626,14 +626,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
     },
     safe: {
       flex: 1,
     },
     header: {
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing["5"],
@@ -688,7 +688,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.surfaceAlt,
       borderRadius: radii.md,
       borderWidth: 1,
-      borderColor: theme.borderColor,
+      borderColor: theme.colors.border,
       borderLeftWidth: 4,
       borderLeftColor: theme.colors.accent,
       padding: spacing["3"],

@@ -124,18 +124,3 @@ export {
 } from "./components";
 
 export { cn } from "../utils/cn";
-
-// ============================================================================
-// Legacy Exports (Backward Compatibility)
-// ============================================================================
-
-export {
-  AppText,
-  AppPressable,
-  AppButton,
-  AppIconButton,
-  AppCard,
-  AppInput,
-  AppSkeleton,
-  PerformanceMonitor,
-} from "./legacy";

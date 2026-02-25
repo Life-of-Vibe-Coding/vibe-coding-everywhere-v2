@@ -9,8 +9,8 @@ import {
   EntranceAnimation,
   FlashAnimation,
   triggerHaptic,
-} from "../../src/design-system";
-import { MenuIcon, SettingsIcon } from "../../src/components/icons/HeaderIcons";
+} from "../../design-system";
+import { MenuIcon, SettingsIcon } from "../icons/HeaderIcons";
 
 type ThemeLike = {
   colors: {

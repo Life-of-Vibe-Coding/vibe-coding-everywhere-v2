@@ -13,14 +13,14 @@ import {
   TerminalIcon,
 } from "../icons/ChatActionIcons";
 import { EntranceAnimation, triggerHaptic } from "../../design-system";
-import { Badge, BadgeText } from "../../../components/ui/badge";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon } from "../../../components/ui/button";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
-import { Textarea, TextareaInput } from "../../../components/ui/textarea";
-import { VStack } from "../../../components/ui/vstack";
-import { HStack } from "../../../components/ui/hstack";
+import { Badge, BadgeText } from "../ui/badge";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon } from "../ui/button";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
+import { Textarea, TextareaInput } from "../ui/textarea";
+import { VStack } from "../ui/vstack";
+import { HStack } from "../ui/hstack";
 import { useTheme } from "../../theme/index";
 import { getFileName } from "../../utils/path";
 import { cn } from "../../utils/cn";

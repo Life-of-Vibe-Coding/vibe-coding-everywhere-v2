@@ -81,7 +81,7 @@ export type LastRunOptions = {
 
 /** Connection status only. Used by connection indicator components. */
 export interface IConnectionState {
-  /** Whether socket is connected */
+  /** Whether transport connection is active */
   connected: boolean;
 }
 
@@ -161,10 +161,10 @@ export interface IWorkspaceFileService {
 }
 
 /**
- * Socket factory interface.
- * Enables swapping transport layer in tests.
+ * Stream transport factory interface.
+ * Enables swapping transport implementations in tests.
  */
-export interface ISocketFactory {
-  /** Create a socket connection */
+export interface IStreamConnectionFactory {
+  /** Create a transport connection */
   create(url: string): unknown;
 }

@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo } from "react";
 import { FlatList, Platform, StyleProp, type ViewStyle } from "react-native";
-import type { PermissionDenial, Message } from "../../src/services/socket/hooks";
-import { EntranceAnimation } from "../../src/design-system";
-import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "../../src/components/chat/MessageBubble";
-import { TypingIndicator } from "../../src/components/chat/TypingIndicator";
-import { PermissionDenialBanner } from "../../src/components/common/PermissionDenialBanner";
-import type { BrandProvider } from "../../src/theme/index";
+import type { PermissionDenial, Message } from "../../services/sse/hooks";
+import { EntranceAnimation } from "../../design-system";
+import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "../chat/MessageBubble";
+import { TypingIndicator } from "../chat/TypingIndicator";
+import { PermissionDenialBanner } from "../common/PermissionDenialBanner";
+import type { BrandProvider } from "../../theme/index";
 
 type ChatMessageListProps = {
   messages: Message[];

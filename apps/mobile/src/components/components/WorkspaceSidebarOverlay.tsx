@@ -1,7 +1,7 @@
 import React from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Box } from "../ui/box";
-import { WorkspaceSidebar } from "../../src/components/file/WorkspaceSidebar";
+import { WorkspaceSidebar } from "../file/WorkspaceSidebar";
 
 type WorkspaceSidebarOverlayProps = {
   visible: boolean;

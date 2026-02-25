@@ -6,11 +6,8 @@ export {
 export { createWorkspaceFileService } from "../services/file/service";
 export {
   createEventDispatcher,
-  createClaudeEventDispatcher,
 } from "../services/providers/eventDispatcher";
 export type {
   EventContext,
   EventHandler,
-  ClaudeEventContext,
-  ClaudeEventHandler,
 } from "../services/providers/types";

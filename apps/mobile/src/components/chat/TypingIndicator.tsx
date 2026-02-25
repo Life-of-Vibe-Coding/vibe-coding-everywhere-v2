@@ -3,8 +3,8 @@ import { StyleSheet, Animated } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../../theme/index";
 import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
 
 interface TypingIndicatorProps {
   visible: boolean;

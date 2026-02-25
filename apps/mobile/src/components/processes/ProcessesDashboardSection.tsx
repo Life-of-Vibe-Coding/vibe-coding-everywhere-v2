@@ -11,11 +11,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { triggerHaptic } from "../../design-system";
 import { CloseIcon } from "../icons/ChatActionIcons";
 import { useTheme } from "../../theme/index";
-import { Badge, BadgeText } from "../../../components/ui/badge";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "../../../components/ui/button";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text } from "../../../components/ui/text";
+import { Badge, BadgeText } from "../ui/badge";
+import { Box } from "../ui/box";
+import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Pressable } from "../ui/pressable";
+import { Text } from "../ui/text";
 import type { ApiProcess } from "./ProcessesDashboardModal";
 
 export interface ProcessesDashboardSectionProps {
@@ -232,7 +232,7 @@ export function ProcessesDashboardSection({
                 {logViewer.name}
               </Text>
               <Button action="default" variant="link" size="md" onPress={() => setLogViewer(null)} accessibilityLabel="Close log viewer" className="min-w-11 min-h-11 -mr-2">
-                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.textMuted }} />
+                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
               </Button>
             </Box>
             <ScrollView
@@ -257,29 +257,29 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       gap: 10,
     },
     errorBanner: {
-      backgroundColor: theme.accentLight ?? "#fee",
+      backgroundColor: theme.colors.accentSoft ?? "#fee",
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 8,
     },
     errorText: {
-      color: theme.danger ?? "#c00",
+      color: theme.colors.danger ?? "#c00",
       fontSize: 13,
     },
     errorHint: {
-      color: theme.danger ?? "#c00",
+      color: theme.colors.danger ?? "#c00",
       fontSize: 11,
       marginTop: 4,
       opacity: 0.9,
     },
     warningBanner: {
-      backgroundColor: theme.accentLight ?? "rgba(255,193,7,0.2)",
+      backgroundColor: theme.colors.accentSoft ?? "rgba(255,193,7,0.2)",
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 8,
     },
     warningText: {
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontSize: 12,
     },
     loading: {
@@ -290,7 +290,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     loadingText: {
       fontSize: 13,
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     list: {
       gap: 12,
@@ -299,11 +299,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexDirection: "column",
       paddingVertical: 12,
       paddingHorizontal: 14,
-      backgroundColor: theme.cardBg,
+      backgroundColor: theme.colors.surface,
       borderRadius: 10,
       gap: 10,
       borderWidth: 1,
-      borderColor: theme.borderColor,
+      borderColor: theme.colors.border,
     },
     rowMain: {
       minWidth: 0,
@@ -319,7 +319,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 6,
       paddingHorizontal: 10,
       borderRadius: 6,
-      backgroundColor: theme.accentLight ?? "rgba(0,122,255,0.15)",
+      backgroundColor: theme.colors.accentSoft ?? "rgba(0,122,255,0.15)",
       borderWidth: 1,
       borderColor: theme.accent,
     },
@@ -341,7 +341,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 3,
       paddingHorizontal: 8,
       borderRadius: 6,
-      backgroundColor: theme.accentLight ?? "rgba(0,122,255,0.12)",
+      backgroundColor: theme.colors.accentSoft ?? "rgba(0,122,255,0.12)",
       borderWidth: 1,
       borderColor: theme.accent,
     },
@@ -354,7 +354,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     command: {
       fontSize: 13,
       lineHeight: 19,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
     },
     killButtonWrap: {
@@ -367,7 +367,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     emptyText: {
       fontSize: 14,
       fontWeight: "500",
-      color: theme.textMuted,
+      color: theme.colors.textSecondary,
     },
     refreshBtn: {
       alignSelf: "flex-start",
@@ -389,7 +389,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     logViewerSafe: {
       flex: 1,
-      backgroundColor: theme.beigeBg,
+      backgroundColor: theme.colors.background,
     },
     logViewerHeader: {
       flexDirection: "row",
@@ -398,12 +398,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 12,
       paddingHorizontal: 16,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
     },
     logViewerTitle: {
       fontSize: 16,
       fontWeight: "600",
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
       flex: 1,
     },
     logViewerScroll: {
@@ -416,7 +416,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logViewerText: {
       fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 11,
-      color: theme.textPrimary,
+      color: theme.colors.textPrimary,
     },
   });
 }

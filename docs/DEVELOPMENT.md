@@ -299,7 +299,7 @@ PORT=3457 npm start
 ### Naming Conventions
 
 - Components: PascalCase (`MessageBubble`)
-- Hooks: camelCase starting with `use` (`useSocket`)
+- Hooks: camelCase starting with `use` (`useSse`)
 - Interfaces: Prefix with `I` (`IServerConfig`)
 - Files: Match default export name
 
@@ -311,7 +311,7 @@ import React from "react";
 import { View } from "react-native";
 
 // Internal absolute imports
-import { useSocket } from "./services/socket/hooks";
+import { useSse } from "./services/sse/hooks";
 
 // Internal relative imports
 import { MessageBubble } from "../chat/MessageBubble";

@@ -1,10 +1,10 @@
 import React from "react";
-import type { PermissionDenial } from "../../services/socket/hooks";
-import { Button, ButtonText } from "../../../components/ui/button";
-import { Box } from "../../../components/ui/box";
-import { Text } from "../../../components/ui/text";
-import { VStack } from "../../../components/ui/vstack";
-import { HStack } from "../../../components/ui/hstack";
+import type { PermissionDenial } from "../../services/sse/hooks";
+import { Button, ButtonText } from "../ui/button";
+import { Box } from "../ui/box";
+import { Text } from "../ui/text";
+import { VStack } from "../ui/vstack";
+import { HStack } from "../ui/hstack";
 import { EntranceAnimation } from "../../design-system";
 interface PermissionDenialBannerProps {
   denials: PermissionDenial[];

@@ -1,7 +1,7 @@
 import React from "react";
-import { getTheme, type Provider as BrandProvider } from "../../src/theme/index";
-import { triggerHaptic } from "../../src/design-system";
-import { ClaudeIcon, GeminiIcon, CodexIcon } from "../../src/components/icons/ProviderIcons";
+import { getTheme, type Provider as BrandProvider } from "../../theme/index";
+import { triggerHaptic } from "../../design-system";
+import { ClaudeIcon, GeminiIcon, CodexIcon } from "../icons/ProviderIcons";
 import { Box } from "../ui/box";
 import { Text as GluestackText } from "../ui/text";
 import {

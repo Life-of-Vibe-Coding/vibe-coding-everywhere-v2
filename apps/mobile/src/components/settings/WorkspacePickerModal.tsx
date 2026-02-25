@@ -18,10 +18,10 @@ import {
   CloseIcon,
 } from "../icons/ChatActionIcons";
 import { FolderIcon } from "../icons/WorkspaceTreeIcons";
-import { Box } from "../../../components/ui/box";
-import { Button, ButtonText, ButtonIcon } from "../../../components/ui/button";
-import { Pressable } from "../../../components/ui/pressable";
-import { Text as GText } from "../../../components/ui/text";
+import { Box } from "../ui/box";
+import { Button, ButtonText, ButtonIcon } from "../ui/button";
+import { Pressable } from "../ui/pressable";
+import { Text as GText } from "../ui/text";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -525,7 +525,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.borderColor,
+      borderBottomColor: theme.colors.border,
       ...(Platform.OS === "ios"
         ? { shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2 }
         : { elevation: 2 }),
@@ -634,11 +634,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: 12,
       backgroundColor: theme.colors.surfaceAlt,
       borderLeftWidth: 3,
-      borderLeftColor: theme.accentLight,
+      borderLeftColor: theme.colors.accentSoft,
       minHeight: MIN_TOUCH_TARGET + 4,
     },
     pickerRowCurrent: {
-      backgroundColor: theme.accentLight,
+      backgroundColor: theme.colors.accentSoft,
       borderLeftColor: theme.accent,
     },
     pickerRowExpand: {
