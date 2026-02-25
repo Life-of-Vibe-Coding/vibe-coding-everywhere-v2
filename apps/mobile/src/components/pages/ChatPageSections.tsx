@@ -64,7 +64,7 @@ export type ChatConversationSectionProps = {
 
 export function ChatConversationSection({ styles, conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
   return (
-    <Box style={[styles.chatShell, {  }]}>
+    <Box style={styles.chatShell}>
       <ChatMessageList
         messages={conversation.messages}
         provider={conversation.provider}
@@ -79,11 +79,11 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
         flatListRef={conversation.flatListRef}
         onContentSizeChange={conversation.onContentSizeChange}
         style={styles.chatArea}
-        contentContainerStyle={styles.chatMessages}
+        contentContainerStyle={[styles.chatMessages, { paddingBottom: inputDockHeight + 16 }]}
       />
 
       <FileViewerPage
-        visible={fileViewer.selectedFilePath != null}
+        isOpen={fileViewer.selectedFilePath != null}
         style={styles.fileViewerOverlay}
         path={fileViewer.selectedFilePath ?? ""}
         content={fileViewer.fileContent}
@@ -95,7 +95,7 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
       />
 
       <WorkspaceSidebarPage
-        visible={sidebar.visible}
+        isOpen={sidebar.visible}
         style={styles.sidebarOverlay}
         pointerEvents={sidebar.visible ? "auto" : "none"}
         onClose={sidebar.onCloseSidebar}

@@ -36,7 +36,7 @@ export interface ApiProcess {
 }
 
 export interface ProcessesDashboardModalProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
   serverBaseUrl: string;
 }
@@ -61,7 +61,7 @@ function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
 }
 
 export function ProcessesDashboardModal({
-  visible,
+  isOpen,
   onClose,
   serverBaseUrl,
 }: ProcessesDashboardModalProps) {
@@ -116,8 +116,8 @@ export function ProcessesDashboardModal({
   }, [fetchProcesses]);
 
   useEffect(() => {
-    if (visible) load();
-  }, [visible, load]);
+    if (isOpen) load();
+  }, [isOpen, load]);
 
   const handleViewLog = useCallback(
     async (logPath: string) => {
@@ -168,11 +168,11 @@ export function ProcessesDashboardModal({
   const hasOther = apiProcesses.length > 0;
   const empty = !hasOther && !loading && !error;
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >

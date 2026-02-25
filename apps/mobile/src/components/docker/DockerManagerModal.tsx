@@ -51,7 +51,7 @@ export interface DockerVolume {
 }
 
 export interface DockerManagerModalProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
   serverBaseUrl: string;
 }
@@ -139,7 +139,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function DockerManagerModal({
-  visible,
+  isOpen,
   onClose,
   serverBaseUrl,
 }: DockerManagerModalProps) {
@@ -252,12 +252,12 @@ export function DockerManagerModal({
   );
 
   useEffect(() => {
-    if (visible && serverBaseUrl) {
+    if (isOpen && serverBaseUrl) {
       if (activeTab === "containers") load();
       else if (activeTab === "images") loadImages();
       else loadVolumes();
     }
-  }, [visible, serverBaseUrl, activeTab, showAll, load, loadImages, loadVolumes]);
+  }, [isOpen, serverBaseUrl, activeTab, showAll, load, loadImages, loadVolumes]);
 
   const handleAction = useCallback(
     async (id: string, op: "start" | "stop" | "restart" | "remove") => {
@@ -487,7 +487,7 @@ export function DockerManagerModal({
     return volumes.filter((v) => v.name.toLowerCase().includes(q) || (v.mountpoint ?? "").toLowerCase().includes(q));
   }, [volumes, volumeSearch]);
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   const tabColor = (t: DockerTab) =>
     activeTab === t
@@ -496,8 +496,8 @@ export function DockerManagerModal({
 
   return (
     <Modal
-      visible={visible}
-      onRequestClose={onClose}
+      isOpen={isOpen}
+      onClose={onClose}
       size="full"
     >
       <ModalBackdrop onPress={onClose} />
@@ -871,8 +871,8 @@ export function DockerManagerModal({
 
       {logsFor && (
         <Modal
-          visible={!!logsFor}
-          onRequestClose={closeLogs}
+          isOpen={!!logsFor}
+          onClose={closeLogs}
           size="full"
         >
           <ModalBackdrop onPress={closeLogs} />
@@ -990,7 +990,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textSecondary,
     },
     tabLabelActive: {
-      color: theme.accent ?? theme.colors.accent,
+      color: theme.colors.accent,
       fontWeight: "600",
     },
     contentArea: {
@@ -1039,7 +1039,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textSecondary,
     },
     filterChipTextActive: {
-      color: theme.accent ?? theme.colors.accent,
+      color: theme.colors.accent,
       fontWeight: "600",
     },
     errorBox: {

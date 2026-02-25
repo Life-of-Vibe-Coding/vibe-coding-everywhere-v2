@@ -7,7 +7,7 @@ import { triggerHaptic } from "@/design-system";
 import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
 import * as sessionStore from "@/services/sessionStore";
 import { useChat, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/chat/hooks";
-import type { BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/theme/index";
 
 export type SseSessionControllerProps = {
   provider: BrandProvider;

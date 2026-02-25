@@ -5,7 +5,7 @@ import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import { FileViewerModal } from "@/components/file/FileViewerModal";
 
 type FileViewerPageProps = {
-  visible: boolean;
+  isOpen: boolean;
   style?: StyleProp<ViewStyle>;
   path: string;
   content: string | null;
@@ -17,7 +17,7 @@ type FileViewerPageProps = {
 };
 
 export function FileViewerPage({
-  visible,
+  isOpen,
   style,
   path,
   content,
@@ -27,14 +27,14 @@ export function FileViewerPage({
   onClose,
   onAddCodeReference,
 }: FileViewerPageProps) {
-  if (!visible) {
+  if (!isOpen) {
     return null;
   }
 
   return (
     <Box style={style} pointerEvents="box-none">
       <FileViewerModal
-        visible
+        isOpen
         embedded
         path={path}
         content={content}

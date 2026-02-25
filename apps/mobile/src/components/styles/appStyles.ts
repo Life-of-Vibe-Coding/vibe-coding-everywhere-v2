@@ -10,7 +10,7 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
       left: 0,
       right: 0,
       height: 58,
-      backgroundColor: theme.colors.pageAccentTint,
+      backgroundColor: theme.colors.accentSoft,
     },
     safeArea: {
       flex: 1,
@@ -35,14 +35,12 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     contentArea: {
       flex: 1,
-      
       minHeight: 0,
       overflow: Platform.OS === "ios" ? "visible" : "hidden",
     },
     sidebarOverlay: {
       ...StyleSheet.absoluteFillObject,
       height: "100%",
-      
       zIndex: 5,
     },
     fileViewerOverlay: {
@@ -88,15 +86,18 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     chatShell: {
       flex: 1,
-      marginTop: 0
+      marginTop: 0,
     },
-
- 
+    chatArea: {
+      flex: 1,
+      minHeight: 0,
+    },
     chatMessages: {
       marginTop: 58,
       paddingHorizontal: spacing["3"],
-
-
+    },
+    inputBar: {
+      paddingBottom: 8,
     },
   });
 }

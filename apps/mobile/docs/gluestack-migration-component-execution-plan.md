@@ -37,14 +37,14 @@
 - [x] `preview/PreviewWebViewModal.tsx` -> switched to shared modal shell.
 - [~] `processes/ProcessesDashboardModal.tsx` -> switched to shared modal shell; reusable extraction pending.
 - [~] `processes/ProcessesDashboardSection.tsx` -> modal shell parity completed; reusable extraction pending.
-- [ ] `docker/DockerManagerModal.tsx` -> migrate tab/list sections to shared reusables.
+- [~] `docker/DockerManagerModal.tsx` -> modal shell + token alignment completed; reusable extraction pending.
 
 ### Batch 3: Medium-Risk Composition Components
-- [ ] `components/ChatMessageList.tsx`
+- [~] `components/ChatMessageList.tsx` (ref typing + dock spacing integration aligned; further extraction pending)
 - [ ] `components/AppHeaderBar.tsx`
 - [ ] `components/ModelPickerSheet.tsx`
 - [ ] `pages/ChatPageShell.tsx`
-- [ ] `pages/ChatPageSections.tsx`
+- [~] `pages/ChatPageSections.tsx` (prop/style contract alignment completed)
 - [ ] `pages/FileViewerPage.tsx`
 - [ ] `pages/WorkspaceSidebarPage.tsx`
 - [ ] `settings/WorkspacePickerModal.tsx`
@@ -75,31 +75,31 @@ Legend:
 | `common/PermissionDenialBanner.tsx` | medium | no | shared banner pattern | todo |
 | `components/AppHeaderBar.tsx` | medium | yes | shared header layout | todo |
 | `components/ChatInputDock.tsx` | n/a | no | composition only, verify no primitive drift | todo |
-| `components/ChatMessageList.tsx` | high | yes | list composition cleanup | todo |
+| `components/ChatMessageList.tsx` | high | yes | list composition cleanup | in_progress |
 | `components/ChatModalsSection.tsx` | n/a | no | composition only, verify routing | todo |
 | `components/ModelPickerSheet.tsx` | medium | no | actionsheet row normalization | todo |
-| `controllers/ChatActionController.tsx` | n/a | no | logic-only, no UI primitive migration | todo |
+| `controllers/ChatActionController.tsx` | n/a | no | logic-only, no UI primitive migration | in_progress |
 | `controllers/SessionSideEffectManager.tsx` | n/a | no | logic-only, no UI primitive migration | todo |
-| `controllers/SseSessionController.tsx` | n/a | yes | keep RN APIs, no primitive migration | todo |
+| `controllers/SseSessionController.tsx` | n/a | yes | keep RN APIs, no primitive migration | in_progress |
 | `controllers/ThemeSessionState.tsx` | n/a | no | logic-only, no UI primitive migration | todo |
-| `controllers/WorkspaceFileController.tsx` | n/a | no | logic-only, no UI primitive migration | todo |
-| `docker/DockerManagerModal.tsx` | high | yes | `ModalScaffold` + `TabBarPills` + `AsyncStateView` | todo |
+| `controllers/WorkspaceFileController.tsx` | n/a | no | logic-only, no UI primitive migration | in_progress |
+| `docker/DockerManagerModal.tsx` | high | yes | `ModalScaffold` + `TabBarPills` + `AsyncStateView` | in_progress |
 | `docker/DockerTabIcons.tsx` | n/a | no | icon set normalization only | todo |
 | `file/FileViewerModal.tsx` | high | yes | `ModalScaffold` + `MarkdownContent` | done |
 | `file/WorkspaceSidebar.tsx` | high | yes | section extraction + reusable rows/cards | in_progress |
-| `hooks/useChatModalsController.ts` | n/a | no | logic-only, no UI primitive migration | todo |
+| `hooks/useChatModalsController.ts` | n/a | no | logic-only, no UI primitive migration | in_progress |
 | `hooks/useSidebarState.ts` | n/a | no | logic-only, no UI primitive migration | todo |
 | `icons/ChatActionIcons.tsx` | n/a | no | keep svg package; normalize props | todo |
 | `icons/FileActivityIcons.tsx` | n/a | no | keep svg package; normalize props | todo |
 | `icons/HeaderIcons.tsx` | n/a | no | keep svg package; normalize props | todo |
 | `icons/ProviderIcons.tsx` | n/a | no | keep svg package; normalize props | todo |
 | `icons/WorkspaceTreeIcons.tsx` | n/a | no | keep svg package; normalize props | todo |
-| `pages/ChatPage.tsx` | n/a | yes | type-only RN usage; verify stable | todo |
-| `pages/ChatPageSections.tsx` | medium | yes | layout composition cleanup | todo |
+| `pages/ChatPage.tsx` | n/a | yes | type-only RN usage; verify stable | in_progress |
+| `pages/ChatPageSections.tsx` | medium | yes | layout composition cleanup | in_progress |
 | `pages/ChatPageShell.tsx` | medium | yes | shell normalization + safe-area consistency | todo |
 | `pages/FileViewerPage.tsx` | medium | yes | container simplification | todo |
 | `pages/WorkspaceSidebarPage.tsx` | medium | yes | container simplification | todo |
-| `pages/buildChatPageProps.ts` | n/a | no | logic-only, no UI primitive migration | todo |
+| `pages/buildChatPageProps.ts` | n/a | no | logic-only, no UI primitive migration | in_progress |
 | `preview/PreviewWebViewModal.tsx` | high | yes | `ModalScaffold` + `TabBarPills` | done |
 | `preview/UrlChoiceModal.tsx` | medium | no | keep as modal reference implementation | todo |
 | `processes/ProcessesDashboardModal.tsx` | high | yes | `ModalScaffold` + `AsyncStateView` | in_progress |
@@ -107,7 +107,7 @@ Legend:
 | `settings/SkillConfigurationModal.tsx` | medium | no | spacing/token normalization | done |
 | `settings/SkillDetailSheet.tsx` | medium | yes | `MarkdownContent` + modal scaffold parity | done |
 | `settings/WorkspacePickerModal.tsx` | medium | yes | modal/list card normalization | done |
-| `styles/appStyles.ts` | medium | yes | shrink/retire as reusable extraction lands | todo |
+| `styles/appStyles.ts` | medium | yes | shrink/retire as reusable extraction lands | in_progress |
 | `types/chatModalTypes.ts` | n/a | no | type-only, ensure compatibility | todo |
 
 ## Definition of Done (per migrated component)

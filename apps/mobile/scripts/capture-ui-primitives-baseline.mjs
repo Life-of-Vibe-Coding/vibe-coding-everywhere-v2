@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { RESTRICTED_PRIMITIVES, shouldScan } from './ui-primitives-policy.mjs';
+import { parseReactNativeImports } from './ui-primitives-imports.mjs';
 
 const repoRoot = process.cwd();
 const mobileRoot = fs.existsSync(path.join(repoRoot, "App.tsx")) ? repoRoot : path.join(repoRoot, "apps/mobile");
@@ -18,23 +19,6 @@ function walk(dir) {
   return out;
 }
 
-function parseRestrictedImports(content) {
-  const importRegex = /import\s+\{([^}]+)\}\s+from\s+['\"]react-native['\"]/g;
-  const found = [];
-  let match;
-  while ((match = importRegex.exec(content))) {
-    const names = match[1]
-      .split(',')
-      .map((s) => s.trim())
-      .map((s) => s.split(/\s+as\s+/)[0]?.trim())
-      .filter(Boolean);
-    for (const name of names) {
-      if (RESTRICTED_PRIMITIVES.includes(name)) found.push(name);
-    }
-  }
-  return found;
-}
-
 const files = walk(srcRoot)
   .map((file) => path.relative(mobileRoot, file).replace(/\\/g, '/'))
   .filter(shouldScan)
@@ -44,7 +28,7 @@ const entries = {};
 for (const rel of files) {
   const abs = path.join(mobileRoot, rel);
   const content = fs.readFileSync(abs, 'utf8');
-  const restricted = parseRestrictedImports(content);
+  const { restricted } = parseReactNativeImports(content);
   if (restricted.length > 0) {
     const counts = {};
     for (const p of restricted) counts[p] = (counts[p] || 0) + 1;

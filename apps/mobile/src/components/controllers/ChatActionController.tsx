@@ -5,13 +5,14 @@ import { getSubmitPermissionConfig } from "@/features/app/appConfig";
 import type { PermissionModeUI } from "@/utils/permission";
 import { type Message, useChat } from "@/services/chat/hooks";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
-import type { BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/theme/index";
 
 type SseApi = ReturnType<typeof useChat>;
 
 export type ChatActionControllerProps = {
   provider: BrandProvider;
   permissionModeUI: PermissionModeUI;
+  sessionId?: string | null;
   messages: Message[];
   submitPrompt: SseApi["submitPrompt"];
   submitAskQuestionAnswer: SseApi["submitAskQuestionAnswer"];
@@ -41,6 +42,7 @@ export type ChatActionControllerState = {
 export function ChatActionController({
   provider,
   permissionModeUI,
+  sessionId: _sessionId,
   messages,
   submitPrompt,
   submitAskQuestionAnswer,

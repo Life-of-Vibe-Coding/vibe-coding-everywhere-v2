@@ -22,6 +22,20 @@ export const RESTRICTED_PRIMITIVES = [
   'Alert',
 ];
 
+export const APPROVED_REACT_NATIVE_NON_PRIMITIVES = [
+  'AccessibilityInfo',
+  'Animated',
+  'Dimensions',
+  'InteractionManager',
+  'Keyboard',
+  'LayoutAnimation',
+  'Linking',
+  'Platform',
+  'StyleSheet',
+  'UIManager',
+  'useWindowDimensions',
+];
+
 export const ALLOWLIST_DIRS = [
   'src/components/ui/',
   'src/components/ui/_migration/',

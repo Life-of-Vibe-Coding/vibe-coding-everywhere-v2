@@ -31,7 +31,7 @@ import {
 type WorkspaceChild = { name: string; path: string };
 
 export interface WorkspacePickerModalProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
   serverBaseUrl: string;
   workspacePath: string | null;
@@ -41,7 +41,7 @@ export interface WorkspacePickerModalProps {
 }
 
 export function WorkspacePickerModal({
-  visible,
+  isOpen,
   onClose,
   serverBaseUrl,
   workspacePath,
@@ -181,9 +181,9 @@ export function WorkspacePickerModal({
       parentOfBrowseRoot.startsWith(allowedNorm + "/"));
   const canGoBack = currentPath !== "" || canGoUpFromRoot;
 
-  // Fetch workspace-path and roots when modal becomes visible
+  // Fetch workspace-path and roots when modal opens
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       setPickerError(null);
       fetch(`${serverBaseUrl}/api/workspace-path`)
         .then((res) => res.json())
@@ -203,11 +203,11 @@ export function WorkspacePickerModal({
           setBrowseRoot("");
         });
     }
-  }, [visible, serverBaseUrl, workspacePath]);
+  }, [isOpen, serverBaseUrl, workspacePath]);
 
   // Load root children when picker opens; preload path to current workspace for faster drill-down
   useEffect(() => {
-    if (!visible || !pickerRoot) return;
+    if (!isOpen || !pickerRoot) return;
 
     const loadInitial = async () => {
       setPickerError(null);
@@ -250,7 +250,7 @@ export function WorkspacePickerModal({
     };
 
     loadInitial();
-  }, [visible, pickerRoot, serverBaseUrl, workspacePath, fetchPickerChildren]);
+  }, [isOpen, pickerRoot, serverBaseUrl, workspacePath, fetchPickerChildren]);
 
   // Fallback: when at root and children for current folder were not loaded (e.g. initial load failed or raced), load them
   const loadRootChildren = useCallback(async () => {
@@ -280,7 +280,7 @@ export function WorkspacePickerModal({
 
   useEffect(() => {
     if (
-      !visible ||
+      !isOpen ||
       !pickerRoot ||
       currentPath !== "" ||
       loadingPaths.has("")
@@ -288,18 +288,18 @@ export function WorkspacePickerModal({
     if (treeCache[""] === undefined) {
       loadRootChildren();
     }
-  }, [visible, pickerRoot, currentPath, treeCache, loadingPaths, loadRootChildren]);
+  }, [isOpen, pickerRoot, currentPath, treeCache, loadingPaths, loadRootChildren]);
 
   // Reset state when closing
   useEffect(() => {
-    if (!visible) {
+    if (!isOpen) {
       setTreeCache({});
       setCurrentPath("");
       setBrowseRoot("");
       setLoadingPaths(new Set());
       currentWorkspaceRowY.current = null;
     }
-  }, [visible]);
+  }, [isOpen]);
 
   const handleCurrentWorkspaceLayout = useCallback((e: LayoutChangeEvent) => {
     const { layout } = e.nativeEvent;
@@ -396,11 +396,11 @@ export function WorkspacePickerModal({
     ]
   );
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >

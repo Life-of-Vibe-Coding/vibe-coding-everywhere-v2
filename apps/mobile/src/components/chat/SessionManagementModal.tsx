@@ -127,7 +127,7 @@ function groupSessionsByWorkspace(
 }
 
 export interface SessionManagementModalProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
   /** Current session id if we're viewing a persisted session. */
   currentSessionId: string | null;
@@ -167,7 +167,7 @@ function formatDate(ts: number): string {
 }
 
 export function SessionManagementModal({
-  visible,
+  isOpen,
   onClose,
   currentSessionId,
   workspacePath,
@@ -210,7 +210,7 @@ export function SessionManagementModal({
 
   // Expand current workspace and any section containing current session on first load
   useEffect(() => {
-    if (!visible || sections.length === 0) return;
+    if (!isOpen || sections.length === 0) return;
     setExpandedWorkspaces((prev) => {
       const next = new Set(prev);
       const currentCwd = (workspacePath ?? "").trim();
@@ -221,10 +221,10 @@ export function SessionManagementModal({
       if (sectionWithCurrent) next.add(sectionWithCurrent.title);
       return next.size > prev.size ? next : prev;
     });
-  }, [visible, sections, workspacePath, currentSessionId]);
+  }, [isOpen, sections, workspacePath, currentSessionId]);
 
   useEffect(() => {
-    if (!visible) {
+    if (!isOpen) {
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
@@ -232,16 +232,16 @@ export function SessionManagementModal({
       setSelectError(null);
       setListError(null);
     }
-  }, [visible]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (visible && serverBaseUrl) {
+    if (isOpen && serverBaseUrl) {
       fetch(`${serverBaseUrl}/api/workspace-path`)
         .then((res) => res.json())
         .then((data) => setAllowedRoot(data?.allowedRoot ?? null))
         .catch(() => setAllowedRoot(null));
     }
-  }, [visible, serverBaseUrl]);
+  }, [isOpen, serverBaseUrl]);
 
   const currentRelativePath =
     allowedRoot && workspacePath ? getRelativePath(workspacePath, allowedRoot) : "";
@@ -260,13 +260,13 @@ export function SessionManagementModal({
   }, [setLoading, setRefreshing, setListError]);
 
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       setLoading(sessions.length === 0);
     } else {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [visible, sessions.length]);
+  }, [isOpen, sessions.length]);
 
   const handleSelect = useCallback(
     (session: ApiSession) => {
@@ -407,11 +407,11 @@ export function SessionManagementModal({
     [serverBaseUrl, currentSessionId, sections, onNewSession, setSessionStatuses, sessions, workspacePath]
   );
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >

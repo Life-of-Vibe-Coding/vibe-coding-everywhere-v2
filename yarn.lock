@@ -6770,9 +6770,10 @@ mkdirp@^1.0.4:
     "@expo/html-elements" "^0.12.5"
     "@gluestack-ui/core" "^3.0.12"
     "@gluestack-ui/utils" "^3.0.15"
-    "@gorhom/bottom-sheet" "^5.2.8"
-    "@legendapp/motion" "^2.5.3"
+    "@gorhom/bottom-sheet" "^5.0.0-alpha.11"
+    "@legendapp/motion" "^2.4.0"
     "@react-native-async-storage/async-storage" "2.2.0"
+    class-variance-authority "^0.7.1"
     clsx "^2.1.1"
     expo "~54.0.33"
     expo-build-properties "~1.0.10"
@@ -6793,15 +6794,16 @@ mkdirp@^1.0.4:
     react-native-code-highlighter "^1.3.0"
     react-native-markdown-display "^7.0.2"
     react-native-reanimated "^4.2.2"
-    react-native-safe-area-context "^5.7.0"
+    react-native-safe-area-context "^5.6.1"
     react-native-sse "^1.2.1"
-    react-native-svg "^15.15.3"
+    react-native-svg "^15.12.0"
     react-native-web "^0.21.0"
     react-native-webview "13.15.0"
     react-native-worklets "^0.7.0"
     react-syntax-highlighter "^15.6.1"
     tailwind-merge "^3.5.0"
     tailwindcss "^4.2.0"
+    tailwindcss-animate "^1.0.7"
     uniwind "^1.3.2"
     zustand "^5.0.3"
 
@@ -6844,7 +6846,7 @@ nanoid@^3.3.1, nanoid@^3.3.7:
   resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.3.11.tgz"
   integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
 
-nativewind@^4.2.2, nativewind@>=4.0.0:
+nativewind@>=4.0.0:
   version "4.2.2"
   resolved "https://registry.npmjs.org/nativewind/-/nativewind-4.2.2.tgz"
   integrity sha512-kUGbUamKUWdnAIjfBuhIrtDHFtMyL1pEE3AEbCuKeg656pHuB0KtJRk6Lrie/+8haj8hCSlwOleQFJLrE1sZgA==

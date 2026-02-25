@@ -107,7 +107,7 @@ export type CodeRefPayload = {
 };
 
 interface FileViewerModalProps {
-  visible: boolean;
+  isOpen: boolean;
   /** When true, render as content only (no Modal). Parent must place in a container that does not cover the app footer. */
   embedded?: boolean;
   path: string | null;
@@ -127,7 +127,7 @@ const codeBaseStyle: TextStyle = {
 };
 
 export function FileViewerModal({
-  visible,
+  isOpen,
   embedded,
   path,
   content,
@@ -180,7 +180,7 @@ export function FileViewerModal({
     }),
     [theme]
   );
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   const isDiffMode = path?.startsWith("__diff__:");
   const realPath = isDiffMode ? path!.replace(/^__diff__:(staged|unstaged):/, "") : path;
@@ -197,11 +197,11 @@ export function FileViewerModal({
     if (imageUri) setImageScale(1);
   }, [imageUri]);
   useEffect(() => {
-    if (!visible) {
+    if (!isOpen) {
       setSelectionStart(null);
       setSelectionEnd(null);
     }
-  }, [visible]);
+  }, [isOpen]);
 
   const zoomIn = useCallback(() => {
     setImageScale((s) => Math.min(s + 0.5, 4));

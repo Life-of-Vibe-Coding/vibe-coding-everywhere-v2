@@ -19,7 +19,7 @@ function truncateUrl(url: string, maxLen: number = URL_PREVIEW_MAX_LEN): string 
 }
 
 interface UrlChoiceModalProps {
-  visible: boolean;
+  isOpen: boolean;
   title: string;
   description: string;
   originalUrl: string;
@@ -34,7 +34,7 @@ interface UrlChoiceModalProps {
  * Follows UI/UX Pro Max: 44px touch targets, WCAG contrast, clear hierarchy, accessibility.
  */
 export function UrlChoiceModal({
-  visible,
+  isOpen,
   title,
   description,
   originalUrl,
@@ -49,11 +49,11 @@ export function UrlChoiceModal({
     [theme.colors.overlay]
   );
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onCancel}
       size="sm"
     >

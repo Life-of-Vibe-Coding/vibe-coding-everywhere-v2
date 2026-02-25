@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import type { IWorkspaceFileService } from "@/core/types";
 
 type ServerConfig = {
   getBaseUrl: () => string;
-};
-
-type WorkspaceFileService = {
-  fetchFile: (path: string) => Promise<{ content: string; isImage: boolean }>;
 };
 
 type UseFileViewerReturn = {
@@ -22,7 +19,7 @@ export function useFileViewer({
   workspaceFileService,
   serverConfig,
 }: {
-  workspaceFileService: WorkspaceFileService;
+  workspaceFileService: IWorkspaceFileService;
   serverConfig: ServerConfig;
 }): UseFileViewerReturn {
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);

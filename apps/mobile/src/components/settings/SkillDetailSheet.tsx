@@ -22,7 +22,7 @@ import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
 
 export interface SkillDetailSheetProps {
-  visible: boolean;
+  isOpen: boolean;
   skillId: string | null;
   serverBaseUrl: string;
   onClose: () => void;
@@ -41,7 +41,7 @@ type SkillDetail = {
 };
 
 export function SkillDetailSheet({
-  visible,
+  isOpen,
   skillId,
   serverBaseUrl,
   onClose,
@@ -219,7 +219,7 @@ export function SkillDetailSheet({
   );
 
   useEffect(() => {
-    if (!visible || !skillId || !serverBaseUrl) {
+    if (!isOpen || !skillId || !serverBaseUrl) {
       setDetail(null);
       setError(null);
       setExpandedPaths(new Set());
@@ -248,7 +248,7 @@ export function SkillDetailSheet({
         setError(err?.message ?? "Failed to load skill");
       })
       .finally(() => setLoading(false));
-  }, [visible, skillId, serverBaseUrl]);
+  }, [isOpen, skillId, serverBaseUrl]);
 
   const handleRetry = useCallback(() => {
     if (!skillId || !serverBaseUrl) return;
@@ -272,9 +272,9 @@ export function SkillDetailSheet({
         setError(err?.message ?? "Failed to load skill");
       })
       .finally(() => setLoading(false));
-  }, [visible, skillId, serverBaseUrl]);
+  }, [isOpen, skillId, serverBaseUrl]);
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   // When embedded, parent (SkillConfigurationModal) already applies safe insets—avoid doubling.
   const safeStyle = embedded
@@ -374,7 +374,7 @@ export function SkillDetailSheet({
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >

@@ -53,7 +53,7 @@ export function ChatModalsSection({
     <>
       {children(openHandlers)}
       <WorkspacePickerModal
-        visible={modalStates.workspacePicker.isOpen}
+        isOpen={modalStates.workspacePicker.isOpen}
         onClose={modalStates.workspacePicker.close}
         serverBaseUrl={modals.modelPicker.currentServerUrl}
         workspacePath={modals.workspacePicker.workspacePath}
@@ -61,7 +61,7 @@ export function ChatModalsSection({
         onWorkspaceSelected={handleWorkspaceSelected}
       />
       <SessionManagementModal
-        visible={modalStates.sessionManagement.isOpen}
+        isOpen={modalStates.sessionManagement.isOpen}
         onClose={modalStates.sessionManagement.close}
         currentSessionId={modals.sessionManagement.currentSessionId}
         workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
@@ -75,15 +75,15 @@ export function ChatModalsSection({
         onSelectActiveChat={handleSelectActiveChat}
       />
       <SkillConfigurationModal
-        visible={modalStates.skillsConfig.isOpen}
+        isOpen={modalStates.skillsConfig.isOpen}
         onClose={closeSkillsConfig}
         onSelectSkill={handleSelectSkill}
         selectedSkillId={selectedSkillId}
         onCloseSkillDetail={closeSkillDetail}
         serverBaseUrl={modals.skills.serverBaseUrl}
       />
-      <ProcessesDashboardModal visible={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
-      <DockerManagerModal visible={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
+      <ProcessesDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
+      <DockerManagerModal isOpen={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
       <ModelPickerSheet
         isOpen={modalStates.modelPicker.isOpen}
         onClose={modalStates.modelPicker.close}
@@ -101,7 +101,7 @@ export function ChatModalsSection({
         onCancel={modals.askQuestion.onCancelAskQuestion}
       />
       <PreviewWebViewModal
-        visible={modals.preview.previewVisible}
+        isOpen={modals.preview.previewVisible}
         url={modals.preview.previewUrl}
         title="Preview"
         onClose={modals.preview.onClosePreview}

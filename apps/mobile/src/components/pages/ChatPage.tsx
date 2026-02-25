@@ -1,7 +1,7 @@
 import React from "react";
 import type { FlatList } from "react-native";
 import type { PermissionModeUI } from "@/utils/permission";
-import type { BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/theme/index";
 import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/chat/hooks";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import type { createAppStyles } from "@/components/styles/appStyles";
@@ -64,7 +64,7 @@ export type ChatPageConversation = {
   permissionDenials: PermissionDenial[];
   lastSessionTerminated: boolean;
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<FlatList<Message>>;
+  flatListRef: React.RefObject<FlatList<Message> | null>;
   onContentSizeChange: () => void;
   onOpenUrl: (url: string) => void;
   onFileSelect: (path: string) => void;

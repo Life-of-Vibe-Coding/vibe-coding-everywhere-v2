@@ -222,7 +222,6 @@ export function InputPanel({
               multiline
               scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
               showsVerticalScrollIndicator={false}
-              overScrollMode="never"
               style={{
                 color: theme.colors.textPrimary,
                 maxHeight: MAX_INPUT_HEIGHT,

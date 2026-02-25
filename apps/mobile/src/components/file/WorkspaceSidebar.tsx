@@ -110,7 +110,7 @@ export type GitContextForAI = {
 };
 
 interface WorkspaceSidebarProps {
-  visible: boolean;
+  isOpen: boolean;
   embedded?: boolean;
   onClose: () => void;
   onFileSelect?: (path: string) => void;
@@ -136,7 +136,7 @@ function truncatePathMiddle(path: string, maxChars: number = PATH_MAX_CHARS): st
   return `${start}${ellipsis}${file}`;
 }
 
-export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onCommitByAI, onActiveTabChange }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCommitByAI, onActiveTabChange }: WorkspaceSidebarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -249,27 +249,27 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   }, [baseUrl]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!isOpen) return;
     setLoading(true);
     fetchConfig();
     fetchTree();
-  }, [visible, fetchConfig, fetchTree]);
+  }, [isOpen, fetchConfig, fetchTree]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!isOpen) return;
     if (activeTab === "commits") fetchCommits();
     else if (activeTab === "changes") fetchStatus();
-  }, [visible, activeTab, fetchCommits, fetchStatus]);
+  }, [isOpen, activeTab, fetchCommits, fetchStatus]);
 
   useEffect(() => {
-    if (visible) onActiveTabChange?.(activeTab);
-  }, [visible, activeTab, onActiveTabChange]);
+    if (isOpen) onActiveTabChange?.(activeTab);
+  }, [isOpen, activeTab, onActiveTabChange]);
 
   useEffect(() => {
-    if (!visible || refreshIntervalMs <= 0 || activeTab !== "files") return;
+    if (!isOpen || refreshIntervalMs <= 0 || activeTab !== "files") return;
     const timer = setInterval(fetchTree, refreshIntervalMs);
     return () => clearInterval(timer);
-  }, [visible, activeTab, refreshIntervalMs, fetchTree]);
+  }, [isOpen, activeTab, refreshIntervalMs, fetchTree]);
 
   // Actions
   const handleStageFile = async (file: string) => {
@@ -840,13 +840,13 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   );
 
   if (embedded) {
-    if (!visible) return null;
+    if (!isOpen) return null;
     return overlayContent;
   }
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >

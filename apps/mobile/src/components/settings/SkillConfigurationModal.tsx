@@ -13,7 +13,7 @@ import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
 
 export interface SkillConfigurationModalProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
   /** Called when user taps a skill to view details. */
   onSelectSkill?: (skillId: string) => void;
@@ -26,7 +26,7 @@ export interface SkillConfigurationModalProps {
 }
 
 export function SkillConfigurationModal({
-  visible,
+  isOpen,
   onClose,
   onSelectSkill,
   selectedSkillId = null,
@@ -43,7 +43,7 @@ export function SkillConfigurationModal({
   const [skillsError, setSkillsError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (visible && serverBaseUrl) {
+    if (isOpen && serverBaseUrl) {
       setSkillsLoading(true);
       setSkillsError(null);
       Promise.all([
@@ -72,7 +72,7 @@ export function SkillConfigurationModal({
         })
         .finally(() => setSkillsLoading(false));
     }
-  }, [visible, serverBaseUrl]);
+  }, [isOpen, serverBaseUrl]);
 
   const handleSkillToggle = useCallback(
     (skillId: string, enabled: boolean) => {
@@ -101,7 +101,7 @@ export function SkillConfigurationModal({
     [onSelectSkill]
   );
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   const safeStyle = {
     paddingTop: Math.max(insets.top, 8),
@@ -112,7 +112,7 @@ export function SkillConfigurationModal({
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
     >
       <Box className="flex-1 bg-background-0 overflow-hidden">
@@ -120,7 +120,7 @@ export function SkillConfigurationModal({
           <Box className="flex-1" style={safeStyle}>
             <SkillDetailSheet
               embedded
-              visible
+              isOpen
               skillId={selectedSkillId!}
               serverBaseUrl={serverBaseUrl}
               onClose={onCloseSkillDetail ?? (() => {})}

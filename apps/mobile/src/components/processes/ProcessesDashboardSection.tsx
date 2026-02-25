@@ -25,7 +25,7 @@ import type { ApiProcess } from "@/components/processes/ProcessesDashboardModal"
 
 export interface ProcessesDashboardSectionProps {
   serverBaseUrl: string;
-  visible?: boolean;
+  isOpen?: boolean;
 }
 
 function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
@@ -49,7 +49,7 @@ function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
 
 export function ProcessesDashboardSection({
   serverBaseUrl,
-  visible = true,
+  isOpen = true,
 }: ProcessesDashboardSectionProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -101,8 +101,8 @@ export function ProcessesDashboardSection({
   }, [fetchProcesses]);
 
   useEffect(() => {
-    if (visible) load();
-  }, [visible, load]);
+    if (isOpen) load();
+  }, [isOpen, load]);
 
   const handleViewLog = useCallback(
     async (logPath: string) => {
@@ -153,7 +153,7 @@ export function ProcessesDashboardSection({
   const hasOther = apiProcesses.length > 0;
   const empty = !hasOther && !loading && !error;
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   return (
     <Box style={styles.section} className="gap-2.5">

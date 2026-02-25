@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import { triggerHaptic } from "@/design-system";
 import { createWorkspaceFileService } from "@/core";
+import type { IServerConfig } from "@/core/types";
 import { useFileViewer } from "@/features/app/useFileViewer";
 import {
   basename,
@@ -12,9 +13,7 @@ import {
 } from "@/utils/path";
 
 export type WorkspaceFileControllerProps = {
-  serverConfig: {
-    getBaseUrl: () => string;
-  };
+  serverConfig: Pick<IServerConfig, "getBaseUrl" | "resolvePreviewUrl">;
   onWorkspaceSelectedFromPicker?: (path?: string) => void;
   children: (state: WorkspaceFileControllerState) => React.ReactNode;
 };

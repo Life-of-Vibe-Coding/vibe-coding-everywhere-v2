@@ -4,7 +4,7 @@ import { Box } from "@/components/ui/box";
 import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
 
 type WorkspaceSidebarPageProps = {
-  visible: boolean;
+  isOpen: boolean;
   style?: StyleProp<ViewStyle>;
   pointerEvents?: "auto" | "none" | "box-none" | "box-only";
   onClose: () => void;
@@ -14,7 +14,7 @@ type WorkspaceSidebarPageProps = {
 };
 
 export function WorkspaceSidebarPage({
-  visible,
+  isOpen,
   style,
   pointerEvents,
   onClose,
@@ -25,7 +25,7 @@ export function WorkspaceSidebarPage({
   return (
     <Box style={style} pointerEvents={pointerEvents ?? "none"}>
       <WorkspaceSidebar
-        visible={visible}
+        isOpen={isOpen}
         embedded
         onClose={onClose}
         onFileSelect={onFileSelect}

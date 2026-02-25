@@ -27,7 +27,7 @@ describe('preview/UrlChoiceModal', () => {
 
     const { getByText, getByLabelText } = render(
       <UrlChoiceModal
-        visible
+        isOpen
         title="Choose URL"
         description="Pick one"
         originalUrl="http://localhost:3000"

@@ -58,7 +58,7 @@ function stripPreviewParam(href: string): string {
 }
 
 interface PreviewWebViewModalProps {
-  visible: boolean;
+  isOpen: boolean;
   url: string;
   title?: string;
   onClose: () => void;
@@ -73,7 +73,7 @@ interface TabState {
 }
 
 export function PreviewWebViewModal({
-  visible,
+  isOpen,
   url,
   title = "Preview",
   onClose,
@@ -98,9 +98,9 @@ export function PreviewWebViewModal({
 
   // Auto full screen only when phone is rotated to landscape (90°); portrait shows toolbar
   useEffect(() => {
-    if (!visible) return;
+    if (!isOpen) return;
     setIsFullScreen(isLandscape);
-  }, [visible, isLandscape]);
+  }, [isOpen, isLandscape]);
 
   const currentTab = tabs[activeIndex] ?? null;
   const currentUrl = currentTab?.url ?? "";
@@ -152,7 +152,7 @@ export function PreviewWebViewModal({
   };
 
   useEffect(() => {
-    if (!visible) {
+    if (!isOpen) {
       initializedRef.current = false;
       lastInitUrlRef.current = "";
       setIsFullScreen(false);
@@ -224,16 +224,16 @@ export function PreviewWebViewModal({
         }
       })();
     }
-  }, [visible, url, resolvePreviewUrl]);
+  }, [isOpen, url, resolvePreviewUrl]);
 
   useEffect(() => {
-    if (!visible || tabs.length === 0) return;
+    if (!isOpen || tabs.length === 0) return;
     const payload = {
       tabs: tabs.map((t) => ({ id: t.id, url: t.url })),
       activeIndex,
     };
     AsyncStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(payload)).catch(() => {});
-  }, [visible, tabs, activeIndex]);
+  }, [isOpen, tabs, activeIndex]);
 
   const handleGo = () => {
     Keyboard.dismiss();
@@ -303,13 +303,13 @@ export function PreviewWebViewModal({
     setError(null);
   };
 
-  if (!visible) return null;
+  if (!isOpen) return null;
 
   const resolvedUrl = currentUrl || "";
 
   return (
     <Modal
-      isOpen={visible}
+      isOpen={isOpen}
       onClose={onClose}
       size="full"
     >
@@ -511,7 +511,7 @@ export function PreviewWebViewModal({
       </Box>
 
       <UrlChoiceModal
-        visible={urlChoiceVisible}
+        isOpen={urlChoiceVisible}
         title="Localhost URL"
         description="This URL uses localhost/127.0.0.1. On this device you may not be able to reach it."
         originalUrl={pendingUrlChoice.current?.normalized ?? ""}

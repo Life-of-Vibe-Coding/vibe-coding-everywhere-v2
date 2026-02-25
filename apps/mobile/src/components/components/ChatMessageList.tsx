@@ -5,7 +5,7 @@ import type { PermissionDenial, Message } from "@/services/chat/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
 import { PermissionDenialBanner } from "@/components/common/PermissionDenialBanner";
-import type { BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/theme/index";
 
 type ChatMessageListProps = {
   messages: Message[];
@@ -18,7 +18,7 @@ type ChatMessageListProps = {
   onRetryPermission: () => void;
   onDismissPermission: () => void;
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<RNFlatList<Message>>;
+  flatListRef: React.RefObject<RNFlatList<Message> | null>;
   onContentSizeChange: () => void;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;

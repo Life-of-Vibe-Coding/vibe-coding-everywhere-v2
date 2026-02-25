@@ -13,8 +13,8 @@ jest.mock('@/components/ui/modal', () => {
   const React = require('react');
   const { View } = require('react-native');
   return {
-    Modal: ({ isOpen, visible, children }: { isOpen?: boolean; visible?: boolean; children: React.ReactNode }) =>
-      isOpen ?? visible ? <View>{children}</View> : null,
+    Modal: ({ isOpen, children }: { isOpen?: boolean; children: React.ReactNode }) =>
+      isOpen ? <View>{children}</View> : null,
   };
 });
 
@@ -70,7 +70,7 @@ describe('settings/SkillConfigurationModal', () => {
 
     const { getByText } = render(
       <SkillConfigurationModal
-        visible
+        isOpen
         onClose={jest.fn()}
         serverBaseUrl="http://localhost:3456"
       />
