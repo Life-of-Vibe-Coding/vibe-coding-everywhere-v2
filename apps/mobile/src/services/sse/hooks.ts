@@ -4,7 +4,7 @@
  * This hook manages:
  * - SSE EventSource connection lifecycle
  * - Chat message state
- * - AI session state (running, waiting for input)
+ * - Session state (idle, running, waiting)
  * - Permission handling
  */
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -58,6 +58,8 @@ export interface UseSseOptions {
   status?: boolean;
 }
 
+type SessionRuntimeState = "idle" | "running" | "waiting";
+
 export function useSse(options: UseSseOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();
   const serverUrl = serverConfig.getBaseUrl();
@@ -72,10 +74,10 @@ export function useSse(options: UseSseOptions = {}) {
   const [liveSessionMessages, setLiveSessionMessages] = useState<Message[]>([]);
   const [viewingLiveSession, setViewingLiveSession] = useState(true);
 
-  const [agentRunning, setAgentRunning] = useState(false);
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [typingIndicator, setTypingIndicator] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<string | null>(null);
+  const [sessionState, setSessionState] = useState<SessionRuntimeState>("idle");
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionInitLoading, setSessionInitLoading] = useState(false);
@@ -113,7 +115,7 @@ export function useSse(options: UseSseOptions = {}) {
     messages: Message[];
     outputBuffer: string;
     currentAssistantContent: string;
-    agentRunning: boolean;
+    sessionState: SessionRuntimeState;
     typingIndicator: boolean;
     waitingForUserInput: boolean;
     currentActivity: string | null;
@@ -130,7 +132,7 @@ export function useSse(options: UseSseOptions = {}) {
         messages: [],
         outputBuffer: "",
         currentAssistantContent: "",
-        agentRunning: false,
+        sessionState: "idle",
         typingIndicator: false,
         waitingForUserInput: false,
         currentActivity: null,
@@ -141,6 +143,17 @@ export function useSse(options: UseSseOptions = {}) {
     }
     return s;
   }, []);
+  const setSessionStateForSession = useCallback((sid: string | null, next: SessionRuntimeState) => {
+    if (!sid) {
+      setSessionState(next);
+      return;
+    }
+    const state = getOrCreateSessionState(sid);
+    state.sessionState = next;
+    if (displayedSessionIdRef.current === sid) {
+      setSessionState(next);
+    }
+  }, [getOrCreateSessionState]);
   const nextIdRef = useRef(0);
   const workspaceRootRef = useRef<string | null>(null);
   const toolUseByIdRef = useRef<Map<string, { tool_name: string; tool_input?: Record<string, unknown> }>>(new Map());
@@ -167,7 +180,7 @@ export function useSse(options: UseSseOptions = {}) {
     }
     if (s) {
       setLiveSessionMessages(s.messages);
-      setAgentRunning(s.agentRunning);
+      setSessionState(s.sessionState);
       setTypingIndicator(s.typingIndicator);
       setWaitingForUserInput(s.waitingForUserInput);
       setCurrentActivity(s.currentActivity);
@@ -186,7 +199,7 @@ export function useSse(options: UseSseOptions = {}) {
         setLiveSessionMessages([]);
         liveMessagesRef.current = [];
       }
-      setAgentRunning(false);
+      setSessionState("idle");
       setTypingIndicator(false);
       setWaitingForUserInput(false);
       setCurrentActivity(null);
@@ -215,7 +228,7 @@ export function useSse(options: UseSseOptions = {}) {
       }
       source.close();
       if (displayedSessionIdRef.current === id) {
-        setAgentRunning(false);
+        setSessionStateForSession(id, "idle");
         setTypingIndicator(false);
         setWaitingForUserInput(false);
         setCurrentActivity(null);
@@ -229,7 +242,7 @@ export function useSse(options: UseSseOptions = {}) {
       }
       setConnected(false);
     },
-    [setAgentRunning, setCurrentActivity, setTypingIndicator, setWaitingForUserInput]
+    [setCurrentActivity, setSessionStateForSession, setTypingIndicator, setWaitingForUserInput]
   );
 
   /** Deduplicate message IDs; bump nextIdRef for any reassignments. */
@@ -273,9 +286,11 @@ export function useSse(options: UseSseOptions = {}) {
           state.messages = [...state.messages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }];
         }
         state.typingIndicator = true;
+        state.sessionState = "running";
         if (displayedSessionIdRef.current === sidRef.current) {
           setLiveSessionMessages([...state.messages]);
           setTypingIndicator(true);
+          setSessionState("running");
           liveMessagesRef.current = state.messages;
           currentAssistantContentRef.current = next;
         }
@@ -299,9 +314,11 @@ export function useSse(options: UseSseOptions = {}) {
         }
         state.currentAssistantContent = "";
         state.typingIndicator = false;
+        state.sessionState = "idle";
         if (displayedSessionIdRef.current === sidRef.current) {
           setLiveSessionMessages([...state.messages]);
           setTypingIndicator(false);
+          setSessionState("idle");
           currentAssistantContentRef.current = "";
           liveMessagesRef.current = state.messages;
         }
@@ -393,20 +410,21 @@ export function useSse(options: UseSseOptions = {}) {
       currentAssistantContentRef.current = next;
       liveMessagesRef.current = state.messages;
       if (displayedSessionIdRef.current === sid) {
-        if (!streamFlushTimeoutRef.current) {
-          streamFlushTimeoutRef.current = setTimeout(() => {
-            streamFlushTimeoutRef.current = null;
-            const currentSid = currentSessionIdRef.current;
-            if (currentSid) {
-              const s = getOrCreateSessionState(currentSid);
-              setLiveSessionMessages([...s.messages]);
-              setTypingIndicator(true);
-            }
-          }, STREAM_UPDATE_THROTTLE_MS);
-        }
+      if (!streamFlushTimeoutRef.current) {
+        streamFlushTimeoutRef.current = setTimeout(() => {
+          streamFlushTimeoutRef.current = null;
+          const currentSid = currentSessionIdRef.current;
+          if (currentSid) {
+            const s = getOrCreateSessionState(currentSid);
+            setLiveSessionMessages([...s.messages]);
+            setTypingIndicator(true);
+          }
+        }, STREAM_UPDATE_THROTTLE_MS);
       }
-    },
-    [getOrCreateSessionState]
+    }
+    setSessionStateForSession(sid, "running");
+  },
+    [getOrCreateSessionState, setSessionStateForSession]
   );
   appendAssistantTextRef.current = appendAssistantText;
 
@@ -442,8 +460,9 @@ export function useSse(options: UseSseOptions = {}) {
         currentAssistantContentRef.current = "";
         liveMessagesRef.current = state.messages;
       }
+      setSessionStateForSession(sid, "idle");
     },
-    [getOrCreateSessionState]
+    [getOrCreateSessionState, setSessionStateForSession]
   );
   finalizeAssistantMessageRef.current = finalizeAssistantMessage;
 
@@ -582,7 +601,15 @@ export function useSse(options: UseSseOptions = {}) {
       setModelName,
       setWaitingForUserInput: (v) => {
         state.waitingForUserInput = v;
-        if (displayedSessionIdRef.current === connectionSessionIdRef.current) setWaitingForUserInput(v);
+        if (v) {
+          state.sessionState = "waiting";
+        } else if (state.sessionState === "waiting") {
+          state.sessionState = "running";
+        }
+        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+          setSessionState(state.sessionState);
+          setWaitingForUserInput(v);
+        }
       },
       setPendingAskQuestion,
       setCurrentActivity: (v) => {
@@ -629,7 +656,7 @@ export function useSse(options: UseSseOptions = {}) {
       }
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
         setConnected(false);
-        setAgentRunning(false);
+        setSessionStateForSession(connectionSessionIdRef.current, "idle");
         setTypingIndicator(false);
       }
     };
@@ -656,12 +683,12 @@ export function useSse(options: UseSseOptions = {}) {
 
           if (parsed.type === "session-started" || parsed.type === "claude-started") {
             hasStreamEndedRef.current = false;
-            state.agentRunning = true;
+            state.sessionState = "running";
             state.typingIndicator = true;
             state.waitingForUserInput = false;
             state.lastSessionTerminated = false;
             if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-              setAgentRunning(true);
+              setSessionStateForSession(connectionSessionIdRef.current, "running");
               setTypingIndicator(true);
               setWaitingForUserInput(false);
               setLastSessionTerminated(false);
@@ -686,9 +713,7 @@ export function useSse(options: UseSseOptions = {}) {
 
           if (parsed.type === "agent_end") {
             if (__DEV__) {
-            if (__DEV__) {
               console.log("[stream] agent_end event received");
-            }
             }
           }
 
@@ -706,9 +731,7 @@ export function useSse(options: UseSseOptions = {}) {
               const parsed = JSON.parse(clean.slice(jsonStart));
               if (parsed?.type === "agent_end") {
                 if (__DEV__) {
-                if (__DEV__) {
                   console.log("[stream fallback] agent_end event received");
-                }
                 }
               }
               if (isProviderStream(parsed)) {
@@ -735,7 +758,7 @@ export function useSse(options: UseSseOptions = {}) {
         }
       } catch (e) {}
 
-      state.agentRunning = false;
+      state.sessionState = "idle";
       state.typingIndicator = false;
       state.currentActivity = null;
       state.waitingForUserInput = false;
@@ -743,7 +766,7 @@ export function useSse(options: UseSseOptions = {}) {
       if (!state.hasCompletedFirstRun && exitCode === 0) state.hasCompletedFirstRun = true;
 
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-        setAgentRunning(false);
+        setSessionStateForSession(connectionSessionIdRef.current, "idle");
         setTypingIndicator(false);
         setCurrentActivity(null);
         setWaitingForUserInput(false);
@@ -779,6 +802,7 @@ export function useSse(options: UseSseOptions = {}) {
     closeActiveSse,
     createSessionHandlers,
     getOrCreateSessionState,
+    setSessionStateForSession,
     serverUrl,
     sessionIdFromOptions,
     sessionId,
@@ -830,8 +854,9 @@ export function useSse(options: UseSseOptions = {}) {
       addMessage("user", prompt);
       setPermissionDenials(null);
       setLastSessionTerminated(false);
-      setAgentRunning(true);
+      setSessionStateForSession(sessionId, "running");
       setTypingIndicator(true);
+      setWaitingForUserInput(false);
 
       // Yield to main thread so React paints loading state before fetch (immediate visual feedback)
       await new Promise<void>((resolve) => queueMicrotask(resolve));
@@ -853,8 +878,9 @@ export function useSse(options: UseSseOptions = {}) {
       };
 
       const resetRunningState = () => {
-        setAgentRunning(false);
+        setSessionStateForSession(sessionId, "idle");
         setTypingIndicator(false);
+        setWaitingForUserInput(false);
       };
 
       try {
@@ -869,7 +895,7 @@ export function useSse(options: UseSseOptions = {}) {
           if (sessionId != null && newSessionId !== sessionId) {
             // Switching to different session - clear new session's state OR preserve past messages
             const newState = getOrCreateSessionState(newSessionId);
-            newState.agentRunning = true;
+            newState.sessionState = "running";
             newState.typingIndicator = true;
             // If viewingLiveSession was false, we should have carried over savedSessionMessages
             if (!viewingLiveSession) {
@@ -886,29 +912,36 @@ export function useSse(options: UseSseOptions = {}) {
             setLiveSessionMessages([...newState.messages]);
             outputBufferRef.current = "";
             currentAssistantContentRef.current = "";
+            setSessionStateForSession(newSessionId, "running");
           } else if (sessionId == null) {
             // First prompt - migrate user message(s) to new session
             const newState = getOrCreateSessionState(newSessionId);
-            newState.agentRunning = true;
+            newState.sessionState = "running";
             newState.typingIndicator = true;
             // Also include saved session messages if we were viewing a past session
-            const merged = viewingLiveSession ? [...pendingMessagesForNewSessionRef.current] : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+            const merged = viewingLiveSession
+              ? [...pendingMessagesForNewSessionRef.current]
+              : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
             newState.messages = deduplicateMessageIds(merged);
             pendingMessagesForNewSessionRef.current = [];
             setLiveSessionMessages([...newState.messages]);
+            setSessionStateForSession(newSessionId, "running");
           }
           setSessionId(newSessionId);
         } else {
           // Server error - reset running state so user isn't stuck. Use sessionId from error response if present (client can connect to stream).
           if (data.sessionId && typeof data.sessionId === "string" && !data.sessionId.startsWith("temp-")) {
             const newState = getOrCreateSessionState(data.sessionId);
-            newState.agentRunning = false;
+            newState.sessionState = "idle";
             newState.typingIndicator = false;
-            const merged = viewingLiveSession ? pendingMessagesForNewSessionRef.current : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
+            const merged = viewingLiveSession
+              ? pendingMessagesForNewSessionRef.current
+              : [...savedSessionMessages, ...pendingMessagesForNewSessionRef.current];
             newState.messages = deduplicateMessageIds(merged);
             pendingMessagesForNewSessionRef.current = [];
             setLiveSessionMessages([...newState.messages]);
             setSessionId(data.sessionId);
+            setSessionStateForSession(data.sessionId, "idle");
           }
           resetRunningState();
           if (__DEV__ && !data.ok) {
@@ -920,7 +953,18 @@ export function useSse(options: UseSseOptions = {}) {
         resetRunningState();
       }
     },
-    [addMessage, deduplicateMessageIds, getOrCreateSessionState, provider, model, serverUrl, sessionId, viewingLiveSession, savedSessionMessages]
+    [
+      addMessage,
+      deduplicateMessageIds,
+      getOrCreateSessionState,
+      provider,
+      model,
+      serverUrl,
+      sessionId,
+      setSessionStateForSession,
+      viewingLiveSession,
+      savedSessionMessages,
+    ]
   );
 
   const submitAskQuestionAnswer = useCallback(
@@ -973,8 +1017,9 @@ export function useSse(options: UseSseOptions = {}) {
         sessionId,
       };
 
-      setAgentRunning(true);
+      setSessionStateForSession(sessionId, "running");
       setTypingIndicator(true);
+      setWaitingForUserInput(false);
       try {
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
@@ -985,9 +1030,10 @@ export function useSse(options: UseSseOptions = {}) {
         if (data.ok && data.sessionId) {
           const sid = data.sessionId;
           const s = getOrCreateSessionState(sid);
-          s.agentRunning = true;
+          s.sessionState = "running";
           s.typingIndicator = true;
           setSessionId(sid);
+          setSessionStateForSession(sid, "running");
         }
       } catch (err) {
         console.error("Failed to retry after permission", err);
@@ -995,7 +1041,16 @@ export function useSse(options: UseSseOptions = {}) {
       
       setPermissionDenials(null);
     },
-    [permissionDenials, lastRunOptions, provider, model, serverUrl, sessionId, getOrCreateSessionState]
+    [
+      permissionDenials,
+      lastRunOptions,
+      provider,
+      model,
+      serverUrl,
+      sessionId,
+      getOrCreateSessionState,
+      setSessionStateForSession,
+    ]
   );
 
   const dismissPermission = useCallback(() => {
@@ -1090,11 +1145,15 @@ export function useSse(options: UseSseOptions = {}) {
       setSessionId(sessionIdToResume);
       const state = getOrCreateSessionState(sessionIdToResume);
       state.messages = [...deduped];
+      state.sessionState = "idle";
+      state.typingIndicator = false;
+      state.waitingForUserInput = false;
+      state.currentActivity = null;
       setLiveSessionMessages([...deduped]);
       liveMessagesRef.current = state.messages;
     }
     // Reset running state when loading a past/finished session - we're viewing history, not live
-    setAgentRunning(false);
+    setSessionState("idle");
     setTypingIndicator(false);
     setWaitingForUserInput(false);
     setCurrentActivity(null);
@@ -1108,7 +1167,7 @@ export function useSse(options: UseSseOptions = {}) {
   return {
     connected,
     messages,
-    agentRunning,
+    agentRunning: sessionState !== "idle",
     waitingForUserInput,
     typingIndicator,
     currentActivity,

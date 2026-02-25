@@ -140,7 +140,7 @@ export function buildChatPageProps({
         onNewSession: sseState.handleNewSession,
         currentSessionId: sseState.sessionId,
         workspaceLoading: workspaceState.workspacePathLoading,
-        sessionRunning: sseState.agentRunning || sseState.typingIndicator,
+        sessionRunning: sseState.agentRunning,
         onSelectActiveChat: sseState.handleSelectActiveChat,
         currentMessages: sseState.messages,
         showActiveChat: false,
