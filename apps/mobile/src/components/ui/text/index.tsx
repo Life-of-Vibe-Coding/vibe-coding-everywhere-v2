@@ -1,47 +1,103 @@
 import React from 'react';
+import { Text as RNText, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { Text as RNText } from 'react-native';
-import { textStyle } from '@/components/ui/text/styles';
+import { cn } from '@/utils/cn';
+import { resolveLegacyStyle, warnLegacyProp } from '@/components/ui/_migration/legacyAdapter';
 
-type ITextProps = React.ComponentProps<typeof RNText> &
-  VariantProps<typeof textStyle>;
+type TextSize =
+  | '2xs'
+  | 'xs'
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | '2xl'
+  | '3xl'
+  | '4xl'
+  | '5xl'
+  | '6xl';
 
-const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
-  function Text(
-    {
-      className,
-      isTruncated,
-      bold,
-      underline,
-      strikeThrough,
-      size = 'md',
-      sub,
-      italic,
-      highlight,
-      ...props
-    },
-    ref
-  ) {
-    return (
-      <RNText
-        className={textStyle({
-          isTruncated: isTruncated as boolean,
-          bold: bold as boolean,
-          underline: underline as boolean,
-          strikeThrough: strikeThrough as boolean,
-          size,
-          sub: sub as boolean,
-          italic: italic as boolean,
-          highlight: highlight as boolean,
-          class: className,
-        })}
-        {...props}
-        ref={ref}
-      />
-    );
+const sizeClasses: Record<TextSize, string> = {
+  '2xs': 'text-[10px]',
+  'xs': 'text-xs',
+  'sm': 'text-sm',
+  'md': 'text-base',
+  'lg': 'text-lg',
+  'xl': 'text-xl',
+  '2xl': 'text-2xl',
+  '3xl': 'text-3xl',
+  '4xl': 'text-4xl',
+  '5xl': 'text-5xl',
+  '6xl': 'text-6xl',
+};
+
+export type TextPropsCompat = TextProps & {
+  className?: string;
+  size?: TextSize;
+  isTruncated?: boolean;
+  truncate?: boolean;
+  bold?: boolean;
+  underline?: boolean;
+  strikeThrough?: boolean;
+  sub?: boolean;
+  italic?: boolean;
+  highlight?: boolean;
+  legacyStyle?: StyleProp<TextStyle>;
+};
+
+const Text = React.forwardRef<React.ComponentRef<typeof RNText>, TextPropsCompat>(function Text(
+  {
+    className,
+    isTruncated,
+    bold,
+    underline,
+    strikeThrough,
+    size = 'md',
+    truncate,
+    sub,
+    italic,
+    highlight,
+    legacyStyle,
+    style,
+    ...props
+  },
+  ref
+) {
+  const truncated = isTruncated ?? truncate;
+  if (truncate !== undefined) {
+    warnLegacyProp('Text', 'truncate', 'isTruncated');
   }
-);
+
+  const textDecorationLine = underline
+    ? strikeThrough
+      ? 'underline line-through'
+      : 'underline'
+    : strikeThrough
+      ? 'line-through'
+      : undefined;
+
+  return (
+    <RNText
+      ref={ref}
+      {...props}
+      numberOfLines={truncated ? 1 : props.numberOfLines}
+      className={cn(
+        'text-typography-900',
+        sizeClasses[size],
+        bold && 'font-bold',
+        italic && 'italic',
+        highlight && 'bg-yellow-500',
+        sub && 'align-sub',
+        className
+      )}
+      style={resolveLegacyStyle(
+        'Text',
+        [textDecorationLine ? { textDecorationLine } : undefined, style] as StyleProp<TextStyle>,
+        legacyStyle
+      )}
+    />
+  );
+});
 
 Text.displayName = 'Text';
 

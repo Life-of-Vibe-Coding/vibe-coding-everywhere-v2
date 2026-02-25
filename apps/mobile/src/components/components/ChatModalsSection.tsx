@@ -1,6 +1,6 @@
 import React from "react";
 
-import type { Message } from "@/services/sse/hooks";
+import type { Message } from "@/services/chat/hooks";
 import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
 import { SkillConfigurationModal } from "@/components/settings/SkillConfigurationModal";
 import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";

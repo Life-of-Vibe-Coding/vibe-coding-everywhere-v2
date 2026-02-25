@@ -1,89 +1,94 @@
-'use client';
-import React from 'react';
-import { createTextarea } from '@gluestack-ui/core/textarea/creator';
-import { View, TextInput } from 'react-native';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  withStyleContext,
-  useStyleContext,
-} from '@gluestack-ui/utils/nativewind-utils';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import { TextInput, View, type TextInputProps, type ViewProps } from 'react-native';
 
-const SCOPE = 'TEXTAREA';
-const UITextarea = createTextarea({
-  Root: withStyleContext(View, SCOPE),
-  Input: TextInput,
+import { cn } from '@/utils/cn';
+
+type TextareaVariant = 'default';
+type TextareaSize = 'sm' | 'md' | 'lg' | 'xl';
+
+type TextareaContextValue = {
+  size: TextareaSize;
+  focused: boolean;
+  setFocused: (focused: boolean) => void;
+  isDisabled: boolean;
+};
+
+const TextareaContext = createContext<TextareaContextValue>({
+  size: 'md',
+  focused: false,
+  setFocused: () => undefined,
+  isDisabled: false,
 });
 
-const textareaStyle = tva({
-  base: 'w-full h-[100px] border border-background-300 rounded data-[hover=true]:border-outline-400 data-[focus=true]:border-primary-700 data-[focus=true]:data-[hover=true]:border-primary-700 data-[disabled=true]:opacity-40 data-[disabled=true]:bg-background-50 data-[disabled=true]:data-[hover=true]:border-background-300',
+const sizeClass: Record<TextareaSize, string> = {
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
+  xl: 'text-xl',
+};
 
-  variants: {
-    variant: {
-      default:
-        'data-[focus=true]:border-primary-700 data-[focus=true]:web:ring-1 data-[focus=true]:web:ring-inset data-[focus=true]:web:ring-indicator-primary data-[invalid=true]:border-error-700 data-[invalid=true]:web:ring-1 data-[invalid=true]:web:ring-inset data-[invalid=true]:web:ring-indicator-error data-[invalid=true]:data-[hover=true]:border-error-700 data-[invalid=true]:data-[focus=true]:data-[hover=true]:border-primary-700 data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-1 data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-inset data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-indicator-primary data-[invalid=true]:data-[disabled=true]:data-[hover=true]:border-error-700 data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-1 data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-inset data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-indicator-error ',
-    },
-    size: {
-      sm: '',
-      md: '',
-      lg: '',
-      xl: '',
-    },
-  },
-});
+export type TextareaProps = ViewProps & {
+  className?: string;
+  variant?: TextareaVariant;
+  size?: TextareaSize;
+  isInvalid?: boolean;
+  isDisabled?: boolean;
+};
 
-const textareaInputStyle = tva({
-  base: 'p-2 web:outline-0 web:outline-none flex-1 color-typography-900 placeholder:text-typography-500 web:cursor-text web:data-[disabled=true]:cursor-not-allowed',
-  parentVariants: {
-    size: {
-      sm: 'text-sm',
-      md: 'text-base',
-      lg: 'text-lg',
-      xl: 'text-xl',
-    },
-  },
-});
-
-type ITextareaProps = React.ComponentProps<typeof UITextarea> &
-  VariantProps<typeof textareaStyle>;
-
-const Textarea = React.forwardRef<
-  React.ComponentRef<typeof UITextarea>,
-  ITextareaProps
->(function Textarea(
-  { className, variant = 'default', size = 'md', ...props },
+const Textarea = React.forwardRef<React.ComponentRef<typeof View>, TextareaProps>(function Textarea(
+  { className, variant = 'default', size = 'md', isInvalid = false, isDisabled = false, ...props },
   ref
 ) {
+  const [focused, setFocused] = useState(false);
+  const value = useMemo(
+    () => ({ size, focused, setFocused, isDisabled }),
+    [size, focused, isDisabled]
+  );
+
   return (
-    <UITextarea
-      ref={ref}
-      {...props}
-      className={textareaStyle({ variant, class: className })}
-      context={{ size }}
-    />
+    <TextareaContext.Provider value={value}>
+      <View
+        ref={ref}
+        {...props}
+        className={cn(
+          'w-full min-h-[100px] border border-background-300 rounded overflow-hidden',
+          variant === 'default' && '',
+          focused && !isInvalid && 'border-primary-700',
+          isInvalid && 'border-error-700',
+          isDisabled && 'opacity-40 bg-background-50',
+          className
+        )}
+      />
+    </TextareaContext.Provider>
   );
 });
 
-type ITextareaInputProps = React.ComponentProps<typeof UITextarea.Input> &
-  VariantProps<typeof textareaInputStyle>;
+export type TextareaInputProps = TextInputProps & {
+  className?: string;
+  showsVerticalScrollIndicator?: boolean;
+};
 
-const TextareaInput = React.forwardRef<
-  React.ComponentRef<typeof UITextarea.Input>,
-  ITextareaInputProps
->(function TextareaInput({ className, ...props }, ref) {
-  const { size: parentSize } = useStyleContext(SCOPE);
+const TextareaInput = React.forwardRef<React.ComponentRef<typeof TextInput>, TextareaInputProps>(function TextareaInput(
+  { className, editable, onFocus, onBlur, showsVerticalScrollIndicator, ...props },
+  ref
+) {
+  const { size, setFocused, isDisabled } = useContext(TextareaContext);
 
   return (
-    <UITextarea.Input
+    <TextInput
       ref={ref}
       {...props}
+      editable={editable ?? !isDisabled}
       textAlignVertical="top"
-      className={textareaInputStyle({
-        parentVariants: {
-          size: parentSize,
-        },
-        class: className,
-      })}
+      onFocus={(e) => {
+        setFocused(true);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        onBlur?.(e);
+      }}
+      className={cn('flex-1 p-2 text-typography-900', sizeClass[size], className)}
     />
   );
 });

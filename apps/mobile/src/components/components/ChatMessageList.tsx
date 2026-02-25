@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { FlatList, Platform, StyleProp, type ViewStyle } from "react-native";
-import type { PermissionDenial, Message } from "@/services/sse/hooks";
+import type { PermissionDenial, Message } from "@/services/chat/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
 import { PermissionDenialBanner } from "@/components/common/PermissionDenialBanner";

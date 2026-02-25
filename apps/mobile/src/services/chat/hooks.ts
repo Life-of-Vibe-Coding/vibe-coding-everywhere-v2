@@ -23,7 +23,7 @@ import {
 import type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions } from "@/core/types";
 import { getDefaultServerConfig } from "@/services/server/config";
 import type { EventSourceLike, SessionLiveState, SessionRuntimeState, UseChatOptions } from "./hooks-types";
-import { resolveDefaultModel } from "./sseHookHelpers";
+import { resolveDefaultModel } from "./chatHookHelpers";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
 import { useChatExternalCallbacks } from "./useChatExternalCallbacks";
 import { useChatStreamingLifecycle } from "./useChatStreamingLifecycle";

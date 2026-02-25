@@ -1,41 +1,26 @@
-'use client';
 import React from 'react';
-import { Switch as RNSwitch } from 'react-native';
-import { createSwitch } from '@gluestack-ui/core/switch/creator';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+import { Switch as RNSwitch, type SwitchProps as RNSwitchProps } from 'react-native';
 
-const UISwitch = createSwitch({
-  Root: withStyleContext(RNSwitch),
-});
+type SwitchSize = 'sm' | 'md' | 'lg';
 
-const switchStyle = tva({
-  base: 'data-[focus=true]:outline-0 data-[focus=true]:ring-2 data-[focus=true]:ring-indicator-primary web:cursor-pointer disabled:cursor-not-allowed data-[disabled=true]:opacity-40 data-[invalid=true]:border-error-700 data-[invalid=true]:rounded-xl data-[invalid=true]:border-2',
+type ISwitchProps = RNSwitchProps & {
+  className?: string;
+  size?: SwitchSize;
+};
 
-  variants: {
-    size: {
-      sm: 'scale-75',
-      md: '',
-      lg: 'scale-125',
-    },
-  },
-});
+const scaleForSize: Record<SwitchSize, number> = {
+  sm: 0.75,
+  md: 1,
+  lg: 1.25,
+};
 
-type ISwitchProps = React.ComponentProps<typeof UISwitch> &
-  VariantProps<typeof switchStyle>;
-const Switch = React.forwardRef<
-  React.ComponentRef<typeof UISwitch>,
-  ISwitchProps
->(function Switch({ className, size = 'md', ...props }, ref) {
-  return (
-    <UISwitch
-      ref={ref}
-      {...props}
-      className={switchStyle({ size, class: className })}
-    />
-  );
+const Switch = React.forwardRef<React.ComponentRef<typeof RNSwitch>, ISwitchProps>(function Switch(
+  { size = 'md', style, ...props },
+  ref
+) {
+  return <RNSwitch ref={ref} {...props} style={[{ transform: [{ scale: scaleForSize[size] }] }, style]} />;
 });
 
 Switch.displayName = 'Switch';
+
 export { Switch };

@@ -9,7 +9,7 @@ import {
 import { createEventDispatcher } from "@/services/providers/eventDispatcher";
 import { createSessionMessageHandlers } from "./sessionMessageHandlers";
 import { moveSessionCacheData } from "./sessionCacheHelpers";
-import { resolveStreamUrl } from "./sseHookHelpers";
+import { resolveStreamUrl } from "./chatHookHelpers";
 import type {
   EventSourceCtor,
   LastRunOptions,

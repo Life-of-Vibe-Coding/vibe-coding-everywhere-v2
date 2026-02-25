@@ -3,7 +3,7 @@ import { StyleSheet, Linking, ScrollView, Platform, Dimensions, Animated } from 
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { spacing, radii, triggerHaptic } from "@/design-system";
-import type { Message } from "@/services/sse/hooks";
+import type { Message } from "@/services/chat/hooks";
 import { stripTrailingIncompleteTag } from "@/services/providers/stream";
 import { TerminalIcon, ChevronDownIcon } from "@/components/icons/ChatActionIcons";
 import { BookOpenIcon, PencilIcon, FilePenIcon } from "@/components/icons/FileActivityIcons";

@@ -1,219 +1,77 @@
-import React, { forwardRef, memo } from 'react';
-import { H1, H2, H3, H4, H5, H6 } from '@expo/html-elements';
-import { headingStyle } from './styles';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { cssInterop } from 'nativewind';
+import React from 'react';
+import { Text, type TextProps } from 'react-native';
 
-type IHeadingProps = VariantProps<typeof headingStyle> &
-  React.ComponentPropsWithoutRef<typeof H1> & {
-    as?: React.ElementType;
-  };
+import { cn } from '@/utils/cn';
 
-cssInterop(H1, { className: 'style' });
-cssInterop(H2, { className: 'style' });
-cssInterop(H3, { className: 'style' });
-cssInterop(H4, { className: 'style' });
-cssInterop(H5, { className: 'style' });
-cssInterop(H6, { className: 'style' });
+type HeadingSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 
-const MappedHeading = memo(
-  forwardRef<React.ComponentRef<typeof H1>, IHeadingProps>(
-    function MappedHeading(
-      {
-        size,
-        className,
-        isTruncated,
-        bold,
-        underline,
-        strikeThrough,
-        sub,
-        italic,
-        highlight,
-        ...props
-      },
-      ref
-    ) {
-      switch (size) {
-        case '5xl':
-        case '4xl':
-        case '3xl':
-          return (
-            <H1
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        case '2xl':
-          return (
-            <H2
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        case 'xl':
-          return (
-            <H3
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        case 'lg':
-          return (
-            <H4
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        case 'md':
-          return (
-            <H5
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        case 'sm':
-        case 'xs':
-          return (
-            <H6
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-        default:
-          return (
-            <H4
-              className={headingStyle({
-                size,
-                isTruncated: isTruncated as boolean,
-                bold: bold as boolean,
-                underline: underline as boolean,
-                strikeThrough: strikeThrough as boolean,
-                sub: sub as boolean,
-                italic: italic as boolean,
-                highlight: highlight as boolean,
-                class: className,
-              })}
-              {...props}
-              // @ts-expect-error : type issue
-              ref={ref}
-            />
-          );
-      }
-    }
-  )
-);
+const headingSizeClass: Record<HeadingSize, string> = {
+  xs: 'text-xs',
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
+  xl: 'text-xl',
+  '2xl': 'text-2xl',
+  '3xl': 'text-3xl',
+  '4xl': 'text-4xl',
+  '5xl': 'text-5xl',
+};
 
-const Heading = memo(
-  forwardRef<React.ComponentRef<typeof H1>, IHeadingProps>(function Heading(
-    { className, size = 'lg', as: AsComp, ...props },
-    ref
-  ) {
-    const {
-      isTruncated,
-      bold,
-      underline,
-      strikeThrough,
-      sub,
-      italic,
-      highlight,
-    } = props;
+type HeadingProps = TextProps & {
+  className?: string;
+  as?: React.ElementType;
+  size?: HeadingSize;
+  isTruncated?: boolean;
+  bold?: boolean;
+  underline?: boolean;
+  strikeThrough?: boolean;
+  sub?: boolean;
+  italic?: boolean;
+  highlight?: boolean;
+};
 
-    if (AsComp) {
-      return (
-        <AsComp
-          className={headingStyle({
-            size,
-            isTruncated: isTruncated as boolean,
-            bold: bold as boolean,
-            underline: underline as boolean,
-            strikeThrough: strikeThrough as boolean,
-            sub: sub as boolean,
-            italic: italic as boolean,
-            highlight: highlight as boolean,
-            class: className,
-          })}
-          {...props}
-        />
-      );
-    }
+const Heading = React.forwardRef<React.ComponentRef<typeof Text>, HeadingProps>(function Heading(
+  {
+    className,
+    size = 'lg',
+    isTruncated,
+    bold = true,
+    underline,
+    strikeThrough,
+    sub,
+    italic,
+    highlight,
+    style,
+    ...props
+  },
+  ref
+) {
+  const textDecorationLine = underline
+    ? strikeThrough
+      ? 'underline line-through'
+      : 'underline'
+    : strikeThrough
+      ? 'line-through'
+      : undefined;
 
-    return (
-      <MappedHeading className={className} size={size} ref={ref} {...props} />
-    );
-  })
-);
+  return (
+    <Text
+      ref={ref}
+      {...props}
+      numberOfLines={isTruncated ? 1 : props.numberOfLines}
+      className={cn(
+        'text-typography-900',
+        headingSizeClass[size],
+        bold && 'font-bold',
+        italic && 'italic',
+        sub && 'align-sub',
+        highlight && 'bg-yellow-500',
+        className
+      )}
+      style={[textDecorationLine ? { textDecorationLine } : undefined, style]}
+    />
+  );
+});
 
 Heading.displayName = 'Heading';
 

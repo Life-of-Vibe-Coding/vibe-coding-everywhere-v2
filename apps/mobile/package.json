@@ -8,7 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test:watch": "jest --watchAll",
+    "verify:foundation": "node scripts/verify-foundation.mjs",
+    "capture:ui-primitives-baseline": "node scripts/capture-ui-primitives-baseline.mjs",
+    "lint:ui-primitives": "node scripts/enforce-ui-primitives-baseline.mjs",
+    "phase2:check": "npm run verify:foundation && npm run lint:ui-primitives"
   },
   "dependencies": {
     "@expo/html-elements": "^0.12.5",

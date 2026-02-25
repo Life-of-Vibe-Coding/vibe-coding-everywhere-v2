@@ -1,5 +1,5 @@
 import React from "react";
-import type { PermissionDenial } from "@/services/sse/hooks";
+import type { PermissionDenial } from "@/services/chat/hooks";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";

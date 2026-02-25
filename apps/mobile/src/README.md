@@ -58,6 +58,6 @@ import { MessageBubble } from "./components/chat/MessageBubble";
 import type { Message, TerminalState } from "./core/types";
 
 // From services
-import { useChat } from "./services/sse/hooks";
+import { useChat } from "./services/chat/hooks";
 import { theme } from "./theme/index";
 ```

@@ -2,7 +2,7 @@ import React from "react";
 import type { FlatList } from "react-native";
 import type { PermissionModeUI } from "@/utils/permission";
 import type { BrandProvider } from "@/theme/index";
-import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/sse/hooks";
+import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/chat/hooks";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import type { createAppStyles } from "@/components/styles/appStyles";
 import type { getTheme } from "@/theme/index";
