@@ -137,7 +137,7 @@ type ChatPageSessionManagement = {
   onRefreshSessionManagementWorkspace: () => void;
   workspacePathForSessionManagement: string | null;
   serverBaseUrl: string;
-  onSelectSession: (session: ModalSessionItem) => Promise<void> | void;
+  onSelectSession: (session: ModalSessionItem | null) => Promise<void> | void;
   onNewSession: () => void;
   currentSessionId: string | null;
   workspaceLoading: boolean;

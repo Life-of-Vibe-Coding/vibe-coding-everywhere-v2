@@ -57,6 +57,19 @@
       --color-text-secondary: 71 85 105;
       --color-text-muted: 148 163 184;
       --color-border: 226 232 240;
+      --background: 255 255 255;
+      --foreground: 15 23 42;
+      --card: 255 255 255;
+      --popover: 255 255 255;
+      --primary: 15 23 42;
+      --secondary: 241 245 249;
+      --muted: 248 250 252;
+      --accent: 241 245 249;
+      --destructive: 239 68 68;
+      --border: 226 232 240;
+      --input: 226 232 240;
+      --ring: 100 116 139;
+      --radius: 0.5rem;
     }
     @variant dark {
       --color-primary-0: 166 166 166;
@@ -111,6 +124,19 @@
       --color-text-secondary: 203 213 225;
       --color-text-muted: 100 116 139;
       --color-border: 46 51 69;
+      --background: 18 20 28;
+      --foreground: 248 250 252;
+      --card: 27 30 41;
+      --popover: 27 30 41;
+      --primary: 248 250 252;
+      --secondary: 30 41 59;
+      --muted: 51 65 85;
+      --accent: 30 41 59;
+      --destructive: 239 68 68;
+      --border: 46 51 69;
+      --input: 46 51 69;
+      --ring: 148 163 184;
+      --radius: 0.5rem;
     }
   }
 }

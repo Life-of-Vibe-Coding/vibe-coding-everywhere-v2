@@ -6,6 +6,8 @@ import {
   ScrollView,
   RefreshControl,
   Platform,
+  LayoutAnimation,
+  UIManager,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -66,6 +68,13 @@ export interface LoadedSession {
 function formatPathForWrap(path: string): string {
   return path.split("/").join("/\u200B");
 }
+
+const uiMonoFontFamily = Platform.select({
+  ios: "Menlo",
+  android: "monospace",
+  web: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  default: "monospace",
+});
 
 /** Strip provider prefix from model id for display (e.g. claude-sonnet-4-5 → sonnet-4-5). */
 function modelDisplayName(model: string | null | undefined): string {
@@ -179,6 +188,8 @@ export function SessionManagementModal({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const sessions = useSessionManagementStore((state) => state.sessionStatuses);
+  const removeSessionStatus = useSessionManagementStore((state) => state.removeSessionStatus);
+  const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
@@ -188,6 +199,12 @@ export function SessionManagementModal({
   const [hoveredHeaderCwd, setHoveredHeaderCwd] = useState<string | null>(null);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
 
   const sections = useMemo(
     () => groupSessionsByWorkspace(sessions, workspacePath ?? undefined),
@@ -320,10 +337,12 @@ export function SessionManagementModal({
                   method: "DELETE",
                 });
                 if (!res.ok) throw new Error("Delete failed");
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                removeSessionStatus(session.id);
                 if (session.id === currentSessionId) {
                   onNewSession();
                 }
-                await refresh();
+                triggerHaptic("success");
               } catch {
                 setSelectError("Failed to delete session");
               }
@@ -332,7 +351,7 @@ export function SessionManagementModal({
         ]
       );
     },
-    [serverBaseUrl, currentSessionId, onNewSession, refresh]
+    [serverBaseUrl, currentSessionId, onNewSession, removeSessionStatus]
   );
 
   const handleNewSession = useCallback(() => {
@@ -369,7 +388,16 @@ export function SessionManagementModal({
                 ) {
                   onNewSession();
                 }
-                await refresh();
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setSessionStatuses(
+                  sessions.filter((session) => {
+                    const sessionPathBase = (typeof session.cwd === "string" && session.cwd.trim())
+                      ? session.cwd
+                      : (workspacePath ?? "");
+                    const sessionPath = sessionPathBase || "(no workspace)";
+                    return sessionPath !== targetPath;
+                  })
+                );
                 if (deleted > 0) triggerHaptic("heavy");
               } catch {
                 setSelectError("Failed to destroy workspace sessions");
@@ -379,7 +407,7 @@ export function SessionManagementModal({
         ]
       );
     },
-    [serverBaseUrl, currentSessionId, sections, onNewSession, refresh]
+    [serverBaseUrl, currentSessionId, sections, onNewSession, setSessionStatuses, sessions, workspacePath]
   );
 
   if (!visible) return null;
@@ -468,16 +496,10 @@ export function SessionManagementModal({
                       className="rounded-lg border px-3 py-2"
                     >
                       <Text
-                        size="sm"
-                        bold
-                        numberOfLines={2}
+                        size="xs"
+                        numberOfLines={3}
                         ellipsizeMode="tail"
-                        className="font-mono text-typography-800 min-w-0"
-                        style={{
-                          fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                          lineHeight: 20,
-                          color: theme.colors.textPrimary,
-                        }}
+                        style={styles.cwdPathText}
                       >
                         {formatPathForWrap(
                           allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
@@ -854,6 +876,16 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     cwdPathBox: {
       width: "100%",
     },
+    cwdPathText: {
+      minWidth: 0,
+      flexShrink: 1,
+      fontFamily: uiMonoFontFamily,
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: "500",
+      letterSpacing: 0.1,
+      color: theme.colors.textPrimary,
+    },
     workspacePathLabel: {
       fontWeight: "700",
       fontSize: 12,
@@ -1006,7 +1038,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     sessionCardCwd: {
       marginTop: spacing["1"],
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontFamily: uiMonoFontFamily,
       fontSize: 10,
       opacity: 0.8,
     },

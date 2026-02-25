@@ -78,6 +78,13 @@ export function AppHeaderBar({
   onOpenSessionManagement,
 }: AppHeaderBarProps) {
   if (!visible) return null;
+  const showStart = !sessionRunning;
+  const statusColor = showStart
+    ? theme.colors.accent
+    : waitingForUserInput
+      ? theme.colors.warning
+      : theme.colors.success;
+  const statusText = showStart ? "Start" : waitingForUserInput ? "Wait" : "Running";
 
   return (
     <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
@@ -98,25 +105,14 @@ export function AppHeaderBar({
             {workspaceName}
           </GluestackText>
           <GluestackText
-              size="xs"
-              numberOfLines={1}
-              ellipsizeMode="middle"
-                style={{
-              color: sessionRunning
-                  ? waitingForUserInput
-                    ? theme.colors.warning
-                    : theme.colors.success
-                  : theme.colors.textMuted,
-              }}
+            size="xs"
+            numberOfLines={1}
+            ellipsizeMode="middle"
+            style={{ color: statusColor }}
             className="font-medium"
           >
-            {sessionRunning
-              ? waitingForUserInput
-                ? "Wait"
-                : "Running"
-              : "Idle"}
-            {": "}
-            {sessionIdLabel}
+            {statusText}
+            {!showStart ? `: ${sessionIdLabel}` : ""}
           </GluestackText>
         </VStack>
       </Box>

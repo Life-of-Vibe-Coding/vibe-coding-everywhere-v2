@@ -22,7 +22,7 @@ type SessionPickerItem = {
 
 type ChatModalsControllerProps = {
   onRefreshSessionManagementWorkspace: () => void;
-  onSessionManagementSelect: (session: SessionPickerItem) => Promise<void> | void;
+  onSessionManagementSelect: (session: SessionPickerItem | null) => Promise<void> | void;
   onSessionManagementNewSession: () => void;
   onSessionManagementActiveChat: () => void;
   onWorkspaceSelected: (path?: string) => void;
@@ -41,7 +41,7 @@ type ChatModalsControllerState = {
     modelPicker: ModalController;
   };
   selectedSkillId: string | null;
-  handleSessionSelect: (session: SessionPickerItem) => void;
+  handleSessionSelect: (session: SessionPickerItem | null) => void;
   handleNewSession: () => void;
   handleSelectActiveChat: () => void;
   handleWorkspacePickerFromSession: () => void;
@@ -134,7 +134,7 @@ export function useChatModalsController({
   );
 
   const handleSessionSelect = useCallback(
-    (session: SessionPickerItem) => {
+    (session: SessionPickerItem | null) => {
       void Promise.resolve(onSessionManagementSelect(session)).finally(sessionManagement.close);
     },
     [onSessionManagementSelect, sessionManagement.close]

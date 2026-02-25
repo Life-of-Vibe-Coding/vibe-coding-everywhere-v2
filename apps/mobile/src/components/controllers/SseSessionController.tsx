@@ -5,7 +5,7 @@ import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig"
 import { triggerHaptic } from "@/design-system";
 import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
 import * as sessionStore from "@/services/sessionStore";
-import { useSse, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/sse/hooks";
+import { useChat, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/sse/hooks";
 import type { BrandProvider } from "@/theme/index";
 
 export type SseSessionControllerProps = {
@@ -29,15 +29,15 @@ export type SseSessionControllerState = {
   lastSessionTerminated: boolean;
   sessionId: string | null;
   pendingAskQuestion: PendingAskUserQuestion | null;
-  submitPrompt: ReturnType<typeof useSse>["submitPrompt"];
-  submitAskQuestionAnswer: ReturnType<typeof useSse>["submitAskQuestionAnswer"];
-  dismissAskQuestion: ReturnType<typeof useSse>["dismissAskQuestion"];
-  retryAfterPermission: ReturnType<typeof useSse>["retryAfterPermission"];
-  dismissPermission: ReturnType<typeof useSse>["dismissPermission"];
-  terminateAgent: ReturnType<typeof useSse>["terminateAgent"];
-  resetSession: ReturnType<typeof useSse>["resetSession"];
-  loadSession: ReturnType<typeof useSse>["loadSession"];
-  startNewSession: ReturnType<typeof useSse>["startNewSession"];
+  submitPrompt: ReturnType<typeof useChat>["submitPrompt"];
+  submitAskQuestionAnswer: ReturnType<typeof useChat>["submitAskQuestionAnswer"];
+  dismissAskQuestion: ReturnType<typeof useChat>["dismissAskQuestion"];
+  retryAfterPermission: ReturnType<typeof useChat>["retryAfterPermission"];
+  dismissPermission: ReturnType<typeof useChat>["dismissPermission"];
+  terminateAgent: ReturnType<typeof useChat>["terminateAgent"];
+  resetSession: ReturnType<typeof useChat>["resetSession"];
+  loadSession: ReturnType<typeof useChat>["loadSession"];
+  startNewSession: ReturnType<typeof useChat>["startNewSession"];
   tailBoxMaxHeight: number;
   flatListRef: React.RefObject<FlatList<Message> | null>;
   onContentSizeChange: () => void;
@@ -48,7 +48,7 @@ export type SseSessionControllerState = {
   storeSessionId: string | null;
   handleProviderChange: (provider: BrandProvider) => void;
   handleModelChange: (model: string) => void;
-  handleSelectSession: (session: ModalSessionItem) => Promise<void>;
+  handleSelectSession: (session: ModalSessionItem | null) => Promise<void>;
   handleSelectActiveChat: () => void;
   handleNewSession: () => void;
 };
@@ -88,7 +88,7 @@ export function SseSessionController({
     resetSession,
     startNewSession,
     loadSession,
-  } = useSse({
+  } = useChat({
     provider,
     model,
     onConnectedChange: setConnected,
@@ -191,15 +191,20 @@ export function SseSessionController({
   );
 
   const handleSelectSession = useCallback(
-    async (session: ModalSessionItem) => {
+    async (session: ModalSessionItem | null) => {
+      if (!session || typeof session.id !== "string" || session.id.length === 0) {
+        return;
+      }
       const selectedProvider =
         typeof session.provider === "string" && session.provider.length > 0 ? session.provider : null;
       const selectedModel =
         typeof session.model === "string" && session.model.length > 0 ? session.model : null;
       const sessionMessages = Array.isArray(session.messages) ? session.messages : [];
+      const sessionWorkspace =
+        typeof session.cwd === "string" && session.cwd.trim().length > 0 ? session.cwd.trim() : null;
 
-      if (session.cwd) {
-        await switchWorkspaceForSession?.(session.cwd);
+      if (sessionWorkspace) {
+        await switchWorkspaceForSession?.(sessionWorkspace);
       }
 
 
