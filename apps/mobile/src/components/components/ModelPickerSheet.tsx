@@ -4,14 +4,13 @@ import { triggerHaptic } from "@/design-system";
 import { ClaudeIcon, GeminiIcon, CodexIcon } from "@/components/icons/ProviderIcons";
 import { Box } from "@/components/ui/box";
 import { Text as GluestackText } from "@/components/ui/text";
+import { ActionsheetOptionRow } from "@/components/reusable";
 import {
   Actionsheet,
   ActionsheetBackdrop,
   ActionsheetContent,
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
-  ActionsheetItem,
-  ActionsheetItemText,
   ActionsheetScrollView,
 } from "@/components/ui/actionsheet";
 
@@ -74,19 +73,17 @@ export function ModelPickerSheet({
                 </Box>
                 {opts.map((opt) => {
                   return (
-                    <ActionsheetItem
+                    <ActionsheetOptionRow
                       key={opt.value}
+                      label={opt.label}
+                      selected={isActiveProvider(opt.value)}
                       onPress={() => {
                         triggerHaptic("selection");
                         if (currentProvider !== p) onProviderChange(p);
                         onModelChange(opt.value);
                         onClose();
                       }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={{ minHeight: 48 }}
-                    >
-                      <ActionsheetItemText bold={isActiveProvider(opt.value)}>{opt.label}</ActionsheetItemText>
-                    </ActionsheetItem>
+                    />
                   );
                 })}
               </Box>

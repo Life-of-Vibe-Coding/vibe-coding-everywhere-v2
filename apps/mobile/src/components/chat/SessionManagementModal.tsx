@@ -577,6 +577,9 @@ export function SessionManagementModal({
                     onPress={onSelectActiveChat}
                     style={[styles.row, styles.activeChatCard, { borderColor: theme.colors.accent, backgroundColor: theme.colors.accent + "14" }]}
                     className="rounded-xl border-l-4"
+                    accessibilityRole="button"
+                    accessibilityLabel="Open active chat"
+                    accessibilityHint="Switches back to the currently active live chat"
                   >
                     <VStack style={styles.activeChatCardContent}>
                       <Text size="sm" bold numberOfLines={1} style={{ color: theme.colors.accent }}>
@@ -713,6 +716,9 @@ export function SessionManagementModal({
                                   onPress={() => handleSelect(item)}
                                   disabled={isLoading}
                                   style={styles.sessionCardContentWrapper}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
+                                  accessibilityHint="Loads this session and opens it in the chat view"
                                 >
                                   <Box style={styles.sessionCardContent}>
                                     <Text size="xs" bold numberOfLines={2} style={{ color: isActive ? theme.colors.accent : undefined }} className={isActive ? "" : "text-typography-900"}>

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
 import { StyleSheet, Linking, Platform, Dimensions, Animated } from "react-native";
-import Markdown from "react-native-markdown-display";
+import type { MarkdownProps } from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { spacing, radii, triggerHaptic } from "@/design-system";
 import type { Message } from "@/services/chat/hooks";
@@ -22,6 +22,7 @@ import { Box } from "@/components/ui/box";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
+import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -299,9 +300,9 @@ function CollapsibleReadResult({
 }: {
   content: string;
   previewLength: number;
-  markdownStyles: React.ComponentProps<typeof Markdown>["style"];
+  markdownStyles: MarkdownProps["style"];
   theme: ReturnType<typeof useTheme>;
-  markdownRules: React.ComponentProps<typeof Markdown>["rules"];
+  markdownRules: MarkdownProps["rules"];
   onLinkPress: (url: string) => boolean;
   wrapBareUrls: (s: string) => string;
   replaceHighlight: (s: string, c: string) => string;
@@ -314,9 +315,11 @@ function CollapsibleReadResult({
 
   return (
     <Box style={isLong && !expanded ? { minHeight: 80 } : undefined}>
-      <Markdown style={markdownStyles} mergeStyle rules={markdownRules ?? undefined} onLinkPress={onLinkPress}>
-        {wrapBareUrls(replaceHighlight(displayContent, theme.colors.accent))}
-      </Markdown>
+      <MarkdownContent
+        content={wrapBareUrls(replaceHighlight(displayContent, theme.colors.accent))}
+        markdownProps={{ style: markdownStyles, mergeStyle: true, rules: markdownRules ?? undefined }}
+        onLinkPress={onLinkPress}
+      />
       {isLong && (
         <Pressable
           onPress={() => setExpanded((e) => !e)}
@@ -731,7 +734,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         </Box>
       );
     };
-    return rules as React.ComponentProps<typeof Markdown>["rules"];
+    return rules as MarkdownProps["rules"];
   }, [markdownStyles, styles, isUser, isSystem, theme.colors.accent, handleMarkdownLinkPress]);
 
   const getFileActivityRowStyle = useCallback(
@@ -813,15 +816,12 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
             );
           }
           return (
-            <Markdown
+            <MarkdownContent
               key={`${keyPrefix}-file-activity-text-${index}`}
-              style={markdownStyles}
-              mergeStyle
-              rules={markdownRules}
+              content={wrapBareUrlsInMarkdown(replaceHighlightWithTextColor(seg.text, theme.colors.accent))}
+              markdownProps={{ style: markdownStyles, mergeStyle: true, rules: markdownRules }}
               onLinkPress={handleMarkdownLinkPress}
-            >
-              {wrapBareUrlsInMarkdown(replaceHighlightWithTextColor(seg.text, theme.colors.accent))}
-            </Markdown>
+            />
           );
         })}
       </Box>
@@ -943,17 +943,14 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
               nodes.push(renderActivitySegmentsContent(subSegments, `mixed-file-${index}`));
             } else {
               nodes.push(
-                <Markdown
+                <MarkdownContent
                   key={`md-${index}`}
-                  style={markdownStyles}
-                  mergeStyle
-                  rules={markdownRules}
-                  onLinkPress={handleMarkdownLinkPress}
-                >
-                  {wrapBareUrlsInMarkdown(
+                  content={wrapBareUrlsInMarkdown(
                     replaceHighlightWithTextColor(textSection, theme.colors.accent)
                   )}
-                </Markdown>
+                  markdownProps={{ style: markdownStyles, mergeStyle: true, rules: markdownRules }}
+                  onLinkPress={handleMarkdownLinkPress}
+                />
               );
             }
           }
@@ -964,14 +961,11 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         return renderActivitySegmentsContent(fileActivitySegments, "root");
       } else {
         return (
-          <Markdown
-            style={markdownStyles}
-            mergeStyle
-            rules={markdownRules}
+          <MarkdownContent
+            content={wrapBareUrlsInMarkdown(markdownContent)}
+            markdownProps={{ style: markdownStyles, mergeStyle: true, rules: markdownRules }}
             onLinkPress={handleMarkdownLinkPress}
-          >
-            {wrapBareUrlsInMarkdown(markdownContent)}
-          </Markdown>
+          />
         );
       }
     },

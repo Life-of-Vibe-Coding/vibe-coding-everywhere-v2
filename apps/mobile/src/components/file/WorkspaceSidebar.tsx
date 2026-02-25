@@ -12,24 +12,26 @@ import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import { Input, InputField } from "@/components/ui/input";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { Badge, BadgeText } from "@/components/ui/badge";
-import { ListSectionCard, ModalScaffold, TabBarPills } from "@/components/reusable";
+import { ListSectionCard } from "@/components/reusable/ListSectionCard";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { SidebarHeader } from "@/components/file/workspace-sidebar/SidebarHeader";
+import {
+  FileTreePane,
+  type WorkspaceTreeItem,
+} from "@/components/file/workspace-sidebar/FileTreePane";
+import { GitPane } from "@/components/file/workspace-sidebar/GitPane";
 import { getDefaultServerConfig } from "@/core";
 import {
   FolderIconByType,
   FileIconByType,
 } from "@/components/icons/WorkspaceTreeIcons";
 import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import type { SidebarTab } from "@/components/hooks/useSidebarState";
 import { basename, dirname } from "@/utils/path";
 
-export type TreeItem = {
-  name: string;
-  path: string;
-  type: "file" | "folder";
-  children?: TreeItem[];
-};
+export type TreeItem = WorkspaceTreeItem;
 
 type WorkspaceData = {
   root: string;
@@ -426,6 +428,8 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
                 pressed && styles.treeRowPressed,
               ]}
               onPress={() => toggleFolder(item.path)}
+              accessibilityRole="button"
+              accessibilityLabel={`${isExpanded ? "Collapse" : "Expand"} folder ${item.name}`}
             >
               <Text style={styles.treeIcon}>{isExpanded ? "▼" : "▶"}</Text>
               <Box style={styles.treeIconWrap}>
@@ -459,6 +463,8 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
             ignored && { opacity: 0.55 },
           ]}
           onPress={() => handleFilePress(item.path)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open file ${item.name}`}
         >
           <Box style={styles.treeIconChevron} />
           <Box style={styles.treeIconWrap}>
@@ -474,41 +480,6 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
   );
 
   const styles = useMemo(() => createWorkspaceSidebarStyles(theme), [theme]);
-
-  const renderFilesTab = () => (
-    <>
-      <Box style={styles.workspaceName}>
-        <Text style={styles.workspaceNameText} numberOfLines={2}>
-          {data?.root ?? "Workspace"}
-        </Text>
-      </Box>
-      <Box style={styles.searchBarContainer}>
-        <Input variant="outline" size="md" className="flex-1">
-          <InputField
-            placeholder="Search files..."
-            placeholderTextColor={theme.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-        </Input>
-      </Box>
-      {loading && !data ? (
-        <Box style={styles.loading}>
-          <Spinner size="small" color={theme.colors.accent} />
-        </Box>
-      ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-        >
-          {filteredTree.map((item) => renderItem(item, 0))}
-        </ScrollView>
-      )}
-    </>
-  );
 
   const renderChangesTab = () => {
     const hasStaged = stagedFiles.length > 0;
@@ -778,33 +749,15 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
         <EntranceAnimation variant="slideRight" duration={280}>
           <Box style={[styles.drawer, drawerSize]}>
 
-            <Box style={styles.tabContainer}>
-              <Box style={styles.tabSpacer} />
-              <Box style={styles.tabGroup}>
-                <TabBarPills
-                  tabs={[
-                    { key: "files", label: "Files" },
-                    { key: "changes", label: "Changes" },
-                    { key: "commits", label: "Commits" },
-                  ]}
-                  value={activeTab}
-                  onChange={(tab) => {
-                    setActiveTab(tab);
-                    onActiveTabChange?.(tab);
-                  }}
-                />
-              </Box>
-              <Box style={styles.tabSpacerRight}>
-                <Pressable
-                  style={styles.tabCloseBtn}
-                  onPress={onClose}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityLabel="Close file explorer"
-                >
-                  <Text style={styles.tabCloseBtnText}>✕</Text>
-                </Pressable>
-              </Box>
-            </Box>
+            <SidebarHeader
+              activeTab={activeTab}
+              styles={styles}
+              onClose={onClose}
+              onTabChange={(tab) => {
+                setActiveTab(tab);
+                onActiveTabChange?.(tab);
+              }}
+            />
 
             {gitLoading && activeTab !== "files" ? (
               <Box style={styles.loading}>
@@ -829,9 +782,26 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
                   </Pressable>
                 )}
               </ScrollView>
-            ) : activeTab === "commits" ? renderCommitsTab() :
-              activeTab === "files" ? renderFilesTab() :
-                renderChangesTab()}
+            ) : activeTab === "files" ? (
+              <FileTreePane
+                styles={styles}
+                theme={theme}
+                root={data?.root}
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                loading={loading}
+                hasData={!!data}
+                filteredTree={filteredTree}
+                renderItem={renderItem}
+              />
+            ) : (
+              <GitPane
+                activeTab={activeTab}
+                styles={styles}
+                renderChangesTab={renderChangesTab}
+                renderCommitsTab={renderCommitsTab}
+              />
+            )}
 
           </Box>
         </EntranceAnimation>
@@ -927,7 +897,8 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
     },
     tabCloseBtn: {
-      width: 36,
+      width: 44,
+      height: 44,
       flexShrink: 0,
       alignItems: "center",
       justifyContent: "center",
@@ -973,7 +944,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     treeRow: {
       flexDirection: "row",
       alignItems: "center",
-      minHeight: 36,
+      minHeight: 44,
       paddingVertical: 6,
       paddingRight: 12,
       borderRadius: 10,

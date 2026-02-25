@@ -13,10 +13,14 @@ import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
+import { HStack } from "@/components/ui/hstack";
 import { Spinner } from "@/components/ui/spinner";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 import { Text } from "@/components/ui/text";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { TabBarPills } from "@/components/reusable/TabBarPills";
+import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import {
   Modal,
   ModalBackdrop,
@@ -495,14 +499,17 @@ export function DockerManagerModal({
       : (theme.colors.textSecondary);
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title="Docker"
+      subtitle="Containers, images, and volumes"
+      showCloseButton={false}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
           <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
@@ -542,33 +549,16 @@ export function DockerManagerModal({
           <Box style={styles.tabRow} className="flex-1 flex-row min-h-0">
             {sidebarVisible && (
             <Box style={styles.tabBar} className="w-32 border-r border-outline-400 py-2">
-              <Pressable
-                onPress={() => handleTabChange("containers")}
-                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "containers" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
-              >
-                <ContainerIcon color={tabColor("containers")} />
-                <Text size="sm" className={activeTab === "containers" ? "text-primary-500 font-semibold" : "text-typography-500"}>
-                  Containers
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleTabChange("images")}
-                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "images" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
-              >
-                <ImageIcon color={tabColor("images")} />
-                <Text size="sm" className={activeTab === "images" ? "text-primary-500 font-semibold" : "text-typography-500"}>
-                  Images
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleTabChange("volumes")}
-                className={`flex-row items-center gap-2 py-2 px-3 ${activeTab === "volumes" ? "bg-primary-500/10 border-l-2 border-primary-500" : ""}`}
-              >
-                <VolumeIcon color={tabColor("volumes")} />
-                <Text size="sm" className={activeTab === "volumes" ? "text-primary-500 font-semibold" : "text-typography-500"}>
-                  Volumes
-                </Text>
-              </Pressable>
+              <TabBarPills
+                tabs={[
+                  { key: "containers", label: "Containers" },
+                  { key: "images", label: "Images" },
+                  { key: "volumes", label: "Volumes" },
+                ]}
+                value={activeTab}
+                onChange={handleTabChange}
+                className="flex-col gap-2 px-2"
+              />
             </Box>
             )}
 
@@ -638,20 +628,25 @@ export function DockerManagerModal({
                   statusCls === "paused" ? "bg-warning-500/15 text-warning-600" :
                   "bg-error-500/15 text-error-600";
                 return (
-                  <Box key={c.id} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
-                    <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
-                      <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{names}</Text>
-                      <Pressable
-                        onPress={() => copyToClipboard(c.id)}
-                        style={styles.copyBtn}
-                        accessibilityLabel="Copy container ID"
-                      >
-                        <CopyIcon color={theme.colors.textMuted} size={18} />
-                      </Pressable>
-                      <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                        <Text size="xs">{c.status || "—"}</Text>
-                      </Box>
-                    </Box>
+                  <ListSectionCard
+                    key={c.id}
+                    title={names}
+                    className="mb-2"
+                    action={
+                      <HStack space="sm" className="items-center">
+                        <Pressable
+                          onPress={() => copyToClipboard(c.id)}
+                          style={styles.copyBtn}
+                          accessibilityLabel="Copy container ID"
+                        >
+                          <CopyIcon color={theme.colors.textMuted} size={18} />
+                        </Pressable>
+                        <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                          <Text size="xs">{c.status || "—"}</Text>
+                        </Box>
+                      </HStack>
+                    }
+                  >
                     <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
                       <Text size="xs" className="text-typography-500 shrink-0">Image</Text>
                       <Text size="xs" numberOfLines={1} className="text-typography-900 flex-1 min-w-0">{c.image || "—"}</Text>
@@ -682,11 +677,11 @@ export function DockerManagerModal({
                           </Button>
                         </>
                       )}
-                      <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
-                        <ButtonText>Remove</ButtonText>
-                      </Button>
-                    </Box>
-                  </Box>
+                        <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
+                          <ButtonText>Remove</ButtonText>
+                        </Button>
+                      </Box>
+                  </ListSectionCard>
                 );
               })}
             </ScrollView>
@@ -739,9 +734,11 @@ export function DockerManagerModal({
                         const display = tags.length ? tags.join(", ") : img.id?.slice(0, 12) || "—";
                         const acting = actingImageId === img.id;
                         return (
-                          <Box key={img.id} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
-                            <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
-                              <Text size="sm" bold numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{display}</Text>
+                          <ListSectionCard
+                            key={img.id}
+                            title={display}
+                            className="mb-2"
+                            action={
                               <Pressable
                                 onPress={() => copyToClipboard(img.id)}
                                 style={styles.copyBtn}
@@ -749,7 +746,8 @@ export function DockerManagerModal({
                               >
                                 <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
-                            </Box>
+                            }
+                          >
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
                               <Text size="xs" className="text-typography-500 shrink-0">Size</Text>
                               <Text size="xs" className="text-typography-900">{formatBytes(img.size)}</Text>
@@ -763,7 +761,7 @@ export function DockerManagerModal({
                                 <ButtonText>Remove</ButtonText>
                               </Button>
                             </Box>
-                          </Box>
+                          </ListSectionCard>
                         );
                       })}
                     </ScrollView>
@@ -826,13 +824,16 @@ export function DockerManagerModal({
                       {filteredVolumes.map((v) => {
                         const acting = actingVolumeName === v.name;
                         return (
-                          <Box key={v.name} style={styles.card} className="p-3 rounded-lg bg-background-0 border border-outline-400 mb-2">
-                            <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
-                              <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{v.name}</Text>
+                          <ListSectionCard
+                            key={v.name}
+                            title={v.name}
+                            className="mb-2"
+                            action={
                               <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
                                 <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
-                            </Box>
+                            }
+                          >
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
                               <Text size="xs" className="text-typography-500 shrink-0">DRIVER</Text>
                               <Text size="xs" className="text-typography-900">{v.driver || "—"}</Text>
@@ -855,7 +856,7 @@ export function DockerManagerModal({
                                 <ButtonText>Remove</ButtonText>
                               </Button>
                             </Box>
-                          </Box>
+                          </ListSectionCard>
                         );
                       })}
                     </ScrollView>
@@ -866,8 +867,6 @@ export function DockerManagerModal({
           </Box>
             </SafeAreaView>
           </Box>
-        </ModalBody>
-      </ModalContent>
 
       {logsFor && (
         <Modal
@@ -909,7 +908,7 @@ export function DockerManagerModal({
           </ModalContent>
         </Modal>
       )}
-    </Modal>
+    </ModalScaffold>
   );
 }
 

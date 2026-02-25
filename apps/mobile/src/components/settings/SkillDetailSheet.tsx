@@ -1,10 +1,5 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import {
-  Platform,
-  Linking,
-} from "react-native";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Markdown from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
@@ -12,13 +7,9 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
-import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
+import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "@/components/icons/ChatActionIcons";
+import { MarkdownContent } from "@/components/reusable/MarkdownContent";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
 
 export interface SkillDetailSheetProps {
@@ -49,70 +40,6 @@ export function SkillDetailSheet({
 }: SkillDetailSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const markdownStyles = useMemo(
-    () => ({
-      body: { color: theme.colors.textPrimary },
-      text: { fontSize: 15, lineHeight: 24, color: theme.colors.textPrimary },
-      paragraph: { marginTop: 8, marginBottom: 8 },
-      heading1: { fontSize: 20, lineHeight: 28, fontWeight: "700" as const, color: theme.colors.textPrimary, marginTop: 16, marginBottom: 8 },
-      heading2: { fontSize: 18, lineHeight: 26, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 14, marginBottom: 6 },
-      heading3: { fontSize: 16, lineHeight: 24, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 12, marginBottom: 4 },
-      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      link: { color: theme.colors.accent, textDecorationLine: "underline" as const },
-      code_inline: {
-        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-        fontSize: 13,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-        borderRadius: 4,
-      },
-      fence: {
-        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-        fontSize: 13,
-        lineHeight: 20,
-        color: theme.colors.textPrimary,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      },
-      blockquote: {
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-        borderLeftColor: theme.colors.accent,
-        borderLeftWidth: 4,
-        paddingLeft: 12,
-        paddingVertical: 8,
-        marginVertical: 8,
-      },
-      strong: { fontWeight: "600" as const, color: theme.colors.textPrimary },
-      bullet_list: {
-        marginTop: 8,
-        marginBottom: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      },
-      ordered_list: {
-        marginTop: 8,
-        marginBottom: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      },
-      list_item: { flexDirection: "row" as const, marginBottom: 4, minHeight: 22, alignItems: "flex-start" as const },
-    }),
-    [theme]
-  );
 
   const [detail, setDetail] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,16 +95,16 @@ export function SkillDetailSheet({
   );
 
   const renderChildRow = useCallback(
-    (child: SkillChild, parentPath: string, fullPath: string, depth = 0) => {
+    (child: SkillChild, fullPath: string, depth = 0) => {
       if (child.type === "file") {
         return (
           <Box
             key={fullPath}
-            className="flex-row items-center py-1.5 px-2.5 rounded-lg bg-secondary-100 border border-outline-500 mb-1"
+            className="mb-1 flex-row items-center rounded-lg border border-outline-500 bg-secondary-100 px-2.5 py-1.5"
             style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
           >
-            <Text className="text-xs text-text-muted w-4.5 mr-1.5">•</Text>
-            <Text className="text-[13px] text-text-primary font-mono">{child.name}</Text>
+            <Text className="mr-1.5 w-4.5 text-xs text-text-muted">-</Text>
+            <Text className="font-mono text-[13px] text-text-primary">{child.name}</Text>
           </Box>
         );
       }
@@ -187,7 +114,7 @@ export function SkillDetailSheet({
       return (
         <Box key={fullPath}>
           <Pressable
-            className="flex-row items-center py-1.5 px-2.5 rounded-lg bg-secondary-100 border border-outline-500 mb-1 min-h-11"
+            className="mb-1 min-h-11 flex-row items-center rounded-lg border border-outline-500 bg-secondary-100 px-2.5 py-1.5"
             style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
             onPress={() => toggleFolder(fullPath)}
             accessibilityLabel={`${child.name} folder, ${isExpanded ? "expanded" : "collapsed"}`}
@@ -200,18 +127,18 @@ export function SkillDetailSheet({
                 <ChevronRightIcon size={12} color={theme.colors.textSecondary} />
               )}
             </Box>
-            <Text className="text-[13px] text-text-primary font-mono font-semibold">{child.name}</Text>
-            {isLoading && (
+            <Text className="font-mono text-[13px] font-semibold text-text-primary">{child.name}</Text>
+            {isLoading ? (
               <Spinner size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
-            )}
+            ) : null}
           </Pressable>
-          {isExpanded && (
+          {isExpanded ? (
             <Box className="mb-1">
-              {isLoading && nested.length === 0 ? null : nested.map((c) =>
-                renderChildRow(c, fullPath, `${fullPath}/${c.name}`, depth + 1)
-              )}
+              {isLoading && nested.length === 0
+                ? null
+                : nested.map((c) => renderChildRow(c, `${fullPath}/${c.name}`, depth + 1))}
             </Box>
-          )}
+          ) : null}
         </Box>
       );
     },
@@ -272,118 +199,101 @@ export function SkillDetailSheet({
         setError(err?.message ?? "Failed to load skill");
       })
       .finally(() => setLoading(false));
-  }, [isOpen, skillId, serverBaseUrl]);
+  }, [skillId, serverBaseUrl]);
 
   if (!isOpen) return null;
 
-  // When embedded, parent (SkillConfigurationModal) already applies safe insets—avoid doubling.
-  const safeStyle = embedded
-    ? undefined
-    : {
-        paddingTop: Math.max(insets.top, 8),
-        paddingBottom: Math.max(insets.bottom, 8),
-      };
+  const body = (
+    <ScrollView
+      className="flex-1"
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 24,
+      }}
+      showsVerticalScrollIndicator
+    >
+      {loading ? (
+        <Spinner size="small" color={theme.colors.accent} style={{ marginTop: 24 }} />
+      ) : error ? (
+        <Box className="mt-6">
+          <Text className="mb-3 text-sm text-error-500">{error}</Text>
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={handleRetry}
+            accessibilityLabel="Retry loading skill"
+            className="self-start"
+          >
+            <ButtonText>Retry</ButtonText>
+          </Button>
+        </Box>
+      ) : detail ? (
+        <>
+          {detail.children && detail.children.length > 0 ? (
+            <Box className="mb-6">
+              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Child folders & files
+              </Text>
+              <Box>
+                {detail.children.map((child) => renderChildRow(child, child.name))}
+              </Box>
+            </Box>
+          ) : null}
+          {detail.content ? (
+            <Box className="mb-6">
+              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                SKILL.md
+              </Text>
+              <Box className="overflow-hidden rounded-xl border border-outline-500 bg-secondary-100 px-4 py-3.5">
+                <MarkdownContent
+                  content={wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
+                />
+              </Box>
+            </Box>
+          ) : null}
+        </>
+      ) : null}
+    </ScrollView>
+  );
 
-  const content = (
-    <Box className="flex-1 bg-background-0">
-      <Box className="flex-1" style={safeStyle}>
-        <Box className="flex-row items-center justify-between py-4 px-5 border-b border-outline-500">
-          <Text className="flex-1 text-lg font-semibold text-text-primary mr-3" numberOfLines={1}>
+  if (embedded) {
+    const safeStyle = {
+      paddingTop: Math.max(insets.top, 8),
+      paddingBottom: Math.max(insets.bottom, 8),
+    };
+
+    return (
+      <Box className="flex-1 bg-background-0" style={safeStyle}>
+        <Box className="flex-row items-center justify-between border-b border-outline-500 px-5 py-4">
+          <Text className="mr-3 flex-1 text-lg font-semibold text-text-primary" numberOfLines={1}>
             {detail?.name ?? skillId ?? "Skill Details"}
           </Text>
           <Pressable
             onPress={onClose}
             hitSlop={12}
             accessibilityLabel="Close skill details"
-            className="p-2 min-w-11 min-h-11 items-center justify-center"
+            className="min-h-11 min-w-11 items-center justify-center p-2"
           >
             <CloseIcon size={20} color={theme.colors.textSecondary} />
           </Pressable>
         </Box>
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 16,
-            paddingBottom: 24,
-          }}
-          showsVerticalScrollIndicator
-        >
-          {loading ? (
-            <Spinner
-              size="small"
-              color={theme.colors.accent}
-              style={{ marginTop: 24 }}
-            />
-          ) : error ? (
-            <Box className="mt-6">
-              <Text className="text-sm text-error-500 mb-3">{error}</Text>
-              <Button
-                variant="outline"
-                size="sm"
-                onPress={handleRetry}
-                accessibilityLabel="Retry loading skill"
-                className="self-start"
-              >
-                <ButtonText>Retry</ButtonText>
-              </Button>
-            </Box>
-          ) : detail ? (
-            <>
-              {detail.children && detail.children.length > 0 ? (
-                <Box className="mb-6">
-                  <Text className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2.5">
-                    Child folders & files
-                  </Text>
-                  <Box>
-                    {detail.children.map((child) =>
-                      renderChildRow(child, "", child.name)
-                    )}
-                  </Box>
-                </Box>
-              ) : null}
-              {detail.content ? (
-                <Box className="mb-6">
-                  <Text className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2.5">
-                    SKILL.md
-                  </Text>
-                  <Box className="px-4 py-3.5 bg-secondary-100 rounded-xl border border-outline-500 overflow-hidden">
-                    <Markdown
-                      style={markdownStyles}
-                      mergeStyle
-                      onLinkPress={(url) => {
-                        Linking.openURL(url);
-                        return false;
-                      }}
-                    >
-                      {wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
-                    </Markdown>
-                  </Box>
-                </Box>
-              ) : null}
-            </>
-          ) : null}
-        </ScrollView>
+        {body}
       </Box>
-    </Box>
-  );
-
-  if (embedded) {
-    return content;
+    );
   }
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title={detail?.name ?? skillId ?? "Skill Details"}
+      contentClassName="h-full w-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
-          {content}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+      <Box className="flex-1 bg-background-0">{body}</Box>
+    </ModalScaffold>
   );
 }

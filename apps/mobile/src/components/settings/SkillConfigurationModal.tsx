@@ -104,7 +104,7 @@ export function SkillConfigurationModal({
   if (!isOpen) return null;
 
   const safeStyle = {
-    paddingTop: Math.max(insets.top, 8),
+    paddingTop: Math.max(insets.top, 4),
     paddingBottom: Math.max(insets.bottom, 8),
   };
 
@@ -145,13 +145,13 @@ export function SkillConfigurationModal({
               className="flex-1"
               contentContainerStyle={{
                 paddingHorizontal: 20,
-                paddingTop: 16,
+                paddingTop: 12,
                 paddingBottom: 24,
               }}
               showsVerticalScrollIndicator={false}
             >
               <Text className="text-sm text-text-muted mb-5 leading-5">
-                Enable skills for the Pi agent. When enabled, skill content is
+                Enable skills for Pi agent. When enabled, skill content is
                 included in the prompt. Tap a skill to view its details.
               </Text>
               {skillsLoading ? (
@@ -176,6 +176,7 @@ export function SkillConfigurationModal({
                       onPress={() => handleSkillRowPress(skill.id)}
                       hitSlop={{ top: 12, bottom: 12, left: 0, right: 12 }}
                       accessibilityLabel={`${skill.name}. View details`}
+                      accessibilityHint="Opens skill details"
                       accessibilityRole="button"
                       className="flex-1 flex-row items-center mr-3"
                     >
@@ -199,6 +200,7 @@ export function SkillConfigurationModal({
                         value={enabledSkillIds.has(skill.id)}
                         onValueChange={(val) => handleSkillToggle(skill.id, val)}
                         disabled={skillsSaving}
+                        accessibilityLabel={`Enable ${skill.name}`}
                         trackColor={{
                           false: theme.colors.border,
                           true: theme.colors.accentSoft,

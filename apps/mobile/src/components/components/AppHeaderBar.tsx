@@ -1,5 +1,5 @@
 import React from "react";
-import type { StyleProp, ViewStyle } from "react-native";
+import { StyleSheet } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Box } from "@/components/ui/box";
@@ -7,35 +7,18 @@ import { Text as GluestackText } from "@/components/ui/text";
 import {
   AnimatedPressableView,
   EntranceAnimation,
+  spacing,
   triggerHaptic,
 } from "@/design-system";
 import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
 
-type ThemeLike = {
-  colors: {
-    textPrimary: string;
-    accent: string;
-    success: string;
-    warning: string;
-    textMuted: string;
-  };
-};
-
-type HeaderStyleSet = {
-  menuButtonOverlay: StyleProp<ViewStyle>;
-  sessionIdCenter: StyleProp<ViewStyle>;
-  headerStatusStack: StyleProp<ViewStyle>;
-  headerStatusRow: StyleProp<ViewStyle>;
-};
-
 interface AppHeaderBarProps {
   visible: boolean;
-  theme: ThemeLike;
-  styles: HeaderStyleSet;
   workspaceName: string;
-  sessionRunning: boolean;
-  waitingForUserInput: boolean;
-  sessionIdLabel: string;
+  iconColor: string;
+  workspaceColor: string;
+  statusColor: string;
+  statusLabel: string;
   onOpenExplorer: () => void;
   onOpenSessionManagement: () => void;
 }
@@ -57,8 +40,9 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
         }}
         haptic={undefined}
         scaleTo={0.92}
-        style={{ width: 40, height: 40, justifyContent: "center", alignItems: "center" }}
+        style={{ width: 44, height: 44, justifyContent: "center", alignItems: "center" }}
         accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
       >
         {icon}
       </AnimatedPressableView>
@@ -66,30 +50,47 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
   );
 }
 
+const styles = StyleSheet.create({
+  menuButtonOverlay: {
+    position: "absolute",
+    top: 8,
+    left: 0,
+    right: 0,
+    height: 44,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+  },
+  sessionIdCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing[1],
+    minHeight: 40,
+  },
+  headerStatusStack: {
+    maxWidth: "100%",
+  },
+});
+
 export function AppHeaderBar({
   visible,
-  theme,
-  styles,
   workspaceName,
-  sessionRunning,
-  waitingForUserInput,
-  sessionIdLabel,
+  iconColor,
+  workspaceColor,
+  statusColor,
+  statusLabel,
   onOpenExplorer,
   onOpenSessionManagement,
 }: AppHeaderBarProps) {
   if (!visible) return null;
-  const showStart = !sessionRunning;
-  const statusColor = showStart
-    ? theme.colors.accent
-    : waitingForUserInput
-      ? theme.colors.warning
-      : theme.colors.success;
-  const statusText = showStart ? "Start" : waitingForUserInput ? "Wait" : "Running";
 
   return (
     <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
       <HeaderButton
-        icon={<MenuIcon color={theme.colors.textPrimary} />}
+        icon={<MenuIcon color={iconColor} />}
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}
@@ -99,7 +100,7 @@ export function AppHeaderBar({
           <GluestackText
             size="xs"
             numberOfLines={2}
-            style={{ color: theme.colors.accent }}
+            style={{ color: workspaceColor }}
             className="font-medium text-center"
           >
             {workspaceName}
@@ -111,13 +112,12 @@ export function AppHeaderBar({
             style={{ color: statusColor }}
             className="font-medium"
           >
-            {statusText}
-            {!showStart ? `: ${sessionIdLabel}` : ""}
+            {statusLabel}
           </GluestackText>
         </VStack>
       </Box>
       <HeaderButton
-        icon={<SettingsIcon color={theme.colors.textPrimary} />}
+        icon={<SettingsIcon color={iconColor} />}
         onPress={onOpenSessionManagement}
         accessibilityLabel="Manage sessions"
         delay={200}

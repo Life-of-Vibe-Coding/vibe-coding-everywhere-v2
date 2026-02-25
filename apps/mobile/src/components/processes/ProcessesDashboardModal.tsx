@@ -14,7 +14,9 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { AsyncStateView, ModalScaffold } from "@/components/reusable";
+import { AsyncStateView } from "@/components/reusable/AsyncStateView";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import {
   Modal,
   ModalBackdrop,
@@ -176,8 +178,8 @@ export function ProcessesDashboardModal({
       isOpen={isOpen}
       onClose={onClose}
       size="full"
-      title="Running Processes"
-      subtitle="Port-bound server processes"
+      title="Process Dashboard"
+      subtitle="Port-bound process information"
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0"
@@ -189,7 +191,7 @@ export function ProcessesDashboardModal({
           <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
             <HStack className="flex-1 items-center gap-2">
               <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
-              <Text size="xl" bold className="text-typography-900">Running Processes</Text>
+              <Text size="xl" bold className="text-typography-900">Process Dashboard</Text>
             </HStack>
             <Button
               action="default"
@@ -240,14 +242,15 @@ export function ProcessesDashboardModal({
               emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
             >
                 {hasOther ? (
-                  <VStack style={styles.section} className="gap-3">
-                    <HStack className="items-center gap-2">
-                      <Box style={[styles.sectionAccent, { backgroundColor: theme.colors.accent }]} />
-                      <Text size="xs" bold style={{ color: theme.colors?.textSecondary ?? theme.colors.textSecondary }} className="uppercase tracking-wider">Port-bound processes</Text>
-                    </HStack>
-                    {[...apiProcesses]
-                      .sort((a, b) => b.pid - a.pid)
-                      .map((proc) => {
+                  <ListSectionCard
+                    title="Port-bound processes"
+                    subtitle="Active local/dev server processes"
+                    className="mb-4"
+                  >
+                    <VStack style={styles.section} className="gap-3">
+                      {[...apiProcesses]
+                        .sort((a, b) => b.pid - a.pid)
+                        .map((proc) => {
                       const logPaths = proc.logPaths ?? [];
                       const accent = theme.colors.accent;
                       return (
@@ -313,7 +316,8 @@ export function ProcessesDashboardModal({
                         </EntranceAnimation>
                       );
                     })}
-                  </VStack>
+                    </VStack>
+                  </ListSectionCard>
                 ) : null}
             </AsyncStateView>
           </ScrollView>

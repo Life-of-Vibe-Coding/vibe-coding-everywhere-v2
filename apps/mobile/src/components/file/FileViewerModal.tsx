@@ -219,13 +219,15 @@ export function FileViewerModal({
             onPress={onClose}
             style={styles.closeBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel="Close file viewer"
+            accessibilityRole="button"
           >
             <Text style={styles.closeBtnText}>✕</Text>
           </Pressable>
         </Box>
       ) : null}
 
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={theme.mode === "dark" ? "light-content" : "dark-content"} />
 
       {loading && (
         <Box style={styles.center}>
@@ -242,13 +244,13 @@ export function FileViewerModal({
       {imageUri && (
         <Box style={styles.imageWrap}>
           <Box style={styles.zoomBar}>
-            <Pressable style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out">
+            <Pressable style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out" accessibilityRole="button">
               <Text style={styles.zoomBtnText}>−</Text>
             </Pressable>
-            <Pressable style={styles.zoomLabel} onPress={zoomReset}>
+            <Pressable style={styles.zoomLabel} onPress={zoomReset} accessibilityLabel="Reset zoom" accessibilityRole="button">
               <Text style={styles.zoomLabelText}>{Math.round(imageScale * 100)}%</Text>
             </Pressable>
-            <Pressable style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in">
+            <Pressable style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in" accessibilityRole="button">
               <Text style={styles.zoomBtnText}>+</Text>
             </Pressable>
           </Box>
@@ -311,10 +313,10 @@ export function FileViewerModal({
                   ? `Line ${selectionStart}`
                   : `Lines ${selectionStart}-${selectionEnd}`}
               </Text>
-              <Pressable style={styles.addRefBtn} onPress={handleAddToPrompt}>
+              <Pressable style={styles.addRefBtn} onPress={handleAddToPrompt} accessibilityLabel="Add selected lines to prompt" accessibilityRole="button">
                 <Text style={styles.addRefBtnText}>Add to prompt</Text>
               </Pressable>
-              <Pressable style={styles.cancelRefBtn} onPress={clearSelection}>
+              <Pressable style={styles.cancelRefBtn} onPress={clearSelection} accessibilityLabel="Clear selected lines" accessibilityRole="button">
                 <Text style={styles.cancelRefBtnText}>Cancel</Text>
               </Pressable>
             </Box>
@@ -440,7 +442,10 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textPrimary,
     },
     closeBtn: {
-      padding: 4,
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
     closeBtnText: {
       fontSize: 18,
@@ -471,9 +476,9 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.colors.surfaceAlt,
     },
     zoomBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       backgroundColor: theme.colors.border,
       alignItems: "center",
       justifyContent: "center",
@@ -484,8 +489,10 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textPrimary,
     },
     zoomLabel: {
-      minWidth: 56,
+      minWidth: 64,
+      minHeight: 44,
       alignItems: "center",
+      justifyContent: "center",
     },
     zoomLabelText: {
       fontSize: 14,
@@ -544,6 +551,8 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textPrimary,
     },
     addRefBtn: {
+      minHeight: 44,
+      justifyContent: "center",
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 8,
@@ -555,6 +564,8 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       fontWeight: "600",
     },
     cancelRefBtn: {
+      minHeight: 44,
+      justifyContent: "center",
       paddingVertical: 6,
       paddingHorizontal: 8,
     },

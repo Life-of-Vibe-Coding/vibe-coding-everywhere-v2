@@ -85,34 +85,59 @@ export function registerSessionsRoutes(app) {
         return { sessionId, firstUserInput, provider, modelId, cwd };
     }
 
+    function listDiscoveredSessions() {
+        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
+        if (!fs.existsSync(sessionsBase)) return [];
+
+        const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
+        const discovered = [];
+        for (const d of subdirs) {
+            const dirSessionId = d.name;
+            const filePath = findJsonlInDir(path.join(sessionsBase, dirSessionId));
+            if (!filePath) continue;
+
+            const stat = fs.statSync(filePath);
+            const fileStem = path.basename(filePath, ".jsonl");
+            const metadata = parseSessionMetadata(filePath);
+            const id = metadata.sessionId || dirSessionId;
+            const activeSession = resolveSession(id);
+            discovered.push({
+                id,
+                filePath,
+                fileStem,
+                mtimeMs: stat.mtimeMs,
+                firstUserInput: metadata.firstUserInput,
+                provider: metadata.provider,
+                modelId: metadata.modelId,
+                cwd: metadata.cwd,
+                activeSession,
+            });
+        }
+
+        discovered.sort((a, b) => b.mtimeMs - a.mtimeMs);
+        return discovered;
+    }
+
     // GET /api/sessions/status - Session status list for client UI
     router.get("/status", (_, res) => {
-        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
         const discovered = [];
         try {
-            if (!fs.existsSync(sessionsBase)) {
+            const records = listDiscoveredSessions();
+            if (!records.length) {
                 return res.json({ ok: true, sessions: discovered, projectRootPath: getWorkspaceCwd() });
             }
-            const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
-            for (const d of subdirs) {
-                const sessionId = d.name;
-                const filePath = findJsonlInDir(path.join(sessionsBase, sessionId));
-                if (!filePath) continue;
-                const stat = fs.statSync(filePath);
-                const { sessionId: metaId, firstUserInput, modelId, cwd } = parseSessionMetadata(filePath);
-                const id = metaId || sessionId;
-                const activeSession = resolveSession(id);
-                const running = activeSession?.processManager?.processRunning?.() ?? false;
+
+            for (const record of records) {
+                const running = record.activeSession?.processManager?.processRunning?.() ?? false;
                 discovered.push({
-                    id,
-                    cwd: (typeof cwd === "string" && cwd.trim()) ? cwd : null,
-                    model: modelId || null,
-                    lastAccess: stat.mtimeMs,
+                    id: record.id,
+                    cwd: (typeof record.cwd === "string" && record.cwd.trim()) ? record.cwd : null,
+                    model: record.modelId || null,
+                    lastAccess: record.mtimeMs,
                     status: running ? "running" : "idling",
-                    title: firstUserInput || "(no input)",
+                    title: record.firstUserInput || "(no input)",
                 });
             }
-            discovered.sort((a, b) => b.lastAccess - a.lastAccess);
         } catch (e) {
             console.error("[sessions] Failed to list .pi/agent/sessions for status:", e?.message);
         }
@@ -171,38 +196,31 @@ export function registerSessionsRoutes(app) {
 
     // GET /api/sessions - List sessions. Each subdir of sessions/ is session id; discover by id.
     router.get("/", (req, res) => {
-        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
         const discovered = [];
         try {
-            if (!fs.existsSync(sessionsBase)) {
+            const records = listDiscoveredSessions();
+            if (!records.length) {
                 return res.json({ sessions: discovered, projectRootPath: getWorkspaceCwd() });
             }
-            const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
-            for (const d of subdirs) {
-                const sessionId = d.name;
-                const filePath = findJsonlInDir(path.join(sessionsBase, sessionId));
-                if (!filePath) continue;
-                const stat = fs.statSync(filePath);
-                const fileStem = path.basename(filePath, ".jsonl");
-                const { sessionId: metaId, firstUserInput, provider, modelId, cwd } = parseSessionMetadata(filePath);
-                const id = metaId || sessionId;
-                const activeSession = resolveSession(id);
-                const sseConnected = activeSession ? activeSession.subscribers?.size > 0 : false;
-                const running = activeSession?.processManager?.processRunning?.() ?? false;
-                const resolvedCwd = (typeof cwd === "string" && cwd.trim()) ? cwd : (deriveCwdFromFilePath(filePath) || getWorkspaceCwd());
+
+            for (const record of records) {
+                const sseConnected = record.activeSession ? record.activeSession.subscribers?.size > 0 : false;
+                const running = record.activeSession?.processManager?.processRunning?.() ?? false;
+                const resolvedCwd = (typeof record.cwd === "string" && record.cwd.trim())
+                    ? record.cwd
+                    : (deriveCwdFromFilePath(record.filePath) || getWorkspaceCwd());
                 discovered.push({
-                    id,
-                    fileStem,
-                    firstUserInput: firstUserInput || "(no input)",
-                    provider: provider || null,
-                    model: modelId || null,
-                    mtime: stat.mtimeMs,
+                    id: record.id,
+                    fileStem: record.fileStem,
+                    firstUserInput: record.firstUserInput || "(no input)",
+                    provider: record.provider || null,
+                    model: record.modelId || null,
+                    mtime: record.mtimeMs,
                     sseConnected,
                     running,
                     cwd: resolvedCwd || getWorkspaceCwd(),
                 });
             }
-            discovered.sort((a, b) => b.mtime - a.mtime);
         } catch (e) {
             console.error("[sessions] Failed to list .pi/agent/sessions:", e?.message);
         }

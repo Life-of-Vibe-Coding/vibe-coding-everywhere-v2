@@ -1,19 +1,17 @@
 import React from "react";
-import type { LayoutChangeEvent } from "react-native";
+import { StyleSheet, type LayoutChangeEvent } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
 import { FileViewerPage } from "@/components/pages/FileViewerPage";
 import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
 import { Box } from "@/components/ui/box";
-import { View } from "@/components/ui/view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
-import type { createAppStyles } from "@/components/styles/appStyles";
 import type { getTheme } from "@/theme/index";
+import { spacing } from "@/design-system";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
-  styles: ReturnType<typeof createAppStyles>;
   workspaceName: string;
   sessionIdLabel: string;
   sessionRunning: boolean;
@@ -25,7 +23,6 @@ export type ChatHeaderSectionProps = {
 
 export function ChatHeaderSection({
   theme,
-  styles,
   workspaceName,
   sessionIdLabel,
   sessionRunning,
@@ -34,20 +31,22 @@ export function ChatHeaderSection({
   onOpenSessionManagement,
   sidebarVisible,
 }: ChatHeaderSectionProps) {
+  const showStart = !sessionRunning;
+  const statusColor = showStart
+    ? theme.colors.accent
+    : waitingForUserInput
+      ? theme.colors.warning
+      : theme.colors.success;
+  const statusLabel = showStart ? "Start" : waitingForUserInput ? `Wait: ${sessionIdLabel}` : `Running: ${sessionIdLabel}`;
+
   return (
     <AppHeaderBar
       visible={!sidebarVisible}
-      theme={theme}
-      styles={{
-        menuButtonOverlay: styles.menuButtonOverlay,
-        sessionIdCenter: styles.sessionIdCenter,
-        headerStatusStack: styles.headerStatusStack,
-        headerStatusRow: styles.headerStatusRow,
-      }}
       workspaceName={workspaceName}
-      sessionRunning={sessionRunning}
-      waitingForUserInput={waitingForUserInput}
-      sessionIdLabel={sessionIdLabel}
+      iconColor={theme.colors.textPrimary}
+      workspaceColor={theme.colors.accent}
+      statusColor={statusColor}
+      statusLabel={statusLabel}
       onOpenExplorer={onOpenExplorer}
       onOpenSessionManagement={onOpenSessionManagement}
     />
@@ -55,16 +54,83 @@ export function ChatHeaderSection({
 }
 
 export type ChatConversationSectionProps = {
-  styles: ReturnType<typeof createAppStyles>;
   conversation: ChatPageConversation;
   fileViewer: ChatPageFileViewer;
   sidebar: ChatPageSidebar;
   inputDockHeight: number;
 };
 
-export function ChatConversationSection({ styles, conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
+const styles = StyleSheet.create({
+  chatShell: {
+    flex: 1,
+    marginTop: 0,
+  },
+  chatArea: {
+    flex: 1,
+    minHeight: 0,
+  },
+  chatMessages: {
+    marginTop: 58,
+    paddingHorizontal: spacing["3"],
+  },
+  fileViewerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 6,
+  },
+  sidebarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    height: "100%",
+    zIndex: 5,
+  },
+  inputBar: {
+    paddingBottom: 8,
+  },
+});
+
+function ChatSectionFrame({ children }: { children: React.ReactNode }) {
+  return <Box style={styles.chatShell}>{children}</Box>;
+}
+
+function OverlayLayer({
+  fileViewer,
+  sidebar,
+}: {
+  fileViewer: ChatPageFileViewer;
+  sidebar: ChatPageSidebar;
+}) {
   return (
-    <Box style={styles.chatShell}>
+    <>
+      <FileViewerPage
+        isOpen={fileViewer.selectedFilePath != null}
+        style={styles.fileViewerOverlay}
+        path={fileViewer.selectedFilePath ?? ""}
+        content={fileViewer.fileContent}
+        isImage={fileViewer.fileIsImage}
+        loading={fileViewer.fileLoading}
+        error={fileViewer.fileError}
+        onClose={fileViewer.onCloseFileViewer}
+        onAddCodeReference={fileViewer.onAddCodeReference}
+      />
+      <WorkspaceSidebarPage
+        isOpen={sidebar.visible}
+        style={styles.sidebarOverlay}
+        pointerEvents={sidebar.visible ? "auto" : "none"}
+        onClose={sidebar.onCloseSidebar}
+        onFileSelect={sidebar.onFileSelectFromSidebar}
+        onCommitByAI={sidebar.onCommitByAI}
+        onActiveTabChange={sidebar.onSidebarTabChange}
+      />
+    </>
+  );
+}
+
+export function ChatConversationSection({ conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
+  return (
+    <ChatSectionFrame>
       <ChatMessageList
         messages={conversation.messages}
         provider={conversation.provider}
@@ -81,34 +147,12 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
         style={styles.chatArea}
         contentContainerStyle={[styles.chatMessages, { paddingBottom: inputDockHeight + 16 }]}
       />
-
-      <FileViewerPage
-        isOpen={fileViewer.selectedFilePath != null}
-        style={styles.fileViewerOverlay}
-        path={fileViewer.selectedFilePath ?? ""}
-        content={fileViewer.fileContent}
-        isImage={fileViewer.fileIsImage}
-        loading={fileViewer.fileLoading}
-        error={fileViewer.fileError}
-        onClose={fileViewer.onCloseFileViewer}
-        onAddCodeReference={fileViewer.onAddCodeReference}
-      />
-
-      <WorkspaceSidebarPage
-        isOpen={sidebar.visible}
-        style={styles.sidebarOverlay}
-        pointerEvents={sidebar.visible ? "auto" : "none"}
-        onClose={sidebar.onCloseSidebar}
-        onFileSelect={sidebar.onFileSelectFromSidebar}
-        onCommitByAI={sidebar.onCommitByAI}
-        onActiveTabChange={sidebar.onSidebarTabChange}
-      />
-    </Box>
+      <OverlayLayer fileViewer={fileViewer} sidebar={sidebar} />
+    </ChatSectionFrame>
   );
 }
 
 export type ChatInputDockSectionProps = {
-  styles: ReturnType<typeof createAppStyles>;
   runtime: ChatPageRuntime;
   context: ChatPageContext;
   input: ChatPageInputDock;
@@ -120,7 +164,6 @@ export type ChatInputDockSectionProps = {
 };
 
 export function ChatInputDockSection({
-  styles,
   runtime,
   context,
   input,
@@ -135,7 +178,7 @@ export function ChatInputDockSection({
   }
 
   return (
-    <View
+    <Box
       style={styles.inputBar}
       onLayout={(event: LayoutChangeEvent) => {
         const height = event.nativeEvent.layout.height;
@@ -163,6 +206,6 @@ export function ChatInputDockSection({
         onOpenSkillsConfig={onOpenSkillsConfig}
         onOpenDocker={onOpenDocker}
       />
-    </View>
+    </Box>
   );
 }

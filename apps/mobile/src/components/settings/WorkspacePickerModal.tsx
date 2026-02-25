@@ -7,11 +7,10 @@ import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, bas
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  CloseIcon,
 } from "@/components/icons/ChatActionIcons";
 import { FolderIcon } from "@/components/icons/WorkspaceTreeIcons";
 import { Box } from "@/components/ui/box";
-import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text as GText } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
@@ -19,12 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -397,19 +391,21 @@ export function WorkspacePickerModal({
   if (!isOpen) return null;
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
+      title="Workspace Picker"
+      subtitle={pickerRoot ? truncatePathForDisplay(currentPath || pickerRoot) : "Select workspace"}
       size="full"
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
-          <Box className="flex-1 bg-background-50">
-            <SafeAreaView style={{ flex: 1 }}>
+      <Box className="flex-1 bg-background-50">
+        <SafeAreaView style={{ flex: 1 }}>
           <EntranceAnimation variant="fade" duration={180}>
             <VStack className="border-b border-outline-200 bg-background-0 px-4 pb-3 pt-2" space="sm">
-              <HStack className="items-center justify-between">
+              <HStack className="items-center justify-start">
                 {canGoBack ? (
                   <Pressable
                     onPress={handleGoToParent}
@@ -423,19 +419,6 @@ export function WorkspacePickerModal({
                 ) : (
                   <Box className="min-h-11 min-w-[90px]" />
                 )}
-                <Button
-                  action="default"
-                  variant="link"
-                  size="sm"
-                  onPress={() => {
-                    triggerHaptic("selection");
-                    onClose();
-                  }}
-                  accessibilityLabel="Close"
-                  className="min-h-11 min-w-11 rounded-xl"
-                >
-                  <ButtonIcon as={CloseIcon} size="md" className="text-typography-500" />
-                </Button>
               </HStack>
 
               <Card variant="filled" size="sm" className="rounded-2xl bg-background-50 border border-outline-100">
@@ -563,10 +546,8 @@ export function WorkspacePickerModal({
               </ScrollView>
             </EntranceAnimation>
           )}
-            </SafeAreaView>
-          </Box>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+        </SafeAreaView>
+      </Box>
+    </ModalScaffold>
   );
 }

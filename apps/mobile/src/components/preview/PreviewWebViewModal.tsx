@@ -323,6 +323,7 @@ export function PreviewWebViewModal({
                 style={styles.closeBtn}
                 onPress={onClose}
                 accessibilityLabel="Close preview"
+                accessibilityRole="button"
               >
                 <Text style={styles.closeText}>✕</Text>
               </Pressable>
@@ -341,7 +342,12 @@ export function PreviewWebViewModal({
                   onChange={(next) => selectTab(Number(next))}
                 />
               </ScrollView>
-              <Pressable style={styles.addTabBtn} onPress={addTab}>
+              <Pressable
+                style={styles.addTabBtn}
+                onPress={addTab}
+                accessibilityLabel="Add tab"
+                accessibilityRole="button"
+              >
                 <Text style={styles.addTabText}>+</Text>
               </Pressable>
               {tabs.length > 1 ? (
@@ -349,6 +355,7 @@ export function PreviewWebViewModal({
                   style={styles.closeCurrentTabBtn}
                   onPress={() => closeTab(activeIndex)}
                   accessibilityLabel="Close current tab"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.closeCurrentTabText}>×</Text>
                 </Pressable>
@@ -362,7 +369,7 @@ export function PreviewWebViewModal({
                   <InputField
                     value={urlInputValue}
                     onChangeText={setUrlInputValue}
-                    placeholder="搜索或输入网址"
+                    placeholder="Search or enter URL"
                     placeholderTextColor={theme.colors.textSecondary}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -380,6 +387,7 @@ export function PreviewWebViewModal({
                 onPress={handleReload}
                 disabled={loading && !!resolvedUrl}
                 accessibilityLabel="Reload"
+                accessibilityRole="button"
               >
                 {loading && resolvedUrl ? (
                   <Spinner size="small" color={theme.colors.accent} />
@@ -392,6 +400,7 @@ export function PreviewWebViewModal({
                   style={styles.iconBtn}
                   onPress={() => setIsFullScreen(true)}
                   accessibilityLabel="Full screen"
+                  accessibilityRole="button"
                 >
                   <Text style={styles.iconBtnText}>⛶</Text>
                 </Pressable>
@@ -402,7 +411,7 @@ export function PreviewWebViewModal({
 
         {!resolvedUrl ? (
           <Box style={styles.placeholder}>
-            <Text style={styles.placeholderText}>输入网址后按键盘「前往」或点击刷新加载</Text>
+            <Text style={styles.placeholderText}>Enter a URL and press Go or Reload to load the page</Text>
           </Box>
         ) : (
           <Box style={styles.webContainer}>
@@ -442,7 +451,7 @@ export function PreviewWebViewModal({
                     onError={(e) => {
                       if (i === activeIndex) {
                         setLoading(false);
-                        const desc = e.nativeEvent?.description ?? "加载失败";
+                        const desc = e.nativeEvent?.description ?? "Failed to load";
                         setError(desc);
                       }
                     }}
@@ -450,7 +459,7 @@ export function PreviewWebViewModal({
                       if (i === activeIndex) {
                         setLoading(false);
                         const status = e.nativeEvent?.statusCode;
-                        setError(status ? `HTTP ${status}` : "加载失败");
+                        setError(status ? `HTTP ${status}` : "Failed to load");
                       }
                     }}
                     onNavigationStateChange={(navState) => {
@@ -470,15 +479,15 @@ export function PreviewWebViewModal({
             {loading && (
               <Box style={styles.loadingOverlay}>
                 <Spinner size="large" color={theme.colors.accent} />
-                <Text style={styles.loadingText}>加载中…</Text>
+                <Text style={styles.loadingText}>Loading...</Text>
               </Box>
             )}
             {error ? (
               <Box style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
                 <Text style={styles.urlHint}>{resolvedUrl}</Text>
-                <Pressable style={styles.retryBtn} onPress={handleReload}>
-                  <Text style={styles.retryBtnText}>重试</Text>
+                <Pressable style={styles.retryBtn} onPress={handleReload} accessibilityRole="button" accessibilityLabel="Retry">
+                  <Text style={styles.retryBtnText}>Retry</Text>
                 </Pressable>
               </Box>
             ) : null}
@@ -491,6 +500,7 @@ export function PreviewWebViewModal({
             style={[styles.fullScreenExit, { top: insets.top }]}
             onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
             accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}
+            accessibilityRole="button"
           >
             <Text style={styles.fullScreenExitText}>✕</Text>
           </Pressable>
@@ -530,9 +540,9 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     minHeight: toolbarHeight,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
@@ -546,8 +556,8 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   urlBarWrap: {
     flex: 1,
     minWidth: 0,
-    height: 36,
-    borderRadius: 18,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.border,
     justifyContent: "center",
     paddingHorizontal: 16,
@@ -562,9 +572,9 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
       : {}),
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
@@ -597,9 +607,9 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     gap: 6,
   },
   addTabBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
@@ -612,9 +622,9 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     lineHeight: 22,
   },
   closeCurrentTabBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",

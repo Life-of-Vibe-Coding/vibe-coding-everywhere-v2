@@ -30,6 +30,7 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from "@/components/ui/actionsheet";
+import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { useTheme } from "@/theme/index";
 import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
@@ -349,51 +350,32 @@ export function InputPanel({
           </HStack>
           <HStack space="sm" className="flex-row items-center gap-2 shrink-0">
             {onOpenProcesses && (
-              <Button
-                action="secondary"
-                variant="outline"
-                size="md"
+              <ActionIconButton
+                icon={TerminalIcon}
                 onPress={onOpenProcesses}
-                accessibilityLabel="Open processes dashboard"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-                style={{
-                  borderColor: theme.colors.accentSubtle,
-                  backgroundColor: theme.colors.accentSoft,
-                }}
-              >
-                <ButtonIcon as={TerminalIcon} size="md" style={{ color: theme.colors.accent }} />
-              </Button>
+                accessibilityLabel="Open process dashboard"
+                className="w-11 h-11 rounded-xl"
+              />
             )}
             {onOpenWebPreview && (
-              <Button
-                action="secondary"
-                variant="outline"
-                size="md"
+              <ActionIconButton
+                icon={GlobeIcon}
                 onPress={onOpenWebPreview}
                 accessibilityLabel="Open web preview"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-                style={{
-                  borderColor: theme.colors.accentSubtle,
-                  backgroundColor: theme.colors.accentSoft,
-                }}
-              >
-                <ButtonIcon as={GlobeIcon} size="md" style={{ color: theme.colors.accent }} />
-              </Button>
+                className="w-11 h-11 rounded-xl"
+              />
             )}
             {onTerminateAgent && sessionRunning && (
-              <Button
-                action="negative"
-                variant="solid"
-                size="md"
+              <ActionIconButton
+                icon={StopCircleIcon}
                 onPress={() => {
                   triggerHaptic("heavy");
                   onTerminateAgent();
                 }}
                 accessibilityLabel="Terminate agent response"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-              >
-                <ButtonIcon as={StopCircleIcon} size="md" />
-              </Button>
+                className="w-11 h-11 rounded-xl"
+                tone="danger"
+              />
             )}
             {!(sessionRunning && !waitingForUserInput) && (
               <Button

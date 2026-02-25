@@ -105,7 +105,7 @@ describe("chat/InputPanel accessibility gate", () => {
     const { getByLabelText } = renderPanel();
     expect(getByLabelText("More options")).toBeTruthy();
     expect(getByLabelText("Select model")).toBeTruthy();
-    expect(getByLabelText("Open processes dashboard")).toBeTruthy();
+    expect(getByLabelText("Open process dashboard")).toBeTruthy();
     expect(getByLabelText("Open web preview")).toBeTruthy();
     expect(getByLabelText("Send message")).toBeTruthy();
   });
@@ -114,7 +114,7 @@ describe("chat/InputPanel accessibility gate", () => {
     const { getByLabelText } = renderPanel();
     const send = getByLabelText("Send message");
     const preview = getByLabelText("Open web preview");
-    const processes = getByLabelText("Open processes dashboard");
+    const processes = getByLabelText("Open process dashboard");
     const more = getByLabelText("More options");
     const model = getByLabelText("Select model");
 

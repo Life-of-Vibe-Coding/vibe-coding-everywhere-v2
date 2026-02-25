@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -31,22 +31,24 @@ export function ChatPageShell({
 }: ChatPageShellProps) {
   const insets = useSafeAreaInsets();
   const [inputDockHeight, setInputDockHeight] = useState(0);
+  const handleInputDockLayout = useCallback((height: number) => {
+    setInputDockHeight(height);
+  }, []);
 
   return (
     <SafeAreaView style={context.styles.safeArea} edges={["left", "right", "bottom"]}>
       <StatusBar style={context.theme.mode === "dark" ? "light" : "dark"} />
       <KeyboardAvoidingView
-        style={context.styles.keyboardView}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <Box style={[context.styles.page, { paddingTop: insets.top }]}>
+        <Box className="flex-1 flex-col px-6 pt-2" style={{ paddingTop: insets.top }}>
           <Box style={context.styles.providerTintOverlay} pointerEvents="none" />
-            <Box style={context.styles.topSection}>
-            <Box style={context.styles.contentArea}>
+          <Box className="relative flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
+            <Box className="flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
               <ChatHeaderSection
                 theme={context.theme}
-                styles={context.styles}
                 workspaceName={header.workspaceName}
                 sessionIdLabel={header.sessionIdLabel}
                 sessionRunning={runtime.sessionRunning}
@@ -56,7 +58,6 @@ export function ChatPageShell({
                 sidebarVisible={header.sidebarVisible}
               />
               <ChatConversationSection
-                styles={context.styles}
                 conversation={conversation}
                 fileViewer={fileViewer}
                 sidebar={sidebar}
@@ -64,7 +65,6 @@ export function ChatPageShell({
               />
             </Box>
             <ChatInputDockSection
-              styles={context.styles}
               runtime={runtime}
               context={context}
               input={inputDock}
@@ -72,7 +72,7 @@ export function ChatPageShell({
               onOpenProcesses={modalHandlers.onOpenProcesses}
               onOpenDocker={modalHandlers.onOpenDocker}
               onOpenModelPicker={modalHandlers.onOpenModelPicker}
-              onInputDockLayout={(height) => setInputDockHeight(height)}
+              onInputDockLayout={handleInputDockLayout}
             />
           </Box>
         </Box>

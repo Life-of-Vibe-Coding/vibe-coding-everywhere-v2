@@ -24,6 +24,51 @@ type ChatMessageListProps = {
   contentContainerStyle?: StyleProp<ViewStyle>;
 };
 
+type ChatMessageRowProps = {
+  item: Message;
+  index: number;
+  total: number;
+  lastSessionTerminated: boolean;
+  tailBoxMaxHeight: number;
+  provider: BrandProvider;
+  onOpenUrl: (url: string) => void;
+  onFileSelect: (path: string) => void;
+};
+
+function ChatMessageRow({
+  item,
+  index,
+  total,
+  lastSessionTerminated,
+  tailBoxMaxHeight,
+  provider,
+  onOpenUrl,
+  onFileSelect,
+}: ChatMessageRowProps) {
+  const isLast = index === total - 1;
+  const showTerminated =
+    lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
+  const hasCodeOrFileContent =
+    hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
+  const showTailBox =
+    isLast &&
+    item.role === "assistant" &&
+    !!(item.content && item.content.trim()) &&
+    hasCodeOrFileContent;
+
+  return (
+    <MessageBubble
+      message={item}
+      isTerminatedLabel={showTerminated}
+      showAsTailBox={showTailBox}
+      tailBoxMaxHeight={tailBoxMaxHeight}
+      provider={provider}
+      onOpenUrl={onOpenUrl}
+      onFileSelect={onFileSelect}
+    />
+  );
+}
+
 export function ChatMessageList({
   messages,
   provider,
@@ -52,22 +97,12 @@ export function ChatMessageList({
 
   const renderMessageItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
-      const isLast = index === displayMessages.length - 1;
-      const showTerminated =
-        lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
-      const hasCodeOrFileContent =
-        hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
-      const showTailBox =
-        isLast &&
-        item.role === "assistant" &&
-        !!(item.content && item.content.trim()) &&
-        hasCodeOrFileContent;
-
       return (
-        <MessageBubble
-          message={item}
-          isTerminatedLabel={showTerminated}
-          showAsTailBox={showTailBox}
+        <ChatMessageRow
+          item={item}
+          index={index}
+          total={displayMessages.length}
+          lastSessionTerminated={lastSessionTerminated}
           tailBoxMaxHeight={tailBoxMaxHeight}
           provider={provider}
           onOpenUrl={onOpenUrl}
