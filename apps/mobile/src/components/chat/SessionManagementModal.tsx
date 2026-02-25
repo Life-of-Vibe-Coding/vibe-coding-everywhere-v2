@@ -3,7 +3,6 @@ import {
   StyleSheet,
   Modal,
   Alert,
-  ScrollView,
   RefreshControl,
   Platform,
   LayoutAnimation,
@@ -25,6 +24,7 @@ import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { useTheme } from "@/theme/index";

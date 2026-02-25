@@ -1,7 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Modal,
-  ScrollView,
   ActivityIndicator,
   LayoutChangeEvent,
 } from "react-native";
@@ -19,9 +17,16 @@ import { Box } from "@/components/ui/box";
 import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text as GText } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -396,12 +401,14 @@ export function WorkspacePickerModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
+      size="full"
     >
-      <Box className="flex-1 bg-background-50">
-        <SafeAreaView style={{ flex: 1 }}>
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          <Box className="flex-1 bg-background-50">
+            <SafeAreaView style={{ flex: 1 }}>
           <EntranceAnimation variant="fade" duration={180}>
             <VStack className="border-b border-outline-200 bg-background-0 px-4 pb-3 pt-2" space="sm">
               <HStack className="items-center justify-between">
@@ -465,7 +472,7 @@ export function WorkspacePickerModal({
             <EntranceAnimation variant="fade" duration={200} delay={60}>
               <ScrollView
                 ref={scrollRef}
-                style={{ flex: 1 }}
+                className="flex-1"
                 contentContainerStyle={{ paddingBottom: 28 }}
                 showsVerticalScrollIndicator
                 nestedScrollEnabled
@@ -558,8 +565,10 @@ export function WorkspacePickerModal({
               </ScrollView>
             </EntranceAnimation>
           )}
-        </SafeAreaView>
-      </Box>
+            </SafeAreaView>
+          </Box>
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }

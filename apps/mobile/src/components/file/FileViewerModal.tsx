@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
-  ScrollView,
   Image,
   Dimensions,
   type TextStyle,
@@ -18,6 +17,7 @@ import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Modal,
-  ScrollView,
   ActivityIndicator,
   useWindowDimensions,
   Platform,
@@ -12,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Input, InputField } from "@/components/ui/input";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";

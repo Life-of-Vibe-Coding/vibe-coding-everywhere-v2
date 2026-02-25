@@ -1,12 +1,16 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Modal, TouchableWithoutFeedback } from "react-native";
 import { useTheme } from "@/theme/index";
 import { EntranceAnimation } from "@/design-system";
 import { Box } from "@/components/ui/box";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalBody,
+} from "@/components/ui/modal";
 
-const MIN_TOUCH_TARGET = 44;
 const URL_PREVIEW_MAX_LEN = 40;
 
 function truncateUrl(url: string, maxLen: number = URL_PREVIEW_MAX_LEN): string {
@@ -40,27 +44,29 @@ export function UrlChoiceModal({
   onCancel,
 }: UrlChoiceModalProps) {
   const theme = useTheme();
-  const styles = useMemo(() => createModalStyles(theme), [theme]);
+  const backdropStyle = useMemo(
+    () => ({ backgroundColor: theme.colors.overlay }),
+    [theme.colors.overlay]
+  );
 
   if (!visible) return null;
 
   return (
     <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-      statusBarTranslucent
+      isOpen={visible}
+      onClose={onCancel}
+      size="sm"
     >
-      <TouchableWithoutFeedback onPress={onCancel}>
-        <Box style={styles.backdrop} className="flex-1 justify-center items-center p-8">
-          <TouchableWithoutFeedback onPress={() => {}}>
+      <ModalBackdrop onPress={onCancel} />
+      <ModalContent className="w-full max-w-90 p-0">
+        <ModalBody className="m-0 p-0">
+          <Box style={backdropStyle} className="justify-center items-center p-8">
             <EntranceAnimation variant="scale" duration={280}>
-            <Box style={styles.card} className="w-full max-w-90 rounded-xl p-8 bg-background-0">
+            <Box className="w-full max-w-90 rounded-xl p-8 bg-background-0 border border-outline-300">
               <Text size="lg" bold className="text-typography-900 mb-4">{title}</Text>
               <Text size="md" className="text-typography-600 mb-6 leading-5">{description}</Text>
 
-              <Box style={styles.options} className="gap-4">
+              <Box className="gap-4">
                 <Pressable
                   onPress={onChooseVpn}
                   accessibilityRole="button"
@@ -96,98 +102,9 @@ export function UrlChoiceModal({
               )}
             </Box>
             </EntranceAnimation>
-          </TouchableWithoutFeedback>
-        </Box>
-      </TouchableWithoutFeedback>
+          </Box>
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
-}
-
-function createModalStyles(theme: ReturnType<typeof useTheme>) {
-  const { typography, spacing, radii, colors } = theme;
-  return StyleSheet.create({
-    backdrop: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: "center",
-      alignItems: "center",
-      padding: spacing.lg,
-    },
-    card: {
-      width: "100%",
-      maxWidth: 360,
-      backgroundColor: colors.surface,
-      borderRadius: radii.lg,
-      padding: spacing.lg,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
-      shadowRadius: 24,
-      elevation: 12,
-    },
-    title: {
-      fontSize: typography.title3.fontSize,
-      lineHeight: typography.title3.lineHeight,
-      fontWeight: typography.title3.fontWeight,
-      color: colors.textPrimary,
-      marginBottom: spacing.sm,
-    },
-    description: {
-      fontSize: typography.body.fontSize,
-      lineHeight: typography.body.lineHeight * 1.25,
-      color: colors.textSecondary,
-      marginBottom: spacing.lg,
-    },
-    options: {
-      gap: spacing.sm,
-    },
-    optionPrimary: {
-      minHeight: MIN_TOUCH_TARGET,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.accentSubtle,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: colors.accent,
-    },
-    optionSecondary: {
-      minHeight: MIN_TOUCH_TARGET,
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.md,
-      backgroundColor: colors.surfaceAlt,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    optionPressed: {
-      opacity: 0.85,
-    },
-    optionPrimaryLabel: {
-      fontSize: typography.callout.fontSize,
-      fontWeight: "600",
-      color: colors.accent,
-      marginBottom: 2,
-    },
-    optionSecondaryLabel: {
-      fontSize: typography.callout.fontSize,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      marginBottom: 2,
-    },
-    optionUrl: {
-      fontSize: typography.caption.fontSize,
-      color: colors.textMuted,
-    },
-    cancelBtn: {
-      minHeight: MIN_TOUCH_TARGET,
-      marginTop: spacing.md,
-      paddingVertical: spacing.sm,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    cancelText: {
-      fontSize: typography.callout.fontSize,
-      color: colors.textMuted,
-    },
-  });
 }

@@ -1,8 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
-  StyleSheet,
-  Modal,
-  ScrollView,
   ActivityIndicator,
   Platform,
   Linking,
@@ -12,8 +9,15 @@ import Markdown from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Button, ButtonText } from "@/components/ui/button";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
 
@@ -56,7 +60,7 @@ export function SkillDetailSheet({
       heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
       heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
       heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      link: { color: theme.accent, textDecorationLine: "underline" as const },
+      link: { color: theme.colors.accent, textDecorationLine: "underline" as const },
       code_inline: {
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
         fontSize: 13,
@@ -78,7 +82,7 @@ export function SkillDetailSheet({
       },
       blockquote: {
         backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-        borderLeftColor: theme.accent,
+        borderLeftColor: theme.colors.accent,
         borderLeftWidth: 4,
         paddingLeft: 12,
         paddingVertical: 8,
@@ -198,7 +202,7 @@ export function SkillDetailSheet({
             </Box>
             <Text className="text-[13px] text-text-primary font-mono font-semibold">{child.name}</Text>
             {isLoading && (
-              <ActivityIndicator size="small" color={theme.accent} style={styles.childLoader} />
+              <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
             )}
           </Pressable>
           {isExpanded && (
@@ -298,14 +302,18 @@ export function SkillDetailSheet({
         </Box>
         <ScrollView
           className="flex-1"
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 24,
+          }}
           showsVerticalScrollIndicator
         >
           {loading ? (
             <ActivityIndicator
               size="small"
-              color={theme.accent}
-              style={styles.loader}
+              color={theme.colors.accent}
+              style={{ marginTop: 24 }}
             />
           ) : error ? (
             <Box className="mt-6">
@@ -367,25 +375,15 @@ export function SkillDetailSheet({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
       onRequestClose={onClose}
+      size="full"
     >
-      {content}
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          {content}
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-  },
-  loader: {
-    marginTop: 24,
-  },
-  childLoader: {
-    marginLeft: 8,
-  },
-});

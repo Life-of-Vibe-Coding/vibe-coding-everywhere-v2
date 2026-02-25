@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   StyleSheet,
-  Modal,
   ActivityIndicator,
   Platform,
   Keyboard,
-  ScrollView,
   useWindowDimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,8 +12,15 @@ import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Input, InputField } from "@/components/ui/input";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
@@ -305,12 +310,12 @@ export function PreviewWebViewModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
-      statusBarTranslucent
-      supportedOrientations={["portrait", "portrait-upside-down", "landscape", "landscape-left", "landscape-right"]}
+      size="full"
     >
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
       <Box style={styles.safe}>
         {/* Chrome-like toolbar - hidden in full screen */}
         {!isFullScreen && (
@@ -515,6 +520,8 @@ export function PreviewWebViewModal({
         onChooseOriginal={handleUrlChoiceOriginal}
         onCancel={handleUrlChoiceCancel}
       />
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }

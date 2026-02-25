@@ -1,16 +1,15 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
-  StyleSheet,
-  Modal,
-  ScrollView,
   ActivityIndicator,
-  Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
+import { Switch } from "@/components/ui/switch";
+import { Modal } from "@/components/ui/modal";
 import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
 import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
@@ -116,11 +115,9 @@ export function SkillConfigurationModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <Box className="flex-1 bg-background-0" style={styles.root}>
+      <Box className="flex-1 bg-background-0 overflow-hidden">
         {showDetailOverlay ? (
           <Box className="flex-1" style={safeStyle}>
             <SkillDetailSheet
@@ -148,7 +145,11 @@ export function SkillConfigurationModal({
             </Box>
             <ScrollView
               className="flex-1"
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingTop: 16,
+                paddingBottom: 24,
+              }}
               showsVerticalScrollIndicator={false}
             >
               <Text className="text-sm text-text-muted mb-5 leading-5">
@@ -158,8 +159,8 @@ export function SkillConfigurationModal({
               {skillsLoading ? (
                 <ActivityIndicator
                   size="small"
-                  color={theme.accent}
-                  style={styles.loader}
+                  color={theme.colors.accent}
+                  style={{ marginTop: 16 }}
                 />
               ) : skillsError ? (
                 <Text className="text-sm text-error-500 mt-4">{skillsError}</Text>
@@ -206,7 +207,7 @@ export function SkillConfigurationModal({
                         }}
                         thumbColor={
                           enabledSkillIds.has(skill.id)
-                            ? theme.accent
+                            ? theme.colors.accent
                             : theme.colors.surface
                         }
                       />
@@ -221,17 +222,3 @@ export function SkillConfigurationModal({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    overflow: "hidden",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-  },
-  loader: {
-    marginTop: 16,
-  },
-});

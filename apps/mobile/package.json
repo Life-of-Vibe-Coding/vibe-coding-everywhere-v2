@@ -12,7 +12,11 @@
     "verify:foundation": "node scripts/verify-foundation.mjs",
     "capture:ui-primitives-baseline": "node scripts/capture-ui-primitives-baseline.mjs",
     "lint:ui-primitives": "node scripts/enforce-ui-primitives-baseline.mjs",
-    "phase2:check": "npm run verify:foundation && npm run lint:ui-primitives"
+    "phase2:check": "npm run verify:foundation && npm run lint:ui-primitives",
+    "lint:ui-primitives:strict": "node scripts/check-ui-primitives-strict.mjs",
+    "phase6:check": "npm run phase2:check && npm run lint:ui-primitives:strict",
+    "metrics:rollout": "node scripts/generate-rollout-metrics.mjs",
+    "phase7:report": "npm run metrics:rollout"
   },
   "dependencies": {
     "@expo/html-elements": "^0.12.5",

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Platform, Keyboard, AccessibilityInfo, Modal, TouchableWithoutFeedback } from "react-native";
+import { Platform, Keyboard, AccessibilityInfo } from "react-native";
 import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
   AttachPlusIcon,
@@ -21,6 +21,15 @@ import { Text } from "@/components/ui/text";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetItem,
+  ActionsheetItemText,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from "@/components/ui/actionsheet";
 import { useTheme } from "@/theme/index";
 import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
@@ -270,62 +279,44 @@ export function InputPanel({
                     <ChevronDownIcon size={12} color={theme.colors.accent} />
                   )}
                 </Pressable>
-                <Modal
-                  visible={plusMenuVisible}
-                  transparent
-                  animationType="fade"
-                  onRequestClose={() => setPlusMenuVisible(false)}
-                  statusBarTranslucent
-                >
-                  <TouchableWithoutFeedback onPress={() => setPlusMenuVisible(false)}>
-                    <Box className="flex-1 justify-end items-start pl-4 pb-24 pr-4">
-                      <TouchableWithoutFeedback onPress={() => {}}>
-                        <Box
-                          className="rounded-xl border overflow-hidden min-w-40"
-                          style={{
-                            backgroundColor: theme.colors.surface,
-                            borderColor: theme.colors.border,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.15,
-                            shadowRadius: 12,
-                            elevation: 8,
-                          }}
-                        >
-                          {onOpenSkillsConfig && (
-                            <Pressable
-                              onPress={() => {
-                                triggerHaptic("selection");
-                                setPlusMenuVisible(false);
-                                onOpenSkillsConfig();
-                              }}
-                              accessibilityLabel="Skill configuration"
-                              className="flex-row items-center gap-3 py-3 px-4 active:opacity-80"
-                              style={{ borderBottomWidth: onOpenDocker ? 1 : 0, borderBottomColor: theme.colors.border }}
-                            >
-                              <SkillIcon size={18} color={theme.colors.accent} />
-                              <Text size="md" className="text-typography-900">Skills</Text>
-                            </Pressable>
-                          )}
-                          {onOpenDocker && (
-                            <Pressable
-                              onPress={() => {
-                                triggerHaptic("selection");
-                                setPlusMenuVisible(false);
-                                onOpenDocker();
-                              }}
-                              accessibilityLabel="Docker manager"
-                              className="flex-row items-center gap-3 py-3 px-4 active:opacity-80"
-                            >
-                              <DockerIcon size={18} color={theme.colors.accent} />
-                              <Text size="md" className="text-typography-900">Docker</Text>
-                            </Pressable>
-                          )}
-                        </Box>
-                      </TouchableWithoutFeedback>
-                    </Box>
-                  </TouchableWithoutFeedback>
-                </Modal>
+                <Actionsheet isOpen={plusMenuVisible} onClose={() => setPlusMenuVisible(false)} snapPoints={[25]}>
+                  <ActionsheetBackdrop />
+                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface }}>
+                    <ActionsheetDragIndicatorWrapper>
+                      <ActionsheetDragIndicator />
+                    </ActionsheetDragIndicatorWrapper>
+                    {onOpenSkillsConfig && (
+                      <ActionsheetItem
+                        onPress={() => {
+                          triggerHaptic("selection");
+                          setPlusMenuVisible(false);
+                          onOpenSkillsConfig();
+                        }}
+                        accessibilityLabel="Skill configuration"
+                      >
+                        <HStack space="sm" className="items-center">
+                          <SkillIcon size={18} color={theme.colors.accent} />
+                          <ActionsheetItemText>Skills</ActionsheetItemText>
+                        </HStack>
+                      </ActionsheetItem>
+                    )}
+                    {onOpenDocker && (
+                      <ActionsheetItem
+                        onPress={() => {
+                          triggerHaptic("selection");
+                          setPlusMenuVisible(false);
+                          onOpenDocker();
+                        }}
+                        accessibilityLabel="Docker manager"
+                      >
+                        <HStack space="sm" className="items-center">
+                          <DockerIcon size={18} color={theme.colors.accent} />
+                          <ActionsheetItemText>Docker</ActionsheetItemText>
+                        </HStack>
+                      </ActionsheetItem>
+                    )}
+                  </ActionsheetContent>
+                </Actionsheet>
               </>
             )}
             <Pressable

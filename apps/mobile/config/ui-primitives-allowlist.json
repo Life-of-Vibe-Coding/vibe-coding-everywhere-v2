@@ -1,0 +1,18 @@
+{
+  "src/components/chat/AskQuestionModal.tsx": ["Modal"],
+  "src/components/chat/SessionManagementModal.tsx": ["Modal", "Alert", "RefreshControl"],
+  "src/components/components/ChatMessageList.tsx": ["FlatList"],
+  "src/components/controllers/SseSessionController.tsx": ["FlatList"],
+  "src/components/docker/DockerManagerModal.tsx": ["Modal", "ScrollView", "ActivityIndicator", "Alert", "RefreshControl"],
+  "src/components/file/FileViewerModal.tsx": ["Modal", "ActivityIndicator", "StatusBar", "Image", "Text"],
+  "src/components/file/WorkspaceSidebar.tsx": ["Modal", "ActivityIndicator", "Alert"],
+  "src/components/health/HealthCheckModal.tsx": ["ActivityIndicator", "Modal", "RefreshControl", "ScrollView"],
+  "src/components/pages/ChatPageSections.tsx": ["View"],
+  "src/components/pages/ChatPageShell.tsx": ["KeyboardAvoidingView"],
+  "src/components/preview/PreviewWebViewModal.tsx": ["Modal", "ActivityIndicator"],
+  "src/components/processes/ProcessesDashboardModal.tsx": ["Modal", "ScrollView", "ActivityIndicator", "RefreshControl", "Alert"],
+  "src/components/processes/ProcessesDashboardSection.tsx": ["Modal", "ScrollView", "ActivityIndicator", "Alert"],
+  "src/components/settings/SkillConfigurationModal.tsx": ["ActivityIndicator"],
+  "src/components/settings/SkillDetailSheet.tsx": ["ActivityIndicator"],
+  "src/components/settings/WorkspacePickerModal.tsx": ["ActivityIndicator"]
+}

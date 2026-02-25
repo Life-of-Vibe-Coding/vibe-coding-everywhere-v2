@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { StyleSheet, Linking, ScrollView, Platform, Dimensions, Animated } from "react-native";
+import { StyleSheet, Linking, Platform, Dimensions, Animated } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { spacing, radii, triggerHaptic } from "@/design-system";
@@ -21,6 +21,7 @@ import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { ScrollView } from "@/components/ui/scroll-view";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
