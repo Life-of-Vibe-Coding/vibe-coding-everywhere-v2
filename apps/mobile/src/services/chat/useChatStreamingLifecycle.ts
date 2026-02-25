@@ -289,6 +289,22 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       setSessionId(newId);
     };
 
+    let pendingAssistantText = "";
+    const flushAssistantText = () => {
+      if (!pendingAssistantText) return;
+      const chunk = pendingAssistantText;
+      pendingAssistantText = "";
+      handlers.appendAssistantTextForSession(chunk);
+    };
+    const queueAssistantText = (chunk: string) => {
+      pendingAssistantText += chunk;
+      if (streamFlushTimeoutRef.current) return;
+      streamFlushTimeoutRef.current = setTimeout(() => {
+        streamFlushTimeoutRef.current = null;
+        flushAssistantText();
+      }, 50);
+    };
+
     const dispatchProviderEvent = createEventDispatcher({
       setPermissionDenials: (d) => setPermissionDenials(d ? deduplicateDenialsRef.current(d) : null),
       setWaitingForUserInput: (v) => {
@@ -307,7 +323,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         // Model name is currently not surfaced in mobile chat UI and intentionally ignored.
       },
       addMessage: (role, content, codeRefs) => handlers.addMessageForSession(role, content, codeRefs),
-      appendAssistantText: (chunk) => handlers.appendAssistantTextForSession(chunk),
+      appendAssistantText: (chunk) => queueAssistantText(chunk),
       getCurrentAssistantContent: () => getSessionDraft(connectionSessionIdRef.current),
       getLastMessageRole: () => {
         const m = getOrCreateSessionMessages(connectionSessionIdRef.current);
@@ -406,7 +422,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
           } else if (typeof parsed === "object" && parsed != null && "type" in parsed) {
             continue;
           } else {
-            handlers.appendAssistantTextForSession(clean + "\n");
+            queueAssistantText(clean + "\n");
           }
         } catch {
           const jsonStart = clean.indexOf("{");
@@ -426,7 +442,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
               if (typeof parsed === "object" && parsed != null && "type" in parsed) continue;
             } catch {}
           }
-          handlers.appendAssistantTextForSession(clean + "\n");
+          queueAssistantText(clean + "\n");
         }
       }
     };
@@ -449,6 +465,11 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         setWaitingForUserInput(false);
         if (exitCode !== 0) setLastSessionTerminated(true);
       }
+      if (streamFlushTimeoutRef.current) {
+        clearTimeout(streamFlushTimeoutRef.current);
+        streamFlushTimeoutRef.current = null;
+      }
+      flushAssistantText();
       handlers.finalizeAssistantMessageForSession();
       closeActiveSse("stream-end");
     };

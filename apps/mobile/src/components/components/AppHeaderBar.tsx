@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { StyleSheet, Animated } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Box } from "@/components/ui/box";
@@ -65,6 +65,58 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = fa
   );
 }
 
+function FlickerLogo() {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const runFlicker = () => {
+      // 1. Primary "glitch" burst
+      const sequences = [];
+      const burstCount = Math.floor(Math.random() * 3) + 2;
+
+      for (let i = 0; i < burstCount; i++) {
+        sequences.push(
+          Animated.timing(opacity, {
+            toValue: Math.random() * 0.4 + 0.3, // Drop to 0.3 - 0.7
+            duration: Math.random() * 40 + 20,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 1.0,
+            duration: Math.random() * 40 + 20,
+            useNativeDriver: true,
+          })
+        );
+      }
+
+      Animated.sequence(sequences).start(() => {
+        // 2. Wait for next burst
+        const nextDelay = Math.random() * 4000 + 1000; // 1-5 seconds
+        timeoutId = setTimeout(runFlicker, nextDelay);
+      });
+    };
+
+    const initialDelay = setTimeout(runFlicker, 2000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(initialDelay);
+    };
+  }, [opacity]);
+
+  return (
+    <Animated.View style={{ opacity }}>
+      <Image
+        source={require("../../../assets/ai-logo-final.png")}
+        style={{ width: 80, height: 80 }}
+        resizeMode="contain"
+      />
+    </Animated.View>
+  );
+}
+
 export function AppHeaderBar({
   visible,
   workspaceName,
@@ -83,13 +135,7 @@ export function AppHeaderBar({
   return (
     <HStack className="relative h-20 flex-row items-center justify-between -mx-4 px-0 -mt-2" pointerEvents="box-none">
       <HeaderButton
-        icon={
-          <Image
-            source={require("../../../assets/setting-icon-final.png")}
-            style={{ width: 68, height: 68, opacity: 0.6 }}
-            resizeMode="contain"
-          />
-        }
+        icon={<Box style={{ marginLeft: -10 }}><FlickerLogo /></Box>}
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}

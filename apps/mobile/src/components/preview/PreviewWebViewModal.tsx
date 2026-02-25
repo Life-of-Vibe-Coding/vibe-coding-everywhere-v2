@@ -475,8 +475,12 @@ export function PreviewWebViewModal({
 
             {!isFullScreen && (
               <Box
-                className="bg-surface border-t border-outline-200"
-                style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: theme.colors.border,
+                  paddingBottom: Math.max(insets.bottom, 8),
+                }}
               >
                 <PreviewWebViewBottomBar
                   onBack={() => { if (canGoBack && webViewRef.current) webViewRef.current.goBack(); }}

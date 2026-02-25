@@ -927,7 +927,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                           <Text style={[styles.commandTerminalText, { flex: 0 }]} selectable numberOfLines={cmd.output ? undefined : 1} ellipsizeMode="tail">
                             {cmd.command}
                           </Text>
-                          {cmd.status && (
+                          {!!cmd.status && (
                             <Badge action={cmd.status === "Failed" ? "error" : "success"} variant="solid" size="sm" className="ml-1.5">
                               <BadgeText>{cmd.status}{cmd.exitCode != null ? ` (${cmd.exitCode})` : ""}</BadgeText>
                             </Badge>
@@ -1086,7 +1086,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         ]}
         className="flex-row"
       >
-        {showProviderIcon && (
+        {!!showProviderIcon && (
           <Box style={styles.providerIconWrap} className="items-center justify-center pr-2">
             <ProviderIcon size={24} color={theme.colors.accent} />
           </Box>
@@ -1108,7 +1108,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           {bubbleContent}
         </Box>
       </Box>
-      {!isUser && !isSystem && provider && (
+      {!isUser && !isSystem && !!provider && (
         <Box className="ml-1 mt-1 mb-2 max-w-[80%] opacity-60">
           <Text size="xs" style={{ color: "#333" }} className="font-semibold uppercase tracking-wider">{provider}</Text>
         </Box>

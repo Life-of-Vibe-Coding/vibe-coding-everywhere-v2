@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Platform, type StyleProp, type ViewStyle, type FlatList as RNFlatList } from "react-native";
 import { FlatList } from "@/components/ui/flat-list";
 import type { PermissionDenial, Message } from "@/services/chat/hooks";
@@ -26,8 +26,7 @@ type ChatMessageListProps = {
 
 type ChatMessageRowProps = {
   item: Message;
-  index: number;
-  total: number;
+  isLast: boolean;
   lastSessionTerminated: boolean;
   tailBoxMaxHeight: number;
   provider: BrandProvider;
@@ -35,17 +34,15 @@ type ChatMessageRowProps = {
   onFileSelect: (path: string) => void;
 };
 
-function ChatMessageRow({
+const ChatMessageRow = memo(function ChatMessageRow({
   item,
-  index,
-  total,
+  isLast,
   lastSessionTerminated,
   tailBoxMaxHeight,
   provider,
   onOpenUrl,
   onFileSelect,
 }: ChatMessageRowProps) {
-  const isLast = index === total - 1;
   const showTerminated =
     lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
   const hasCodeOrFileContent =
@@ -67,7 +64,17 @@ function ChatMessageRow({
       onFileSelect={onFileSelect}
     />
   );
-}
+}, (prev, next) => {
+  return (
+    prev.item === next.item &&
+    prev.isLast === next.isLast &&
+    prev.lastSessionTerminated === next.lastSessionTerminated &&
+    prev.tailBoxMaxHeight === next.tailBoxMaxHeight &&
+    prev.provider === next.provider &&
+    prev.onOpenUrl === next.onOpenUrl &&
+    prev.onFileSelect === next.onFileSelect
+  );
+});
 
 export function ChatMessageList({
   messages,
@@ -88,20 +95,17 @@ export function ChatMessageList({
   const displayMessages = messages;
 
   const sessionScopedKey = useMemo(() => `chat-${sessionId ?? "none"}`, [sessionId]);
-  const listIdsKey = useMemo(() => displayMessages.map((message) => message.id).join(","), [displayMessages]);
-
+  const lastMessageId = displayMessages[displayMessages.length - 1]?.id ?? null;
   const flatListExtraData = useMemo(
-    () => `${lastSessionTerminated}-${displayMessages.length}-${listIdsKey}`,
-    [lastSessionTerminated, displayMessages.length, listIdsKey]
+    () => `${lastSessionTerminated}-${lastMessageId ?? "none"}`,
+    [lastSessionTerminated, lastMessageId]
   );
-
   const renderMessageItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
       return (
         <ChatMessageRow
           item={item}
-          index={index}
-          total={displayMessages.length}
+          isLast={index === displayMessages.length - 1}
           lastSessionTerminated={lastSessionTerminated}
           tailBoxMaxHeight={tailBoxMaxHeight}
           provider={provider}

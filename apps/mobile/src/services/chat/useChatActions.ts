@@ -12,6 +12,7 @@ import type { SessionLiveState, SessionRuntimeState } from "./hooks-types";
 import type { Provider } from "@/theme/index";
 import { appendCodeRefsToPrompt } from "./hooks-utils";
 import { normalizeSubmitPayload, stableStringify } from "./hooks-serialization";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
 
 type UseChatActionsParams = {
   serverUrl: string;
@@ -82,6 +83,26 @@ export function useChatActions(params: UseChatActionsParams) {
     closeActiveSse,
   } = params;
 
+  const syncRunningStatusToGlobalStore = useCallback(
+    (targetSessionId: string, promptText: string) => {
+      const sessionStore = useSessionManagementStore.getState();
+      const existing = sessionStore.sessionStatuses.find((session) => session.id === targetSessionId);
+      const hasExistingTitle = typeof existing?.title === "string" && existing.title.trim().length > 0;
+      const shouldUsePromptAsTitle = !hasExistingTitle || existing?.title === "(no input)";
+      const promptTitle = promptText.trim().slice(0, 80);
+
+      sessionStore.upsertSessionStatus({
+        id: targetSessionId,
+        cwd: existing?.cwd ?? null,
+        model,
+        lastAccess: Date.now(),
+        status: "running",
+        title: shouldUsePromptAsTitle ? promptTitle || "(no input)" : (existing?.title ?? "(no input)"),
+      });
+    },
+    [model]
+  );
+
   const submitPrompt = useCallback(
     async (
       prompt: string,
@@ -147,6 +168,7 @@ export function useChatActions(params: UseChatActionsParams) {
         submitStage = "apply-result";
         if (data.ok && data.sessionId) {
           const newSessionId = data.sessionId;
+          syncRunningStatusToGlobalStore(newSessionId, safePrompt);
           const newState = getOrCreateSessionState(newSessionId);
           const currentMessages = getOrCreateSessionMessages(newSessionId);
           newState.sessionState = "running";
@@ -229,6 +251,7 @@ export function useChatActions(params: UseChatActionsParams) {
       currentAssistantContentRef,
       setLiveSessionMessages,
       setSessionId,
+      syncRunningStatusToGlobalStore,
     ]
   );
 

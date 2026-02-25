@@ -30,13 +30,17 @@ export function ChatHeaderSection({
   onOpenSessionManagement,
   sidebarVisible,
 }: ChatHeaderSectionProps) {
-  const showStart = !sessionRunning;
-  const statusColor = showStart
+  const hasRealSessionId = sessionIdLabel !== "—" && sessionIdLabel.toLowerCase() !== "temp";
+  const statusColor = !hasRealSessionId
     ? theme.colors.accent
-    : waitingForUserInput
-      ? theme.colors.warning
-      : theme.colors.success;
-  const statusLabel = showStart ? "Start" : waitingForUserInput ? `Wait: ${sessionIdLabel}` : `Running: ${sessionIdLabel}`;
+    : sessionRunning
+      ? (waitingForUserInput ? theme.colors.warning : theme.colors.success)
+      : theme.colors.info;
+  const statusLabel = !hasRealSessionId
+    ? "Start"
+    : sessionRunning
+      ? `Running: ${sessionIdLabel}`
+      : `Idling: ${sessionIdLabel}`;
 
   return (
     <AppHeaderBar

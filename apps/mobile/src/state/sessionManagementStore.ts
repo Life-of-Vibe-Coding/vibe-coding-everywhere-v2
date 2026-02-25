@@ -25,6 +25,14 @@ export type SessionManagementStore = {
   clearSessionStatuses: () => void;
 };
 
+const normalizeSessionStatus = (status: unknown): SessionStatus["status"] =>
+  status === "running" ? "running" : "idling";
+
+const normalizeSession = (session: SessionStatus): SessionStatus => ({
+  ...session,
+  status: normalizeSessionStatus(session.status),
+});
+
 const areSessionStatusesEqual = (a: SessionStatus[], b: SessionStatus[]): boolean => {
   if (a.length !== b.length) {
     return false;
@@ -52,14 +60,18 @@ export const useSessionManagementStore = create<SessionManagementStore>((set) =>
   provider: "codex",
   model: "gpt-5.1-codex-mini",
   setSessionStatuses: (sessions) =>
-    set((state) => (areSessionStatusesEqual(state.sessionStatuses, sessions) ? state : { sessionStatuses: sessions })),
+    set((state) => {
+      const normalized = sessions.map(normalizeSession);
+      return areSessionStatusesEqual(state.sessionStatuses, normalized) ? state : { sessionStatuses: normalized };
+    }),
   setSessionId: (sessionId) => set((state) => (state.sessionId === sessionId ? state : { sessionId })),
   setProvider: (provider) => set((state) => (state.provider === provider ? state : { provider })),
   setModel: (model) => set((state) => (state.model === model ? state : { model })),
   upsertSessionStatus: (session) =>
     set((state) => {
-      const next = state.sessionStatuses.filter((s) => s.id !== session.id);
-      return { sessionStatuses: [session, ...next] };
+      const normalized = normalizeSession(session);
+      const next = state.sessionStatuses.filter((s) => s.id !== normalized.id);
+      return { sessionStatuses: [normalized, ...next] };
     }),
   removeSessionStatus: (sessionId) =>
     set((state) => ({

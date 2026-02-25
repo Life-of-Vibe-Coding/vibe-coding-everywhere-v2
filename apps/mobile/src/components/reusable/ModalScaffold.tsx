@@ -17,7 +17,7 @@ type ModalBodyProps = React.ComponentProps<typeof ModalBody>;
 type ModalScaffoldProps = {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -59,9 +59,18 @@ export function ModalScaffold({
             style={{ paddingTop: Math.max(insets.top, 0) }}
           >
             <Box className="flex-1 min-w-0 pr-2">
-              <Text size="lg" bold className="text-text-primary" numberOfLines={1}>
-                {title}
-              </Text>
+              {typeof title === "string" ? (
+                <Text
+                  size="lg"
+                  bold
+                  className="text-text-primary"
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+              ) : (
+                title
+              )}
               {subtitle ? (
                 <Text size="sm" className="text-text-secondary mt-1" numberOfLines={2}>
                   {subtitle}

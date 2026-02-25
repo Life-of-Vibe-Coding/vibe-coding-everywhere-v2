@@ -262,10 +262,10 @@ export function FileViewerModal({
         </Box>
       )}
 
-      {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
+      {!!content && !loading && !error && !isImage && isHtmlFile(path) && (
         <Box className="flex-1">
           <WebView
-            source={{ html: content }}
+            source={{ html: content || "<html></html>" }}
             style={{ flex: 1, backgroundColor: theme.colors.surfaceAlt }}
             originWhitelist={["*"]}
             javaScriptEnabled

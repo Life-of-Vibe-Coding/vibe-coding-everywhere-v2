@@ -174,7 +174,7 @@ export function PreviewWebViewAddressBar({
           accessibilityLabel="Reload"
           accessibilityRole="button"
         >
-          {loading && resolvedUrl ? (
+          {loading && !!resolvedUrl ? (
             <Spinner size="small" color={theme.colors.textSecondary} />
           ) : (
             <Icons.Refresh color={theme.colors.textSecondary} size={18} />
@@ -251,26 +251,70 @@ export function PreviewWebViewBottomBar({
   canGoBack: boolean;
   canGoForward: boolean;
 }) {
+  const bottomBarStyles = StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 24,
+      minHeight: 64,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.border,
+    },
+    iconButton: {
+      padding: 8,
+    },
+    centerButtonShell: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: -20,
+      backgroundColor: "#1A65FF",
+      shadowColor: "#1A65FF",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    tabsButton: {
+      padding: 8,
+      position: "relative",
+    },
+    tabsBadge: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: "#1A65FF",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });
+
   return (
-    <Box className="flex-row items-center justify-between px-6 h-16 bg-surface border-t border-outline-200 relative">
-      <Pressable className="p-2" onPress={onBack} disabled={!canGoBack}>
+    <Box style={bottomBarStyles.container}>
+      <Pressable style={bottomBarStyles.iconButton} onPress={onBack} disabled={!canGoBack}>
         <Icons.ChevronLeft color={canGoBack ? theme.colors.textSecondary : theme.colors.border} size={24} />
       </Pressable>
-      <Pressable className="p-2" onPress={onForward} disabled={!canGoForward}>
+      <Pressable style={bottomBarStyles.iconButton} onPress={onForward} disabled={!canGoForward}>
         <Icons.ChevronRight color={canGoForward ? theme.colors.textSecondary : theme.colors.border} size={24} />
       </Pressable>
-      <Box className="w-14 h-14 rounded-full bg-[#1A65FF] items-center justify-center absolute left-1/2 -ml-7 -top-4 shadow-sm" style={{ shadowColor: '#1A65FF', shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }}>
+      <Box style={bottomBarStyles.centerButtonShell}>
         <Pressable onPress={onHome} className="w-full h-full items-center justify-center rounded-full">
           <Icons.Home color="#fff" size={24} />
         </Pressable>
       </Box>
-      <Pressable className="p-2 relative right-4" onPress={onShowTabs}>
+      <Pressable style={bottomBarStyles.tabsButton} onPress={onShowTabs}>
         <Icons.Layers color={theme.colors.textSecondary} size={24} />
-        <Box className="absolute top-0 right-0 w-4 h-4 rounded-full bg-[#1A65FF] flex items-center justify-center">
+        <Box style={bottomBarStyles.tabsBadge}>
           <Text className="text-[10px] text-white font-bold">{tabCount}</Text>
         </Box>
       </Pressable>
-      <Pressable className="p-2" onPress={onMenu}>
+      <Pressable style={bottomBarStyles.iconButton} onPress={onMenu}>
         <Icons.MoreVertical color={theme.colors.textSecondary} size={24} />
       </Pressable>
     </Box>

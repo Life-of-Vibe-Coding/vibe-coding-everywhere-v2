@@ -476,8 +476,15 @@ export function SessionManagementModal({
       isOpen={isOpen}
       onClose={onClose}
       size="full"
-      title=""
-      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      title={
+        <VStack>
+          <Text style={styles.mainTitle}>Session Management</Text>
+          <Text size="xs" style={styles.headerSubtitle}>
+            DATASET // INTERFACE // V0.4.2
+          </Text>
+        </VStack>
+      }
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
       showCloseButton={false}
@@ -534,16 +541,6 @@ export function SessionManagementModal({
               </HStack>
             </EntranceAnimation>
           )}
-
-          <VStack style={styles.introSection}>
-            <Text size="sm" style={styles.sectionIntroTitle}>
-              Session Management
-            </Text>
-            <Text size="xs" style={styles.sectionIntroText}>
-              Choose your workspace, start a new session, or jump back into recent work.
-            </Text>
-          </VStack>
-
           <VStack style={styles.workspaceSection}>
             <Box style={styles.workspaceBox}>
               <VStack style={styles.workspacePathContainer}>
@@ -810,7 +807,26 @@ export function SessionManagementModal({
 
 function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: "rgba(10, 15, 30, 0.4)" },
+    container: { flex: 1, backgroundColor: "rgba(5, 10, 20, 0.45)" },
+    mainTitle: {
+      color: "#ffffff",
+      fontSize: 18,
+      fontWeight: "900",
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      fontFamily: uiMonoFontFamily,
+      textShadowColor: "rgba(0, 229, 255, 0.9)",
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 12,
+    },
+    headerSubtitle: {
+      color: "rgba(0, 229, 255, 0.6)",
+      fontFamily: uiMonoFontFamily,
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: -2,
+      letterSpacing: 1,
+    },
     safe: { flex: 1 },
     headerActions: { gap: spacing["3"], alignItems: "center", marginRight: spacing["5"] },
     headerIconButton: {
@@ -831,16 +847,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       transform: [{ scale: 0.97 }],
     },
     headerIconColor: { color: "#00e5ff" },
-    introSection: {
-      flexDirection: "row", alignItems: "center",
-      marginTop: spacing["2"], marginHorizontal: spacing["5"], marginBottom: spacing["4"],
-    },
-    sectionIntroTitle: {
-      color: "#00e5ff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 18,
-      letterSpacing: 2, textTransform: "uppercase",
-      textShadowColor: "rgba(0, 229, 255, 0.6)", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
-    },
-    sectionIntroText: { display: "none" },
     errorBanner: {
       padding: spacing["3"], marginHorizontal: spacing["5"], marginTop: spacing["2"],
       backgroundColor: "rgba(255, 0, 0, 0.1)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 0, 0, 0.3)",
