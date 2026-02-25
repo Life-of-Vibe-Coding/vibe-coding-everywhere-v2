@@ -495,6 +495,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
     const handlers = createSessionHandlers(connectionSessionIdRef);
     const state = getOrCreateSessionState(sid);
+    const hasStreamEndedRef = { current: false };
 
     let streamUrl = `${serverUrl}/api/sessions/${sid}/stream?activeOnly=1`;
     if (skipReplayForSessionRef.current === sid) {
@@ -559,6 +560,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
 
     sse.addEventListener("open", () => {
+      hasStreamEndedRef.current = false;
       if (__DEV__) console.log("[sse] connected", { sessionId: connectionSessionIdRef.current });
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) setConnected(true);
     });
@@ -600,6 +602,7 @@ export function useSocket(options: UseSocketOptions = {}) {
           const parsed = JSON.parse(clean);
 
           if (parsed.type === "session-started" || parsed.type === "claude-started") {
+            hasStreamEndedRef.current = false;
             state.agentRunning = true;
             state.typingIndicator = true;
             state.waitingForUserInput = false;
@@ -628,6 +631,10 @@ export function useSocket(options: UseSocketOptions = {}) {
             continue;
           }
 
+          if (parsed.type === "agent_end") {
+            if (__DEV__) console.log("[stream] agent_end event received");
+          }
+
           if (isProviderStream(parsed)) {
             dispatchProviderEvent(parsed as Record<string, unknown>);
           } else if (typeof parsed === "object" && parsed != null && "type" in parsed) {
@@ -653,6 +660,9 @@ export function useSocket(options: UseSocketOptions = {}) {
     });
 
     const handleStreamEnd = (event: { data?: string }, exitCodeDefault = 0) => {
+      if (hasStreamEndedRef.current) return;
+      hasStreamEndedRef.current = true;
+
       let exitCode = exitCodeDefault;
       try {
         if (event?.data) {

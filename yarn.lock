@@ -6704,7 +6704,7 @@ mkdirp@^1.0.4:
   resolved "https://registry.npmjs.org/mkdirp/-/mkdirp-1.0.4.tgz"
   integrity sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==
 
-"mobile@file:/Users/yifanxu/machine_learning/LoVC/vibe-coding-everywhere_v2/apps/mobile":
+"mobile@file:/Users/yifanxu/machine_learning/LoVC/vibe-coding-everywhere_v3/apps/mobile":
   version "1.0.0"
   resolved "file:apps/mobile"
   dependencies:

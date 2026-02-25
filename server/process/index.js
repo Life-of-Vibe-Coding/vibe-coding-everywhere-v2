@@ -201,13 +201,12 @@ function createSseSocketAdapter(sessionId, session, host = "localhost:3456") {
         : null;
       for (const res of subs) {
         try {
-          if (!res.writableEnded) {
-            if (endPayload) {
-              res.write(endPayload);
-              res.end();
-            } else {
-              res.write(payload);
-            }
+          if (res.writableEnded) continue;
+          if (endPayload) {
+            res.write(endPayload);
+            res.end();
+          } else {
+            res.write(payload);
           }
         } catch (_) {}
       }

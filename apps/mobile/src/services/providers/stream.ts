@@ -225,6 +225,7 @@ export function isCodexStreamOutput(data: unknown): data is CodexStreamOutput {
 export interface PiAgentStartEvent {
   type: "agent_start";
 }
+/** Agent turn lifecycle marker from Pi stream. UI completion is driven by SSE event:"end"/"done", not this event. */
 export interface PiAgentEndEvent {
   type: "agent_end";
   messages?: unknown[];

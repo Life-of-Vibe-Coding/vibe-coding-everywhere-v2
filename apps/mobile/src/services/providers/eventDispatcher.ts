@@ -136,7 +136,12 @@ function createHandlerRegistry(ctx: EventContext): Map<string, EventHandler> {
   });
   registry.set("turn_start", () => {});
   registry.set("agent_start", () => {});
-  registry.set("agent_end", () => {});
+  // agent_end is stream-only lifecycle metadata; completion is driven by mobile SSE "end"/"done" events.
+  registry.set("agent_end", () => {
+    if (__DEV__) {
+      console.debug("[dispatcher] agent_end received (no-op; SSE end/done drives completion)");
+    }
+  });
   registry.set("message_start", () => {});
   registry.set("message_end", () => {});
   registry.set("response", () => {});

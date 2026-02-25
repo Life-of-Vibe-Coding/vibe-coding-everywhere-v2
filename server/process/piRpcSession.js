@@ -164,6 +164,7 @@ export function createPiRpcSession({
   let turnRunning = false;
   let pendingExtensionUiRequest = null;
   let piIoOutputStream = null;
+  let turnCompleted = false;
 
   /** Emit full event to client; write slim event to log for message_update to avoid O(n²) growth. */
   function emitOutputLine(line) {
@@ -200,6 +201,18 @@ export function createPiRpcSession({
     piIoOutputStream = null;
   }
 
+  function signalTurnComplete(exitCode = 0, options = {}) {
+    if (turnCompleted) return;
+    turnCompleted = true;
+    turnRunning = false;
+    pendingExtensionUiRequest = null;
+    if (options.markCompleted && exitCode === 0) {
+      hasCompletedFirstRunRef.value = true;
+    }
+    closeIoOutputStream();
+    socket.emit("exit", { exitCode: Number.isInteger(exitCode) ? exitCode : 0 });
+  }
+
   function sendCommand(cmd) {
     if (!piProcess?.stdin?.writable) return;
     const line = JSON.stringify(cmd) + "\n";
@@ -209,6 +222,7 @@ export function createPiRpcSession({
   function close() {
     closeIoOutputStream();
     pendingExtensionUiRequest = null;
+    turnCompleted = true;
     if (!piProcess) return;
     globalSpawnChildren.delete(piProcess);
     try {
@@ -251,19 +265,21 @@ export function createPiRpcSession({
     }
 
     if (type === "agent_end") {
-      turnRunning = false;
-      hasCompletedFirstRunRef.value = true;
-      closeIoOutputStream();
-      socket.emit("exit", { exitCode: 0 });
+      const context = {
+        sessionId,
+        provider: sessionManagement?.provider,
+        model: sessionManagement?.model,
+        turnRunning,
+      };
+      console.log("[pi] agent_end received", JSON.stringify(context));
+      signalTurnComplete(0, { markCompleted: true });
     }
 
     if (type === "response" && parsed.success === false) {
       const err = parsed.error ?? "Pi request failed";
       emitOutputLine(`\r\n\x1b[31m[Error] ${err}\x1b[0m\r\n`);
       if (parsed.command === "prompt") {
-        turnRunning = false;
-        closeIoOutputStream();
-        socket.emit("exit", { exitCode: 1 });
+        signalTurnComplete(1);
       }
       return;
     }
@@ -412,14 +428,12 @@ export function createPiRpcSession({
     child.on("exit", (code) => {
       globalSpawnChildren.delete(child);
       if (piProcess === child) piProcess = null;
-      turnRunning = false;
-      pendingExtensionUiRequest = null;
-      closeIoOutputStream();
-      socket.emit("exit", { exitCode: Number.isInteger(code) ? code : 0 });
+      signalTurnComplete(Number.isInteger(code) ? code : 0);
     });
   }
 
   async function startTurn({ prompt, options }) {
+    turnCompleted = false;
     await ensurePiProcess({
       clientProvider: options.clientProvider,
       model: options.model,
