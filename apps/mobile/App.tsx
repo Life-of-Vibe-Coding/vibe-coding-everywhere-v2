@@ -76,7 +76,6 @@ import { DockerManagerModal } from "./src/components/docker/DockerManagerModal";
 import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDashboardModal";
 import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
 import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
-import { HealthCheckModal } from "./src/components/health/HealthCheckModal";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
 import { ClaudeIcon, GeminiIcon, CodexIcon } from "./src/components/icons/ProviderIcons";
 import {
@@ -192,7 +191,6 @@ export default function App() {
     () => createWorkspaceFileService(serverConfig),
     [serverConfig]
   );
-
   // Permission Mode State (default: always allow / yolo)
   const defaultPermissionModeUI: PermissionModeUI =
     typeof process !== "undefined" &&
@@ -211,12 +209,16 @@ export default function App() {
   const setGlobalSessionId = useSessionManagementStore((state) => state.setSessionId);
   const setGlobalProvider = useSessionManagementStore((state) => state.setProvider);
   const setGlobalModel = useSessionManagementStore((state) => state.setModel);
+  const storeCurrentSessionId = useSessionManagementStore((state) => state.currentSessionId);
+  const storeSessionId = useSessionManagementStore((state) => state.sessionId);
+  const storeProvider = useSessionManagementStore((state) => state.provider);
+  const storeModel = useSessionManagementStore((state) => state.model);
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
   const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
+  const sessionStorePayloadRef = useRef("");
   const [workspacePickerVisible, setWorkspacePickerVisible] = useState(false);
   const [dockerVisible, setDockerVisible] = useState(false);
   const [processesVisible, setProcessesVisible] = useState(false);
-  const [healthCheckVisible, setHealthCheckVisible] = useState(false);
   const [skillsConfigVisible, setSkillsConfigVisible] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -765,10 +767,66 @@ export default function App() {
   const flatListFooterComponent =
     useStreamingList ? streamingFooterContent : chatListFooter;
 
+  useEffect(() => {
+    const snapshot = {
+      provider: storeProvider,
+      model: storeModel,
+      currentSessionId: storeCurrentSessionId,
+      sessionId: storeSessionId,
+      count: sessionStatuses.length,
+      sessions: sessionStatuses,
+      path: workspacePath,
+      connected,
+      sessionManagement: {
+        visible: sessionManagementVisible,
+        currentProvider: provider,
+        currentModel: model,
+        activeSessionId: viewingLiveSession ? sessionId : currentSessionId,
+      },
+    };
+    const signature = JSON.stringify(snapshot);
+    if (sessionStorePayloadRef.current !== signature) {
+      sessionStorePayloadRef.current = signature;
+      console.log("[session-management] store snapshot:", snapshot);
+      void fetch(`${serverConfig.getBaseUrl()}/api/session-management-store`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(snapshot),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const text = await res.text();
+            console.error(
+              "[session-management] failed to upload snapshot:",
+              res.status,
+              text
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("[session-management] failed to upload snapshot:", error);
+        });
+    }
+  }, [
+    sessionStatuses,
+    storeCurrentSessionId,
+    storeModel,
+    storeProvider,
+    storeSessionId,
+    currentSessionId,
+    connected,
+    provider,
+    model,
+    workspacePath,
+    sessionManagementVisible,
+    viewingLiveSession,
+    sessionId,
+    serverConfig,
+  ]);
+
   // ============================================================================
   // Render
   // ============================================================================
-
   return (
     <ThemeProvider provider={provider} colorMode={themeMode}>
       <GluestackUIProvider mode={themeMode}>
@@ -924,7 +982,6 @@ export default function App() {
                 onRemoveCodeRef={handleRemoveCodeRef}
                 onTerminateAgent={terminateAgent}
                 onOpenProcesses={() => setProcessesVisible(true)}
-                onOpenHealthCheck={() => setHealthCheckVisible(true)}
                 onOpenWebPreview={() => setPreviewUrl("")}
                 provider={provider}
                 model={model}
@@ -1040,21 +1097,6 @@ export default function App() {
             visible={processesVisible}
             onClose={() => setProcessesVisible(false)}
             serverBaseUrl={serverConfig.getBaseUrl()}
-          />
-
-          <HealthCheckModal
-            visible={healthCheckVisible}
-            onClose={() => setHealthCheckVisible(false)}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-            connected={connected}
-            provider={provider}
-            model={model}
-            activeSessionId={viewingLiveSession ? sessionId : currentSessionId}
-            isViewingLiveSession={viewingLiveSession}
-            agentRunning={agentRunning}
-            waitingForUserInput={waitingForUserInput}
-            sessionStatuses={sessionStatuses}
-            workspacePath={workspacePath}
           />
 
           <SessionManagementModal

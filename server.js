@@ -26,8 +26,12 @@ process.on("SIGHUP", () => shutdown("SIGHUP"));
 httpServer.listen(PORT, "0.0.0.0", () => {
   const overlay = getActiveOverlay();
   const previewHost = getPreviewHost();
+  const hostForLog = process.env.HOST || "localhost";
+  const baseUrl = `http://${hostForLog}:${PORT}`;
 
   console.log(`Terminal server at http://localhost:${PORT}`);
+  console.log(`Health check page: ${baseUrl}/health`);
+  console.log(`Health check alias: ${baseUrl}/health-check`);
   console.log(`Skills dir: ${SKILLS_DIR}`);
   console.log(`[Docker] ENABLE_DOCKER_MANAGER: ${ENABLE_DOCKER_MANAGER} (env raw: "${process.env.ENABLE_DOCKER_MANAGER ?? "(unset)"}")`);
   console.log(`Overlay network: ${overlay}`);

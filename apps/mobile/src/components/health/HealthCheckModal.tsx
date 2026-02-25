@@ -71,7 +71,8 @@ interface HealthDockerResponse {
 }
 
 export interface HealthCheckModalProps {
-  visible: boolean;
+  visible?: boolean;
+  embedded?: boolean;
   onClose: () => void;
   serverBaseUrl: string;
   connected: boolean;
@@ -151,7 +152,8 @@ async function fetchJson<T>(url: string): Promise<FetchState<T>> {
 }
 
 export function HealthCheckModal({
-  visible,
+  visible = true,
+  embedded = false,
   onClose,
   serverBaseUrl,
   connected,
@@ -266,7 +268,346 @@ export function HealthCheckModal({
     return null;
   }, [dockerEnabled, health]);
 
-  if (!visible) return null;
+  if (!visible && !embedded) return null;
+
+  const content = (
+    <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+      <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+        <HStack style={styles.header}>
+          <HStack className="flex-1 items-center gap-2">
+            <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
+            <VStack>
+              <Text size="xl" bold>
+                Health Check
+              </Text>
+              <Text size="xs" style={{ color: theme.textMuted }}>
+                Last checked {lastChecked}
+              </Text>
+            </VStack>
+          </HStack>
+          <HStack className="gap-2">
+            <Button
+              action="secondary"
+              variant="outline"
+              size="sm"
+              onPress={onRefresh}
+              accessibilityLabel="Refresh health status"
+              className="w-11 h-11 rounded-xl active:opacity-80"
+              style={{ borderColor: theme.colors.accentSubtle }}
+            >
+              <ButtonIcon as={RefreshCwIcon} size="sm" style={{ color: theme.colors.accent }} />
+            </Button>
+            <Button
+              action="default"
+              variant="link"
+              size="md"
+              onPress={onClose}
+              accessibilityLabel="Close health check"
+              className="w-11 h-11 rounded-xl active:opacity-80"
+            >
+              <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.textMuted }} />
+            </Button>
+          </HStack>
+        </HStack>
+
+        {warnings.length > 0 && (
+          <Box style={[styles.warningBanner, { backgroundColor: theme.warning + "15" }]}>
+            <Text size="xs" bold style={{ color: theme.warning }}>
+              Some checks did not return successfully:
+            </Text>
+            {warnings.map((msg, idx) => (
+              <Text key={`${msg}-${idx}`} size="xs" style={{ color: theme.warning, marginTop: 4 }}>
+                • {msg}
+              </Text>
+            ))}
+          </Box>
+        )}
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.accent}
+              colors={[theme.colors.accent]}
+            />
+          }
+        >
+          {loading && !refreshing ? (
+            <Box style={styles.loading}>
+              <ActivityIndicator size="large" color={theme.colors.accent} />
+              <Text size="xs" style={{ color: theme.textMuted }}>
+                Checking server health...
+              </Text>
+            </Box>
+          ) : (
+            <VStack style={styles.content} className="gap-4">
+              <Box style={styles.section}>
+                <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
+                  System
+                </Text>
+                <VStack className="gap-2">
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Connectivity
+                    </Text>
+                    <Text
+                      size="xs"
+                      bold
+                      style={{ color: connected ? theme.colors.success : theme.colors.danger }}
+                    >
+                      {connected ? "Connected" : "Disconnected"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Health endpoint
+                    </Text>
+                    <Text
+                      size="xs"
+                      bold
+                      style={{ color: health?.ok ? theme.colors.success : theme.colors.danger }}
+                    >
+                      {health?.status ? `${health.status}` : "Unavailable"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Runtime
+                    </Text>
+                    <Text size="xs" className="text-typography-900 text-right">
+                      {health?.system?.nodeVersion ?? "—"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Platform
+                    </Text>
+                    <Text size="xs" className="text-typography-900 text-right">
+                      {[health?.system?.platform, health?.system?.arch].filter(Boolean).join(" / ") || "—"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Uptime
+                    </Text>
+                    <Text size="xs" className="text-typography-900 text-right">
+                      {formatUptime(health?.system?.uptimeSeconds)}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Memory
+                    </Text>
+                    <Text size="xs" className="text-typography-900 text-right">
+                      {formatMb(health?.system?.memory?.rss)} RSS /{" "}
+                      {formatMb(health?.system?.memory?.heapUsed)} heap
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Workspace
+                    </Text>
+                    <Text
+                      size="xs"
+                      className="text-typography-900 text-right"
+                      style={{ maxWidth: 220 }}
+                      numberOfLines={2}
+                    >
+                      {health?.workspace?.path ?? workspacePath ?? "—"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Docker
+                    </Text>
+                    <Text
+                      size="xs"
+                      bold
+                      style={{
+                        color:
+                          systemDockerEnabled === null
+                            ? theme.textMuted
+                            : systemDockerEnabled
+                              ? theme.colors.success
+                              : theme.textMuted,
+                      }}
+                    >
+                      {systemDockerEnabled === null ? "Unknown" : systemDockerEnabled ? "Enabled" : "Disabled"}
+                    </Text>
+                  </HStack>
+                </VStack>
+              </Box>
+
+              <Box style={styles.section}>
+                <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
+                  Session context
+                </Text>
+                <VStack className="gap-2">
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Active context
+                    </Text>
+                    <Text size="xs" className="text-typography-900">
+                      {isViewingLiveSession ? "Live session" : "Loaded session"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Conversation state
+                    </Text>
+                    <Text size="xs" bold style={{ color: theme.colors.accent }}>
+                      {agentRunning
+                        ? waitingForUserInput
+                          ? "Waiting for user input"
+                          : "Running"
+                        : "Idle"}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Provider / model
+                    </Text>
+                    <Text size="xs" className="text-typography-900">
+                      {provider} / {model}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.row}>
+                    <Text size="xs" className="text-typography-500 flex-1">
+                      Active session
+                    </Text>
+                    <Text size="xs" className="text-typography-900 text-right">
+                      {truncateId(activeSessionId)}
+                    </Text>
+                  </HStack>
+                  {activeSessionState && (
+                    <>
+                      <HStack style={styles.row}>
+                        <Text size="xs" className="text-typography-500 flex-1">
+                          Session state
+                        </Text>
+                        <Text
+                          size="xs"
+                          bold
+                          style={{
+                            color:
+                              activeSessionState.status === "running"
+                                ? theme.colors.success
+                                : theme.textMuted,
+                          }}
+                        >
+                          {activeSessionState.status}
+                        </Text>
+                      </HStack>
+                      <HStack style={styles.row}>
+                        <Text size="xs" className="text-typography-500 flex-1">
+                          Last activity
+                        </Text>
+                        <Text size="xs" className="text-typography-900">
+                          {formatLastAccess(activeSessionState.lastAccess)}
+                        </Text>
+                      </HStack>
+                      <HStack style={styles.row}>
+                        <Text size="xs" className="text-typography-500 flex-1">
+                          Session cwd
+                        </Text>
+                        <Text
+                          size="xs"
+                          className="text-typography-900 text-right"
+                          style={{ maxWidth: 220 }}
+                          numberOfLines={2}
+                        >
+                          {activeSessionState.cwd ?? "Unknown"}
+                        </Text>
+                      </HStack>
+                    </>
+                  )}
+                  <Text size="xs" className="text-typography-500" style={{ marginTop: spacing["2"] }}>
+                    Recent sessions
+                  </Text>
+                  <VStack className="gap-2">
+                    {recentSessions.length === 0 ? (
+                      <Text size="xs" style={{ color: theme.textMuted }}>
+                        No recent sessions.
+                      </Text>
+                    ) : (
+                      recentSessions.map((entry) => (
+                        <HStack key={entry.id} style={styles.row}>
+                          <VStack className="flex-1 min-w-0 gap-0.5">
+                            <Text size="xs" bold className="text-typography-900">
+                              {truncateId(entry.id)}
+                            </Text>
+                            <Text size="xs" style={{ color: theme.textMuted }} numberOfLines={1}>
+                              {entry.model ? `Model: ${entry.model}` : "Model: unknown"} · CWD:{" "}
+                              {entry.cwd ?? "unknown"}
+                            </Text>
+                          </VStack>
+                          <Text
+                            size="xs"
+                            bold
+                            style={{
+                              color:
+                                entry.status === "running" ? theme.colors.success : theme.textMuted,
+                            }}
+                          >
+                            {entry.status}
+                          </Text>
+                        </HStack>
+                      ))
+                    )}
+                  </VStack>
+                </VStack>
+              </Box>
+
+              <Box style={styles.section}>
+                <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
+                  Running process ports
+                </Text>
+                <Text size="xs" style={{ color: theme.textMuted }}>
+                  {processes.length} process{processes.length === 1 ? "" : "es"} detected on monitored ports.
+                </Text>
+                <VStack className="gap-2 mt-2">
+                  {processes.length === 0 ? (
+                    <Text size="xs" style={{ color: theme.textMuted }}>
+                      No process listeners found on monitored ports.
+                    </Text>
+                  ) : (
+                    processes.map((proc) => (
+                      <EntranceAnimation key={`${proc.pid}-${proc.port}`} variant="fade">
+                        <Box style={styles.processRow}>
+                          <HStack style={styles.processHeader}>
+                            <Text size="xs" bold>
+                              PID {proc.pid}
+                            </Text>
+                            <Text size="xs" bold style={{ color: theme.colors.accent }}>
+                              Port {proc.port}
+                            </Text>
+                          </HStack>
+                        <Text
+                            size="xs"
+                            style={{ color: theme.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
+                            numberOfLines={2}
+                          >
+                            {proc.command || "(unknown)"}
+                          </Text>
+                        </Box>
+                      </EntranceAnimation>
+                    ))
+                  )}
+                </VStack>
+              </Box>
+            </VStack>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Box>
+  );
+
+  if (embedded) {
+    return content;
+  }
 
   return (
     <Modal
@@ -276,338 +617,7 @@ export function HealthCheckModal({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <HStack style={styles.header}>
-            <HStack className="flex-1 items-center gap-2">
-              <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
-              <VStack>
-                <Text size="xl" bold>
-                  Health Check
-                </Text>
-                <Text size="xs" style={{ color: theme.textMuted }}>
-                  Last checked {lastChecked}
-                </Text>
-              </VStack>
-            </HStack>
-            <HStack className="gap-2">
-              <Button
-                action="secondary"
-                variant="outline"
-                size="sm"
-                onPress={onRefresh}
-                accessibilityLabel="Refresh health status"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-                style={{ borderColor: theme.colors.accentSubtle }}
-              >
-                <ButtonIcon as={RefreshCwIcon} size="sm" style={{ color: theme.colors.accent }} />
-              </Button>
-              <Button
-                action="default"
-                variant="link"
-                size="md"
-                onPress={onClose}
-                accessibilityLabel="Close health check"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-              >
-                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.textMuted }} />
-              </Button>
-            </HStack>
-          </HStack>
-
-          {warnings.length > 0 && (
-            <Box style={[styles.warningBanner, { backgroundColor: theme.warning + "15" }]}>
-              <Text size="xs" bold style={{ color: theme.warning }}>
-                Some checks did not return successfully:
-              </Text>
-              {warnings.map((msg, idx) => (
-                <Text key={`${msg}-${idx}`} size="xs" style={{ color: theme.warning, marginTop: 4 }}>
-                  • {msg}
-                </Text>
-              ))}
-            </Box>
-          )}
-
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.accent}
-                colors={[theme.colors.accent]}
-              />
-            }
-          >
-            {loading && !refreshing ? (
-              <Box style={styles.loading}>
-                <ActivityIndicator size="large" color={theme.colors.accent} />
-                <Text size="xs" style={{ color: theme.textMuted }}>
-                  Checking server health...
-                </Text>
-              </Box>
-            ) : (
-              <VStack style={styles.content} className="gap-4">
-                <Box style={styles.section}>
-                  <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
-                    System
-                  </Text>
-                  <VStack className="gap-2">
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Connectivity
-                      </Text>
-                      <Text
-                        size="xs"
-                        bold
-                        style={{ color: connected ? theme.colors.success : theme.colors.danger }}
-                      >
-                        {connected ? "Connected" : "Disconnected"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Health endpoint
-                      </Text>
-                      <Text
-                        size="xs"
-                        bold
-                        style={{ color: health?.ok ? theme.colors.success : theme.colors.danger }}
-                      >
-                        {health?.status ? `${health.status}` : "Unavailable"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Runtime
-                      </Text>
-                      <Text size="xs" className="text-typography-900 text-right">
-                        {health?.system?.nodeVersion ?? "—"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Platform
-                      </Text>
-                      <Text size="xs" className="text-typography-900 text-right">
-                        {[health?.system?.platform, health?.system?.arch].filter(Boolean).join(" / ") || "—"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Uptime
-                      </Text>
-                      <Text size="xs" className="text-typography-900 text-right">
-                        {formatUptime(health?.system?.uptimeSeconds)}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Memory
-                      </Text>
-                      <Text size="xs" className="text-typography-900 text-right">
-                        {formatMb(health?.system?.memory?.rss)} RSS /{" "}
-                        {formatMb(health?.system?.memory?.heapUsed)} heap
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Workspace
-                      </Text>
-                      <Text
-                        size="xs"
-                        className="text-typography-900 text-right"
-                        style={{ maxWidth: 220 }}
-                        numberOfLines={2}
-                      >
-                        {health?.workspace?.path ?? workspacePath ?? "—"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Docker
-                      </Text>
-                      <Text
-                        size="xs"
-                        bold
-                        style={{
-                          color:
-                            systemDockerEnabled === null
-                              ? theme.textMuted
-                              : systemDockerEnabled
-                                ? theme.colors.success
-                                : theme.textMuted,
-                        }}
-                      >
-                        {systemDockerEnabled === null ? "Unknown" : systemDockerEnabled ? "Enabled" : "Disabled"}
-                      </Text>
-                    </HStack>
-                  </VStack>
-                </Box>
-
-                <Box style={styles.section}>
-                  <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
-                    Session context
-                  </Text>
-                  <VStack className="gap-2">
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Active context
-                      </Text>
-                      <Text size="xs" className="text-typography-900">
-                        {isViewingLiveSession ? "Live session" : "Loaded session"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Conversation state
-                      </Text>
-                      <Text size="xs" bold style={{ color: theme.colors.accent }}>
-                        {agentRunning
-                          ? waitingForUserInput
-                            ? "Waiting for user input"
-                            : "Running"
-                          : "Idle"}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Provider / model
-                      </Text>
-                      <Text size="xs" className="text-typography-900">
-                        {provider} / {model}
-                      </Text>
-                    </HStack>
-                    <HStack style={styles.row}>
-                      <Text size="xs" className="text-typography-500 flex-1">
-                        Active session
-                      </Text>
-                      <Text size="xs" className="text-typography-900 text-right">
-                        {truncateId(activeSessionId)}
-                      </Text>
-                    </HStack>
-                    {activeSessionState && (
-                      <>
-                        <HStack style={styles.row}>
-                          <Text size="xs" className="text-typography-500 flex-1">
-                            Session state
-                          </Text>
-                          <Text
-                            size="xs"
-                            bold
-                            style={{
-                              color:
-                                activeSessionState.status === "running"
-                                  ? theme.colors.success
-                                  : theme.textMuted,
-                            }}
-                          >
-                            {activeSessionState.status}
-                          </Text>
-                        </HStack>
-                        <HStack style={styles.row}>
-                          <Text size="xs" className="text-typography-500 flex-1">
-                            Last activity
-                          </Text>
-                          <Text size="xs" className="text-typography-900">
-                            {formatLastAccess(activeSessionState.lastAccess)}
-                          </Text>
-                        </HStack>
-                        <HStack style={styles.row}>
-                          <Text size="xs" className="text-typography-500 flex-1">
-                            Session cwd
-                          </Text>
-                          <Text
-                            size="xs"
-                            className="text-typography-900 text-right"
-                            style={{ maxWidth: 220 }}
-                            numberOfLines={2}
-                          >
-                            {activeSessionState.cwd ?? "Unknown"}
-                          </Text>
-                        </HStack>
-                      </>
-                    )}
-                    <Text size="xs" className="text-typography-500" style={{ marginTop: spacing["2"] }}>
-                      Recent sessions
-                    </Text>
-                    <VStack className="gap-2">
-                      {recentSessions.length === 0 ? (
-                        <Text size="xs" style={{ color: theme.textMuted }}>
-                          No recent sessions.
-                        </Text>
-                      ) : (
-                        recentSessions.map((entry) => (
-                          <HStack key={entry.id} style={styles.row}>
-                            <VStack className="flex-1 min-w-0 gap-0.5">
-                              <Text size="xs" bold className="text-typography-900">
-                                {truncateId(entry.id)}
-                              </Text>
-                              <Text size="xs" style={{ color: theme.textMuted }} numberOfLines={1}>
-                                {entry.model ? `Model: ${entry.model}` : "Model: unknown"} · CWD:{" "}
-                                {entry.cwd ?? "unknown"}
-                              </Text>
-                            </VStack>
-                            <Text
-                              size="xs"
-                              bold
-                              style={{
-                                color:
-                                  entry.status === "running" ? theme.colors.success : theme.textMuted,
-                              }}
-                            >
-                              {entry.status}
-                            </Text>
-                          </HStack>
-                        ))
-                      )}
-                    </VStack>
-                  </VStack>
-                </Box>
-
-                <Box style={styles.section}>
-                  <Text size="sm" bold style={{ marginBottom: spacing["2"] }}>
-                    Running process ports
-                  </Text>
-                  <Text size="xs" style={{ color: theme.textMuted }}>
-                    {processes.length} process{processes.length === 1 ? "" : "es"} detected on monitored ports.
-                  </Text>
-                  <VStack className="gap-2 mt-2">
-                    {processes.length === 0 ? (
-                      <Text size="xs" style={{ color: theme.textMuted }}>
-                        No process listeners found on monitored ports.
-                      </Text>
-                    ) : (
-                      processes.map((proc) => (
-                        <EntranceAnimation key={`${proc.pid}-${proc.port}`} variant="fade">
-                          <Box style={styles.processRow}>
-                            <HStack style={styles.processHeader}>
-                              <Text size="xs" bold>
-                                PID {proc.pid}
-                              </Text>
-                              <Text size="xs" bold style={{ color: theme.colors.accent }}>
-                                Port {proc.port}
-                              </Text>
-                            </HStack>
-                          <Text
-                              size="xs"
-                              style={{ color: theme.textSecondary, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
-                              numberOfLines={2}
-                            >
-                              {proc.command || "(unknown)"}
-                            </Text>
-                          </Box>
-                        </EntranceAnimation>
-                      ))
-                    )}
-                  </VStack>
-                </Box>
-              </VStack>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Box>
+      {content}
     </Modal>
   );
 }

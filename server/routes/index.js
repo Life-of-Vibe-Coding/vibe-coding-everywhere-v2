@@ -16,6 +16,8 @@ import { registerWorkspaceRoutes, createServeWorkspaceFileMiddleware } from "./w
 import { registerGitRoutes } from "./git.js";
 import { registerProcessesRoutes } from "./processes.js";
 import { registerDockerRoutes } from "./docker.js";
+import { registerHealthPageRoutes } from "./health-page.js";
+import { registerSessionManagementStoreRoutes } from "./session-management-store.js";
 
 /**
  * Configure all Express routes on the given app instance.
@@ -31,6 +33,8 @@ export async function setupRoutes(app) {
   registerGitRoutes(app);
   registerProcessesRoutes(app);
   await registerDockerRoutes(app);
+  registerHealthPageRoutes(app);
+  registerSessionManagementStoreRoutes(app);
 
   const serveWorkspaceFile = createServeWorkspaceFileMiddleware();
   app.get("*", (req, res, next) => {

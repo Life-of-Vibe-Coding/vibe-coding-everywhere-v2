@@ -9,7 +9,6 @@ import {
   DockerIcon,
   GlobeIcon,
   SkillIcon,
-  RefreshCwIcon,
   StopCircleIcon,
   TerminalIcon,
 } from "../icons/ChatActionIcons";
@@ -51,7 +50,6 @@ export interface InputPanelProps {
   onTerminateAgent?: () => void;
   onOpenWebPreview?: () => void;
   onOpenProcesses?: () => void;
-  onOpenHealthCheck?: () => void;
   provider?: "claude" | "gemini" | "codex" | "pi";
   model?: string;
   modelOptions?: { value: string; label: string }[];
@@ -75,7 +73,6 @@ export function InputPanel({
   onTerminateAgent,
   onOpenWebPreview,
   onOpenProcesses,
-  onOpenHealthCheck,
   provider = "pi",
   model = "gemini-2.5-flash",
   modelOptions = [],
@@ -349,22 +346,6 @@ export function InputPanel({
             </Pressable>
           </HStack>
           <HStack space="sm" className="flex-row items-center gap-2 shrink-0">
-            {onOpenHealthCheck && (
-              <Button
-                action="secondary"
-                variant="outline"
-                size="md"
-                onPress={onOpenHealthCheck}
-                accessibilityLabel="Open health check"
-                className="w-11 h-11 rounded-xl active:opacity-80"
-                style={{
-                  borderColor: theme.colors.accentSubtle,
-                  backgroundColor: theme.colors.accentSoft,
-                }}
-              >
-                <ButtonIcon as={RefreshCwIcon} size="md" style={{ color: theme.colors.accent }} />
-              </Button>
-            )}
             {onOpenProcesses && (
               <Button
                 action="secondary"

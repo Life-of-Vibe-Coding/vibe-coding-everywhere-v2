@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Health Monitor</title>
+  <style>
+    * { box-sizing: border-box; }
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 36px;
+    }
+    h1 {
+      margin: 0 0 14px;
+      font-size: 1.55rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      line-height: 1.2;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .toolbar button {
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #c9d1d9;
+      border-radius: 7px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .toolbar button:hover { background: #30363d; }
+    .toolbar button:disabled { opacity: .5; cursor: not-allowed; }
+    .toolbar .muted { color: #8b949e; margin-left: 2px; }
+    .toolbar .state {
+      font-size: 13px;
+      color: #8b949e;
+      margin-left: auto;
+    }
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 160px;
+      overflow: auto;
+      max-height: 420px;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1rem;
+      color: #c9d1d9;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e2630;
+      font-size: 13px;
+    }
+    .row:last-child { border-bottom: 0; }
+    .label { color: #8b949e; }
+    .value { color: #f0f6fc; text-align: right; max-width: 64%; word-break: break-word; }
+    .good { color: #3fb950; }
+    .warn { color: #d29922; }
+    .bad { color: #f85149; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e2630; }
+    th { background: #0f1720; color: #8b949e; font-weight: 600; }
+    .list-item { margin: 0; padding-left: 18px; line-height: 1.4; font-size: 13px; }
+    .list-item li { margin: 0 0 6px; }
+    .warn-box { color: #f85149; font-size: 13px; white-space: pre-wrap; line-height: 1.4; }
+    .links a { color: #58a6ff; text-decoration: none; }
+    .links a:hover { text-decoration: underline; }
+    .loading {
+      padding: 16px;
+      color: #8b949e;
+      font-size: 13px;
+      text-align: center;
+    }
+    #sessionManagementStoreContent {
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+    .json {
+      margin-top: 10px;
+      padding: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #c9d1d9;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 220px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>System Health Monitor</h1>
+    <p class="toolbar links">
+      <a href="/">← Back to main app</a>
+    </p>
+    <div class="toolbar">
+      <button id="refresh" type="button">Refresh now</button>
+      <label><input id="autoRefresh" type="checkbox" /> Auto refresh (10s)</label>
+      <span class="state" id="status">Ready</span>
+    </div>
+
+    <div id="message" class="loading" style="display:none;"></div>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>System</h2>
+        <div id="systemRows"></div>
+      </section>
+      <section class="panel">
+        <h2>Sessions</h2>
+        <div id="sessionsContent"></div>
+      </section>
+      <section class="panel">
+        <h2>Session Management Store</h2>
+        <div id="sessionManagementStoreContent"></div>
+      </section>
+      <section class="panel">
+        <h2>Processes</h2>
+        <div id="processContent"></div>
+      </section>
+      <section class="panel">
+        <h2>API Endpoints</h2>
+        <ul class="list-item">
+          <li>/api/health</li>
+          <li>/api/sessions/status</li>
+          <li>/api/session-management-store</li>
+          <li>/api/processes</li>
+          <li>/api/docker/status</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+  <script src="/health-check.js"></script>
+</body>
+</html>
