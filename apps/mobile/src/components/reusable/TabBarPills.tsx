@@ -16,6 +16,7 @@ type TabBarPillsProps<T extends string> = {
   value: T;
   onChange: (next: T) => void;
   className?: string;
+  variant?: "pill" | "segment";
 };
 
 export function TabBarPills<T extends string>({
@@ -23,9 +24,20 @@ export function TabBarPills<T extends string>({
   value,
   onChange,
   className,
+  variant = "pill",
 }: TabBarPillsProps<T>) {
+  const isSegment = variant === "segment";
+
   return (
-    <HStack space="sm" className={className}>
+    <HStack
+      space={isSegment ? undefined : "sm"}
+      className={[
+        isSegment
+          ? "rounded-xl border border-outline-200 bg-background-100 p-1 gap-1"
+          : "",
+        className ?? "",
+      ].join(" ")}
+    >
       {tabs.map((tab) => {
         const active = tab.key === value;
         return (
@@ -34,10 +46,16 @@ export function TabBarPills<T extends string>({
             disabled={tab.disabled}
             onPress={() => onChange(tab.key)}
             className={[
-              "min-h-11 px-4 rounded-full border flex-row items-center justify-center gap-1.5",
-              active
-                ? "bg-primary-500 border-primary-500"
-                : "bg-background-0 border-outline-200 active:bg-background-100",
+              isSegment
+                ? "min-h-11 px-4 rounded-lg border flex-1 flex-row items-center justify-center gap-1.5"
+                : "min-h-11 px-4 rounded-full border flex-row items-center justify-center gap-1.5",
+              isSegment
+                ? active
+                  ? "bg-background-0 border-outline-300"
+                  : "bg-transparent border-transparent active:bg-background-200"
+                : active
+                  ? "bg-primary-500 border-primary-500"
+                  : "bg-background-0 border-outline-200 active:bg-background-100",
               tab.disabled ? "opacity-40" : "",
             ].join(" ")}
             accessibilityRole="tab"
@@ -46,7 +64,15 @@ export function TabBarPills<T extends string>({
             <Text
               size="sm"
               bold={active}
-              className={active ? "text-typography-0" : "text-typography-700"}
+              className={
+                isSegment
+                  ? active
+                    ? "text-typography-900"
+                    : "text-typography-600"
+                  : active
+                    ? "text-typography-0"
+                    : "text-typography-700"
+              }
             >
               {tab.label}
             </Text>
@@ -54,13 +80,27 @@ export function TabBarPills<T extends string>({
               <Box
                 className={[
                   "min-w-5 h-5 rounded-full px-1.5 items-center justify-center",
-                  active ? "bg-primary-700" : "bg-background-200",
+                  isSegment
+                    ? active
+                      ? "bg-primary-100"
+                      : "bg-background-200"
+                    : active
+                      ? "bg-primary-700"
+                      : "bg-background-200",
                 ].join(" ")}
               >
                 <Text
                   size="2xs"
                   bold
-                  className={active ? "text-typography-0" : "text-typography-700"}
+                  className={
+                    isSegment
+                      ? active
+                        ? "text-primary-700"
+                        : "text-typography-700"
+                      : active
+                        ? "text-typography-0"
+                        : "text-typography-700"
+                  }
                 >
                   {String(tab.badge)}
                 </Text>
@@ -72,4 +112,3 @@ export function TabBarPills<T extends string>({
     </HStack>
   );
 }
-

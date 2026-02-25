@@ -22,6 +22,7 @@ import {
   type WorkspaceTreeItem,
 } from "@/components/file/workspace-sidebar/FileTreePane";
 import { GitPane } from "@/components/file/workspace-sidebar/GitPane";
+import { FolderRow } from "@/components/file/workspace-sidebar/FolderRow";
 import { getDefaultServerConfig } from "@/core";
 import {
   FolderIconByType,
@@ -165,7 +166,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
   const [actionLoading, setActionLoading] = useState(false);
 
   const baseUrl = getDefaultServerConfig().getBaseUrl();
-  const drawerWidth = windowWidth - 2 * SIDE_MARGIN;
+  const drawerWidth = embedded ? windowWidth : windowWidth - 2 * SIDE_MARGIN;
   const maxDrawerHeight = Math.max(0, Math.round(safeAreaAwareHeight));
   const drawerHeight = embedded ? undefined : maxDrawerHeight;
   const drawerSize = embedded
@@ -420,63 +421,45 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       if (item.type === "folder") {
         const isExpanded = expandedPaths.has(item.path);
         return (
-          <Box key={item.path} style={styles.folderBlock}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.treeRow,
-                { paddingLeft: 12 + depth * 14 },
-                pressed && styles.treeRowPressed,
-              ]}
-              onPress={() => toggleFolder(item.path)}
-              accessibilityRole="button"
-              accessibilityLabel={`${isExpanded ? "Collapse" : "Expand"} folder ${item.name}`}
-            >
-              <Text style={styles.treeIcon}>{isExpanded ? "▼" : "▶"}</Text>
-              <Box style={styles.treeIconWrap}>
-                <FolderIconByType
-                  name={item.name}
-                  expanded={isExpanded}
-                  color={ATOM_ONE_LIGHT.folder}
-                />
-              </Box>
-              <Text style={styles.treeLabel} numberOfLines={1}>
-                {item.name}
-              </Text>
-            </Pressable>
+          <React.Fragment key={item.path}>
+            <FolderRow
+              item={item}
+              depth={depth}
+              expanded={isExpanded}
+              isDark={theme.mode === "dark"}
+              rootColorPrimary={theme.colors.textPrimary}
+              rootColorSecondary={theme.colors.textSecondary}
+              folderIconColor={ATOM_ONE_LIGHT.folder}
+              onToggleFolder={toggleFolder}
+              onOpenFile={handleFilePress}
+              getFileColor={getFileColor}
+            />
             {isExpanded && item.children && item.children.length > 0 && (
-              <Box style={styles.children}>
+              <Box className="ml-0">
                 {item.children.map((child) => renderItem(child, depth + 1))}
               </Box>
             )}
-          </Box>
+          </React.Fragment>
         );
       }
-      const fileColor = getFileColor(item.name);
       const ignored = isIgnoredFile(item.name);
       return (
-        <Pressable
+        <FolderRow
           key={item.path}
-          style={({ pressed }) => [
-            styles.treeRow,
-            { paddingLeft: 12 + depth * 14 },
-            pressed && styles.treeRowPressed,
-            ignored && { opacity: 0.55 },
-          ]}
-          onPress={() => handleFilePress(item.path)}
-          accessibilityRole="button"
-          accessibilityLabel={`Open file ${item.name}`}
-        >
-          <Box style={styles.treeIconChevron} />
-          <Box style={styles.treeIconWrap}>
-            <FileIconByType name={item.name} color={fileColor} />
-          </Box>
-          <Text style={[styles.treeLabel, ignored && styles.treeLabelIgnored]} numberOfLines={1}>
-            {item.name}
-          </Text>
-        </Pressable>
+          item={item}
+          depth={depth}
+          isIgnored={ignored}
+          isDark={theme.mode === "dark"}
+          rootColorPrimary={theme.colors.textPrimary}
+          rootColorSecondary={theme.colors.textSecondary}
+          folderIconColor={ATOM_ONE_LIGHT.folder}
+          onToggleFolder={toggleFolder}
+          onOpenFile={handleFilePress}
+          getFileColor={getFileColor}
+        />
       );
     },
-    [expandedPaths, toggleFolder, getFileColor, isIgnoredFile, handleFilePress]
+    [expandedPaths, toggleFolder, getFileColor, isIgnoredFile, handleFilePress, theme.mode, theme.colors.textPrimary, theme.colors.textSecondary]
   );
 
   const styles = useMemo(() => createWorkspaceSidebarStyles(theme), [theme]);
@@ -557,6 +540,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
           {/* Staged section card */}
           <ListSectionCard
             title="Staged"
+            className="border-0"
             style={[styles.sectionCard, isDark && styles.sectionCardDark]}
             action={
               hasStaged ? (
@@ -586,6 +570,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
           {/* Unstaged section card */}
           <ListSectionCard
             title="Unstaged"
+            className="border-0"
             style={[styles.sectionCard, isDark && styles.sectionCardDark]}
             action={
               <Box style={styles.unstagedHeaderActions}>
@@ -737,7 +722,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       paddingRight: insets.right,
     };
   const drawerCenterStyle = embedded
-    ? [styles.drawerCenter, styles.drawerCenterEmbedded, { paddingHorizontal: SIDE_MARGIN }]
+    ? [styles.drawerCenter, styles.drawerCenterEmbedded]
     : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];
   const overlayContent = (
     <Box style={[styles.overlay, embedded && styles.overlayEmbedded, overlayPadding]}>
@@ -747,11 +732,10 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       />
       <Box style={drawerCenterStyle} pointerEvents="box-none">
         <EntranceAnimation variant="slideRight" duration={280}>
-          <Box style={[styles.drawer, drawerSize]}>
+          <Box style={[styles.drawer, drawerSize, embedded && styles.drawerEmbedded]}>
 
             <SidebarHeader
               activeTab={activeTab}
-              styles={styles}
               onClose={onClose}
               onTabChange={(tab) => {
                 setActiveTab(tab);
@@ -784,7 +768,6 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
               </ScrollView>
             ) : activeTab === "files" ? (
               <FileTreePane
-                styles={styles}
                 theme={theme}
                 root={data?.root}
                 searchQuery={searchQuery}
@@ -850,113 +833,16 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       shadowRadius: 12,
       elevation: 8,
     },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.background,
-    },
-    headerTitle: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: theme.colors.textPrimary,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-    closeBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      backgroundColor: "rgba(0,0,0,0.06)",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    closeBtnText: { fontSize: 18, color: theme.colors.textSecondary },
-    tabContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.background,
-    },
-    tabSpacer: {
-      flex: 1,
-    },
-    tabGroup: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    tabSpacerRight: {
-      flex: 1,
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      alignItems: "center",
-    },
-    tabCloseBtn: {
-      width: 44,
-      height: 44,
-      flexShrink: 0,
-      alignItems: "center",
-      justifyContent: "center",
-      marginLeft: 4,
-    },
-    tabCloseBtnText: { fontSize: 18, color: theme.colors.textSecondary, fontWeight: "600" },
-    workspaceName: {
-      paddingVertical: 6,
-      paddingHorizontal: 14,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.background,
-    },
-    workspaceNameText: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "500",
-      letterSpacing: 0,
-      color: theme.colors.textPrimary,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-    searchBarContainer: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.background,
-    },
-    searchInput: {
-      backgroundColor: "rgba(0,0,0,0.06)",
-      borderRadius: 8,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      fontSize: 14,
-      color: theme.colors.textPrimary,
-      borderWidth: 1,
-      borderColor: "rgba(0,0,0,0.08)",
+    drawerEmbedded: {
+      borderRadius: 0,
+      borderWidth: 0,
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      elevation: 0,
     },
     loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: theme.colors.background },
     scroll: { flex: 1, minHeight: 0, backgroundColor: theme.colors.background },
     scrollContent: { paddingVertical: 8, paddingBottom: 24 },
-    folderBlock: { marginBottom: 0 },
-    treeRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      minHeight: 44,
-      paddingVertical: 6,
-      paddingRight: 12,
-      borderRadius: 10,
-      marginHorizontal: 8,
-    },
-    treeRowPressed: { backgroundColor: "rgba(0,0,0,0.06)" },
-    treeIcon: { width: 14, marginRight: 4, fontSize: 10, color: theme.colors.textSecondary },
-    treeIconChevron: { width: 14, marginRight: 4 },
-    treeIconWrap: { width: 22, height: 22, borderRadius: 6, overflow: "hidden", alignItems: "center", justifyContent: "center", marginRight: 6 },
-    treeLabel: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
-    treeLabelIgnored: { color: theme.colors.textSecondary },
-    children: { marginLeft: 0 },
 
     // Git specific
     errorContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
@@ -972,15 +858,6 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     initGitBtnDisabled: { opacity: 0.7 },
     initGitBtnText: { fontSize: 15, fontWeight: "600", color: "#fff" },
 
-    sectionHeaderWrap: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      marginTop: 6
-    },
-    sectionTitle: { fontSize: 13, fontWeight: "600", color: theme.colors.textPrimary },
     emptyText: { paddingHorizontal: 16, paddingVertical: 12, color: theme.colors.textSecondary, fontSize: 13 },
 
     // Redesigned Changes tab

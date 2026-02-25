@@ -402,14 +402,14 @@ export function WorkspacePickerModal({
       bodyProps={{ scrollEnabled: false }}
     >
       <Box className="flex-1 bg-background-50">
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
           <EntranceAnimation variant="fade" duration={180}>
-            <VStack className="border-b border-outline-200 bg-background-0 px-4 pb-3 pt-2" space="sm">
+            <VStack className="border-b border-outline-200 bg-background-0 px-4 pb-4 pt-3" space="sm">
               <HStack className="items-center justify-start">
                 {canGoBack ? (
                   <Pressable
                     onPress={handleGoToParent}
-                    className="min-h-11 min-w-[90px] rounded-xl border border-outline-200 bg-background-50 px-3 flex-row items-center gap-1.5"
+                    className="min-h-11 min-w-[98px] rounded-xl border border-outline-200 bg-background-50 px-3.5 flex-row items-center gap-1.5"
                     accessibilityLabel="Go back to parent folder"
                     accessibilityRole="button"
                   >
@@ -422,7 +422,7 @@ export function WorkspacePickerModal({
               </HStack>
 
               <Card variant="filled" size="sm" className="rounded-2xl bg-background-50 border border-outline-100">
-                <VStack space="xs">
+                <VStack space="xs" className="py-0.5">
                   <GText size="xs" className="uppercase tracking-wider text-typography-500">
                     Workspace Browser
                   </GText>
@@ -437,6 +437,9 @@ export function WorkspacePickerModal({
                   </GText>
                 </VStack>
               </Card>
+              <GText size="xs" className="text-typography-500">
+                Choose a folder, then tap Use Folder.
+              </GText>
             </VStack>
           </EntranceAnimation>
 
@@ -530,7 +533,7 @@ export function WorkspacePickerModal({
                   ) : (
                     <VStack>
                       <GText size="xs" className="mx-4 mb-1 mt-2 uppercase tracking-wider text-typography-500">
-                        Subfolders
+                        Subfolders ({viewChildren.length})
                       </GText>
                       {viewChildren.map((child, index) => renderChildRow(child, index))}
                       {!pickerError && viewChildren.length === 0 && !viewLoading ? (

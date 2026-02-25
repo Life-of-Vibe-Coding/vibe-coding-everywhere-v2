@@ -1,22 +1,19 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import {
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic, spacing, radii, EntranceAnimation } from "@/design-system";
-import { CloseIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { triggerHaptic, spacing } from "@/design-system";
+import { CloseIcon } from "@/components/icons/ChatActionIcons";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import { Box } from "@/components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Button, ButtonIcon } from "@/components/ui/button";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
-import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { AsyncStateView } from "@/components/reusable/AsyncStateView";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
+import { ProcessListItemCard } from "@/components/reusable/ProcessListItem";
 import {
   Modal,
   ModalBackdrop,
@@ -24,7 +21,6 @@ import {
   ModalContent,
 } from "@/components/ui/modal";
 import { ScrollView } from "@/components/ui/scroll-view";
-import { Spinner } from "@/components/ui/spinner";
 import { RefreshControl } from "@/components/ui/refresh-control";
 
 export interface ApiProcess {
@@ -60,6 +56,10 @@ function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
   });
 }
 
+function getTerminalFontFamily() {
+  return Platform.OS === "ios" ? "Menlo" : "monospace";
+}
+
 export function ProcessDashboardModal({
   isOpen,
   onClose,
@@ -67,8 +67,6 @@ export function ProcessDashboardModal({
 }: ProcessDashboardModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-
   const [apiProcesses, setApiProcesses] = useState<ApiProcess[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,6 +74,8 @@ export function ProcessDashboardModal({
   const [warning, setWarning] = useState<string | null>(null);
   const [killingPid, setKillingPid] = useState<number | null>(null);
   const [logViewer, setLogViewer] = useState<{ name: string; content: string } | null>(null);
+
+  const terminalFont = useMemo(getTerminalFontFamily, []);
 
   const fetchProcesses = useCallback(async () => {
     try {
@@ -165,8 +165,32 @@ export function ProcessDashboardModal({
     [serverBaseUrl, fetchProcesses]
   );
 
-  const hasOther = apiProcesses.length > 0;
-  const empty = !hasOther && !loading && !error;
+  const hasProcesses = apiProcesses.length > 0;
+  const isEmpty = !hasProcesses && !loading && !error;
+  const headerDividerStyle = useMemo(
+    () => ({
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: `${theme.colors.accent}30`,
+    }),
+    [theme.colors.accent]
+  );
+  const errorBannerStyle = useMemo(
+    () => ({
+      backgroundColor: `${theme.colors.danger}12`,
+      borderColor: `${theme.colors.danger}25`,
+    }),
+    [theme.colors.danger]
+  );
+  const warningBannerStyle = useMemo(
+    () => ({
+      backgroundColor: theme.colors.accentSoft,
+    }),
+    [theme.colors.accentSoft]
+  );
+  const containerStyle = useMemo(
+    () => ({ backgroundColor: theme.colors.background, paddingTop: insets.top }),
+    [theme.colors.background, insets.top]
+  );
 
   if (!isOpen) return null;
 
@@ -182,13 +206,14 @@ export function ProcessDashboardModal({
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
     >
-          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          {/* Header with accent bar */}
-          <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
+      <Box className="flex-1" style={containerStyle}>
+        <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
+          <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
             <HStack className="flex-1 items-center gap-2">
-              <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
-              <Text size="xl" bold className="text-typography-900">Process Dashboard</Text>
+              <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
+              <Text size="xl" bold className="text-typography-900">
+                Process Dashboard
+              </Text>
             </HStack>
             <Button
               action="default"
@@ -202,27 +227,35 @@ export function ProcessDashboardModal({
             </Button>
           </HStack>
 
-          {error && (
-            <EntranceAnimation variant="fade">
-              <VStack style={[styles.errorBanner, { backgroundColor: theme.colors?.danger ? theme.colors.danger + "12" : undefined, borderColor: theme.colors?.danger ? theme.colors.danger + "25" : undefined }]} className="gap-2">
-                <Text size="sm" className="text-error-600">{error}</Text>
-                <Text size="xs" className="text-error-600 leading-4.5 opacity-90">
-                  Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
-                </Text>
-              </VStack>
-            </EntranceAnimation>
-          )}
-          {warning && !error && (
-            <EntranceAnimation variant="fade">
-              <Box style={[styles.warningBanner, { backgroundColor: theme.colors.accentSoft }]}>
-                <Text size="sm" className="text-typography-900">{warning}</Text>
-              </Box>
-            </EntranceAnimation>
-          )}
+          {error ? (
+            <Box
+              className="mx-5 mt-2 gap-2 rounded-xl border p-4"
+              style={errorBannerStyle}
+            >
+              <Text size="sm" className="text-error-600">
+                {error}
+              </Text>
+              <Text size="xs" className="text-error-600 leading-4.5 opacity-90">
+                Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
+              </Text>
+            </Box>
+          ) : null}
+
+          {warning && !error ? (
+            <Box className="mx-5 mt-2 rounded-xl p-4" style={warningBannerStyle}>
+              <Text size="sm" className="text-typography-900">
+                {warning}
+              </Text>
+            </Box>
+          ) : null}
 
           <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: spacing["5"],
+              paddingTop: spacing["4"],
+              paddingBottom: spacing["6"],
+            }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -233,258 +266,94 @@ export function ProcessDashboardModal({
           >
             <AsyncStateView
               isLoading={loading && !refreshing}
-              isEmpty={empty}
+              isEmpty={isEmpty}
               loadingText="Loading processes..."
               emptyTitle="No running processes found"
               emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
             >
-                {hasOther ? (
-                  <ListSectionCard
-                    title="Port-bound processes"
-                    subtitle="Active local/dev server processes"
-                    className="mb-4"
-                  >
-                    <VStack style={styles.section} className="gap-3">
-                      {[...apiProcesses]
-                        .sort((a, b) => b.pid - a.pid)
-                        .map((proc) => {
-                      const logPaths = proc.logPaths ?? [];
-                      const accent = theme.colors.accent;
-                      return (
-                        <EntranceAnimation key={`${proc.pid}-${proc.port}`} variant="slideUp" delay={0}>
-                          <Box
-                            style={[
-                              styles.row,
-                              {
-                                backgroundColor: accent + "08",
-                                borderLeftColor: accent,
-                                borderColor: accent + "40",
-                              },
-                            ]}
-                            className="flex-col overflow-hidden rounded-xl"
-                          >
-                            <Box style={styles.rowMain} className="min-w-0">
-                              <HStack style={styles.pidPortRow} className="flex-wrap gap-2 mb-2">
-                                <Box style={[styles.pill, { backgroundColor: accent + "12", borderColor: accent + "30" }]}>
-                                  <Text size="xs" bold style={{ color: accent }}>PID {proc.pid}</Text>
-                                </Box>
-                                <Box style={[styles.pill, { backgroundColor: accent + "12", borderColor: accent + "30" }]}>
-                                  <Text size="xs" bold style={{ color: accent }}>Port {proc.port}</Text>
-                                </Box>
-                              </HStack>
-                              <Text
-                                size="xs"
-                                numberOfLines={4}
-                                selectable
-                                className="font-semibold text-typography-900 font-mono"
-                                style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
-                              >
-                                {proc.command}
-                              </Text>
-                            </Box>
-                            <HStack style={styles.rowActions} className="flex-wrap gap-2">
-                              {logPaths.map((logPath) => {
-                                const label = logPath.includes("/") ? logPath.split("/").pop() ?? logPath : logPath;
-                                return (
-                                  <Pressable
-                                    key={logPath}
-                                    onPress={() => handleViewLog(logPath)}
-                                    style={[styles.logButton, { backgroundColor: accent + "12", borderColor: accent + "40" }]}
-                                    accessibilityLabel={`View log ${label}`}
-                                  >
-                                    <Text size="xs" bold style={{ color: accent }}>Log: {label}</Text>
-                                  </Pressable>
-                                );
-                              })}
-                              <Box style={styles.killButtonWrap}>
-                                <Button
-                                  action="negative"
-                                  variant="solid"
-                                  size="sm"
-                                  onPress={() => handleKillApiProcess(proc)}
-                                  isDisabled={killingPid === proc.pid}
-                                  style={styles.killButton}
-                                >
-                                  <ButtonText>{killingPid === proc.pid ? "…" : "Kill"}</ButtonText>
-                                </Button>
-                              </Box>
-                            </HStack>
-                          </Box>
-                        </EntranceAnimation>
-                      );
-                    })}
-                    </VStack>
-                  </ListSectionCard>
-                ) : null}
+              {hasProcesses ? (
+                <ListSectionCard
+                  title="Port-bound processes"
+                  subtitle="Active local/dev server processes"
+                  className="mb-4"
+                >
+                  <VStack className="gap-3">
+                    {[...apiProcesses]
+                      .sort((a, b) => b.pid - a.pid)
+                      .map((proc) => (
+                        <ProcessListItemCard
+                          key={`${proc.pid}-${proc.port}`}
+                          pid={proc.pid}
+                          port={proc.port}
+                          command={proc.command}
+                          logPaths={proc.logPaths}
+                          accentColor={theme.colors.accent}
+                          isKilling={killingPid === proc.pid}
+                          onViewLog={handleViewLog}
+                          onKill={() => handleKillApiProcess(proc)}
+                        />
+                      ))}
+                  </VStack>
+                </ListSectionCard>
+              ) : null}
             </AsyncStateView>
           </ScrollView>
-            </SafeAreaView>
-          </Box>
+        </SafeAreaView>
+      </Box>
 
-      {logViewer && (
-        <Modal
-          isOpen={true}
-          onClose={() => setLogViewer(null)}
-          size="full"
-        >
+      {logViewer ? (
+        <Modal isOpen onClose={() => setLogViewer(null)} size="full">
           <ModalBackdrop onPress={() => setLogViewer(null)} />
           <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
             <ModalBody className="m-0 p-0">
-              <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-                <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
-            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors.accent + "30" }]}>
-              <HStack className="flex-1 items-center gap-2 min-w-0">
-                <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
-                <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900 min-w-0">
-                  {logViewer.name}
-                </Text>
-              </HStack>
-              <Button
-                action="default"
-                variant="link"
-                size="md"
-                onPress={() => setLogViewer(null)}
-                accessibilityLabel="Close log viewer"
-                className="min-w-11 min-h-11 -mr-2"
-              >
-                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
-              </Button>
-            </HStack>
-            <ScrollView
-              style={styles.logViewerScroll}
-              contentContainerStyle={styles.logViewerContent}
-              horizontal={false}
-            >
-              <Text
-                size="xs"
-                selectable
-                className="text-typography-900 font-mono"
-                style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}
-              >
-                {logViewer.content || "(empty)"}
-              </Text>
-            </ScrollView>
+              <Box className="flex-1" style={containerStyle}>
+                <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
+                  <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
+                    <HStack className="min-w-0 flex-1 items-center gap-2">
+                      <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
+                      <Text
+                        size="md"
+                        bold
+                        numberOfLines={1}
+                        className="min-w-0 flex-1 text-typography-900"
+                      >
+                        {logViewer.name}
+                      </Text>
+                    </HStack>
+                    <Button
+                      action="default"
+                      variant="link"
+                      size="md"
+                      onPress={() => setLogViewer(null)}
+                      accessibilityLabel="Close log viewer"
+                      className="min-w-11 min-h-11 -mr-2"
+                    >
+                      <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
+                    </Button>
+                  </HStack>
+                  <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{
+                      padding: spacing["5"],
+                      paddingBottom: spacing["6"],
+                    }}
+                    horizontal={false}
+                  >
+                    <Text
+                      size="xs"
+                      selectable
+                      className="text-typography-900 font-mono"
+                      style={{ fontFamily: terminalFont }}
+                    >
+                      {logViewer.content || "(empty)"}
+                    </Text>
+                  </ScrollView>
                 </SafeAreaView>
               </Box>
             </ModalBody>
           </ModalContent>
         </Modal>
-      )}
+      ) : null}
     </ModalScaffold>
   );
-}
-
-function createStyles(theme: ReturnType<typeof useTheme>) {
-  return StyleSheet.create({
-    fullScreen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    safe: {
-      flex: 1,
-    },
-    accentBar: {
-      width: 4,
-      height: 22,
-      borderRadius: 2,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing["3"],
-      paddingHorizontal: spacing["5"],
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-    },
-    errorBanner: {
-      marginHorizontal: spacing["5"],
-      marginTop: spacing["2"],
-      padding: spacing["4"],
-      borderRadius: radii.lg,
-      borderWidth: 1,
-    },
-    warningBanner: {
-      marginHorizontal: spacing["5"],
-      marginTop: spacing["2"],
-      padding: spacing["4"],
-      borderRadius: radii.lg,
-    },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
-      paddingHorizontal: spacing["5"],
-      paddingTop: spacing["4"],
-      paddingBottom: spacing["6"],
-    },
-    section: {
-      marginBottom: spacing["4"],
-    },
-    row: {
-      flexDirection: "column",
-      paddingVertical: spacing["3"],
-      paddingHorizontal: spacing["4"],
-      borderRadius: radii.lg,
-      marginBottom: spacing["3"],
-      gap: spacing["2"],
-      borderWidth: 1,
-      borderLeftWidth: 4,
-    },
-    rowMain: {
-      minWidth: 0,
-    },
-    rowActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing["2"],
-      flexWrap: "wrap",
-      flexShrink: 0,
-    },
-    logButton: {
-      paddingVertical: spacing["2"],
-      paddingHorizontal: spacing["3"],
-      borderRadius: radii.md,
-      borderWidth: 1,
-      minWidth: 64,
-    },
-    pidPortRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacing["2"],
-    },
-    pill: {
-      paddingVertical: spacing["0.5"],
-      paddingHorizontal: spacing["2"],
-      borderRadius: radii.sm,
-      borderWidth: 1,
-    },
-    killButtonWrap: {
-      minHeight: 36,
-      justifyContent: "center",
-    },
-    killButton: {
-      borderRadius: radii.md,
-    },
-    logViewerSafe: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    logViewerHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing["3"],
-      paddingHorizontal: spacing["5"],
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-    },
-    logViewerScroll: {
-      flex: 1,
-    },
-    logViewerContent: {
-      padding: spacing["5"],
-      paddingBottom: spacing["6"],
-    },
-  });
 }

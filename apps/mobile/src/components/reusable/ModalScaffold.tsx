@@ -25,6 +25,7 @@ type ModalScaffoldProps = {
   size?: "xs" | "sm" | "md" | "lg" | "full";
   contentClassName?: string;
   bodyClassName?: string;
+  showHeader?: boolean;
   showCloseButton?: boolean;
   closeLabel?: string;
   bodyProps?: ModalBodyProps;
@@ -41,6 +42,7 @@ export function ModalScaffold({
   size = "md",
   contentClassName,
   bodyClassName,
+  showHeader = true,
   showCloseButton = true,
   closeLabel = "Close",
   bodyProps,
@@ -51,31 +53,36 @@ export function ModalScaffold({
     <Modal isOpen={isOpen} onClose={onClose} size={size}>
       <ModalBackdrop />
       <ModalContent className={contentClassName}>
-        <ModalHeader className="gap-3">
-          <Box className="flex-1 min-w-0 pr-2">
-            <Text size="lg" bold className="text-typography-900" numberOfLines={1}>
-              {title}
-            </Text>
-            {subtitle ? (
-              <Text size="sm" className="text-typography-600 mt-1" numberOfLines={2}>
-                {subtitle}
+        {showHeader ? (
+          <ModalHeader
+            className="gap-3"
+            style={{ paddingTop: Math.max(insets.top, 0) }}
+          >
+            <Box className="flex-1 min-w-0 pr-2">
+              <Text size="lg" bold className="text-typography-900" numberOfLines={1}>
+                {title}
               </Text>
-            ) : null}
-          </Box>
-          <HStack space="sm" className="items-center">
-            {headerRight}
-            {showCloseButton ? (
-              <ModalCloseButton
-                className="h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"
-                accessibilityLabel={closeLabel}
-              >
-                <Text size="lg" className="text-typography-700">
-                  ×
+              {subtitle ? (
+                <Text size="sm" className="text-typography-600 mt-1" numberOfLines={2}>
+                  {subtitle}
                 </Text>
-              </ModalCloseButton>
-            ) : null}
-          </HStack>
-        </ModalHeader>
+              ) : null}
+            </Box>
+            <HStack space="sm" className="items-center">
+              {headerRight}
+              {showCloseButton ? (
+                <ModalCloseButton
+                  className="h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"
+                  accessibilityLabel={closeLabel}
+                >
+                  <Text size="lg" className="text-typography-700">
+                    ×
+                  </Text>
+                </ModalCloseButton>
+              ) : null}
+            </HStack>
+          </ModalHeader>
+        ) : null}
         <ModalBody
           {...bodyProps}
           className={bodyClassName}

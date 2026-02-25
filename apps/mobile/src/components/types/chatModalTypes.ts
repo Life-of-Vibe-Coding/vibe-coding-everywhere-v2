@@ -4,4 +4,6 @@ export type ChatModalOpenHandlers = {
   onOpenProcesses: () => void;
   onOpenDocker: () => void;
   onOpenModelPicker: () => void;
+  isSessionManagementOpen: boolean;
+  isAnyModalOpen: boolean;
 };

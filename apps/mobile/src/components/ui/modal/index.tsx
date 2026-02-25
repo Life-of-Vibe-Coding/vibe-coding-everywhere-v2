@@ -44,7 +44,7 @@ const UIModal = createModal({
 });
 
 const modalStyle = tva({
-  base: 'group/modal w-full h-full justify-center items-center web:pointer-events-none',
+  base: 'group/modal absolute left-0 top-0 right-0 bottom-0 z-50 w-full h-full justify-center items-center',
   variants: {
     size: {
       xs: '',
@@ -129,7 +129,7 @@ const Modal = React.forwardRef<React.ComponentRef<typeof UIModal>, IModalProps>(
         {...props}
         isOpen={isOpen}
         onClose={onClose}
-        pointerEvents="box-none"
+        pointerEvents="auto"
         className={modalStyle({ size, class: className })}
         context={{ size }}
       />

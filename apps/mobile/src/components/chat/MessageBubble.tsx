@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { StyleSheet, Linking, Platform, Dimensions, Animated } from "react-native";
+import { StyleSheet, Linking, Platform, Dimensions } from "react-native";
 import type { MarkdownProps } from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
 import { spacing, radii, triggerHaptic } from "@/design-system";
@@ -370,6 +370,24 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
 }
 
+interface MessageReferencePillProps {
+  path: string;
+  startLine: number;
+  endLine: number;
+}
+
+function MessageReferencePill({ path, startLine, endLine }: MessageReferencePillProps) {
+  const label = `${getFileName(path)} (${startLine === endLine ? startLine : `${startLine}-${endLine}`})`;
+  return (
+    <Box className="flex-row items-center gap-1 py-1 px-2 rounded bg-background-muted">
+      <Text style={{ fontSize: 12, color: "#3B82F6" }}>◇</Text>
+      <Text size="xs" numberOfLines={1} className="text-typography-700">
+        {label}
+      </Text>
+    </Box>
+  );
+}
+
 /** Shared message bubble colors — same logic for all providers (theme-driven). */
 const TERMINAL_BG = "#1e293b";
 const TERMINAL_TEXT = "rgba(255,255,255,0.9)";
@@ -378,8 +396,7 @@ const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect, isStreaming }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.colors.surfaceMuted;
-  const codeTextColor = theme.colors.accent;
-  const quoteBg = theme.colors.surface;
+  
   const bashHeaderBg = theme.colors.surfaceMuted;
   const terminalBg = TERMINAL_BG;
   const terminalBorder = theme.colors.border;
@@ -452,7 +469,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         alignItems: "flex-start" as const,
       },
     }),
-    [theme, codeBlockBg, codeTextColor, quoteBg]
+    [theme, codeBlockBg]
   );
   const styles = useMemo(
     () =>
@@ -533,20 +550,6 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         tailBoxContent: { paddingBottom: 12 },
         refPills: { flexDirection: "row" as const, flexWrap: "wrap" as const, gap: 8 },
         refPillsWithContent: { marginTop: 10 },
-        refPill: {
-          flexDirection: "row" as const,
-          alignItems: "center",
-          alignSelf: "flex-start",
-          gap: 6,
-          paddingVertical: 6,
-          paddingHorizontal: 12,
-          borderRadius: radii.pill,
-          backgroundColor: theme.colors.accentSoft,
-          borderWidth: 1,
-          borderColor: theme.colors.accentSubtle,
-        },
-        refPillIcon: { fontSize: 12, color: theme.colors.accent },
-        refPillText: { fontSize: 13, color: theme.colors.textPrimary, fontWeight: "600" as const },
         bashCodeBlockWrapper: {
           alignSelf: "stretch",
           marginVertical: 4,
@@ -1034,12 +1037,12 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       {refs.length > 0 && (
         <Box style={[styles.refPills, message.content ? styles.refPillsWithContent : null]} className="flex-row flex-wrap gap-2">
           {refs.map((ref, index) => (
-            <Box key={`${ref.path}-${ref.startLine}-${index}`} style={styles.refPill} className="flex-row items-center gap-1 py-1 px-2 rounded bg-background-muted">
-              <Text style={styles.refPillIcon} className="text-primary-500">◇</Text>
-              <Text size="xs" numberOfLines={1} className="text-typography-700">
-                {getFileName(ref.path)} ({ref.startLine === ref.endLine ? ref.startLine : `${ref.startLine}-${ref.endLine}`})
-              </Text>
-            </Box>
+            <MessageReferencePill
+              key={`${ref.path}-${ref.startLine}-${index}`}
+              path={ref.path}
+              startLine={ref.startLine}
+              endLine={ref.endLine}
+            />
           ))}
         </Box>
       )}

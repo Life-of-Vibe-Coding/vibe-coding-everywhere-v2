@@ -185,8 +185,28 @@ export function useChatModalsController({
       onOpenProcesses: openProcesses,
       onOpenDocker: openDocker,
       onOpenModelPicker: openModelPicker,
+      isSessionManagementOpen: sessionManagement.isOpen,
+      isAnyModalOpen:
+        workspacePicker.isOpen ||
+        sessionManagement.isOpen ||
+        skillsConfig.isOpen ||
+        processes.isOpen ||
+        docker.isOpen ||
+        modelPicker.isOpen,
     }),
-    [openSessionManagement, openSkillsConfig, openProcesses, openDocker, openModelPicker]
+    [
+      openSessionManagement,
+      openSkillsConfig,
+      openProcesses,
+      openDocker,
+      openModelPicker,
+      workspacePicker.isOpen,
+      sessionManagement.isOpen,
+      skillsConfig.isOpen,
+      processes.isOpen,
+      docker.isOpen,
+      modelPicker.isOpen,
+    ]
   );
 
   return {

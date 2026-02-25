@@ -1,24 +1,27 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
-  Platform,
-  Dimensions,
+  FlatList,
   type TextStyle,
 } from "react-native";
-import { Highlight, themes } from "prism-react-renderer";
 import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
-import { Text, Text as RNText } from "@/components/ui/text";
+import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
-import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import { Image } from "@/components/ui/image";
 import { StatusBar } from "@/components/ui/status-bar";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import {
+  FileViewerHeader,
+  FileViewerCodeLine,
+  FileViewerSelectionFooter,
+  FileViewerImageViewer,
+  type CodeLineRecord,
+} from "@/components/file/FileViewerSubcomponents";
 
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;
@@ -46,20 +49,6 @@ function getLanguage(path: string | null): string {
     bash: "bash",
   };
   return map[ext] ?? "plaintext";
-}
-
-/** Convert CSS-like style from Prism theme to RN TextStyle (drop unsupported). */
-function toRNStyle(style: Record<string, unknown> | undefined): TextStyle {
-  if (!style || typeof style !== "object") return {};
-  const out: TextStyle = {};
-  if (typeof style.color === "string") out.color = style.color;
-  if (typeof style.backgroundColor === "string") out.backgroundColor = style.backgroundColor;
-  if (style.fontStyle === "italic" || style.fontStyle === "normal") out.fontStyle = style.fontStyle;
-  if (typeof style.fontWeight === "string" || typeof style.fontWeight === "number")
-    out.fontWeight = style.fontWeight as TextStyle["fontWeight"];
-  if (typeof style.textDecorationLine === "string") out.textDecorationLine = style.textDecorationLine as TextStyle["textDecorationLine"];
-  if (typeof style.opacity === "number") out.opacity = style.opacity;
-  return out;
 }
 
 /** MIME type for image data URI from path extension. */
@@ -117,7 +106,7 @@ interface FileViewerModalProps {
 const codeBaseStyle: TextStyle = {
   fontSize: FONT_SIZE,
   lineHeight: LINE_HEIGHT,
-  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  fontFamily: "monospace",
 };
 
 export function FileViewerModal({
@@ -170,6 +159,10 @@ export function FileViewerModal({
   const allLines = content != null ? content.split("\n") : [];
   const truncated = allLines.length > MAX_DISPLAY_LINES;
   const lines = truncated ? allLines.slice(0, MAX_DISPLAY_LINES) : allLines;
+  const lineData = useMemo(
+    () => lines.map((lineContent, index) => ({ id: `${path}-${index}`, lineContent, index })),
+    [lines, path]
+  );
   const onLinePress = useCallback(
     (lineIndex: number) => {
       const lineNum = lineIndex + 1;
@@ -207,25 +200,16 @@ export function FileViewerModal({
 
   const topInset = embedded ? 0 : insets.top;
   const contentBody = (
-    <Box style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
+    <Box
+      className="flex-1 overflow-hidden rounded-lg"
+      style={[{ backgroundColor: theme.colors.surfaceAlt }, embedded ? undefined : { paddingTop: topInset }]}
+    >
       {embedded ? (
-        <Box style={styles.header}>
-          <Box style={styles.headerTitleWrap}>
-            <Text style={styles.headerLabel}>{headerLabel}</Text>
-            <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
-              {displayFileName}
-            </Text>
-          </Box>
-          <Pressable
-            onPress={onClose}
-            style={styles.closeBtn}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel="Close file viewer"
-            accessibilityRole="button"
-          >
-            <Text style={styles.closeBtnText}>✕</Text>
-          </Pressable>
-        </Box>
+        <FileViewerHeader
+          headerLabel={headerLabel}
+          displayFileName={displayFileName}
+          onClose={onClose}
+        />
       ) : null}
 
       <StatusBar barStyle={theme.mode === "dark" ? "light-content" : "dark-content"} />
@@ -243,40 +227,26 @@ export function FileViewerModal({
       )}
 
       {imageUri && (
-        <Box style={styles.imageWrap}>
-          <Box style={styles.zoomBar}>
-            <Pressable style={styles.zoomBtn} onPress={zoomOut} accessibilityLabel="Zoom out" accessibilityRole="button">
-              <Text style={styles.zoomBtnText}>−</Text>
-            </Pressable>
-            <Pressable style={styles.zoomLabel} onPress={zoomReset} accessibilityLabel="Reset zoom" accessibilityRole="button">
-              <Text style={styles.zoomLabelText}>{Math.round(imageScale * 100)}%</Text>
-            </Pressable>
-            <Pressable style={styles.zoomBtn} onPress={zoomIn} accessibilityLabel="Zoom in" accessibilityRole="button">
-              <Text style={styles.zoomBtnText}>+</Text>
-            </Pressable>
-          </Box>
-          <ScrollView
-            style={styles.codeScroll}
-            contentContainerStyle={styles.imageScrollContent}
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-          >
-            <Box style={[styles.imageScaleWrap, { transform: [{ scale: imageScale }] }]}>
-              <Image
-                source={{ uri: imageUri }}
-                style={[styles.image, { width: Dimensions.get("window").width - 32 }]}
-                resizeMode="contain"
-              />
-            </Box>
-          </ScrollView>
-        </Box>
+        <FileViewerImageViewer
+          imageUri={imageUri}
+          imageScale={imageScale}
+          zoomOut={zoomOut}
+          zoomIn={zoomIn}
+          zoomReset={zoomReset}
+          theme={theme}
+        />
       )}
 
       {content !== null && !loading && !error && !isImage && isMarkdownFile(path) && (
-        <Box style={styles.markdownWrap}>
+        <Box className="flex-1">
           <ScrollView
-            style={styles.markdownScroll}
-            contentContainerStyle={styles.markdownScrollContent}
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingVertical: 16,
+              paddingBottom: 32,
+              backgroundColor: theme.colors.surfaceAlt,
+            }}
             showsVerticalScrollIndicator
             showsHorizontalScrollIndicator={false}
           >
@@ -286,10 +256,10 @@ export function FileViewerModal({
       )}
 
       {content !== null && !loading && !error && !isImage && isHtmlFile(path) && (
-        <Box style={styles.htmlWrap}>
+        <Box className="flex-1">
           <WebView
             source={{ html: content }}
-            style={styles.htmlWebView}
+            style={{ flex: 1, backgroundColor: theme.colors.surfaceAlt }}
             originWhitelist={["*"]}
             javaScriptEnabled
             domStorageEnabled
@@ -299,88 +269,51 @@ export function FileViewerModal({
       )}
 
       {content !== null && !loading && !error && !isImage && !isMarkdownFile(realPath) && !isHtmlFile(realPath) && (
-        <Box style={styles.codeWrap}>
+        <Box className="flex-1">
           {truncated && (
-            <Box style={styles.truncatedBanner}>
-              <Text style={styles.truncatedText}>
+            <Box className="py-2 px-4 border-b border-outline-500" style={{ backgroundColor: theme.colors.accentSoft }}>
+              <Text className="text-sm" style={{ color: theme.colors.textSecondary }}>
                 Showing first {MAX_DISPLAY_LINES} of {allLines.length} lines
               </Text>
             </Box>
           )}
-          {hasSelection && onAddCodeReference && (
-            <Box style={styles.addRefBar}>
-              <Text style={styles.addRefHint}>
-                {selectionStart === selectionEnd
-                  ? `Line ${selectionStart}`
-                  : `Lines ${selectionStart}-${selectionEnd}`}
-              </Text>
-              <Pressable style={styles.addRefBtn} onPress={handleAddToPrompt} accessibilityLabel="Add selected lines to prompt" accessibilityRole="button">
-                <Text style={styles.addRefBtnText}>Add to prompt</Text>
-              </Pressable>
-              <Pressable style={styles.cancelRefBtn} onPress={clearSelection} accessibilityLabel="Clear selected lines" accessibilityRole="button">
-                <Text style={styles.cancelRefBtnText}>Cancel</Text>
-              </Pressable>
-            </Box>
+          {onAddCodeReference && (
+            <FileViewerSelectionFooter
+              hasSelection={hasSelection}
+              selectionStart={selectionStart}
+              selectionEnd={selectionEnd}
+              onAddToPrompt={handleAddToPrompt}
+              onClearSelection={clearSelection}
+              theme={theme}
+            />
           )}
-          <ScrollView
-            style={styles.codeScroll}
-            contentContainerStyle={styles.codeScrollContent}
+          <FlatList
+            data={lineData}
+            keyExtractor={(item) => item.id}
+            style={styles.codeListScroll}
+            contentContainerStyle={{ paddingVertical: 12, paddingBottom: 32, paddingHorizontal: 0 }}
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
-          >
-            <Box style={styles.codeWithNumbers}>
-              {lines.map((lineContent, i) => {
-                const lineNum = i + 1;
-                const selected =
-                  selectionStart != null &&
-                  selectionEnd != null &&
-                  lineNum >= Math.min(selectionStart, selectionEnd) &&
-                  lineNum <= Math.max(selectionStart, selectionEnd);
-
-                let diffStyle = null;
-                if (isDiffMode) {
-                  if (lineContent.startsWith("+") && !lineContent.startsWith("+++")) {
-                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.15)" };
-                  } else if (lineContent.startsWith("-") && !lineContent.startsWith("---")) {
-                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(239, 68, 68, 0.25)" : "rgba(239, 68, 68, 0.15)" };
-                  } else if (lineContent.startsWith("@@ ")) {
-                    diffStyle = { backgroundColor: theme.mode === "dark" ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)" };
-                  }
-                }
-
-                return (
-                  <Pressable
-                    key={i}
-                    style={[styles.codeRow, selected && styles.codeRowSelected, diffStyle]}
-                    onPress={() => onLinePress(i)}
-                  >
-                    <Box style={[styles.lineNumCell, selected && styles.lineNumCellSelected]}>
-                      <Text style={[styles.lineNumText, selected && styles.lineNumTextSelected]}>
-                        {lineNum}
-                      </Text>
-                    </Box>
-                    <Box style={styles.codeCell}>
-                      <Highlight theme={themes.vsLight} code={lineContent} language={language}>
-                        {({ tokens, getTokenProps }) => (
-                          <RNText style={codeBaseStyle} selectable>
-                            {(tokens[0] ?? []).map((token, k) => {
-                              const tokenProps = getTokenProps({ token });
-                              const rnStyle = toRNStyle(tokenProps.style as Record<string, unknown>);
-                              return (
-                                <RNText key={k} style={rnStyle}>
-                                  {tokenProps.children}
-                                </RNText>
-                              );
-                            })}
-                          </RNText>
-                        )}
-                      </Highlight>
-                    </Box>
-                  </Pressable>
-                );
-              })}
-            </Box>
-          </ScrollView>
+            renderItem={({ item }) => (
+              <FileViewerCodeLine
+                item={item as CodeLineRecord}
+                isDiffMode={isDiffMode}
+                language={language}
+                onPress={() => onLinePress(item.index)}
+                lineBaseStyle={codeBaseStyle}
+                selectionStart={selectionStart}
+                selectionEnd={selectionEnd}
+                theme={theme}
+                lineNumStyle={styles.lineNumText}
+                lineNumSelectedStyle={styles.lineNumTextSelected}
+                lineRowStyle={styles.codeRow}
+                selectedLineStyle={styles.codeRowSelected}
+                lineNumSelectedContainerStyle={styles.lineNumCellSelected}
+                lineNumContainerStyle={styles.lineNumCell}
+                codeContainerStyle={styles.codeCell}
+              />
+            )}
+          />
         </Box>
       )}
     </Box>
@@ -408,50 +341,6 @@ export function FileViewerModal({
 
 function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.surfaceAlt,
-      borderRadius: 12,
-      overflow: "hidden",
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      minHeight: 48,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      backgroundColor: theme.colors.surfaceAlt,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    headerTitleWrap: {
-      flex: 1,
-      marginRight: 12,
-      minWidth: 0,
-    },
-    headerLabel: {
-      fontSize: 11,
-      color: theme.colors.textSecondary,
-      marginBottom: 2,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    path: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: theme.colors.textPrimary,
-    },
-    closeBtn: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    closeBtnText: {
-      fontSize: 18,
-      color: theme.colors.textSecondary,
-    },
     center: {
       flex: 1,
       justifyContent: "center",
@@ -462,130 +351,9 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       fontSize: 14,
       color: theme.colors.danger,
     },
-    imageWrap: {
-      flex: 1,
-    },
-    zoomBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 24,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.surfaceAlt,
-    },
-    zoomBtn: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: theme.colors.border,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    zoomBtnText: {
-      fontSize: 24,
-      fontWeight: "300",
-      color: theme.colors.textPrimary,
-    },
-    zoomLabel: {
-      minWidth: 64,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    zoomLabelText: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      fontWeight: "500",
-    },
-    imageScaleWrap: {
-      alignSelf: "center",
-      width: Dimensions.get("window").width - 32,
-    },
-    markdownWrap: {
-      flex: 1,
-    },
-    markdownScroll: {
+    codeListScroll: {
       flex: 1,
       backgroundColor: theme.colors.surfaceAlt,
-    },
-    markdownScrollContent: {
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      paddingBottom: 32,
-    },
-    htmlWrap: {
-      flex: 1,
-    },
-    htmlWebView: {
-      flex: 1,
-      backgroundColor: theme.colors.surfaceAlt,
-    },
-    codeWrap: {
-      flex: 1,
-    },
-    truncatedBanner: {
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      backgroundColor: theme.colors.accentSoft,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    truncatedText: {
-      fontSize: 13,
-      color: theme.colors.textSecondary,
-    },
-    addRefBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.accentSoft,
-    },
-    addRefHint: {
-      fontSize: 13,
-      color: theme.colors.textPrimary,
-    },
-    addRefBtn: {
-      minHeight: 44,
-      justifyContent: "center",
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      backgroundColor: theme.colors.accent,
-    },
-    addRefBtnText: {
-      fontSize: 14,
-      color: theme.colors.textInverse,
-      fontWeight: "600",
-    },
-    cancelRefBtn: {
-      minHeight: 44,
-      justifyContent: "center",
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-    },
-    cancelRefBtnText: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-    },
-    codeScroll: {
-      flex: 1,
-      backgroundColor: theme.colors.surfaceAlt,
-    },
-    codeScrollContent: {
-      paddingVertical: 12,
-      paddingBottom: 32,
-      paddingHorizontal: 0,
-    },
-    codeWithNumbers: {
-      paddingLeft: 4,
-      paddingRight: 8,
     },
     codeRow: {
       flexDirection: "row",
@@ -610,7 +378,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     lineNumText: {
       fontSize: FONT_SIZE,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+      fontFamily: "monospace",
       color: theme.colors.textSecondary,
     },
     lineNumTextSelected: {
@@ -622,17 +390,6 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       paddingLeft: 4,
       minHeight: LINE_HEIGHT,
       justifyContent: "flex-start",
-    },
-    imageScrollContent: {
-      flexGrow: 1,
-      padding: 16,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    image: {
-      width: "100%",
-      minHeight: 200,
-      maxWidth: Dimensions.get("window").width - 32,
     },
   });
 }

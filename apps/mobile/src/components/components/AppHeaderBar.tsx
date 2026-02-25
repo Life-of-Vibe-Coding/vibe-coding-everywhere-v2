@@ -1,5 +1,4 @@
 import React from "react";
-import { StyleSheet } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Box } from "@/components/ui/box";
@@ -7,7 +6,6 @@ import { Text as GluestackText } from "@/components/ui/text";
 import {
   AnimatedPressableView,
   EntranceAnimation,
-  spacing,
   triggerHaptic,
 } from "@/design-system";
 import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
@@ -50,31 +48,6 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
   );
 }
 
-const styles = StyleSheet.create({
-  menuButtonOverlay: {
-    position: "absolute",
-    top: 8,
-    left: 0,
-    right: 0,
-    height: 44,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  sessionIdCenter: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: spacing[1],
-    minHeight: 40,
-  },
-  headerStatusStack: {
-    maxWidth: "100%",
-  },
-});
-
 export function AppHeaderBar({
   visible,
   workspaceName,
@@ -88,15 +61,15 @@ export function AppHeaderBar({
   if (!visible) return null;
 
   return (
-    <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
+    <HStack className="relative h-11 flex-row items-center justify-between px-2 mb-1.5" pointerEvents="box-none">
       <HeaderButton
         icon={<MenuIcon color={iconColor} />}
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}
       />
-      <Box style={[styles.sessionIdCenter, { flexShrink: 1 }]} className="min-w-0 flex-1">
-        <VStack style={styles.headerStatusStack} className="gap-0.5 items-center">
+      <Box className="min-w-0 flex-1 shrink min-h-10 justify-center items-center px-1">
+        <VStack className="max-w-full gap-0.5 items-center">
           <GluestackText
             size="xs"
             numberOfLines={2}

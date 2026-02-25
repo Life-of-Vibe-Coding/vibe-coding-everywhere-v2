@@ -11,13 +11,11 @@ import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import { Input, InputField } from "@/components/ui/input";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { TabBarPills } from "@/components/reusable/TabBarPills";
 import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
+import { PreviewWebViewTopBar, PreviewWebViewAddressBar } from "@/components/preview/PreviewWebViewSubcomponents";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
 
@@ -310,6 +308,7 @@ export function PreviewWebViewModal({
       size="full"
       title={title}
       subtitle={resolvedUrl || "Web preview"}
+      showHeader={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
@@ -318,95 +317,25 @@ export function PreviewWebViewModal({
         {/* Chrome-like toolbar - hidden in full screen */}
         {!isFullScreen && (
           <>
-            {/* Row 1: Close button | Tabs | Add tab */}
-            <Box style={[styles.toolbar, { paddingTop: insets.top }]}>
-              <Pressable
-                style={styles.closeBtn}
-                onPress={onClose}
-                accessibilityLabel="Close preview"
-                accessibilityRole="button"
-              >
-                <Text style={styles.closeText}>✕</Text>
-              </Pressable>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.tabBarContent}
-                style={styles.tabBarScroll}
-              >
-                <TabBarPills
-                  tabs={tabs.map((tab, i) => ({
-                    key: String(i),
-                    label: `Tab ${i + 1}`,
-                  }))}
-                  value={String(activeIndex)}
-                  onChange={(next) => selectTab(Number(next))}
-                />
-              </ScrollView>
-              <Pressable
-                style={styles.addTabBtn}
-                onPress={addTab}
-                accessibilityLabel="Add tab"
-                accessibilityRole="button"
-              >
-                <Text style={styles.addTabText}>+</Text>
-              </Pressable>
-              {tabs.length > 1 ? (
-                <Pressable
-                  style={styles.closeCurrentTabBtn}
-                  onPress={() => closeTab(activeIndex)}
-                  accessibilityLabel="Close current tab"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.closeCurrentTabText}>×</Text>
-                </Pressable>
-              ) : null}
-            </Box>
-
-            {/* Row 2: Address bar | Refresh | Fullscreen */}
-            <Box style={styles.tabBar}>
-              <Box style={styles.urlBarWrap}>
-                <Input variant="outline" size="md" className="border-0 bg-transparent flex-1 min-w-0">
-                  <InputField
-                    value={urlInputValue}
-                    onChangeText={setUrlInputValue}
-                    placeholder="Search or enter URL"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="url"
-                    returnKeyType="go"
-                    onSubmitEditing={handleGo}
-                    selectTextOnFocus
-                    className="text-[15px] text-text-primary p-0"
-                    style={styles.urlInput}
-                  />
-                </Input>
-              </Box>
-              <Pressable
-                style={[styles.iconBtn, loading && !!resolvedUrl && styles.iconBtnDisabled]}
-                onPress={handleReload}
-                disabled={loading && !!resolvedUrl}
-                accessibilityLabel="Reload"
-                accessibilityRole="button"
-              >
-                {loading && resolvedUrl ? (
-                  <Spinner size="small" color={theme.colors.accent} />
-                ) : (
-                  <Text style={styles.iconBtnText}>↵</Text>
-                )}
-              </Pressable>
-              {!!resolvedUrl && (
-                <Pressable
-                  style={styles.iconBtn}
-                  onPress={() => setIsFullScreen(true)}
-                  accessibilityLabel="Full screen"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.iconBtnText}>⛶</Text>
-                </Pressable>
-              )}
-            </Box>
+            <PreviewWebViewTopBar
+              insetsTop={insets.top}
+              tabs={tabs}
+              activeIndex={activeIndex}
+              onClose={onClose}
+              onAddTab={addTab}
+              onCloseCurrentTab={() => closeTab(activeIndex)}
+              onSelectTab={selectTab}
+            />
+            <PreviewWebViewAddressBar
+              value={urlInputValue}
+              onChangeText={setUrlInputValue}
+              onSubmit={handleGo}
+              onReload={handleReload}
+              onFullscreen={() => setIsFullScreen(true)}
+              resolvedUrl={resolvedUrl}
+              loading={loading}
+              theme={theme}
+            />
           </>
         )}
 
@@ -484,12 +413,17 @@ export function PreviewWebViewModal({
               </Box>
             )}
             {error ? (
-              <Box style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-                <Text style={styles.urlHint}>{resolvedUrl}</Text>
-                <Pressable style={styles.retryBtn} onPress={handleReload} accessibilityRole="button" accessibilityLabel="Retry">
-                  <Text style={styles.retryBtnText}>Retry</Text>
-                </Pressable>
+              <Box style={styles.errorOverlay}>
+                <Box style={styles.errorBox}>
+                  <Text style={styles.errorTitle}>Could not load page</Text>
+                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.urlHint} numberOfLines={2}>
+                    {resolvedUrl}
+                  </Text>
+                  <Pressable style={styles.retryBtn} onPress={handleReload} accessibilityRole="button" accessibilityLabel="Retry">
+                    <Text style={styles.retryBtnText}>Retry</Text>
+                  </Pressable>
+                </Box>
               </Box>
             ) : null}
           </Box>
@@ -522,119 +456,11 @@ export function PreviewWebViewModal({
   );
 }
 
-const toolbarHeight = Platform.OS === "ios" ? 52 : 48;
-
 function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: theme.colors.surfaceAlt,
-  },
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    backgroundColor: theme.colors.surfaceAlt,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    minHeight: toolbarHeight,
-  },
-  closeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  closeText: {
-    fontSize: 18,
-    color: theme.colors.textPrimary,
-    fontWeight: "400",
-  },
-  urlBarWrap: {
-    flex: 1,
-    minWidth: 0,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.border,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-  },
-  urlInput: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    ...(Platform.OS === "web"
-      ? { whiteSpace: "nowrap" as const, overflowX: "auto" as const }
-      : {}),
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 6,
-  },
-  iconBtnDisabled: {
-    opacity: 0.7,
-  },
-  iconBtnText: {
-    fontSize: 22,
-    color: theme.colors.textPrimary,
-    fontWeight: "300",
-  },
-  tabBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  tabBarScroll: {
-    flex: 1,
-    maxWidth: "100%",
-  },
-  tabBarContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  addTabBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
-  addTabText: {
-    fontSize: 20,
-    color: theme.colors.textPrimary,
-    fontWeight: "300",
-    lineHeight: 22,
-  },
-  closeCurrentTabBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 6,
-  },
-  closeCurrentTabText: {
-    fontSize: 18,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
   },
   placeholder: {
     flex: 1,
@@ -665,38 +491,60 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.surfaceAlt,
+    backgroundColor: "rgba(255,255,255,0.94)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1,
+    zIndex: 4,
   },
   loadingText: {
     marginTop: 8,
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
-  errorBox: {
-    flex: 1,
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.96)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: 20,
+    zIndex: 5,
+  },
+  errorBox: {
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    marginBottom: 8,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.danger,
     textAlign: "center",
   },
   urlHint: {
-    marginTop: 8,
+    marginTop: 10,
     fontSize: 12,
     color: theme.colors.textSecondary,
+    textAlign: "center",
   },
   retryBtn: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    marginTop: 18,
+    minHeight: 44,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
     backgroundColor: theme.colors.accent,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   retryBtnText: {
     fontSize: 15,

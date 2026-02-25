@@ -8,7 +8,7 @@ import * as Clipboard from "expo-clipboard";
 import { Skeleton, triggerHaptic } from "@/design-system";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
-import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "@/components/docker/DockerTabIcons";
+import { DockerIcon, CloseIcon, CopyIcon, ContainerIcon, ImageIcon, VolumeIcon } from "@/components/docker/DockerTabIcons";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
@@ -19,8 +19,8 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 import { Text } from "@/components/ui/text";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { DockerResourceCard } from "@/components/reusable/DockerResourceCard";
 import { TabBarPills } from "@/components/reusable/TabBarPills";
-import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import {
   Modal,
   ModalBackdrop,
@@ -152,7 +152,6 @@ export function DockerManagerModal({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [activeTab, setActiveTab] = useState<DockerTab>("containers");
-  const [sidebarVisible, setSidebarVisible] = useState(true);
   const [containers, setContainers] = useState<DockerContainer[]>([]);
   const [images, setImages] = useState<DockerImage[]>([]);
   const [volumes, setVolumes] = useState<DockerVolume[]>([]);
@@ -493,11 +492,6 @@ export function DockerManagerModal({
 
   if (!isOpen) return null;
 
-  const tabColor = (t: DockerTab) =>
-    activeTab === t
-      ? theme.colors.accent
-      : (theme.colors.textSecondary);
-
   return (
     <ModalScaffold
       isOpen={isOpen}
@@ -505,83 +499,95 @@ export function DockerManagerModal({
       size="full"
       title="Docker"
       subtitle="Containers, images, and volumes"
+      showHeader={false}
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
     >
-          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
-            <Box style={styles.headerLeft} className="flex-row items-center gap-3 flex-1 min-w-0">
-              <Pressable
-                onPress={() => {
-                  triggerHaptic("selection");
-                  setSidebarVisible((v) => !v);
-                }}
-                style={styles.menuToggleBtn}
-                hitSlop={12}
-                accessibilityLabel={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
-              >
-                {sidebarVisible ? (
-                  <ChevronLeftIcon color={theme.colors.textMuted} />
-                ) : (
-                  <PanelLeftIcon color={theme.colors.textMuted} />
-                )}
-              </Pressable>
-              <Box style={styles.headerTitleRow} className="flex-row items-center gap-2 min-w-0 flex-1">
-                <DockerIcon color={theme.colors.textPrimary} size={24} />
-                <Text style={styles.title} size="lg" bold className="text-typography-900">Docker</Text>
+      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+          <Box style={styles.header} className="border-b border-outline-200">
+            <Box style={styles.headerTopRow} className="flex-row items-start justify-between gap-4">
+              <Box style={styles.headerLeft} className="flex-1 min-w-0">
+                <Box style={styles.headerTitleRow} className="flex-row items-center gap-2.5 min-w-0">
+                  <Box style={styles.headerIconWrap}>
+                    <DockerIcon color={theme.colors.accent} size={18} />
+                  </Box>
+                  <Text style={styles.title} size="lg" bold className="text-typography-900">
+                    Docker
+                  </Text>
+                  <Box style={styles.livePill} className="rounded-full">
+                    <Text size="2xs" bold className="text-primary-700">
+                      Live
+                    </Text>
+                  </Box>
+                </Box>
+                <Text size="sm" className="text-typography-600 mt-2">
+                  Containers, images, and volumes
+                </Text>
               </Box>
+              <Button
+                action="default"
+                variant="link"
+                size="md"
+                onPress={onClose}
+                accessibilityLabel="Close Docker manager"
+                className="min-w-11 min-h-11 -mr-2 -mt-1"
+              >
+                <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+              </Button>
             </Box>
-            <Button
-              action="default"
-              variant="link"
-              size="md"
-              onPress={onClose}
-              accessibilityLabel="Close Docker manager"
-              className="min-w-11 min-h-11 -mr-2"
-            >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
-            </Button>
-          </Box>
 
-          <Box style={styles.tabRow} className="flex-1 flex-row min-h-0">
-            {sidebarVisible && (
-            <Box style={styles.tabBar} className="w-32 border-r border-outline-400 py-2">
+            <Box style={styles.tabRail}>
               <TabBarPills
                 tabs={[
-                  { key: "containers", label: "Containers" },
-                  { key: "images", label: "Images" },
-                  { key: "volumes", label: "Volumes" },
+                  { key: "containers", label: "Containers", badge: containers.length },
+                  { key: "images", label: "Images", badge: images.length },
+                  { key: "volumes", label: "Volumes", badge: volumes.length },
                 ]}
                 value={activeTab}
                 onChange={handleTabChange}
-                className="flex-col gap-2 px-2"
+                variant="segment"
+                className="w-full"
               />
             </Box>
-            )}
+          </Box>
 
-            <Box style={styles.contentArea} className="flex-1 min-w-0">
+          <Box style={styles.contentArea} className="flex-1 min-w-0">
               {activeTab === "containers" && (
                 <>
-                  <Box style={styles.toolbar} className="flex-row gap-2 py-2">
+                  <Box style={styles.toolbar} className="flex-row items-center justify-between gap-3 py-3">
+                    <HStack space="sm">
+                      <Box style={styles.tabIconBadge}>
+                        <ContainerIcon color={theme.colors.accent} size={16} />
+                      </Box>
+                      <Text size="sm" bold className="text-typography-700">
+                        Runtime
+                      </Text>
+                    </HStack>
+                    <HStack space="sm">
                     <Pressable
                       onPress={() => setShowAll(true)}
-                      className={`px-3 py-1.5 rounded-lg border ${showAll ? "bg-primary-500/15 border-primary-500" : "border-outline-400"}`}
+                      style={[styles.filterChip, showAll ? styles.filterChipActive : null]}
                       accessibilityLabel="Show all containers"
                       accessibilityState={{ selected: showAll }}
                     >
-                      <Text size="sm" className={showAll ? "text-primary-500 font-semibold" : "text-typography-600"}>All</Text>
+                      <Text size="sm" className={showAll ? "text-primary-700 font-semibold" : "text-typography-600"}>
+                        All
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => setShowAll(false)}
-                      className={`px-3 py-1.5 rounded-lg border ${!showAll ? "bg-primary-500/15 border-primary-500" : "border-outline-400"}`}
+                      style={[styles.filterChip, !showAll ? styles.filterChipActive : null]}
                       accessibilityLabel="Show running containers only"
                       accessibilityState={{ selected: !showAll }}
                     >
-                      <Text size="sm" className={!showAll ? "text-primary-500 font-semibold" : "text-typography-600"}>Running</Text>
+                      <Text size="sm" className={!showAll ? "text-primary-700 font-semibold" : "text-typography-600"}>
+                        Running
+                      </Text>
                     </Pressable>
+                    </HStack>
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
@@ -618,72 +624,91 @@ export function DockerManagerModal({
                       }
                     >
                       {containers.map((c) => {
-                const names = (c.names ?? []).join(", ") || c.id?.slice(0, 12) || "—";
-                const isRunning = (c.state ?? "").toLowerCase().includes("running");
-                const acting = actingId === c.id;
-                const statusCls = statusClass(c.state);
-                const statusBadgeClass =
-                  statusCls === "running" ? "bg-success-500/15 text-success-600" :
-                  statusCls === "exited" ? "bg-typography-500/15 text-typography-600" :
-                  statusCls === "paused" ? "bg-warning-500/15 text-warning-600" :
-                  "bg-error-500/15 text-error-600";
-                return (
-                  <ListSectionCard
-                    key={c.id}
-                    title={names}
-                    className="mb-2"
-                    action={
-                      <HStack space="sm" className="items-center">
-                        <Pressable
-                          onPress={() => copyToClipboard(c.id)}
-                          style={styles.copyBtn}
-                          accessibilityLabel="Copy container ID"
-                        >
-                          <CopyIcon color={theme.colors.textMuted} size={18} />
-                        </Pressable>
-                        <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                          <Text size="xs">{c.status || "—"}</Text>
-                        </Box>
-                      </HStack>
-                    }
-                  >
-                    <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
-                      <Text size="xs" className="text-typography-500 shrink-0">Image</Text>
-                      <Text size="xs" numberOfLines={1} className="text-typography-900 flex-1 min-w-0">{c.image || "—"}</Text>
-                    </Box>
-                    <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
-                      <Text size="xs" className="text-typography-500 shrink-0">Ports</Text>
-                      <Text size="xs" numberOfLines={2} className="text-typography-900 flex-1 min-w-0">{c.ports || "—"}</Text>
-                    </Box>
-                    <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
-                      <Text size="xs" className="text-typography-500 shrink-0">Created</Text>
-                      <Text size="xs" className="text-typography-900">{formatDate(c.created)}</Text>
-                    </Box>
-                    <Box style={styles.actions} className="flex-row flex-wrap gap-2">
-                      <Button action="secondary" variant="outline" size="sm" onPress={() => openLogs(c.id, names)} isDisabled={acting}>
-                        <ButtonText>Logs</ButtonText>
-                      </Button>
-                      {!isRunning ? (
-                        <Button action="primary" variant="solid" size="sm" onPress={() => handleAction(c.id, "start")} isDisabled={acting}>
-                          <ButtonText>Start</ButtonText>
-                        </Button>
-                      ) : (
-                        <>
-                          <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "stop")} isDisabled={acting}>
-                            <ButtonText>Stop</ButtonText>
-                          </Button>
-                          <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "restart")} isDisabled={acting}>
-                            <ButtonText>Restart</ButtonText>
-                          </Button>
-                        </>
-                      )}
-                        <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
-                          <ButtonText>Remove</ButtonText>
-                        </Button>
-                      </Box>
-                  </ListSectionCard>
-                );
-              })}
+                        const names = (c.names ?? []).join(", ") || c.id?.slice(0, 12) || "—";
+                        const isRunning = (c.state ?? "").toLowerCase().includes("running");
+                        const acting = actingId === c.id;
+                        const statusCls = statusClass(c.state);
+                        const statusBadgeClass =
+                          statusCls === "running"
+                            ? "bg-success-500/15 text-success-600"
+                            : statusCls === "exited"
+                              ? "bg-typography-500/15 text-typography-600"
+                              : statusCls === "paused"
+                                ? "bg-warning-500/15 text-warning-600"
+                                : "bg-error-500/15 text-error-600";
+
+                        return (
+                          <DockerResourceCard
+                            key={c.id}
+                            title={names}
+                            className="mb-2"
+                            action={
+                              <HStack space="sm" className="items-center">
+                                <Pressable
+                                  onPress={() => copyToClipboard(c.id)}
+                                  style={styles.copyBtn}
+                                  accessibilityLabel="Copy container ID"
+                                >
+                                  <CopyIcon color={theme.colors.textMuted} size={18} />
+                                </Pressable>
+                                <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                                  <Text size="xs">{c.status || "—"}</Text>
+                                </Box>
+                              </HStack>
+                            }
+                            rows={[
+                              {
+                                label: "Image",
+                                value: (
+                                  <Text size="xs" numberOfLines={1} className="text-typography-900 flex-1 min-w-0">
+                                    {c.image || "—"}
+                                  </Text>
+                                ),
+                              },
+                              {
+                                label: "Ports",
+                                value: (
+                                  <Text size="xs" numberOfLines={2} className="text-typography-900 flex-1 min-w-0">
+                                    {c.ports || "—"}
+                                  </Text>
+                                ),
+                              },
+                              {
+                                label: "Created",
+                                value: (
+                                  <Text size="xs" className="text-typography-900">
+                                    {formatDate(c.created)}
+                                  </Text>
+                                ),
+                              },
+                            ]}
+                            actions={
+                              <>
+                                <Button action="secondary" variant="outline" size="sm" onPress={() => openLogs(c.id, names)} isDisabled={acting}>
+                                  <ButtonText>Logs</ButtonText>
+                                </Button>
+                                {!isRunning ? (
+                                  <Button action="primary" variant="solid" size="sm" onPress={() => handleAction(c.id, "start")} isDisabled={acting}>
+                                    <ButtonText>Start</ButtonText>
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "stop")} isDisabled={acting}>
+                                      <ButtonText>Stop</ButtonText>
+                                    </Button>
+                                    <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "restart")} isDisabled={acting}>
+                                      <ButtonText>Restart</ButtonText>
+                                    </Button>
+                                  </>
+                                )}
+                                <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
+                                  <ButtonText>Remove</ButtonText>
+                                </Button>
+                              </>
+                            }
+                          />
+                        );
+                      })}
             </ScrollView>
                   )}
                 </>
@@ -733,8 +758,9 @@ export function DockerManagerModal({
                         const tags = (img.repoTags ?? []).filter(Boolean);
                         const display = tags.length ? tags.join(", ") : img.id?.slice(0, 12) || "—";
                         const acting = actingImageId === img.id;
+
                         return (
-                          <ListSectionCard
+                          <DockerResourceCard
                             key={img.id}
                             title={display}
                             className="mb-2"
@@ -747,21 +773,22 @@ export function DockerManagerModal({
                                 <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
                             }
-                          >
-                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
-                              <Text size="xs" className="text-typography-500 shrink-0">Size</Text>
-                              <Text size="xs" className="text-typography-900">{formatBytes(img.size)}</Text>
-                            </Box>
-                            <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
-                              <Text size="xs" className="text-typography-500 shrink-0">Created</Text>
-                              <Text size="xs" className="text-typography-900">{formatDate(img.created)}</Text>
-                            </Box>
-                            <Box style={styles.actions} className="flex-row flex-wrap gap-2">
+                            rows={[
+                              {
+                                label: "Size",
+                                value: <Text size="xs" className="text-typography-900">{formatBytes(img.size)}</Text>,
+                              },
+                              {
+                                label: "Created",
+                                value: <Text size="xs" className="text-typography-900">{formatDate(img.created)}</Text>,
+                              },
+                            ]}
+                            actions={
                               <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
                                 <ButtonText>Remove</ButtonText>
                               </Button>
-                            </Box>
-                          </ListSectionCard>
+                            }
+                          />
                         );
                       })}
                     </ScrollView>
@@ -823,8 +850,9 @@ export function DockerManagerModal({
                     >
                       {filteredVolumes.map((v) => {
                         const acting = actingVolumeName === v.name;
+
                         return (
-                          <ListSectionCard
+                          <DockerResourceCard
                             key={v.name}
                             title={v.name}
                             className="mb-2"
@@ -833,30 +861,35 @@ export function DockerManagerModal({
                                 <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
                             }
-                          >
-                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
-                              <Text size="xs" className="text-typography-500 shrink-0">DRIVER</Text>
-                              <Text size="xs" className="text-typography-900">{v.driver || "—"}</Text>
-                            </Box>
-                            <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
-                              <Text size="xs" className="text-typography-500 shrink-0">MOUNT POINT</Text>
-                              <Box style={styles.cardValueRow} className="flex-1 flex-row items-start gap-2 min-w-0">
-                                <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{v.mountpoint || "—"}</Text>
-                                <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
-                                  <CopyIcon color={theme.colors.textMuted} size={18} />
-                                </Pressable>
-                              </Box>
-                            </Box>
-                            <Box style={styles.cardRow} className="flex-row gap-2 mb-2">
-                              <Text size="xs" className="text-typography-500 shrink-0">CREATED</Text>
-                              <Text size="xs" className="text-typography-900">{formatDate(v.created)}</Text>
-                            </Box>
-                            <Box style={styles.actions} className="flex-row flex-wrap gap-2">
+                            rows={[
+                              {
+                                label: "Driver",
+                                value: <Text size="xs" className="text-typography-900">{v.driver || "—"}</Text>,
+                              },
+                              {
+                                label: "Mount point",
+                                value: (
+                                  <Box className="flex-1 flex-row items-start gap-2 min-w-0">
+                                    <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">
+                                      {v.mountpoint || "—"}
+                                    </Text>
+                                    <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
+                                      <CopyIcon color={theme.colors.textMuted} size={18} />
+                                    </Pressable>
+                                  </Box>
+                                ),
+                              },
+                              {
+                                label: "Created",
+                                value: <Text size="xs" className="text-typography-900">{formatDate(v.created)}</Text>,
+                              },
+                            ]}
+                            actions={
                               <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
                                 <ButtonText>Remove</ButtonText>
                               </Button>
-                            </Box>
-                          </ListSectionCard>
+                            }
+                          />
                         );
                       })}
                     </ScrollView>
@@ -951,12 +984,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       justifyContent: "center",
     },
-    closeBtn: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     tabRow: {
       flex: 1,
       flexDirection: "row",
@@ -970,28 +997,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRightColor: theme.colors.border ?? theme.colors.border,
       backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
     },
-    tabItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "stretch",
-      gap: 10,
-      minHeight: 44,
-      paddingVertical: 12,
-      paddingHorizontal: 12,
-      marginBottom: 4,
-      borderRadius: 8,
-    },
-    tabItemActive: {
-      backgroundColor: theme.colors.accentSoft ?? theme.colors.accent + "20",
-    },
-    tabLabel: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-    },
-    tabLabelActive: {
-      color: theme.colors.accent,
-      fontWeight: "600",
-    },
     contentArea: {
       flex: 1,
     },
@@ -1004,42 +1009,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border ?? theme.colors.border,
     },
-    searchInput: {
-      flex: 1,
-      minWidth: 120,
-      height: 40,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      fontSize: 14,
-    },
     copyBtn: {
       minWidth: 36,
       minHeight: 36,
       alignItems: "center",
       justifyContent: "center",
-    },
-    cardValueRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 8,
-    },
-    filterChip: {
-      paddingVertical: 6,
-      paddingHorizontal: 14,
-      borderRadius: 8,
-      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
-    },
-    filterChipActive: {
-      backgroundColor: theme.colors.accentSoft ?? theme.colors.accent + "20",
-    },
-    filterChipText: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-    },
-    filterChipTextActive: {
-      color: theme.colors.accent,
-      fontWeight: "600",
     },
     errorBox: {
       flex: 1,
@@ -1047,25 +1021,23 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "center",
       alignItems: "center",
     },
-    errorText: {
-      textAlign: "center",
-      marginBottom: 16,
-    },
-    retryBtn: {
-      alignSelf: "center",
-    },
     loadingBox: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
       padding: 24,
     },
-    loadingText: {
-      marginTop: 12,
-    },
     skeletonList: {
       padding: 16,
       paddingBottom: 32,
+    },
+    card: {
+      marginBottom: 16,
+      padding: 16,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.border ?? theme.colors.border,
     },
     emptyBox: {
       flex: 1,
@@ -1080,81 +1052,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       padding: 16,
       paddingBottom: 32,
     },
-    card: {
-      marginBottom: 16,
-      padding: 16,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
-      borderWidth: 1,
-      borderColor: theme.colors.border ?? theme.colors.border,
-    },
-    cardHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 12,
-      gap: 12,
-    },
-    cardName: {
-      flex: 1,
-      fontSize: 16,
-      fontWeight: "600",
-      color: theme.colors.textPrimary,
-    },
-    statusBadge: {
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      borderRadius: 6,
-    },
-    status_running: {
-      backgroundColor: "rgba(34, 197, 94, 0.2)",
-    },
-    status_exited: {
-      backgroundColor: "rgba(107, 114, 128, 0.2)",
-    },
-    status_paused: {
-      backgroundColor: "rgba(234, 179, 8, 0.2)",
-    },
-    status_unknown: {
-      backgroundColor: "rgba(107, 114, 128, 0.2)",
-    },
-    statusText: {
-      fontSize: 12,
-      color: theme.colors.textPrimary,
-    },
-    cardRow: {
-      marginBottom: 8,
-    },
-    cardLabel: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-      color: theme.colors.textSecondary,
-      marginBottom: 2,
-    },
-    cardValue: {
-      fontSize: 14,
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      color: theme.colors.textPrimary,
-    },
-    actions: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginTop: 14,
-      paddingTop: 12,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.colors.border ?? theme.colors.border,
-    },
     logsContent: {
       padding: 16,
       paddingBottom: 32,
-    },
-    logsText: {
-      fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 12,
-      color: theme.colors.textPrimary,
-      lineHeight: 18,
     },
   });
 }

@@ -14,17 +14,7 @@ export type WorkspaceTreeItem = {
   children?: WorkspaceTreeItem[];
 };
 
-type FileTreePaneStyles = {
-  workspaceName: any;
-  workspaceNameText: any;
-  searchBarContainer: any;
-  loading: any;
-  scroll: any;
-  scrollContent: any;
-};
-
 type FileTreePaneProps = {
-  styles: FileTreePaneStyles;
   theme: ReturnType<typeof useTheme>;
   root?: string;
   searchQuery: string;
@@ -36,7 +26,6 @@ type FileTreePaneProps = {
 };
 
 export function FileTreePane({
-  styles,
   theme,
   root,
   searchQuery,
@@ -48,12 +37,15 @@ export function FileTreePane({
 }: FileTreePaneProps) {
   return (
     <>
-      <Box style={styles.workspaceName}>
-        <Text style={styles.workspaceNameText} numberOfLines={2}>
+      <Box className="py-1.5 px-3.5 bg-background-0">
+        <Text
+          className="text-sm leading-5 font-medium text-text-primary"
+          numberOfLines={2}
+        >
           {root ?? "Workspace"}
         </Text>
       </Box>
-      <Box style={styles.searchBarContainer}>
+      <Box className="px-3 pt-1 pb-2 bg-background-0">
         <Input variant="outline" size="md" className="flex-1">
           <InputField
             placeholder="Search files..."
@@ -65,13 +57,13 @@ export function FileTreePane({
         </Input>
       </Box>
       {loading && !hasData ? (
-        <Box style={styles.loading}>
+        <Box className="flex-1 items-center justify-center py-6 bg-background-0">
           <Spinner size="small" color={theme.colors.accent} />
         </Box>
       ) : (
         <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          className="flex-1 min-h-0 bg-background-0"
+          contentContainerStyle={{ paddingVertical: 8, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
         >

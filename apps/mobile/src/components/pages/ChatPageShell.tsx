@@ -31,6 +31,8 @@ export function ChatPageShell({
 }: ChatPageShellProps) {
   const insets = useSafeAreaInsets();
   const [inputDockHeight, setInputDockHeight] = useState(0);
+  const shouldShowInputDock = inputDock.visible && !modalHandlers.isAnyModalOpen;
+
   const handleInputDockLayout = useCallback((height: number) => {
     setInputDockHeight(height);
   }, []);
@@ -55,19 +57,19 @@ export function ChatPageShell({
                 waitingForUserInput={runtime.waitingForUserInput}
                 onOpenExplorer={header.onOpenExplorer}
                 onOpenSessionManagement={modalHandlers.onOpenSessionManagement}
-                sidebarVisible={header.sidebarVisible}
+                sidebarVisible={header.sidebarVisible || modalHandlers.isAnyModalOpen}
               />
               <ChatConversationSection
                 conversation={conversation}
                 fileViewer={fileViewer}
                 sidebar={sidebar}
-                inputDockHeight={inputDock.visible ? inputDockHeight : 0}
+                inputDockHeight={shouldShowInputDock ? inputDockHeight : 0}
               />
             </Box>
             <ChatInputDockSection
               runtime={runtime}
               context={context}
-              input={inputDock}
+              input={{ ...inputDock, visible: shouldShowInputDock }}
               onOpenSkillsConfig={modalHandlers.onOpenSkillsConfig}
               onOpenProcesses={modalHandlers.onOpenProcesses}
               onOpenDocker={modalHandlers.onOpenDocker}

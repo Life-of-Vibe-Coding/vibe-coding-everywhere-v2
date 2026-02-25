@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, type LayoutChangeEvent } from "react-native";
+import { type LayoutChangeEvent } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
@@ -8,7 +8,6 @@ import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
 import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { getTheme } from "@/theme/index";
-import { spacing } from "@/design-system";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
@@ -60,39 +59,29 @@ export type ChatConversationSectionProps = {
   inputDockHeight: number;
 };
 
-const styles = StyleSheet.create({
-  chatShell: {
-    flex: 1,
-    marginTop: 0,
+const overlayStyles = {
+  fileViewer: {
+    position: "absolute" as const,
+    top: 0,
+    // Align embedded file viewer width with workspace drawer (12px side margin)
+    left: -12,
+    right: -12,
+    bottom: 0,
+    zIndex: 6,
   },
-  chatArea: {
-    flex: 1,
-    minHeight: 0,
-  },
-  chatMessages: {
-    marginTop: 58,
-    paddingHorizontal: spacing["3"],
-  },
-  fileViewerOverlay: {
-    position: "absolute",
+  sidebar: {
+    position: "absolute" as const,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 6,
-  },
-  sidebarOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    height: "100%",
+    height: "100%" as const,
     zIndex: 5,
   },
-  inputBar: {
-    paddingBottom: 8,
-  },
-});
+} as const;
 
 function ChatSectionFrame({ children }: { children: React.ReactNode }) {
-  return <Box style={styles.chatShell}>{children}</Box>;
+  return <Box className="flex-1 mt-0">{children}</Box>;
 }
 
 function OverlayLayer({
@@ -106,7 +95,7 @@ function OverlayLayer({
     <>
       <FileViewerPage
         isOpen={fileViewer.selectedFilePath != null}
-        style={styles.fileViewerOverlay}
+        style={overlayStyles.fileViewer}
         path={fileViewer.selectedFilePath ?? ""}
         content={fileViewer.fileContent}
         isImage={fileViewer.fileIsImage}
@@ -117,7 +106,7 @@ function OverlayLayer({
       />
       <WorkspaceSidebarPage
         isOpen={sidebar.visible}
-        style={styles.sidebarOverlay}
+        style={overlayStyles.sidebar}
         pointerEvents={sidebar.visible ? "auto" : "none"}
         onClose={sidebar.onCloseSidebar}
         onFileSelect={sidebar.onFileSelectFromSidebar}
@@ -144,8 +133,8 @@ export function ChatConversationSection({ conversation, fileViewer, sidebar, inp
         tailBoxMaxHeight={conversation.tailBoxMaxHeight}
         flatListRef={conversation.flatListRef}
         onContentSizeChange={conversation.onContentSizeChange}
-        style={styles.chatArea}
-        contentContainerStyle={[styles.chatMessages, { paddingBottom: inputDockHeight + 16 }]}
+        style={{ flex: 1, minHeight: 0 }}
+        contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 16 }]}
       />
       <OverlayLayer fileViewer={fileViewer} sidebar={sidebar} />
     </ChatSectionFrame>
@@ -179,7 +168,7 @@ export function ChatInputDockSection({
 
   return (
     <Box
-      style={styles.inputBar}
+      className="pb-2"
       onLayout={(event: LayoutChangeEvent) => {
         const height = event.nativeEvent.layout.height;
         onInputDockLayout(height);

@@ -8,6 +8,7 @@ import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardMo
 import { SessionManagementModal } from "@/components/chat/SessionManagementModal";
 import { PreviewWebViewModal } from "@/components/preview/PreviewWebViewModal";
 import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
+import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageModals } from "@/components/pages/ChatPage";
 import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
 import { useChatModalsController } from "@/components/hooks/useChatModalsController";
@@ -48,10 +49,29 @@ export function ChatModalsSection({
     onModelProviderChange: modals.modelPicker.onModelProviderChange,
     onModelChange: modals.modelPicker.onModelChange,
   });
+  const isAnyModalOpen =
+    openHandlers.isAnyModalOpen ||
+    modals.askQuestion.pendingAskQuestion != null ||
+    modals.preview.previewVisible;
+  const isSkillsConfigOpen = modalStates.skillsConfig.isOpen;
 
   return (
     <>
-      {children(openHandlers)}
+      {isSkillsConfigOpen ? (
+        <Box className="flex-1">
+          <SkillConfigurationModal
+            isOpen
+            presentation="inline"
+            onClose={closeSkillsConfig}
+            onSelectSkill={handleSelectSkill}
+            selectedSkillId={selectedSkillId}
+            onCloseSkillDetail={closeSkillDetail}
+            serverBaseUrl={modals.skills.serverBaseUrl}
+          />
+        </Box>
+      ) : (
+        children({ ...openHandlers, isAnyModalOpen })
+      )}
       <WorkspacePickerModal
         isOpen={modalStates.workspacePicker.isOpen}
         onClose={modalStates.workspacePicker.close}
@@ -73,14 +93,6 @@ export function ChatModalsSection({
         showActiveChat={modals.sessionManagement.showActiveChat}
         sessionRunning={modals.sessionManagement.sessionRunning}
         onSelectActiveChat={handleSelectActiveChat}
-      />
-      <SkillConfigurationModal
-        isOpen={modalStates.skillsConfig.isOpen}
-        onClose={closeSkillsConfig}
-        onSelectSkill={handleSelectSkill}
-        selectedSkillId={selectedSkillId}
-        onCloseSkillDetail={closeSkillDetail}
-        serverBaseUrl={modals.skills.serverBaseUrl}
       />
       <ProcessDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
       <DockerManagerModal isOpen={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
