@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Dimensions, FlatList, InteractionManager } from "react-native";
 
 import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig";
@@ -40,13 +40,7 @@ export type SseSessionControllerState = {
   terminateAgent: ReturnType<typeof useSse>["terminateAgent"];
   resetSession: ReturnType<typeof useSse>["resetSession"];
   loadSession: ReturnType<typeof useSse>["loadSession"];
-  resumeLiveSession: ReturnType<typeof useSse>["resumeLiveSession"];
-  switchToLiveSession: ReturnType<typeof useSse>["switchToLiveSession"];
-  viewingLiveSession: boolean;
-  liveSessionMessages: Message[];
   startNewSession: ReturnType<typeof useSse>["startNewSession"];
-  selectedSseSessionRunning: boolean;
-  setSelectedSseSessionRunning: (running: boolean) => void;
   tailBoxMaxHeight: number;
   flatListRef: React.RefObject<FlatList<Message> | null>;
   onContentSizeChange: () => void;
@@ -80,8 +74,6 @@ export function SseSessionController({
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
   const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
 
-  const [selectedSseSessionRunning, setSelectedSseSessionRunning] = useState(false);
-
   const {
     connected,
     messages,
@@ -103,14 +95,9 @@ export function SseSessionController({
     resetSession,
     startNewSession,
     loadSession,
-    resumeLiveSession,
-    switchToLiveSession,
-    viewingLiveSession,
-    liveSessionMessages,
   } = useSse({
     provider,
     model,
-    status: selectedSseSessionRunning,
   });
 
   useEffect(() => {
@@ -180,7 +167,6 @@ export function SseSessionController({
       const newModel = getModelForProvider(nextProvider);
       const isChanging = nextProvider !== provider || newModel !== model;
       if (isChanging) {
-        setSelectedSseSessionRunning(false);
         resetSession();
       }
       setProvider(nextProvider);
@@ -196,7 +182,6 @@ export function SseSessionController({
       if (nextModel === model) {
         return;
       }
-      setSelectedSseSessionRunning(false);
       resetSession();
       setModel(nextModel);
       sessionStore.setLastUsedProviderModel(provider, nextModel);
@@ -217,7 +202,6 @@ export function SseSessionController({
         await switchWorkspaceForSession?.(session.cwd);
       }
 
-      setSelectedSseSessionRunning(Boolean(session.running || session.sseConnected));
 
       if (selectedProvider) {
         setProvider(selectedProvider as BrandProvider);
@@ -229,18 +213,12 @@ export function SseSessionController({
         sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
       }
 
-      if (session.running || session.sseConnected) {
-        resumeLiveSession(session.id, sessionMessages);
-      } else {
-        setSelectedSseSessionRunning(false);
-        loadSession(sessionMessages, session.id);
-      }
+      loadSession(sessionMessages, session.id);
 
       runAfterInteractionScroll();
     },
     [
       loadSession,
-      resumeLiveSession,
       runAfterInteractionScroll,
       setModel,
       setProvider,
@@ -249,17 +227,10 @@ export function SseSessionController({
   );
 
   const handleSelectActiveChat = useCallback(() => {
-    switchToLiveSession();
-    if (sessionId == null) {
-      setSelectedSseSessionRunning(false);
-    } else {
-      setSelectedSseSessionRunning(true);
-    }
     runAfterInteractionScroll();
-  }, [runAfterInteractionScroll, sessionId, switchToLiveSession]);
+  }, [runAfterInteractionScroll]);
 
   const handleNewSession = useCallback(() => {
-    setSelectedSseSessionRunning(false);
     startNewSession();
   }, [startNewSession]);
 
@@ -283,13 +254,7 @@ export function SseSessionController({
     terminateAgent,
     resetSession,
     loadSession,
-    resumeLiveSession,
-    switchToLiveSession,
-    viewingLiveSession,
-    liveSessionMessages,
     startNewSession,
-    selectedSseSessionRunning,
-    setSelectedSseSessionRunning,
     tailBoxMaxHeight,
     flatListRef,
     onContentSizeChange,

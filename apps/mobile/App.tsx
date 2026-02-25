@@ -40,8 +40,6 @@ export default function App() {
                   permissionModeUI={themeState.permissionModeUI}
                   sessionId={sseState.sessionId}
                   messages={sseState.messages}
-                  switchToLiveSession={sseState.switchToLiveSession}
-                  setSelectedSseSessionRunning={sseState.setSelectedSseSessionRunning}
                   submitPrompt={sseState.submitPrompt}
                   submitAskQuestionAnswer={sseState.submitAskQuestionAnswer}
                   dismissAskQuestion={sseState.dismissAskQuestion}
@@ -65,7 +63,6 @@ export default function App() {
                       openSidebar: sidebarState.openSidebar,
                       closeSidebar: sidebarState.closeSidebar,
                       onWorkspaceSelectedFromPicker: (path?: string) => {
-                        sseState.setSelectedSseSessionRunning(false);
                         sseState.resetSession();
                         workspaceState.onWorkspaceSelectedFromPicker(path);
                       },

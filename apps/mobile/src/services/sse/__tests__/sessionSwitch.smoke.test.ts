@@ -4,6 +4,7 @@
 import { act } from "react";
 import { renderHook } from "@testing-library/react-native";
 import { useSse } from "@/services/sse/hooks";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
 
 interface MockListener {
   (event: any): void;
@@ -21,6 +22,15 @@ type MockEventSource = {
 const mockEventSources: MockEventSource[] = [];
 const getAllSources = () => mockEventSources;
 const getLatestSource = () => mockEventSources[mockEventSources.length - 1];
+
+const runningSession = (id: string) => ({
+  id,
+  cwd: null,
+  model: null,
+  lastAccess: Date.now(),
+  status: "running" as const,
+  title: "",
+});
 
 jest.mock("react-native-sse", () => {
   const MockEventSourceCtor: any = function (this: any, url: string) {
@@ -75,17 +85,24 @@ jest.mock("../../server/config", () => ({
 describe("session switch smoke test", () => {
   beforeEach(() => {
     mockEventSources.length = 0;
+    useSessionManagementStore.setState({ sessionStatuses: [], sessionId: null });
   });
 
-  it("opens a stream only for selected active session", () => {
+  it("opens a stream when session is running", () => {
+    act(() => {
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("running-session"));
+    });
+
     const { result } = renderHook(() =>
       useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionId: "running-session",
-        status: true,
       })
     );
+
+    act(() => {
+      result.current.loadSession([], "running-session");
+    });
 
     const source = getLatestSource();
     expect(source).toBeDefined();
@@ -98,43 +115,52 @@ describe("session switch smoke test", () => {
     expect(result.current.connected).toBe(true);
   });
 
-  it("does not open SSE when selected stream is not running", () => {
-      const { rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
-        useSse({
-          provider: "codex",
-          model: "gpt-5.1-codex-mini",
-          sessionId: props.sessionId,
-          status: props.status,
+  it("does not open SSE for idle loaded sessions", () => {
+    const { result } = renderHook(() =>
+      useSse({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
       })
-    , {
-      initialProps: {
-        sessionId: "running-session",
-        status: false,
-      },
+    );
+
+    act(() => {
+      result.current.loadSession([], "running-session");
     });
 
     expect(getAllSources()).toHaveLength(0);
+    expect(result.current.agentRunning).toBe(false);
+  });
+
+  it("opens stream when idle session is resumed", () => {
+    const { result } = renderHook(() =>
+      useSse({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+      })
+    );
 
     act(() => {
-      rerender({ sessionId: "running-session", status: true });
+      result.current.loadSession([], "running-session");
+    });
+
+    act(() => {
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("running-session"));
     });
 
     expect(getAllSources()).toHaveLength(1);
   });
 
   it("switches sessions with close-before-open semantics", () => {
-    const { rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
+    const { result } = renderHook(() =>
       useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionId: props.sessionId,
-        status: props.status,
       })
-    , {
-      initialProps: {
-        sessionId: "session-a",
-        status: true,
-      },
+    );
+
+    act(() => {
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("session-a"));
+      result.current.loadSession([], "session-a");
     });
 
     const first = getLatestSource();
@@ -144,7 +170,8 @@ describe("session switch smoke test", () => {
     });
 
     act(() => {
-      rerender({ sessionId: "session-b", status: true });
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("session-b"));
+      result.current.loadSession([], "session-b");
     });
 
     const second = getLatestSource();
@@ -152,7 +179,6 @@ describe("session switch smoke test", () => {
     expect(second).not.toBe(first);
     expect(second.url).toContain("/api/sessions/session-b/stream?activeOnly=1");
     expect(getAllSources()).toHaveLength(2);
-    expect(getAllSources()[1]).toBe(second);
 
     act(() => {
       second.emit("open");
@@ -166,26 +192,16 @@ describe("session switch smoke test", () => {
       { id: "msg-2", role: "assistant" as const, content: "Message" },
     ];
 
-    const { result, rerender } = renderHook((props: { sessionId: string; status: boolean }) =>
+    const { result } = renderHook(() =>
       useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionId: props.sessionId,
-        status: props.status,
       })
-    , {
-      initialProps: {
-        sessionId: "seed-session",
-        status: false,
-      },
-    });
+    );
 
     act(() => {
-      result.current.resumeLiveSession("seed-session-active", seedMessages);
-    });
-
-    act(() => {
-      rerender({ sessionId: "seed-session-active", status: true });
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("seed-session-active"));
+      result.current.loadSession(seedMessages, "seed-session-active");
     });
 
     const source = getLatestSource();
@@ -197,10 +213,12 @@ describe("session switch smoke test", () => {
       useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionId: "ending-session",
-        status: true,
       })
     );
+    act(() => {
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("ending-session"));
+      result.current.loadSession([], "ending-session");
+    });
 
     const source = getLatestSource();
     act(() => {
@@ -225,10 +243,12 @@ describe("session switch smoke test", () => {
       useSse({
         provider: "codex",
         model: "gpt-5.1-codex-mini",
-        sessionId: "legacy-session",
-        status: true,
       })
     );
+    act(() => {
+      useSessionManagementStore.getState().upsertSessionStatus(runningSession("legacy-session"));
+      result.current.loadSession([], "legacy-session");
+    });
 
     const source = getLatestSource();
     act(() => {

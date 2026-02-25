@@ -17,7 +17,6 @@ type UseSessionManagementSyncArgs = {
   sessionStatuses: SessionStatus[];
   setSessionStatuses: (sessions: SessionStatus[]) => void;
   connected: boolean;
-  viewingLiveSession: boolean;
   sessionId: string | null;
   workspacePath: string | null;
   provider: string;
@@ -33,7 +32,6 @@ export function useSessionManagementSync({
   sessionStatuses,
   setSessionStatuses,
   connected,
-  viewingLiveSession,
   sessionId,
   workspacePath,
   provider,
@@ -67,7 +65,7 @@ export function useSessionManagementSync({
     const interval = setInterval(cleanup, SESSION_CLEANUP_INTERVAL_MS);
     void cleanup();
     return () => clearInterval(interval);
-  }, [serverConfig, viewingLiveSession, sessionId, sessionStatuses]);
+  }, [serverConfig, sessionId, sessionStatuses]);
 
   useEffect(() => {
     const baseUrl = serverConfig.getBaseUrl();
@@ -154,7 +152,6 @@ export function useSessionManagementSync({
     provider,
     model,
     workspacePath,
-    viewingLiveSession,
     sessionId,
     serverConfig,
   ]);

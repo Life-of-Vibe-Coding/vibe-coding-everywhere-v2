@@ -86,8 +86,6 @@ export function useSessionSideEffects({
     pendingAskQuestion,
     agentRunning,
     sessionId,
-    liveSessionMessages,
-    viewingLiveSession,
     sessionStatuses,
     setSessionStatuses,
     storeProvider,
@@ -116,7 +114,6 @@ export function useSessionSideEffects({
     sessionId,
     sessionStatuses,
     setSessionStatuses,
-    viewingLiveSession,
     workspacePath,
     storeProvider: storeProvider ?? "codex",
     storeModel: storeModel ?? "",
@@ -126,7 +123,7 @@ export function useSessionSideEffects({
     additionalSnapshot: {
       messages,
       typingIndicator,
-      liveMessages: liveSessionMessages.length,
+      liveMessages: messages.length,
     },
   });
 }

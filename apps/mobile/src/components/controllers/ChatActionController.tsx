@@ -13,8 +13,6 @@ export type ChatActionControllerProps = {
   provider: BrandProvider;
   permissionModeUI: PermissionModeUI;
   messages: Message[];
-  switchToLiveSession: () => void;
-  setSelectedSseSessionRunning: (running: boolean) => void;
   submitPrompt: SseApi["submitPrompt"];
   submitAskQuestionAnswer: SseApi["submitAskQuestionAnswer"];
   dismissAskQuestion: SseApi["dismissAskQuestion"];
@@ -44,8 +42,6 @@ export function ChatActionController({
   provider,
   permissionModeUI,
   messages,
-  switchToLiveSession,
-  setSelectedSseSessionRunning,
   submitPrompt,
   submitAskQuestionAnswer,
   dismissAskQuestion,
@@ -60,8 +56,6 @@ export function ChatActionController({
 
   const onSubmitPrompt = useCallback(
     (prompt: string) => {
-      switchToLiveSession();
-      setSelectedSseSessionRunning(true);
       const { backend, codexOptions } = getSubmitPermissionConfig(permissionModeUI, provider);
       submitPrompt(
         prompt,
@@ -82,9 +76,7 @@ export function ChatActionController({
       onSubmitSideEffects,
       permissionModeUI,
       provider,
-      setSelectedSseSessionRunning,
       submitPrompt,
-      switchToLiveSession,
       pendingCodeRefs,
     ]
   );
@@ -118,12 +110,11 @@ export function ChatActionController({
 
   const onCommitByAI = useCallback(
     (userRequest: string) => {
-      setSelectedSseSessionRunning(false);
       resetSession();
       onSubmitPrompt(userRequest);
       closeFileViewer();
     },
-    [closeFileViewer, onSubmitPrompt, resetSession, setSelectedSseSessionRunning]
+    [closeFileViewer, onSubmitPrompt, resetSession]
   );
 
   const onOpenPreviewInApp = useCallback((url: string) => {
