@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, FlatList, InteractionManager } from "react-native";
 
-import { getModelForProvider, ModalSessionItem } from "../../features/app/appConfig";
-import { triggerHaptic } from "../../design-system";
-import { useSessionManagementStore, type SessionStatus } from "../../state/sessionManagementStore";
-import * as sessionStore from "../../services/sessionStore";
-import { useSse, type Message, type PermissionDenial, type PendingAskUserQuestion } from "../../services/sse/hooks";
-import type { BrandProvider } from "../../theme/index";
+import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig";
+import { triggerHaptic } from "@/design-system";
+import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
+import * as sessionStore from "@/services/sessionStore";
+import { useSse, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/sse/hooks";
+import type { BrandProvider } from "@/theme/index";
 
 export type SseSessionControllerProps = {
   provider: BrandProvider;

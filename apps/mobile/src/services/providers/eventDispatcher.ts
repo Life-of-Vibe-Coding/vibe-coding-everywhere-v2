@@ -5,10 +5,10 @@
  * and routes them to the appropriate handler. Handles permission_denials and
  * AskUserQuestion before type; falls back to appending as text for unknown types.
  */
-import type { PermissionDenial, PendingAskUserQuestion } from "../../core/types";
-import type { EventContext, EventHandler } from "./types";
-import { appendSnapshotTextDelta, appendToolUseDisplayLine, formatToolUseForDisplay } from "./types";
-import { isAskUserQuestionPayload } from "./stream";
+import type { PermissionDenial, PendingAskUserQuestion } from "@/core/types";
+import type { EventContext, EventHandler } from "@/services/providers/types";
+import { appendSnapshotTextDelta, appendToolUseDisplayLine, formatToolUseForDisplay } from "@/services/providers/types";
+import { isAskUserQuestionPayload } from "@/services/providers/stream";
 
 const READ_FILE_TOOL_NAMES = new Set(["read_file", "readfile", "read"]);
 const BASH_TOOL_NAMES = new Set([

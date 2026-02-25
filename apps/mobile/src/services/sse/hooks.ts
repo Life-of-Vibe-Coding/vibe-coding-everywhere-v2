@@ -17,7 +17,7 @@ import {
   isAskUserQuestionPayload,
   getAllowedToolsFromDenials,
   isProviderSystemNoise,
-} from "../providers/stream";
+} from "@/services/providers/stream";
 import type {
   Message,
   CodeReference,
@@ -25,11 +25,11 @@ import type {
   PendingAskUserQuestion,
   LastRunOptions,
   IServerConfig,
-} from "../../core/types";
-import { getDefaultServerConfig } from "../server/config";
-import { createEventDispatcher } from "../providers/eventDispatcher";
-import type { Provider } from "../../theme/index";
-import type { CodeRefPayload } from "../../components/file/FileViewerModal";
+} from "@/core/types";
+import { getDefaultServerConfig } from "@/services/server/config";
+import { createEventDispatcher } from "@/services/providers/eventDispatcher";
+import type { Provider } from "@/theme/index";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 
 // Re-export types for consumers that import from useSse
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };

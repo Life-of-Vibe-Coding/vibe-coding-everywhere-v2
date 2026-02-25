@@ -8,15 +8,15 @@ import {
   StyleSheet,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { EntranceAnimation, radii, spacing } from "../../design-system";
-import { CloseIcon, RefreshCwIcon } from "../icons/ChatActionIcons";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon } from "../ui/button";
-import { HStack } from "../ui/hstack";
-import { VStack } from "../ui/vstack";
-import { Text } from "../ui/text";
-import { useTheme, type Provider as BrandProvider } from "../../theme/index";
-import type { SessionStatus } from "../../state/sessionManagementStore";
+import { EntranceAnimation, radii, spacing } from "@/design-system";
+import { CloseIcon, RefreshCwIcon } from "@/components/icons/ChatActionIcons";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon } from "@/components/ui/button";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Text } from "@/components/ui/text";
+import { useTheme, type Provider as BrandProvider } from "@/theme/index";
+import type { SessionStatus } from "@/state/sessionManagementStore";
 
 interface HealthApiProcess {
   pid: number;

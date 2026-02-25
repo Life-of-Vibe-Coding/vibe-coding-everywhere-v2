@@ -1,19 +1,19 @@
-import "./global.css";
+import "@/../global.css";
 
 import React, { useMemo } from "react";
 
-import { getDefaultServerConfig } from "./src/core";
-import { ThemeProvider } from "./src/theme/index";
-import { GluestackUIProvider } from "./src/components/ui/gluestack-ui-provider";
+import { getDefaultServerConfig } from "@/core";
+import { ThemeProvider } from "@/theme/index";
+import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 
-import { ChatPage } from "./src/components/pages/ChatPage";
-import { ChatActionController } from "./src/components/controllers/ChatActionController";
-import { SseSessionController } from "./src/components/controllers/SseSessionController";
-import { useSessionSideEffects } from "./src/components/controllers/SessionSideEffectManager";
-import { ThemeSessionState } from "./src/components/controllers/ThemeSessionState";
-import { WorkspaceFileController } from "./src/components/controllers/WorkspaceFileController";
-import { buildChatPageProps } from "./src/components/pages/buildChatPageProps";
-import { useSidebarState } from "./src/components/hooks/useSidebarState";
+import { ChatPage } from "@/components/pages/ChatPage";
+import { ChatActionController } from "@/components/controllers/ChatActionController";
+import { SseSessionController } from "@/components/controllers/SseSessionController";
+import { useSessionSideEffects } from "@/components/controllers/SessionSideEffectManager";
+import { ThemeSessionState } from "@/components/controllers/ThemeSessionState";
+import { WorkspaceFileController } from "@/components/controllers/WorkspaceFileController";
+import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
+import { useSidebarState } from "@/components/hooks/useSidebarState";
 
 export default function App() {
   const serverConfig = useMemo(() => getDefaultServerConfig(), []);

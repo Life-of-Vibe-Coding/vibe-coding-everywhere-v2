@@ -1,9 +1,9 @@
 import React from "react";
-import type { PermissionModeUI } from "../../utils/permission";
-import { getBackendPermissionMode } from "../../utils/permission";
-import { InputPanel } from "../chat/InputPanel";
-import type { CodeRefPayload } from "../file/FileViewerModal";
-import type { BrandProvider } from "../../theme/index";
+import type { PermissionModeUI } from "@/utils/permission";
+import { getBackendPermissionMode } from "@/utils/permission";
+import { InputPanel } from "@/components/chat/InputPanel";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
+import type { BrandProvider } from "@/theme/index";
 
 type ModelOption = {
   value: string;

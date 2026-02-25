@@ -38,7 +38,7 @@ import {
   radii,
   motion,
   springConfigs,
-} from "./theme";
+} from "@/design-system/theme";
 import {
   triggerHaptic,
   usePressableAnimation,
@@ -47,7 +47,7 @@ import {
   ProgressiveImage,
   EntranceAnimation,
   TypingDots,
-} from "./animations";
+} from "@/design-system/animations";
 
 // ============================================================================
 // Typography Component
@@ -1032,4 +1032,4 @@ export {
 };
 
 // Re-export SkeletonText and SkeletonCard from animations
-export { SkeletonText, SkeletonCard } from "./animations";
+export { SkeletonText, SkeletonCard } from "@/design-system/animations";

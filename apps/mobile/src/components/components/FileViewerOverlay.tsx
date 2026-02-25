@@ -1,8 +1,8 @@
 import React from "react";
 import type { StyleProp, ViewStyle } from "react-native";
-import { Box } from "../ui/box";
-import type { CodeRefPayload } from "../file/FileViewerModal";
-import { FileViewerModal } from "../file/FileViewerModal";
+import { Box } from "@/components/ui/box";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
+import { FileViewerModal } from "@/components/file/FileViewerModal";
 
 type FileViewerOverlayProps = {
   visible: boolean;

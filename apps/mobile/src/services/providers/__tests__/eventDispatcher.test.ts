@@ -1,4 +1,4 @@
-import { createEventDispatcher } from "../eventDispatcher";
+import { createEventDispatcher } from "@/services/providers/eventDispatcher";
 
 describe("eventDispatcher", () => {
   it("ignores agent_end events (no UI state mutation)", () => {

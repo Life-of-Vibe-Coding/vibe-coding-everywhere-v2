@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
 
-import type { SessionStatus } from "../../state/sessionManagementStore";
+import type { SessionStatus } from "@/state/sessionManagementStore";
 import {
   EMPTY_SESSION_CLEANUP_MS,
   SESSION_CLEANUP_INTERVAL_MS,
   SESSION_STATUS_POLL_INTERVAL_MS,
   SESSION_STORE_PAYLOAD_THROTTLE_MS,
-} from "./appConfig";
+} from "@/features/app/appConfig";
 
 type ServerConfig = {
   getBaseUrl: () => string;

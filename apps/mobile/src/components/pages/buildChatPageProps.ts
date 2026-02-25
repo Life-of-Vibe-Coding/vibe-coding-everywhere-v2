@@ -1,11 +1,11 @@
-import { basename } from "../../utils/path";
-import type { IServerConfig } from "../../core/types";
-import type { ChatPageProps } from "./ChatPage";
-import type { ChatActionControllerState } from "../controllers/ChatActionController";
-import type { ThemeSessionStateState } from "../controllers/ThemeSessionState";
-import type { SseSessionControllerState } from "../controllers/SseSessionController";
-import type { WorkspaceFileControllerState } from "../controllers/WorkspaceFileController";
-import type { SidebarTab } from "../hooks/useSidebarState";
+import { basename } from "@/utils/path";
+import type { IServerConfig } from "@/core/types";
+import type { ChatPageProps } from "@/components/pages/ChatPage";
+import type { ChatActionControllerState } from "@/components/controllers/ChatActionController";
+import type { ThemeSessionStateState } from "@/components/controllers/ThemeSessionState";
+import type { SseSessionControllerState } from "@/components/controllers/SseSessionController";
+import type { WorkspaceFileControllerState } from "@/components/controllers/WorkspaceFileController";
+import type { SidebarTab } from "@/components/hooks/useSidebarState";
 
 export type BuildChatPagePropsInput = {
   themeState: ThemeSessionStateState;

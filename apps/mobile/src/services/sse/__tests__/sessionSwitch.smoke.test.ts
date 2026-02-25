@@ -3,7 +3,7 @@
  */
 import { act } from "react";
 import { renderHook } from "@testing-library/react-native";
-import { useSse } from "../hooks";
+import { useSse } from "@/services/sse/hooks";
 
 interface MockListener {
   (event: any): void;

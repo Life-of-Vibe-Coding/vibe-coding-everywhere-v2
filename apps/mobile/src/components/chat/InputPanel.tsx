@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Platform, Keyboard, AccessibilityInfo, Modal, TouchableWithoutFeedback } from "react-native";
-import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "../icons/ProviderIcons";
+import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
   AttachPlusIcon,
   ChevronDownIcon,
@@ -11,19 +11,19 @@ import {
   SkillIcon,
   StopCircleIcon,
   TerminalIcon,
-} from "../icons/ChatActionIcons";
-import { EntranceAnimation, triggerHaptic } from "../../design-system";
-import { Badge, BadgeText } from "../ui/badge";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon } from "../ui/button";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
-import { Textarea, TextareaInput } from "../ui/textarea";
-import { VStack } from "../ui/vstack";
-import { HStack } from "../ui/hstack";
-import { useTheme } from "../../theme/index";
-import { getFileName } from "../../utils/path";
-import { cn } from "../../utils/cn";
+} from "@/components/icons/ChatActionIcons";
+import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
+import { Textarea, TextareaInput } from "@/components/ui/textarea";
+import { VStack } from "@/components/ui/vstack";
+import { HStack } from "@/components/ui/hstack";
+import { useTheme } from "@/theme/index";
+import { getFileName } from "@/utils/path";
+import { cn } from "@/utils/cn";
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 const INPUT_PLACEHOLDER = "Type response for Claude…";

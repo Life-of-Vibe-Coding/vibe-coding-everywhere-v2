@@ -1,9 +1,9 @@
 import React from "react";
-import { getTheme, type Provider as BrandProvider } from "../../theme/index";
-import { triggerHaptic } from "../../design-system";
-import { ClaudeIcon, GeminiIcon, CodexIcon } from "../icons/ProviderIcons";
-import { Box } from "../ui/box";
-import { Text as GluestackText } from "../ui/text";
+import { getTheme, type Provider as BrandProvider } from "@/theme/index";
+import { triggerHaptic } from "@/design-system";
+import { ClaudeIcon, GeminiIcon, CodexIcon } from "@/components/icons/ProviderIcons";
+import { Box } from "@/components/ui/box";
+import { Text as GluestackText } from "@/components/ui/text";
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -13,7 +13,7 @@ import {
   ActionsheetItem,
   ActionsheetItemText,
   ActionsheetScrollView,
-} from "../ui/actionsheet";
+} from "@/components/ui/actionsheet";
 
 type ModelOption = { value: string; label: string };
 type ProviderModelOptions = {

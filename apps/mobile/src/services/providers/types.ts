@@ -1,4 +1,4 @@
-import type { Message, PermissionDenial, PendingAskUserQuestion } from "../../core/types";
+import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/core/types";
 
 /**
  * Context passed to AI provider event handlers (Strategy pattern).

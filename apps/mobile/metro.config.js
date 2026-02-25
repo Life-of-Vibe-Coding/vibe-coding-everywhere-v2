@@ -3,11 +3,23 @@ const { getDefaultConfig } = require("expo/metro-config");
 const { withUniwindConfig } = require("uniwind/metro");
 
 const config = getDefaultConfig(__dirname);
+const srcAliasRoot = path.resolve(__dirname, "src");
 
 // Fix "runtime not ready" / "Property 'Platform' doesn't exist" on Hermes
 config.resolver ??= {};
 config.resolver.unstable_enablePackageExports = false;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === "@") {
+    return context.resolveRequest(context, srcAliasRoot, platform);
+  }
+  if (moduleName.startsWith("@/")) {
+    return context.resolveRequest(
+      context,
+      path.resolve(srcAliasRoot, moduleName.slice(2)),
+      platform
+    );
+  }
+
   // tailwindcss/resolveConfig was removed in v4; @gluestack-ui/utils still imports it for theme.screens
   if (moduleName === "tailwindcss/resolveConfig") {
     return {

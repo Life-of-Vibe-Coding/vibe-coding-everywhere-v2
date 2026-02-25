@@ -10,14 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
-import { Skeleton, triggerHaptic } from "../../design-system";
-import { useTheme } from "../../theme/index";
-import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "./DockerTabIcons";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { Input, InputField } from "../ui/input";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
+import { Skeleton, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "@/components/docker/DockerTabIcons";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Input, InputField } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
 
 export type DockerTab = "containers" | "images" | "volumes";
 

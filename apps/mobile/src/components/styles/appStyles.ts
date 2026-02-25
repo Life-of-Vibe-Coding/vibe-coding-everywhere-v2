@@ -1,6 +1,6 @@
 import { StyleSheet, Platform } from "react-native";
-import { spacing } from "../../design-system";
-import type { getTheme } from "../../theme/index";
+import { spacing } from "@/design-system";
+import type { getTheme } from "@/theme/index";
 
 export function createAppStyles(theme: ReturnType<typeof getTheme>) {
   return StyleSheet.create({

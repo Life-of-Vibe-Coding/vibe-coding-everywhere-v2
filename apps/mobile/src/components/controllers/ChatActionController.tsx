@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from "react";
 
-import { triggerHaptic } from "../../design-system";
-import { getSubmitPermissionConfig } from "../../features/app/appConfig";
-import type { PermissionModeUI } from "../../utils/permission";
-import { type Message, type useSse } from "../../services/sse/hooks";
-import type { CodeRefPayload } from "../file/FileViewerModal";
-import type { BrandProvider } from "../../theme/index";
+import { triggerHaptic } from "@/design-system";
+import { getSubmitPermissionConfig } from "@/features/app/appConfig";
+import type { PermissionModeUI } from "@/utils/permission";
+import { type Message, type useSse } from "@/services/sse/hooks";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
+import type { BrandProvider } from "@/theme/index";
 
 type SseApi = ReturnType<typeof useSse>;
 

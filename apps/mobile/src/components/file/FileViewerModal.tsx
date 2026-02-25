@@ -15,11 +15,11 @@ import {
 import { Highlight, themes } from "prism-react-renderer";
 import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { wrapBareUrlsInMarkdown } from "../../utils/markdown";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
+import { Pressable } from "@/components/ui/pressable";
+import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const LINE_HEIGHT = 22;

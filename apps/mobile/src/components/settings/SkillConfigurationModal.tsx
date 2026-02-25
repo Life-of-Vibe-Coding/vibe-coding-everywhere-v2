@@ -7,12 +7,12 @@ import {
   Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { CloseIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
-import { SkillDetailSheet } from "./SkillDetailSheet";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
+import { Pressable } from "@/components/ui/pressable";
+import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
+import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
 
 export interface SkillConfigurationModalProps {

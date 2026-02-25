@@ -2,7 +2,7 @@
  * Unit tests for formatToolUseForDisplay and tool name normalization.
  * Ensures bash/shell tools render in terminal format regardless of provider naming.
  */
-import { formatToolUseForDisplay } from "../types";
+import { formatToolUseForDisplay } from "@/services/providers/types";
 
 describe("formatToolUseForDisplay", () => {
   describe("Bash/shell tool normalization", () => {

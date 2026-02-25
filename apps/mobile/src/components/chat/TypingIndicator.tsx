@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import { StyleSheet, Animated } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useTheme } from "../../theme/index";
-import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
+import { useTheme } from "@/theme/index";
+import { GeminiIcon, ClaudeIcon, CodexIcon } from "@/components/icons/ProviderIcons";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
 
 interface TypingIndicatorProps {
   visible: boolean;

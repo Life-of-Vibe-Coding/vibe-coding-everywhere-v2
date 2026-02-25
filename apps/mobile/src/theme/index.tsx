@@ -14,7 +14,7 @@
 
 import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useColorScheme, Platform, Dimensions, PixelRatio } from "react-native";
-import { buildTypographyScale } from "./typography";
+import { buildTypographyScale } from "@/theme/typography";
 
 // ============================================================================
 // Brand Theme Definitions
@@ -56,10 +56,10 @@ export type {
   TypographyVariant,
   TypographyStyle,
   TypographyScaleRecord,
-} from "./typography";
-export { buildTypographyScale } from "./typography";
+} from "@/theme/typography";
+export { buildTypographyScale } from "@/theme/typography";
 
-export type TypographyScale = import("./typography").TypographyScaleRecord;
+export type TypographyScale = import("@/theme/typography").TypographyScaleRecord;
 
 // Lazy init to avoid "runtime not ready" (Dimensions at module load on Hermes)
 let _typography: TypographyScale | null = null;

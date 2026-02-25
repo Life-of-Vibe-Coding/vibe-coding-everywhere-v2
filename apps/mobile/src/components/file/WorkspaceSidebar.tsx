@@ -9,20 +9,20 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { Input, InputField } from "../ui/input";
-import { Textarea, TextareaInput } from "../ui/textarea";
-import { Badge, BadgeText } from "../ui/badge";
-import { getDefaultServerConfig } from "../../core";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
+import { Pressable } from "@/components/ui/pressable";
+import { Input, InputField } from "@/components/ui/input";
+import { Textarea, TextareaInput } from "@/components/ui/textarea";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { getDefaultServerConfig } from "@/core";
 import {
   FolderIconByType,
   FileIconByType,
-} from "../icons/WorkspaceTreeIcons";
-import { EntranceAnimation, triggerHaptic } from "../../design-system";
-import { basename, dirname } from "../../utils/path";
+} from "@/components/icons/WorkspaceTreeIcons";
+import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import { basename, dirname } from "@/utils/path";
 
 export type TreeItem = {
   name: string;
@@ -107,6 +107,10 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [data, setData] = useState<WorkspaceData | null>(null);
+  const safeAreaAwareHeight = Math.max(
+    0,
+    windowHeight - insets.bottom
+  );
 
   // Sidebar logic state
   const [loading, setLoading] = useState(true);
@@ -130,11 +134,11 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
 
   const baseUrl = getDefaultServerConfig().getBaseUrl();
   const drawerWidth = windowWidth - 2 * SIDE_MARGIN;
-  const maxDrawerHeight = Math.round(windowHeight * 0.85);
+  const maxDrawerHeight = Math.max(0, Math.round(safeAreaAwareHeight));
   const drawerHeight = embedded ? undefined : maxDrawerHeight;
   const drawerSize = embedded
     ? { width: drawerWidth, flex: 1 }
-    : { width: drawerWidth, height: drawerHeight };
+    : { width: drawerWidth, maxHeight: drawerHeight };
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -711,8 +715,13 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   };
 
   const overlayPadding = embedded
-    ? { paddingTop: 0, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }
-    : { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
+    ? { paddingTop: 0, paddingBottom: 0, paddingLeft: insets.left, paddingRight: insets.right }
+    : {
+      paddingTop: 0,
+      paddingBottom: insets.bottom,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+    };
   const drawerCenterStyle = embedded
     ? [styles.drawerCenter, styles.drawerCenterEmbedded, { paddingHorizontal: SIDE_MARGIN }]
     : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];
@@ -724,66 +733,66 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       />
       <Box style={drawerCenterStyle} pointerEvents="box-none">
         <EntranceAnimation variant="slideRight" duration={280}>
-        <Box style={[styles.drawer, drawerSize]}>
+          <Box style={[styles.drawer, drawerSize]}>
 
-          <Box style={styles.tabContainer}>
-            <Box style={styles.tabSpacer} />
-            <Box style={styles.tabGroup}>
-              {(["files", "changes", "commits"] as const).map(tab => (
+            <Box style={styles.tabContainer}>
+              <Box style={styles.tabSpacer} />
+              <Box style={styles.tabGroup}>
+                {(["files", "changes", "commits"] as const).map(tab => (
+                  <Pressable
+                    key={tab}
+                    style={[styles.tab, activeTab === tab && styles.tabActive, tab === "changes" && { marginLeft: 4 }]}
+                    onPress={() => {
+                      setActiveTab(tab);
+                      onActiveTabChange?.(tab);
+                    }}
+                  >
+                    <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </Box>
+              <Box style={styles.tabSpacerRight}>
                 <Pressable
-                  key={tab}
-                  style={[styles.tab, activeTab === tab && styles.tabActive, tab === "changes" && { marginLeft: 4 }]}
-                  onPress={() => {
-                  setActiveTab(tab);
-                  onActiveTabChange?.(tab);
-                }}
+                  style={styles.tabCloseBtn}
+                  onPress={onClose}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Close file explorer"
                 >
-                  <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </Text>
+                  <Text style={styles.tabCloseBtnText}>✕</Text>
                 </Pressable>
-              ))}
+              </Box>
             </Box>
-            <Box style={styles.tabSpacerRight}>
-              <Pressable
-                style={styles.tabCloseBtn}
-                onPress={onClose}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                accessibilityLabel="Close file explorer"
-              >
-                <Text style={styles.tabCloseBtnText}>✕</Text>
-              </Pressable>
-            </Box>
+
+            {gitLoading && activeTab !== "files" ? (
+              <Box style={styles.loading}>
+                <ActivityIndicator size="large" color={theme.accent} />
+              </Box>
+            ) : gitError && activeTab !== "files" ? (
+              <ScrollView style={styles.scroll} contentContainerStyle={styles.errorContainer}>
+                <Text style={styles.errorTitle}>Git Error</Text>
+                <Text style={styles.errorText}>{gitError}</Text>
+                {gitError.includes("not a git repository") && (
+                  <Pressable
+                    style={[styles.initGitBtn, actionLoading && styles.initGitBtnDisabled]}
+                    onPress={handleGitInit}
+                    disabled={actionLoading}
+                    accessibilityLabel="Initialize Git repository"
+                  >
+                    {actionLoading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.initGitBtnText}>Initialize Git Repository</Text>
+                    )}
+                  </Pressable>
+                )}
+              </ScrollView>
+            ) : activeTab === "commits" ? renderCommitsTab() :
+              activeTab === "files" ? renderFilesTab() :
+                renderChangesTab()}
+
           </Box>
-
-          {gitLoading && activeTab !== "files" ? (
-            <Box style={styles.loading}>
-              <ActivityIndicator size="large" color={theme.accent} />
-            </Box>
-          ) : gitError && activeTab !== "files" ? (
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.errorContainer}>
-              <Text style={styles.errorTitle}>Git Error</Text>
-              <Text style={styles.errorText}>{gitError}</Text>
-              {gitError.includes("not a git repository") && (
-                <Pressable
-                  style={[styles.initGitBtn, actionLoading && styles.initGitBtnDisabled]}
-                  onPress={handleGitInit}
-                  disabled={actionLoading}
-                  accessibilityLabel="Initialize Git repository"
-                >
-                  {actionLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.initGitBtnText}>Initialize Git Repository</Text>
-                  )}
-                </Pressable>
-              )}
-            </ScrollView>
-          )           : activeTab === "commits" ? renderCommitsTab() :
-            activeTab === "files" ? renderFilesTab() :
-              renderChangesTab()}
-
-        </Box>
         </EntranceAnimation>
       </Box>
     </Box>
@@ -812,7 +821,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     overlay: { flex: 1 },
     overlayEmbedded: { minHeight: 0 },
     mask: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
-    drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center" },
+    drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-start", alignItems: "center" },
     drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
       backgroundColor: theme.colors.background,

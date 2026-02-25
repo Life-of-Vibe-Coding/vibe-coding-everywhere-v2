@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { Message } from "../../services/sse/hooks";
-import type { BrandProvider } from "../../theme/index";
-import type { ChatModalOpenHandlers } from "../types/chatModalTypes";
+import type { Message } from "@/services/sse/hooks";
+import type { BrandProvider } from "@/theme/index";
+import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
 
 type ModalController = {
   isOpen: boolean;

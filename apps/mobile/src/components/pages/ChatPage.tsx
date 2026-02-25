@@ -1,13 +1,13 @@
 import React from "react";
 import type { FlatList } from "react-native";
-import type { PermissionModeUI } from "../../utils/permission";
-import type { BrandProvider } from "../../theme/index";
-import type { Message, PermissionDenial, PendingAskUserQuestion } from "../../services/sse/hooks";
-import type { CodeRefPayload } from "../file/FileViewerModal";
-import type { createAppStyles } from "../styles/appStyles";
-import type { getTheme } from "../../theme/index";
-import { ChatModalsSection } from "../components/ChatModalsSection";
-import { ChatPageShell } from "./ChatPageShell";
+import type { PermissionModeUI } from "@/utils/permission";
+import type { BrandProvider } from "@/theme/index";
+import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/sse/hooks";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
+import type { createAppStyles } from "@/components/styles/appStyles";
+import type { getTheme } from "@/theme/index";
+import { ChatModalsSection } from "@/components/components/ChatModalsSection";
+import { ChatPageShell } from "@/components/pages/ChatPageShell";
 
 type ModelOption = {
   value: string;

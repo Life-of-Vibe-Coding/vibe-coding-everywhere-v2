@@ -9,19 +9,19 @@ import {
   LayoutChangeEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { triggerHaptic, EntranceAnimation, AnimatedPressableView } from "../../design-system";
-import { useTheme } from "../../theme/index";
-import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, basename } from "../../utils/path";
+import { triggerHaptic, EntranceAnimation, AnimatedPressableView } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, basename } from "@/utils/path";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-} from "../icons/ChatActionIcons";
-import { FolderIcon } from "../icons/WorkspaceTreeIcons";
-import { Box } from "../ui/box";
-import { Button, ButtonText, ButtonIcon } from "../ui/button";
-import { Pressable } from "../ui/pressable";
-import { Text as GText } from "../ui/text";
+} from "@/components/icons/ChatActionIcons";
+import { FolderIcon } from "@/components/icons/WorkspaceTreeIcons";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { Text as GText } from "@/components/ui/text";
 
 type WorkspaceChild = { name: string; path: string };
 

@@ -2,7 +2,7 @@ import {
   collapseIdenticalCommandSteps,
   extractBashCommandOnly,
   fillEmptyBashBlocks,
-} from "../../../utils/bashContent";
+} from "@/utils/bashContent";
 
 describe("fillEmptyBashBlocks", () => {
   it("moves command lines below an empty bash block into the block", () => {

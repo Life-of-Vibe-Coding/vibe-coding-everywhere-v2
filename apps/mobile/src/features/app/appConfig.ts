@@ -1,5 +1,5 @@
-import { getBackendPermissionMode, type PermissionModeUI } from "../../utils/permission";
-import type { Provider as BrandProvider } from "../../theme/index";
+import { getBackendPermissionMode, type PermissionModeUI } from "@/utils/permission";
+import type { Provider as BrandProvider } from "@/theme/index";
 import {
   DEFAULT_CLAUDE_MODEL,
   DEFAULT_CODEX_MODEL,
@@ -7,8 +7,8 @@ import {
   CLAUDE_MODELS,
   GEMINI_MODELS,
   CODEX_MODELS,
-} from "../../constants/modelOptions";
-import type { Message } from "../../core";
+} from "@/constants/modelOptions";
+import type { Message } from "@/core";
 
 export type ModalSessionItem = {
   id: string;

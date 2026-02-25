@@ -17,15 +17,15 @@ import {
   Divider,
   spacing,
   radii,
-} from "../../design-system";
-import { Badge, BadgeText } from "../ui/badge";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
-import { VStack } from "../ui/vstack";
-import { HStack } from "../ui/hstack";
-import { useTheme } from "../../theme/index";
+} from "@/design-system";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { HStack } from "@/components/ui/hstack";
+import { useTheme } from "@/theme/index";
 import {
   TrashIcon,
   CloseIcon,
@@ -33,10 +33,10 @@ import {
   SessionManagementIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-} from "../icons/ChatActionIcons";
-import { getFileName } from "../../utils/path";
-import { useSessionManagementStore } from "../../state/sessionManagementStore";
-import type { Message } from "../../core/types";
+} from "@/components/icons/ChatActionIcons";
+import { getFileName } from "@/utils/path";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import type { Message } from "@/core/types";
 
 /** Session status entry from /api/sessions/status. */
 export interface ApiSession {

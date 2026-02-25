@@ -1,9 +1,9 @@
 // Event dispatcher (combines Claude + Gemini handlers)
-export { createEventDispatcher } from "./eventDispatcher";
+export { createEventDispatcher } from "@/services/providers/eventDispatcher";
 
 // Types
-export type { EventContext, EventHandler } from "./types";
-export { formatToolUseForDisplay } from "./types";
+export type { EventContext, EventHandler } from "@/services/providers/types";
+export { formatToolUseForDisplay } from "@/services/providers/types";
 
 // Stream utilities (shared by both providers)
 export {
@@ -20,4 +20,4 @@ export {
   RENDER_CMD_REGEX,
   RENDER_URL_REGEX,
   NEED_PERMISSION_REGEX,
-} from "./stream";
+} from "@/services/providers/stream";

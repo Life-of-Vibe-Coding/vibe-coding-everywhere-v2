@@ -50,7 +50,7 @@ export {
   type SpacingToken,
   type RadiusToken,
   type ShadowToken,
-} from "./theme";
+} from "@/design-system/theme";
 
 // ============================================================================
 // Animation System Exports
@@ -83,7 +83,7 @@ export {
   type AnimationVariant,
   type AnimationConfig,
   type HapticConfig,
-} from "./animations";
+} from "@/design-system/animations";
 
 // ============================================================================
 // Component Exports
@@ -121,6 +121,6 @@ export {
   type BadgeVariant,
   type BadgeSize,
   type AvatarSize,
-} from "./components";
+} from "@/design-system/components";
 
-export { cn } from "../utils/cn";
+export { cn } from "@/utils/cn";

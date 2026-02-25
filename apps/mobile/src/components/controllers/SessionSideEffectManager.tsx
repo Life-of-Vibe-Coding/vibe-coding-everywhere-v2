@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 
-import { usePerformanceMonitor } from "../../design-system";
-import { notifyAgentFinished, notifyApprovalNeeded } from "../../services/agentNotifications";
-import { getDefaultServerConfig } from "../../core";
-import { useSessionManagementSync } from "../../features/app/useSessionManagementSync";
-import type { ThemeSessionStateState } from "./ThemeSessionState";
-import type { SseSessionControllerState } from "./SseSessionController";
+import { usePerformanceMonitor } from "@/design-system";
+import { notifyAgentFinished, notifyApprovalNeeded } from "@/services/agentNotifications";
+import { getDefaultServerConfig } from "@/core";
+import { useSessionManagementSync } from "@/features/app/useSessionManagementSync";
+import type { ThemeSessionStateState } from "@/components/controllers/ThemeSessionState";
+import type { SseSessionControllerState } from "@/components/controllers/SseSessionController";
 
 type SessionManagerServerConfig = ReturnType<typeof getDefaultServerConfig>;
 

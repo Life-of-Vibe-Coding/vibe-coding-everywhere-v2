@@ -9,13 +9,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Markdown from "react-native-markdown-display";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { Button, ButtonText } from "../ui/button";
-import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "../icons/ChatActionIcons";
-import { wrapBareUrlsInMarkdown, stripFrontmatter } from "../../utils/markdown";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
+import { Pressable } from "@/components/ui/pressable";
+import { Button, ButtonText } from "@/components/ui/button";
+import { CloseIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
+import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
 
 export interface SkillDetailSheetProps {
   visible: boolean;

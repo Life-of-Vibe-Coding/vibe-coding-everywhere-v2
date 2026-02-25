@@ -1,4 +1,4 @@
-import type { Provider as BrandProvider } from "../theme/index";
+import type { Provider as BrandProvider } from "@/theme/index";
 
 export type ModelOption = {
   value: string;

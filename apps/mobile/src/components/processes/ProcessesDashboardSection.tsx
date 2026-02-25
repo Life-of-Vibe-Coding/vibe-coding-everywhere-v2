@@ -8,15 +8,15 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { triggerHaptic } from "../../design-system";
-import { CloseIcon } from "../icons/ChatActionIcons";
-import { useTheme } from "../../theme/index";
-import { Badge, BadgeText } from "../ui/badge";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
-import type { ApiProcess } from "./ProcessesDashboardModal";
+import { triggerHaptic } from "@/design-system";
+import { CloseIcon } from "@/components/icons/ChatActionIcons";
+import { useTheme } from "@/theme/index";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
+import type { ApiProcess } from "@/components/processes/ProcessesDashboardModal";
 
 export interface ProcessesDashboardSectionProps {
   serverBaseUrl: string;

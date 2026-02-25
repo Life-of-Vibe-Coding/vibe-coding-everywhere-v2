@@ -1,16 +1,16 @@
 import React from "react";
 import { StyleProp, ViewStyle } from "react-native";
-import { HStack } from "../ui/hstack";
-import { VStack } from "../ui/vstack";
-import { Box } from "../ui/box";
-import { Text as GluestackText } from "../ui/text";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Box } from "@/components/ui/box";
+import { Text as GluestackText } from "@/components/ui/text";
 import {
   AnimatedPressableView,
   EntranceAnimation,
   FlashAnimation,
   triggerHaptic,
-} from "../../design-system";
-import { MenuIcon, SettingsIcon } from "../icons/HeaderIcons";
+} from "@/design-system";
+import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
 
 type ThemeLike = {
   colors: {

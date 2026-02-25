@@ -3,16 +3,16 @@ import React, { useMemo, useState } from "react";
 import {
   getTheme,
   type Provider as BrandProvider,
-} from "../../theme/index";
-import { createAppStyles } from "../styles/appStyles";
+} from "@/theme/index";
+import { createAppStyles } from "@/components/styles/appStyles";
 import {
   getDefaultPermissionModeUI,
   getModelForProvider,
   getModelOptionsForProvider,
   getThemeModeForProvider,
-} from "../../features/app/appConfig";
-import { MODEL_OPTIONS_BY_PROVIDER } from "../../constants/modelOptions";
-import type { PermissionModeUI } from "../../utils/permission";
+} from "@/features/app/appConfig";
+import { MODEL_OPTIONS_BY_PROVIDER } from "@/constants/modelOptions";
+import type { PermissionModeUI } from "@/utils/permission";
 
 export type ThemeSessionStateProps = {
   children: (state: ThemeSessionStateState) => React.ReactNode;

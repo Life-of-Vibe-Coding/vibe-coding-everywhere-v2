@@ -13,7 +13,7 @@ import {
   isCodexStreamOutput,
   RENDER_CMD_REGEX,
   RENDER_URL_REGEX,
-} from "../stream";
+} from "@/services/providers/stream";
 
 describe("stripCommandStyleTags / stripTrailingIncompleteTag", () => {
   describe("single command in one message", () => {

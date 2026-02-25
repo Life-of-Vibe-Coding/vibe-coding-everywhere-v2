@@ -12,7 +12,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
-import { triggerHaptic } from "../design-system";
+import { triggerHaptic } from "@/design-system";
 
 const AGENT_CHANNEL_ID = "agent-events";
 

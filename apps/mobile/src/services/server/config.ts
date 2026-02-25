@@ -1,4 +1,4 @@
-import type { IServerConfig } from "../../core/types";
+import type { IServerConfig } from "@/core/types";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 

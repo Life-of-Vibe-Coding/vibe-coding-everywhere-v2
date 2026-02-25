@@ -17,7 +17,7 @@ import {
   type StyleProp,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useTheme, motion } from "./theme";
+import { useTheme, motion } from "@/design-system/theme";
 
 // ============================================================================
 // Types

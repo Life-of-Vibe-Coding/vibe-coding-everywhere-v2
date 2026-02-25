@@ -1,4 +1,4 @@
-import type { IServerConfig, IWorkspaceFileService } from "../../core/types";
+import type { IServerConfig, IWorkspaceFileService } from "@/core/types";
 
 /**
  * Default workspace file service using fetch + ServerConfig (Dependency Injection).

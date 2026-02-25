@@ -1,5 +1,5 @@
 import React from 'react';
-import { boxStyle } from './styles';
+import { boxStyle } from '@/components/ui/box/styles';
 
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 

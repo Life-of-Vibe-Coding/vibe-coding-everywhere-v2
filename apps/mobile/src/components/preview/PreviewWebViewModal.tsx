@@ -11,12 +11,12 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { Input, InputField } from "../ui/input";
-import { UrlChoiceModal } from "./UrlChoiceModal";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Text } from "@/components/ui/text";
+import { Pressable } from "@/components/ui/pressable";
+import { Input, InputField } from "@/components/ui/input";
+import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
 

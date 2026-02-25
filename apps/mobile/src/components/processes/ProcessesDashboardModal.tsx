@@ -9,15 +9,15 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic, spacing, radii, EntranceAnimation } from "../../design-system";
-import { CloseIcon, TerminalIcon } from "../icons/ChatActionIcons";
-import { useTheme } from "../../theme/index";
-import { Box } from "../ui/box";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { HStack } from "../ui/hstack";
-import { VStack } from "../ui/vstack";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
+import { triggerHaptic, spacing, radii, EntranceAnimation } from "@/design-system";
+import { CloseIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { useTheme } from "@/theme/index";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { HStack } from "@/components/ui/hstack";
+import { VStack } from "@/components/ui/vstack";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
 
 /** Minimum touch target per UI/UX Pro Max (44x44px). */
 const MIN_TOUCH_TARGET = 44;

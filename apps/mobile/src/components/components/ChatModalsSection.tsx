@@ -1,17 +1,17 @@
 import React from "react";
 
-import type { Message } from "../../services/sse/hooks";
-import { AskQuestionModal } from "../chat/AskQuestionModal";
-import { SkillConfigurationModal } from "../settings/SkillConfigurationModal";
-import { WorkspacePickerModal } from "../settings/WorkspacePickerModal";
-import { DockerManagerModal } from "../docker/DockerManagerModal";
-import { ProcessesDashboardModal } from "../processes/ProcessesDashboardModal";
-import { SessionManagementModal } from "../chat/SessionManagementModal";
-import { PreviewWebViewModal } from "../preview/PreviewWebViewModal";
-import { ModelPickerSheet } from "./ModelPickerSheet";
-import type { ChatPageContext, ChatPageModals } from "../pages/ChatPage";
-import type { ChatModalOpenHandlers } from "../types/chatModalTypes";
-import { useChatModalsController } from "../hooks/useChatModalsController";
+import type { Message } from "@/services/sse/hooks";
+import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
+import { SkillConfigurationModal } from "@/components/settings/SkillConfigurationModal";
+import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
+import { DockerManagerModal } from "@/components/docker/DockerManagerModal";
+import { ProcessesDashboardModal } from "@/components/processes/ProcessesDashboardModal";
+import { SessionManagementModal } from "@/components/chat/SessionManagementModal";
+import { PreviewWebViewModal } from "@/components/preview/PreviewWebViewModal";
+import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
+import type { ChatPageContext, ChatPageModals } from "@/components/pages/ChatPage";
+import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
+import { useChatModalsController } from "@/components/hooks/useChatModalsController";
 
 type ChatModalsSectionProps = {
   context: ChatPageContext;

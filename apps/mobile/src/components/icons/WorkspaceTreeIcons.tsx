@@ -6,7 +6,7 @@
 import React from "react";
 import Svg, { Path, Circle, G } from "react-native-svg";
 import { SvgXml } from "react-native-svg";
-import { getFolderIconSvg, getFileIconSvg } from "../../data/workspaceIcons";
+import { getFolderIconSvg, getFileIconSvg } from "@/data/workspaceIcons";
 
 const size = 20;
 const viewBox = "0 0 24 24";

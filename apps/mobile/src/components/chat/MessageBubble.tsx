@@ -1,26 +1,26 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
 import { StyleSheet, Linking, ScrollView, Platform, Dimensions, Animated } from "react-native";
 import Markdown from "react-native-markdown-display";
-import { useTheme } from "../../theme/index";
-import { spacing, radii, triggerHaptic } from "../../design-system";
-import type { Message } from "../../services/sse/hooks";
-import { stripTrailingIncompleteTag } from "../../services/providers/stream";
-import { TerminalIcon, ChevronDownIcon } from "../icons/ChatActionIcons";
-import { BookOpenIcon, PencilIcon, FilePenIcon } from "../icons/FileActivityIcons";
-import { GeminiIcon, ClaudeIcon, CodexIcon } from "../icons/ProviderIcons";
-import { wrapBareUrlsInMarkdown, parseTextWithUrlSegments } from "../../utils/markdown";
-import { getFileName } from "../../utils/path";
+import { useTheme } from "@/theme/index";
+import { spacing, radii, triggerHaptic } from "@/design-system";
+import type { Message } from "@/services/sse/hooks";
+import { stripTrailingIncompleteTag } from "@/services/providers/stream";
+import { TerminalIcon, ChevronDownIcon } from "@/components/icons/ChatActionIcons";
+import { BookOpenIcon, PencilIcon, FilePenIcon } from "@/components/icons/FileActivityIcons";
+import { GeminiIcon, ClaudeIcon, CodexIcon } from "@/components/icons/ProviderIcons";
+import { wrapBareUrlsInMarkdown, parseTextWithUrlSegments } from "@/utils/markdown";
+import { getFileName } from "@/utils/path";
 import {
   fillEmptyBashBlocks,
   stripTrailingTerminalHeaderLines,
   extractBashCommandOnly,
   collapseIdenticalCommandSteps,
-} from "../../utils/bashContent";
-import { EntranceAnimation } from "../../design-system";
-import { Badge, BadgeText } from "../ui/badge";
-import { Box } from "../ui/box";
-import { Pressable } from "../ui/pressable";
-import { Text } from "../ui/text";
+} from "@/utils/bashContent";
+import { EntranceAnimation } from "@/design-system";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {

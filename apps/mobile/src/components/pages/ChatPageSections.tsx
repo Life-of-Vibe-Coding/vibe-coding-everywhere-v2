@@ -1,14 +1,15 @@
 import React from "react";
+import type { LayoutChangeEvent } from "react-native";
 import { View } from "react-native";
-import { AppHeaderBar } from "../components/AppHeaderBar";
-import { ChatInputDock } from "../components/ChatInputDock";
-import { ChatMessageList } from "../components/ChatMessageList";
-import { FileViewerOverlay } from "../components/FileViewerOverlay";
-import { WorkspaceSidebarOverlay } from "../components/WorkspaceSidebarOverlay";
-import { Box } from "../ui/box";
-import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "./ChatPage";
-import type { createAppStyles } from "../styles/appStyles";
-import type { getTheme } from "../../theme/index";
+import { AppHeaderBar } from "@/components/components/AppHeaderBar";
+import { ChatInputDock } from "@/components/components/ChatInputDock";
+import { ChatMessageList } from "@/components/components/ChatMessageList";
+import { FileViewerOverlay } from "@/components/components/FileViewerOverlay";
+import { WorkspaceSidebarOverlay } from "@/components/components/WorkspaceSidebarOverlay";
+import { Box } from "@/components/ui/box";
+import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
+import type { createAppStyles } from "@/components/styles/appStyles";
+import type { getTheme } from "@/theme/index";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
@@ -62,11 +63,14 @@ export type ChatConversationSectionProps = {
   conversation: ChatPageConversation;
   fileViewer: ChatPageFileViewer;
   sidebar: ChatPageSidebar;
+  inputDockHeight: number;
 };
 
-export function ChatConversationSection({ styles, conversation, fileViewer, sidebar }: ChatConversationSectionProps) {
+export function ChatConversationSection({ styles, conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
+  const reservedBottomInset = Math.max(0, inputDockHeight);
+
   return (
-    <Box style={styles.chatShell}>
+    <Box style={[styles.chatShell, { paddingBottom: reservedBottomInset }]}>
       <ChatMessageList
         messages={conversation.messages}
         provider={conversation.provider}
@@ -87,7 +91,7 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
 
       <FileViewerOverlay
         visible={fileViewer.selectedFilePath != null}
-        style={styles.fileViewerOverlay}
+        style={[styles.fileViewerOverlay, { bottom: reservedBottomInset }]}
         path={fileViewer.selectedFilePath ?? ""}
         content={fileViewer.fileContent}
         isImage={fileViewer.fileIsImage}
@@ -99,7 +103,7 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
 
       <WorkspaceSidebarOverlay
         visible={sidebar.visible}
-        style={styles.sidebarOverlay}
+        style={[styles.sidebarOverlay, { bottom: reservedBottomInset }]}
         pointerEvents={sidebar.visible ? "auto" : "none"}
         onClose={sidebar.onCloseSidebar}
         onFileSelect={sidebar.onFileSelectFromSidebar}
@@ -120,6 +124,7 @@ export type ChatInputDockSectionProps = {
   onOpenProcesses: () => void;
   onOpenDocker: () => void;
   onOpenModelPicker: () => void;
+  onInputDockLayout: (height: number) => void;
 };
 
 export function ChatInputDockSection({
@@ -131,13 +136,20 @@ export function ChatInputDockSection({
   onOpenProcesses,
   onOpenDocker,
   onOpenModelPicker,
+  onInputDockLayout,
 }: ChatInputDockSectionProps) {
   if (!input.visible) {
     return null;
   }
 
   return (
-    <View style={styles.inputBar}>
+    <View
+      style={styles.inputBar}
+      onLayout={(event: LayoutChangeEvent) => {
+        const height = event.nativeEvent.layout.height;
+        onInputDockLayout(height);
+      }}
+    >
       <ChatInputDock
         connected={runtime.connected}
         agentRunning={runtime.agentRunning}
