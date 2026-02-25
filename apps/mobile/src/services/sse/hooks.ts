@@ -727,7 +727,6 @@ export function useSse(options: UseSseOptions = {}) {
       liveMessagesRef,
       nextIdRef,
     });
-    const state = getOrCreateSessionState(sid);
     const hasStreamEndedRef = { current: false };
     sawAgentEndRef.current = false;
 
@@ -780,8 +779,7 @@ export function useSse(options: UseSseOptions = {}) {
       setWaitingForUserInput: (v) => {
         if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
           if (!sawAgentEndRef.current) {
-            state.sessionState = "running";
-            setSessionState(state.sessionState);
+            setSessionStateForSession(connectionSessionIdRef.current, "running");
           }
           setWaitingForUserInput(v);
         }
@@ -855,7 +853,6 @@ export function useSse(options: UseSseOptions = {}) {
 
           if (parsed.type === "session-started" || parsed.type === "claude-started") {
             hasStreamEndedRef.current = false;
-            state.sessionState = "running";
             setLastSessionTerminated(false);
             if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
               setSessionStateForSession(connectionSessionIdRef.current, "running");
@@ -929,7 +926,6 @@ export function useSse(options: UseSseOptions = {}) {
         }
       } catch (e) {}
 
-      state.sessionState = "idle";
       setLastSessionTerminated(exitCode !== 0);
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
         setSessionStateForSession(connectionSessionIdRef.current, "idle");

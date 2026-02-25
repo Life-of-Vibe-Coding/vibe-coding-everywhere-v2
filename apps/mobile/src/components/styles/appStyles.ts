@@ -24,7 +24,8 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
       flexDirection: "column",
       paddingHorizontal: 24,
       paddingTop: 8,
-      paddingBottom: 16,
+      paddingBottom: 0,
+      marginBottom: 0,
     },
     topSection: {
       flex: 1,
@@ -34,11 +35,14 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     contentArea: {
       flex: 1,
+      
       minHeight: 0,
       overflow: Platform.OS === "ios" ? "visible" : "hidden",
     },
     sidebarOverlay: {
       ...StyleSheet.absoluteFillObject,
+      height: "100%",
+      
       zIndex: 5,
     },
     fileViewerOverlay: {
@@ -63,6 +67,7 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
+      marginHorizontal: spacing[1],
     },
     runningDot: {
       width: 6,
@@ -83,23 +88,15 @@ export function createAppStyles(theme: ReturnType<typeof getTheme>) {
     },
     chatShell: {
       flex: 1,
-      marginTop: 58,
-      minHeight: 0,
+      marginTop: 0
     },
-    chatArea: {
-      flex: 1,
-    },
-    inputBar: {
-      flexShrink: 0,
-      flexGrow: 0,
-      paddingTop: 12,
-      paddingBottom: 8,
-    },
+
+ 
     chatMessages: {
-      paddingVertical: 12,
-      paddingHorizontal: spacing["4"],
-      gap: 16,
-      paddingBottom: 48,
+      marginTop: 58,
+      paddingHorizontal: spacing["3"],
+
+
     },
   });
 }

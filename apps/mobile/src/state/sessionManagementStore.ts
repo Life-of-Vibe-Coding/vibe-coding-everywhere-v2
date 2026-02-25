@@ -25,15 +25,37 @@ export type SessionManagementStore = {
   clearSessionStatuses: () => void;
 };
 
+const areSessionStatusesEqual = (a: SessionStatus[], b: SessionStatus[]): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+    if (
+      left.id !== right.id ||
+      left.cwd !== right.cwd ||
+      left.model !== right.model ||
+      left.lastAccess !== right.lastAccess ||
+      left.status !== right.status ||
+      left.title !== right.title
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
 export const useSessionManagementStore = create<SessionManagementStore>((set) => ({
   sessionStatuses: [],
   sessionId: null,
   provider: "codex",
   model: "gpt-5.1-codex-mini",
-  setSessionStatuses: (sessions) => set({ sessionStatuses: sessions }),
-  setSessionId: (sessionId) => set({ sessionId }),
-  setProvider: (provider) => set({ provider }),
-  setModel: (model) => set({ model }),
+  setSessionStatuses: (sessions) =>
+    set((state) => (areSessionStatusesEqual(state.sessionStatuses, sessions) ? state : { sessionStatuses: sessions })),
+  setSessionId: (sessionId) => set((state) => (state.sessionId === sessionId ? state : { sessionId })),
+  setProvider: (provider) => set((state) => (state.provider === provider ? state : { provider })),
+  setModel: (model) => set((state) => (state.model === model ? state : { model })),
   upsertSessionStatus: (session) =>
     set((state) => {
       const next = state.sessionStatuses.filter((s) => s.id !== session.id);

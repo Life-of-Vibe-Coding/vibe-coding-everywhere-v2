@@ -36,6 +36,25 @@ export interface ProcessesDashboardModalProps {
   serverBaseUrl: string;
 }
 
+function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    if (
+      item.pid !== next.pid ||
+      item.port !== next.port ||
+      item.command !== next.command
+    ) {
+      return false;
+    }
+    const leftLogPaths = item.logPaths ?? [];
+    const rightLogPaths = next.logPaths ?? [];
+    if (leftLogPaths.length !== rightLogPaths.length) return false;
+    return leftLogPaths.every((logPath, pathIndex) => logPath === rightLogPaths[pathIndex]);
+  });
+}
+
 export function ProcessesDashboardModal({
   visible,
   onClose,
@@ -69,13 +88,14 @@ export function ProcessesDashboardModal({
       if (!res.ok) {
         throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
       }
-      setApiProcesses((data.processes ?? []) as ApiProcess[]);
+      const nextProcesses = (data.processes ?? []) as ApiProcess[];
+      setApiProcesses((prev) => (areApiProcessesEqual(prev, nextProcesses) ? prev : nextProcesses));
       if ((data as { warning?: string }).warning) {
         setWarning((data as { warning: string }).warning);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load processes");
-      setApiProcesses([]);
+      setApiProcesses((prev) => (prev.length === 0 ? prev : []));
     }
   }, [serverBaseUrl]);
 

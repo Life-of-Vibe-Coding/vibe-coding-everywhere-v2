@@ -4,8 +4,8 @@ import { View } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
-import { FileViewerOverlay } from "@/components/components/FileViewerOverlay";
-import { WorkspaceSidebarOverlay } from "@/components/components/WorkspaceSidebarOverlay";
+import { FileViewerPage } from "@/components/pages/FileViewerPage";
+import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
 import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { createAppStyles } from "@/components/styles/appStyles";
@@ -63,10 +63,8 @@ export type ChatConversationSectionProps = {
 };
 
 export function ChatConversationSection({ styles, conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
-  const reservedBottomInset = Math.max(0, inputDockHeight);
-
   return (
-    <Box style={[styles.chatShell, { paddingBottom: reservedBottomInset }]}>
+    <Box style={[styles.chatShell, {  }]}>
       <ChatMessageList
         messages={conversation.messages}
         provider={conversation.provider}
@@ -84,9 +82,9 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
         contentContainerStyle={styles.chatMessages}
       />
 
-      <FileViewerOverlay
+      <FileViewerPage
         visible={fileViewer.selectedFilePath != null}
-        style={[styles.fileViewerOverlay, { bottom: reservedBottomInset }]}
+        style={styles.fileViewerOverlay}
         path={fileViewer.selectedFilePath ?? ""}
         content={fileViewer.fileContent}
         isImage={fileViewer.fileIsImage}
@@ -96,15 +94,14 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
         onAddCodeReference={fileViewer.onAddCodeReference}
       />
 
-      <WorkspaceSidebarOverlay
+      <WorkspaceSidebarPage
         visible={sidebar.visible}
-        style={[styles.sidebarOverlay, { bottom: reservedBottomInset }]}
+        style={styles.sidebarOverlay}
         pointerEvents={sidebar.visible ? "auto" : "none"}
         onClose={sidebar.onCloseSidebar}
         onFileSelect={sidebar.onFileSelectFromSidebar}
         onCommitByAI={sidebar.onCommitByAI}
         onActiveTabChange={sidebar.onSidebarTabChange}
-        sidebarActiveTab={sidebar.activeTab}
       />
     </Box>
   );

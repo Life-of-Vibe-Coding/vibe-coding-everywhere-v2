@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { Box } from "@/components/ui/box";
 import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
 
-type WorkspaceSidebarOverlayProps = {
+type WorkspaceSidebarPageProps = {
   visible: boolean;
   style?: StyleProp<ViewStyle>;
   pointerEvents?: "auto" | "none" | "box-none" | "box-only";
@@ -11,10 +11,9 @@ type WorkspaceSidebarOverlayProps = {
   onFileSelect: (path: string) => void;
   onCommitByAI: (request: string) => void;
   onActiveTabChange: (tab: "files" | "changes" | "commits") => void;
-  sidebarActiveTab: "files" | "changes" | "commits";
 };
 
-export function WorkspaceSidebarOverlay({
+export function WorkspaceSidebarPage({
   visible,
   style,
   pointerEvents,
@@ -22,8 +21,7 @@ export function WorkspaceSidebarOverlay({
   onFileSelect,
   onCommitByAI,
   onActiveTabChange,
-  sidebarActiveTab,
-}: WorkspaceSidebarOverlayProps) {
+}: WorkspaceSidebarPageProps) {
   return (
     <Box style={style} pointerEvents={pointerEvents ?? "none"}>
       <WorkspaceSidebar

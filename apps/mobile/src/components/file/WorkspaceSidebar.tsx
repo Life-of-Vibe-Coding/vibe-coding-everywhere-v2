@@ -69,6 +69,36 @@ const ATOM_ONE_LIGHT = {
   grey: "#696C77",
 };
 
+function areGitCommitsEqual(a: GitCommit[], b: GitCommit[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.hash === next.hash &&
+      item.author === next.author &&
+      item.date === next.date &&
+      item.message === next.message
+    );
+  });
+}
+
+function areGitStatusItemsEqual(
+  a: ReadonlyArray<{ file: string; status?: string; isDirectory?: boolean }>,
+  b: ReadonlyArray<{ file: string; status?: string; isDirectory?: boolean }>
+): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.file === next.file &&
+      item.status === next.status &&
+      item.isDirectory === next.isDirectory
+    );
+  });
+}
+
 export type GitContextForAI = {
   staged: string[];
   unstaged: string[];
@@ -171,7 +201,11 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       const res = await fetch(`${baseUrl}/api/git/commits?limit=50`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      setCommits(json.commits || []);
+      setCommits((prev) =>
+        areGitCommitsEqual(prev, json.commits || [])
+          ? prev
+          : json.commits || []
+      );
     } catch (err: any) {
       setGitError(err.message);
     } finally {
@@ -197,9 +231,12 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
         }
         return { file: "", isDirectory: false };
       };
-      setStagedFiles((json.status?.staged || []).map(normalizeItem) as GitStatusItem[]);
-      setUnstagedFiles((json.status?.unstaged || []).map(normalizeItem) as GitStatusItem[]);
-      setUntrackedFiles((json.status?.untracked || []).map(normalizeItem) as GitUntrackedItem[]);
+      const nextStaged = (json.status?.staged || []).map(normalizeItem) as GitStatusItem[];
+      const nextUnstaged = (json.status?.unstaged || []).map(normalizeItem) as GitStatusItem[];
+      const nextUntracked = (json.status?.untracked || []).map(normalizeItem) as GitUntrackedItem[];
+      setStagedFiles((prev) => (areGitStatusItemsEqual(prev, nextStaged) ? prev : nextStaged));
+      setUnstagedFiles((prev) => (areGitStatusItemsEqual(prev, nextUnstaged) ? prev : nextUnstaged));
+      setUntrackedFiles((prev) => (areGitStatusItemsEqual(prev, nextUntracked) ? prev : nextUntracked));
     } catch (err: any) {
       setGitError(err.message);
     } finally {

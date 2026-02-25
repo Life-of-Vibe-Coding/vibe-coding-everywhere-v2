@@ -51,6 +51,56 @@ export interface DockerManagerModalProps {
   serverBaseUrl: string;
 }
 
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
+function areDockerContainersEqual(a: DockerContainer[], b: DockerContainer[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.id === next.id &&
+      areStringArraysEqual(item.names, next.names) &&
+      item.image === next.image &&
+      item.status === next.status &&
+      item.state === next.state &&
+      item.ports === next.ports &&
+      item.created === next.created
+    );
+  });
+}
+
+function areDockerImagesEqual(a: DockerImage[], b: DockerImage[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.id === next.id &&
+      areStringArraysEqual(item.repoTags, next.repoTags) &&
+      item.size === next.size &&
+      item.created === next.created
+    );
+  });
+}
+
+function areDockerVolumesEqual(a: DockerVolume[], b: DockerVolume[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.name === next.name &&
+      item.driver === next.driver &&
+      item.mountpoint === next.mountpoint &&
+      item.created === next.created
+    );
+  });
+}
+
 function statusClass(state: string): "running" | "exited" | "paused" | "unknown" {
   const s = (state || "").toLowerCase();
   if (s.includes("running")) return "running";
@@ -146,9 +196,9 @@ export function DockerManagerModal({
       setError(null);
       try {
         const list = await fetchContainers();
-        setContainers(list);
+        setContainers((prev) => (areDockerContainersEqual(prev, list) ? prev : list));
       } catch (err) {
-        setContainers([]);
+        setContainers((prev) => (prev.length === 0 ? prev : []));
         setError(err instanceof Error ? err.message : "Failed to load containers");
       } finally {
         setLoading(false);
@@ -165,9 +215,9 @@ export function DockerManagerModal({
       setError(null);
       try {
         const list = await fetchImages();
-        setImages(list);
+        setImages((prev) => (areDockerImagesEqual(prev, list) ? prev : list));
       } catch (err) {
-        setImages([]);
+        setImages((prev) => (prev.length === 0 ? prev : []));
         setError(err instanceof Error ? err.message : "Failed to load images");
       } finally {
         setLoading(false);
@@ -184,9 +234,9 @@ export function DockerManagerModal({
       setError(null);
       try {
         const list = await fetchVolumes();
-        setVolumes(list);
+        setVolumes((prev) => (areDockerVolumesEqual(prev, list) ? prev : list));
       } catch (err) {
-        setVolumes([]);
+        setVolumes((prev) => (prev.length === 0 ? prev : []));
         setError(err instanceof Error ? err.message : "Failed to load volumes");
       } finally {
         setLoading(false);

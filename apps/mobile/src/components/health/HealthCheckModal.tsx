@@ -118,6 +118,35 @@ function formatLastAccess(ms: number): string {
   return `${hrs}h ${rem}m ago`;
 }
 
+function areHealthProcessesEqual(a: HealthApiProcess[], b: HealthApiProcess[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.pid === next.pid &&
+      item.port === next.port &&
+      item.command === next.command
+    );
+  });
+}
+
+function areHealthSessionStatusesEqual(a: SessionStatus[], b: SessionStatus[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((item, index) => {
+    const next = b[index];
+    if (!next) return false;
+    return (
+      item.id === next.id &&
+      item.cwd === next.cwd &&
+      item.model === next.model &&
+      item.lastAccess === next.lastAccess &&
+      item.status === next.status &&
+      item.title === next.title
+    );
+  });
+}
+
 function truncateId(id?: string | null): string {
   if (!id) return "—";
   if (id.length <= 10) return id;
@@ -202,19 +231,23 @@ export function HealthCheckModal({
     }
 
     if (processResponse.ok && processResponse.data) {
-      setProcesses(Array.isArray(processResponse.data.processes) ? processResponse.data.processes : []);
+      const nextProcesses = Array.isArray(processResponse.data.processes) ? processResponse.data.processes : [];
+      setProcesses((prev) => (areHealthProcessesEqual(prev, nextProcesses) ? prev : nextProcesses));
       if (processResponse.data.warning) {
         nextWarnings.push(processResponse.data.warning);
       }
     } else {
-      setProcesses([]);
+      setProcesses((prev) => (prev.length === 0 ? prev : []));
       nextWarnings.push(processResponse.error ?? "Failed to load process list");
     }
 
     if (sessionResponse.ok && sessionResponse.data && Array.isArray(sessionResponse.data.sessions)) {
-      setSessionSnapshot(sessionResponse.data.sessions);
+      const nextSessionSnapshot = sessionResponse.data.sessions;
+      setSessionSnapshot((prev) =>
+        areHealthSessionStatusesEqual(prev, nextSessionSnapshot) ? prev : nextSessionSnapshot
+      );
     } else {
-      setSessionSnapshot([]);
+      setSessionSnapshot((prev) => (prev.length === 0 ? prev : []));
       nextWarnings.push(sessionResponse.error ?? "Failed to load session status");
     }
 

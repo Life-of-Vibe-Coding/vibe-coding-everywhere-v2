@@ -4,7 +4,7 @@ import { Box } from "@/components/ui/box";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import { FileViewerModal } from "@/components/file/FileViewerModal";
 
-type FileViewerOverlayProps = {
+type FileViewerPageProps = {
   visible: boolean;
   style?: StyleProp<ViewStyle>;
   path: string;
@@ -16,7 +16,7 @@ type FileViewerOverlayProps = {
   onAddCodeReference: (ref: CodeRefPayload) => void;
 };
 
-export function FileViewerOverlay({
+export function FileViewerPage({
   visible,
   style,
   path,
@@ -26,7 +26,7 @@ export function FileViewerOverlay({
   error,
   onClose,
   onAddCodeReference,
-}: FileViewerOverlayProps) {
+}: FileViewerPageProps) {
   if (!visible) {
     return null;
   }

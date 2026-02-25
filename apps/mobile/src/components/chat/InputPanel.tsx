@@ -30,6 +30,8 @@ const INPUT_PLACEHOLDER = "Type response for Claude…";
 const LINE_HEIGHT = 24;
 const MAX_LINES = 4;
 const MAX_INPUT_HEIGHT = LINE_HEIGHT * MAX_LINES;
+const DEFAULT_INPUT_HEIGHT = LINE_HEIGHT + 8;
+const INPUT_VERTICAL_PADDING = 16;
 
 export type PendingCodeRef = {
   path: string;
@@ -87,7 +89,7 @@ export function InputPanel({
   const [prompt, setPrompt] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [plusMenuVisible, setPlusMenuVisible] = useState(false);
-  const [inputHeight, setInputHeight] = useState(LINE_HEIGHT);
+  const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -105,7 +107,7 @@ export function InputPanel({
   const handleContentSizeChange = useCallback(
     (_evt: { nativeEvent: { contentSize: { height: number } } }) => {
       const h = _evt.nativeEvent.contentSize.height;
-      setInputHeight(Math.min(Math.max(h, LINE_HEIGHT), MAX_INPUT_HEIGHT));
+      setInputHeight(Math.min(Math.max(h, DEFAULT_INPUT_HEIGHT), MAX_INPUT_HEIGHT));
     },
     []
   );
@@ -118,11 +120,13 @@ export function InputPanel({
     if (waitingForUserInput && sessionRunning) {
       onSubmit(trimmed, permissionMode ?? undefined);
       setPrompt("");
+      setInputHeight(DEFAULT_INPUT_HEIGHT);
       return;
     }
     if (sessionRunning) return;
     onSubmit(trimmed || "See code references below.", permissionMode ?? undefined);
     setPrompt("");
+    setInputHeight(DEFAULT_INPUT_HEIGHT);
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
   const isDark = theme.mode === "dark";
@@ -132,7 +136,7 @@ export function InputPanel({
       <VStack
         space="md"
         className={cn(
-          "flex-col gap-3 border rounded-2xl py-3 px-4",
+          "flex-col gap-3 border rounded-2xl py-3 px-4 mt-6",
           isDark ? "border-outline-500/60" : "border-outline-200"
         )}
         style={[
@@ -188,14 +192,17 @@ export function InputPanel({
             })}
           </HStack>
         )}
-        <HStack space="md" className="flex-row items-center gap-3 min-h-11">
+        <HStack space="md" className="flex-row items-start gap-3 min-h-11">
           <Textarea
             size="md"
             isDisabled={disabled}
-            className="flex-1 min-h-10 h-auto max-h-24 rounded-xl border"
+            className="flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
             style={{
               borderColor: theme.colors.accentSubtle,
               backgroundColor: isDark ? theme.colors.surfaceAlt : theme.colors.accentSoft,
+              minHeight: DEFAULT_INPUT_HEIGHT + INPUT_VERTICAL_PADDING,
+              height: inputHeight + INPUT_VERTICAL_PADDING,
+              maxHeight: MAX_INPUT_HEIGHT + INPUT_VERTICAL_PADDING,
             }}
           >
             <TextareaInput
@@ -205,6 +212,16 @@ export function InputPanel({
               editable={!disabled}
               multiline
               scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+              showsVerticalScrollIndicator={false}
+              overScrollMode="never"
+              style={{
+                color: theme.colors.textPrimary,
+                maxHeight: MAX_INPUT_HEIGHT,
+                minHeight: DEFAULT_INPUT_HEIGHT,
+                width: "100%",
+                minWidth: 0,
+                overflow: "hidden",
+              }}
               onContentSizeChange={handleContentSizeChange}
               maxLength={8000}
               blurOnSubmit={false}
@@ -213,16 +230,11 @@ export function InputPanel({
               autoCapitalize="sentences"
               autoCorrect
               autoComplete="off"
-              textAlignVertical={Platform.OS === "android" ? "top" : "center"}
+              textAlignVertical="top"
               className={cn(
-                "flex-1 text-base py-2 min-h-6",
+                "w-full min-w-0 text-base py-2 min-h-6 flex-none",
                 Platform.OS === "android" && "text-start"
               )}
-              style={{
-                color: theme.colors.textPrimary,
-                height: inputHeight,
-                maxHeight: MAX_INPUT_HEIGHT,
-              }}
               placeholderTextColor={theme.colors.textMuted}
             />
           </Textarea>
