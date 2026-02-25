@@ -181,6 +181,7 @@ export function useSse(options: UseSseOptions = {}) {
   const suppressActiveSessionSwitchRef = useRef(false);
   const selectedSessionRuntimeRef = useRef<{ id: string | null; running: boolean } | null>(null);
   const connectionIntentBySessionRef = useRef<Map<string, boolean>>(new Map());
+  const sawAgentEndRef = useRef(false);
   const outputBufferRef = useRef("");
   const currentAssistantContentRef = useRef("");
   const runtimeStateCallbacksRef = useRef({
@@ -288,7 +289,6 @@ export function useSse(options: UseSseOptions = {}) {
   /** When set, the next SSE open for this session should use skipReplay=1 (client already has disk state). */
   const skipReplayForSessionRef = useRef<string | null>(null);
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
-  const upsertSessionStatus = useSessionManagementStore((state) => state.upsertSessionStatus);
   const storeSessionId = useSessionManagementStore((state) => state.sessionId);
   const setStoreSessionId = useSessionManagementStore((state) => state.setSessionId);
 
@@ -298,31 +298,6 @@ export function useSse(options: UseSseOptions = {}) {
       return sessionStatuses.find((session) => session.id === sid);
     },
     [sessionStatuses]
-  );
-
-  const setManagedSessionStatus = useCallback(
-    (sid: string | null, running: boolean) => {
-      if (!sid) return;
-      const existing = getSessionStatusFromStore(sid);
-      const status = running ? "running" : "idling";
-      if (existing) {
-        upsertSessionStatus({
-          ...existing,
-          status,
-          lastAccess: Date.now(),
-        });
-        return;
-      }
-      upsertSessionStatus({
-        id: sid,
-        cwd: null,
-        model: null,
-        lastAccess: Date.now(),
-        status,
-        title: "",
-      });
-    },
-    [getSessionStatusFromStore, upsertSessionStatus]
   );
 
   const isSessionManagedRunning = useCallback(
@@ -396,10 +371,9 @@ export function useSse(options: UseSseOptions = {}) {
         source.removeEventListener("done", handlers.done);
       }
       source.close();
-      if (displayedSessionIdRef.current === id) {
+      if (displayedSessionIdRef.current === id && sawAgentEndRef.current) {
         setSessionStateForSession(id, "idle");
         setWaitingForUserInput(false);
-        setManagedSessionStatus(id, false);
       }
       suppressActiveSessionSwitchRef.current = false;
       activeSseRef.current = null;
@@ -411,7 +385,7 @@ export function useSse(options: UseSseOptions = {}) {
       clearConnectionIntent(id);
       setConnected(false);
     },
-    [clearConnectionIntent, setManagedSessionStatus, setSessionStateForSession, setWaitingForUserInput]
+    [clearConnectionIntent, setSessionStateForSession, setWaitingForUserInput]
   );
 
   /** Deduplicate message IDs; bump nextIdRef for any reassignments. */
@@ -450,7 +424,6 @@ export function useSse(options: UseSseOptions = {}) {
       const shouldRun = typeof statusHint === "boolean" ? statusHint : isSessionManagedRunning(sid);
       const state = getOrCreateSessionState(sid);
       if (typeof statusHint === "boolean") {
-        setManagedSessionStatus(sid, statusHint);
         setConnectionIntent(sid, statusHint);
       } else {
         clearConnectionIntent(sid);
@@ -477,17 +450,16 @@ export function useSse(options: UseSseOptions = {}) {
       setConnected(false);
     },
     [
-      deduplicateMessageIds,
-      getMaxMessageId,
-      getOrCreateSessionState,
-      getOrCreateSessionMessages,
-      setSessionMessages,
-      setSessionDraft,
-      isSessionManagedRunning,
-      setManagedSessionStatus,
-      setConnectionIntent,
-      clearConnectionIntent,
-      setSessionStateForSession,
+    deduplicateMessageIds,
+    getMaxMessageId,
+    getOrCreateSessionState,
+    getOrCreateSessionMessages,
+    setSessionMessages,
+    setSessionDraft,
+    isSessionManagedRunning,
+    setConnectionIntent,
+    clearConnectionIntent,
+    setSessionStateForSession,
       syncSessionToReact,
     ]
   );
@@ -582,7 +554,9 @@ export function useSse(options: UseSseOptions = {}) {
           }, STREAM_UPDATE_THROTTLE_MS);
         }
       }
-      setSessionStateForSession(sid, "running");
+      if (!sawAgentEndRef.current) {
+        setSessionStateForSession(sid, "running");
+      }
     },
     [
       getOrCreateSessionMessages,
@@ -755,6 +729,17 @@ export function useSse(options: UseSseOptions = {}) {
     });
     const state = getOrCreateSessionState(sid);
     const hasStreamEndedRef = { current: false };
+    sawAgentEndRef.current = false;
+
+    const markAgentEnd = () => {
+      if (sawAgentEndRef.current) return;
+      sawAgentEndRef.current = true;
+      const endedSessionId = connectionSessionIdRef.current;
+      if (!endedSessionId) return;
+      if (displayedSessionIdRef.current === endedSessionId) {
+        setWaitingForUserInput(false);
+      }
+    };
 
     const { url: streamUrl, applySkipReplay } = resolveStreamUrl(serverUrl, sid, skipReplayForSessionRef.current);
     if (applySkipReplay) {
@@ -786,8 +771,6 @@ export function useSse(options: UseSseOptions = {}) {
           connectionIntentBySessionRef.current.delete(currentSid);
           connectionIntentBySessionRef.current.set(newId, intent);
         }
-        setManagedSessionStatus(currentSid, false);
-        setManagedSessionStatus(newId, true);
       }
       setSessionId(newId);
     };
@@ -795,9 +778,11 @@ export function useSse(options: UseSseOptions = {}) {
     const dispatchProviderEvent = createEventDispatcher({
       setPermissionDenials: (d) => setPermissionDenials(d ? deduplicateDenialsRef.current(d) : null),
       setWaitingForUserInput: (v) => {
-        state.sessionState = "running";
         if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-          setSessionState(state.sessionState);
+          if (!sawAgentEndRef.current) {
+            state.sessionState = "running";
+            setSessionState(state.sessionState);
+          }
           setWaitingForUserInput(v);
         }
       },
@@ -845,9 +830,7 @@ export function useSse(options: UseSseOptions = {}) {
       }
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
         setConnected(false);
-        setSessionStateForSession(connectionSessionIdRef.current, "idle");
       }
-      setManagedSessionStatus(connectionSessionIdRef.current, false);
     };
 
     const messageHandler = (event: any) => {
@@ -901,6 +884,7 @@ export function useSse(options: UseSseOptions = {}) {
             if (__DEV__) {
               console.log("[stream] agent_end event received");
             }
+            markAgentEnd();
           }
 
           if (isProviderStream(parsed)) {
@@ -919,6 +903,7 @@ export function useSse(options: UseSseOptions = {}) {
                 if (__DEV__) {
                   console.log("[stream fallback] agent_end event received");
                 }
+                markAgentEnd();
               }
               if (isProviderStream(parsed)) {
                 dispatchProviderEvent(parsed as Record<string, unknown>);
@@ -951,7 +936,6 @@ export function useSse(options: UseSseOptions = {}) {
         setWaitingForUserInput(false);
         if (exitCode !== 0) setLastSessionTerminated(true);
       }
-      setManagedSessionStatus(connectionSessionIdRef.current, false);
       handlers.finalizeAssistantMessageForSession();
       closeActiveSse("stream-end");
     };
@@ -987,7 +971,6 @@ export function useSse(options: UseSseOptions = {}) {
     isSessionManagedRunning,
     storeSessionId,
     serverUrl,
-    setManagedSessionStatus,
     syncSessionToReact,
   ]);
 
@@ -1104,7 +1087,7 @@ export function useSse(options: UseSseOptions = {}) {
             outputBufferRef.current = "";
             currentAssistantContentRef.current = "";
             setSessionStateForSession(newSessionId, "running");
-            setManagedSessionStatus(newSessionId, true);
+            setConnectionIntent(newSessionId, true);
             if (!sessionId || sessionId !== newSessionId) {
               setSessionId(newSessionId);
             }
@@ -1121,10 +1104,9 @@ export function useSse(options: UseSseOptions = {}) {
               liveMessagesRef.current = merged;
               setSessionId(data.sessionId);
               setSessionStateForSession(data.sessionId, "idle");
-              setManagedSessionStatus(data.sessionId, false);
             }
             resetRunningState();
-            setManagedSessionStatus(sessionId, false);
+            setConnectionIntent(sessionId, false);
             if (__DEV__ && !data.ok) {
               console.warn("[sse] submit prompt failed:", data?.error ?? "no sessionId in response");
             }
@@ -1142,7 +1124,7 @@ export function useSse(options: UseSseOptions = {}) {
         } else {
           console.error("Failed to submit prompt", err);
         }
-        setManagedSessionStatus(sessionId, false);
+        setConnectionIntent(sessionId, false);
         resetRunningState();
       }
     },
@@ -1153,7 +1135,7 @@ export function useSse(options: UseSseOptions = {}) {
       getOrCreateSessionMessages,
       setSessionMessages,
       setSessionDraft,
-      setManagedSessionStatus,
+      setConnectionIntent,
       provider,
       model,
       serverUrl,
@@ -1228,11 +1210,11 @@ export function useSse(options: UseSseOptions = {}) {
           s.sessionState = "running";
           setSessionId(sid);
           setSessionStateForSession(sid, "running");
-          setManagedSessionStatus(sid, true);
+      setConnectionIntent(sid, true);
         }
       } catch (err) {
         console.error("Failed to retry after permission", err);
-        setManagedSessionStatus(sessionId, false);
+        setConnectionIntent(sessionId, false);
       }
       
       setPermissionDenials(null);
@@ -1244,8 +1226,8 @@ export function useSse(options: UseSseOptions = {}) {
       serverUrl,
       sessionId,
       getOrCreateSessionState,
-      setManagedSessionStatus,
       setSessionStateForSession,
+      setConnectionIntent,
     ]
   );
 
@@ -1262,11 +1244,11 @@ export function useSse(options: UseSseOptions = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      setManagedSessionStatus(sessionId, false);
+      setConnectionIntent(sessionId, false);
     } catch (err) {
        console.error("Failed to terminate agent", err);
     }
-  }, [sessionId, serverUrl, setManagedSessionStatus]);
+  }, [sessionId, serverUrl, setConnectionIntent]);
 
   const resetSession = useCallback(async () => {
     if (sessionId) {
@@ -1285,7 +1267,7 @@ export function useSse(options: UseSseOptions = {}) {
       sessionMessagesRef.current.delete(sessionId);
       sessionDraftRef.current.delete(sessionId);
       clearConnectionIntent(sessionId);
-      setManagedSessionStatus(sessionId, false);
+      setConnectionIntent(sessionId, false);
     }
     setLiveSessionMessages([]);
     setSessionId(null);
@@ -1294,7 +1276,7 @@ export function useSse(options: UseSseOptions = {}) {
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
-  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus, clearConnectionIntent]);
+  }, [closeActiveSse, sessionId, serverUrl, setConnectionIntent, clearConnectionIntent]);
 
   /** Start new session: clear state; session is created on first prompt (no dummy session). */
   const startNewSession = useCallback(async () => {
@@ -1314,7 +1296,7 @@ export function useSse(options: UseSseOptions = {}) {
       sessionMessagesRef.current.delete(sessionId);
       sessionDraftRef.current.delete(sessionId);
       clearConnectionIntent(sessionId);
-      setManagedSessionStatus(sessionId, false);
+      setConnectionIntent(sessionId, false);
     }
     setSessionId(null);
     pendingMessagesForNewSessionRef.current = [];
@@ -1324,7 +1306,7 @@ export function useSse(options: UseSseOptions = {}) {
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
-  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus, clearConnectionIntent]);
+  }, [closeActiveSse, sessionId, serverUrl, setConnectionIntent, clearConnectionIntent]);
 
   return {
     sessionRunning: sessionState !== "idle",
