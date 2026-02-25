@@ -3,17 +3,18 @@
 exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = `
 <View>
   <View
-    className="flex-col gap-3 border rounded-2xl py-3 px-4 mt-6 border-outline-200"
+    className="flex-col gap-3 py-3 px-4 mt-6"
     style={
       [
         {
-          "backgroundColor": "#FFFFFF",
-          "borderColor": "#E5E5E5",
-          "borderLeftColor": "#000000",
-          "borderLeftWidth": 3,
+          "backgroundColor": "rgba(255, 255, 255, 0.3)",
+          "borderColor": "rgba(255, 255, 255, 0.4)",
+          "borderRadius": 36,
+          "borderWidth": 0.5,
+          "overflow": "hidden",
         },
         {
-          "shadowColor": "#000000",
+          "shadowColor": "#000",
           "shadowOffset": {
             "height": 4,
             "width": 0,
@@ -25,14 +26,46 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
     }
   >
     <View
+      style={
+        [
+          {
+            "backgroundColor": "transparent",
+          },
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+        ]
+      }
+    >
+      <ViewManagerAdapter_ExpoBlurView
+        blurReductionFactor={4}
+        experimentalBlurMethod="none"
+        intensity={50}
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        tint="light"
+      />
+    </View>
+    <View
       className="flex-row items-start gap-3 min-h-11"
     >
       <View
-        className="border-background-300 overflow-hidden flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
+        className="border border-background-300 rounded overflow-hidden flex-1 min-h-10 h-auto min-w-0 w-full"
         style={
           {
-            "backgroundColor": "#F3F4F6",
-            "borderColor": "rgba(0,0,0,0.14)",
+            "backgroundColor": "transparent",
+            "borderWidth": 0,
             "height": 48,
             "maxHeight": 112,
             "minHeight": 48,
@@ -102,7 +135,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             }
           }
           accessible={true}
-          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
           collapsable={false}
           dataSet={
             {
@@ -142,8 +175,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "backgroundColor": "rgba(255, 255, 255, 0.4)",
             }
           }
         >
@@ -170,7 +202,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             }
           }
           accessible={true}
-          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
           collapsable={false}
           dataSet={
             {
@@ -210,8 +242,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "backgroundColor": "rgba(255, 255, 255, 0.4)",
             }
           }
         >
@@ -231,7 +262,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             gpt-5.1-codex-mini
           </Text>
           <View
-            className="shrink-0 self-center"
+            className="shrink-0 self-center pl-1"
           >
             <View />
           </View>
@@ -241,7 +272,8 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
         className="flex-row items-center gap-2 shrink-0"
       >
         <View
-          accessibilityLabel="Open processes dashboard"
+          accessibilityLabel="Open process dashboard"
+          accessibilityRole="button"
           accessibilityState={
             {
               "busy": undefined,
@@ -260,8 +292,17 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 min-h-11 px-3 border items-center justify-center bg-background-0 border-outline-200 active:bg-background-100 w-11 h-11 rounded-xl"
           collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
           focusable={true}
           onBlur={[Function]}
           onClick={[Function]}
@@ -272,25 +313,25 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           onResponderTerminate={[Function]}
           onResponderTerminationRequest={[Function]}
           onStartShouldSetResponder={[Function]}
-          style={
+          states={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
             }
           }
         >
           <View
-            style={
-              {
-                "color": "#000000",
-              }
-            }
+            className="flex-row gap-1 items-center"
           >
             <View />
           </View>
         </View>
         <View
           accessibilityLabel="Open web preview"
+          accessibilityRole="button"
           accessibilityState={
             {
               "busy": undefined,
@@ -309,8 +350,17 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 min-h-11 px-3 border items-center justify-center bg-background-0 border-outline-200 active:bg-background-100 w-11 h-11 rounded-xl"
           collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
           focusable={true}
           onBlur={[Function]}
           onClick={[Function]}
@@ -321,19 +371,18 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           onResponderTerminate={[Function]}
           onResponderTerminationRequest={[Function]}
           onStartShouldSetResponder={[Function]}
-          style={
+          states={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
             }
           }
         >
           <View
-            style={
-              {
-                "color": "#000000",
-              }
-            }
+            className="flex-row gap-1 items-center"
           >
             <View />
           </View>
@@ -358,7 +407,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-11 h-11 rounded-xl active:opacity-80"
+          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-12 h-12 rounded-full active:opacity-80"
           collapsable={false}
           focusable={true}
           onBlur={[Function]}
@@ -372,14 +421,14 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           onStartShouldSetResponder={[Function]}
           style={
             {
-              "backgroundColor": "#000000",
-              "shadowColor": "#000000",
+              "backgroundColor": "#111",
+              "shadowColor": "#000",
               "shadowOffset": {
                 "height": 2,
                 "width": 0,
               },
-              "shadowOpacity": 0.4,
-              "shadowRadius": 6,
+              "shadowOpacity": 0.1,
+              "shadowRadius": 4,
             }
           }
         >
@@ -402,17 +451,18 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
 exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-input state 1`] = `
 <View>
   <View
-    className="flex-col gap-3 border rounded-2xl py-3 px-4 mt-6 border-outline-200"
+    className="flex-col gap-3 py-3 px-4 mt-6"
     style={
       [
         {
-          "backgroundColor": "#FFFFFF",
-          "borderColor": "#E5E5E5",
-          "borderLeftColor": "#000000",
-          "borderLeftWidth": 3,
+          "backgroundColor": "rgba(255, 255, 255, 0.3)",
+          "borderColor": "rgba(255, 255, 255, 0.4)",
+          "borderRadius": 36,
+          "borderWidth": 0.5,
+          "overflow": "hidden",
         },
         {
-          "shadowColor": "#000000",
+          "shadowColor": "#000",
           "shadowOffset": {
             "height": 4,
             "width": 0,
@@ -424,14 +474,46 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
     }
   >
     <View
+      style={
+        [
+          {
+            "backgroundColor": "transparent",
+          },
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+        ]
+      }
+    >
+      <ViewManagerAdapter_ExpoBlurView
+        blurReductionFactor={4}
+        experimentalBlurMethod="none"
+        intensity={50}
+        style={
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          }
+        }
+        tint="light"
+      />
+    </View>
+    <View
       className="flex-row items-start gap-3 min-h-11"
     >
       <View
-        className="border-background-300 overflow-hidden flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
+        className="border border-background-300 rounded overflow-hidden flex-1 min-h-10 h-auto min-w-0 w-full"
         style={
           {
-            "backgroundColor": "#F3F4F6",
-            "borderColor": "rgba(0,0,0,0.14)",
+            "backgroundColor": "transparent",
+            "borderWidth": 0,
             "height": 48,
             "maxHeight": 112,
             "minHeight": 48,
@@ -501,7 +583,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
           collapsable={false}
           dataSet={
             {
@@ -541,8 +623,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "backgroundColor": "rgba(255, 255, 255, 0.4)",
             }
           }
         >
@@ -569,7 +650,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
           collapsable={false}
           dataSet={
             {
@@ -609,8 +690,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "backgroundColor": "rgba(255, 255, 255, 0.4)",
             }
           }
         >
@@ -630,7 +710,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             gpt-5.1-codex-mini
           </Text>
           <View
-            className="shrink-0 self-center"
+            className="shrink-0 self-center pl-1"
           >
             <View />
           </View>
@@ -640,7 +720,8 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
         className="flex-row items-center gap-2 shrink-0"
       >
         <View
-          accessibilityLabel="Open processes dashboard"
+          accessibilityLabel="Open process dashboard"
+          accessibilityRole="button"
           accessibilityState={
             {
               "busy": undefined,
@@ -659,8 +740,17 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 min-h-11 px-3 border items-center justify-center bg-background-0 border-outline-200 active:bg-background-100 w-11 h-11 rounded-xl"
           collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
           focusable={true}
           onBlur={[Function]}
           onClick={[Function]}
@@ -671,25 +761,25 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onResponderTerminate={[Function]}
           onResponderTerminationRequest={[Function]}
           onStartShouldSetResponder={[Function]}
-          style={
+          states={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
             }
           }
         >
           <View
-            style={
-              {
-                "color": "#000000",
-              }
-            }
+            className="flex-row gap-1 items-center"
           >
             <View />
           </View>
         </View>
         <View
           accessibilityLabel="Open web preview"
+          accessibilityRole="button"
           accessibilityState={
             {
               "busy": undefined,
@@ -708,8 +798,17 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 min-h-11 px-3 border items-center justify-center bg-background-0 border-outline-200 active:bg-background-100 w-11 h-11 rounded-xl"
           collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
           focusable={true}
           onBlur={[Function]}
           onClick={[Function]}
@@ -720,25 +819,25 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onResponderTerminate={[Function]}
           onResponderTerminationRequest={[Function]}
           onStartShouldSetResponder={[Function]}
-          style={
+          states={
             {
-              "backgroundColor": "#F3F4F6",
-              "borderColor": "rgba(0,0,0,0.14)",
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
             }
           }
         >
           <View
-            style={
-              {
-                "color": "#000000",
-              }
-            }
+            className="flex-row gap-1 items-center"
           >
             <View />
           </View>
         </View>
         <View
           accessibilityLabel="Terminate agent response"
+          accessibilityRole="button"
           accessibilityState={
             {
               "busy": undefined,
@@ -757,8 +856,17 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 bg-error-500 w-11 h-11 rounded-xl active:opacity-80"
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 min-h-11 px-3 border items-center justify-center bg-error-500 border-error-500 active:bg-error-600 w-11 h-11 rounded-xl"
           collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
           focusable={true}
           onBlur={[Function]}
           onClick={[Function]}
@@ -769,8 +877,19 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onResponderTerminate={[Function]}
           onResponderTerminationRequest={[Function]}
           onStartShouldSetResponder={[Function]}
+          states={
+            {
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
+            }
+          }
         >
-          <View>
+          <View
+            className="flex-row gap-1 items-center"
+          >
             <View />
           </View>
         </View>
@@ -794,7 +913,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
             }
           }
           accessible={true}
-          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-11 h-11 rounded-xl active:opacity-80"
+          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-12 h-12 rounded-full active:opacity-80"
           collapsable={false}
           focusable={true}
           onBlur={[Function]}
@@ -808,14 +927,14 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onStartShouldSetResponder={[Function]}
           style={
             {
-              "backgroundColor": "#000000",
-              "shadowColor": "#000000",
+              "backgroundColor": "#111",
+              "shadowColor": "#000",
               "shadowOffset": {
                 "height": 2,
                 "width": 0,
               },
-              "shadowOpacity": 0.4,
-              "shadowRadius": 6,
+              "shadowOpacity": 0.1,
+              "shadowRadius": 4,
             }
           }
         >

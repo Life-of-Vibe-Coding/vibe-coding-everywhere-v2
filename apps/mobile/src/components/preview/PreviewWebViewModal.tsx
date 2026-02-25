@@ -426,6 +426,7 @@ export function PreviewWebViewModal({
                         onNavigationStateChange={(navState) => {
                           handleNavigationStateChange(navState, i);
                         }}
+                        renderError={() => <Box style={styles.webviewErrorFallback} />}
                         javaScriptEnabled
                         domStorageEnabled
                         startInLoadingState
@@ -517,6 +518,9 @@ export function PreviewWebViewModal({
 }
 
 function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
+  const modalCardBackground = theme.mode === "dark" ? "#161616" : "#FFFFFF";
+  const webviewFallbackBackground = theme.mode === "dark" ? "#0A0A0A" : "#F3F4F6";
+
   return StyleSheet.create({
     safe: {
       flex: 1,
@@ -536,6 +540,10 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     webview: {
       flex: 1,
       backgroundColor: theme.colors.surfaceAlt,
+    },
+    webviewErrorFallback: {
+      flex: 1,
+      backgroundColor: webviewFallbackBackground,
     },
     loadingOverlay: {
       ...StyleSheet.absoluteFillObject,
@@ -577,7 +585,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
       borderWidth: 1,
       borderColor: theme.colors.border,
       borderRadius: 16,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: modalCardBackground,
     },
     errorTitle: {
       fontSize: 18,

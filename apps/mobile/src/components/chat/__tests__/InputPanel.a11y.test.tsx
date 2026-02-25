@@ -118,7 +118,7 @@ describe("chat/InputPanel accessibility gate", () => {
     const more = getByLabelText("More options");
     const model = getByLabelText("Select model");
 
-    expect(send.props.className).toContain("h-11");
+    expect(send.props.className).toContain("h-12");
     expect(preview.props.className).toContain("h-11");
     expect(processes.props.className).toContain("h-11");
     expect(more.props.className).toContain("min-h-11");

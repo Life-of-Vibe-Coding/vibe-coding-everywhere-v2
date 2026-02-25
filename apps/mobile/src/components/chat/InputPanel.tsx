@@ -152,16 +152,16 @@ export function InputPanel({
           {
             borderRadius: 36,
             overflow: "hidden",
-            backgroundColor: "rgba(255, 255, 255, 0.3)",
-            borderColor: "rgba(255, 255, 255, 0.4)",
-            borderWidth: StyleSheet.hairlineWidth,
+            backgroundColor: isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(255, 255, 255, 0.3)",
+            borderColor: isDark ? "#00E5FF" : "rgba(255, 255, 255, 0.4)",
+            borderWidth: isDark ? 1.5 : StyleSheet.hairlineWidth,
           },
           Platform.select({
             ios: {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 14,
+              shadowColor: isDark ? "#00E5FF" : "#000",
+              shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
+              shadowOpacity: isDark ? 0.4 : 0.1,
+              shadowRadius: isDark ? 8 : 14,
             },
             android: { elevation: 6 },
             default: {},
@@ -274,14 +274,16 @@ export function InputPanel({
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
                   style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.4)",
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
+                    borderColor: isDark ? "#FFD600" : "transparent",
+                    borderWidth: isDark ? 1.5 : 0,
                   }}
                 >
-                  <AttachPlusIcon size={18} color={theme.colors.accent} />
+                  <AttachPlusIcon size={18} color={isDark ? "#FFD600" : theme.colors.accent} />
                   {plusMenuVisible ? (
-                    <ChevronUpIcon size={12} color={theme.colors.accent} />
+                    <ChevronUpIcon size={12} color={isDark ? "#FFD600" : theme.colors.accent} />
                   ) : (
-                    <ChevronDownIcon size={12} color={theme.colors.accent} />
+                    <ChevronDownIcon size={12} color={isDark ? "#FFD600" : theme.colors.accent} />
                   )}
                 </Pressable>
                 <Actionsheet isOpen={plusMenuVisible} onClose={() => setPlusMenuVisible(false)} snapPoints={[25]}>
@@ -334,7 +336,9 @@ export function InputPanel({
               accessibilityLabel="Select model"
               className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.4)",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
+                borderColor: isDark ? "#00E5FF" : "transparent",
+                borderWidth: isDark ? 1.5 : 0,
               }}
             >
               <Text
@@ -343,31 +347,43 @@ export function InputPanel({
                 numberOfLines={2}
                 ellipsizeMode="tail"
                 className="flex-1 min-w-0"
-                style={{ color: theme.colors.accent }}
+                style={{ color: isDark ? "#00E5FF" : theme.colors.accent }}
               >
                 {currentModelLabel}
               </Text>
               <Box className="shrink-0 self-center pl-1">
-                <ChevronDownIcon size={12} color={theme.colors.accent} />
+                <ChevronDownIcon size={12} color={isDark ? "#00E5FF" : theme.colors.accent} />
               </Box>
             </Pressable>
           </HStack>
           <HStack space="sm" className="flex-row items-center gap-2 shrink-0">
             {onOpenProcesses && (
-              <ActionIconButton
-                icon={TerminalIcon}
+              <Pressable
                 onPress={onOpenProcesses}
                 accessibilityLabel="Open process dashboard"
-                className="w-11 h-11 rounded-xl"
-              />
+                className="w-11 h-11 items-center justify-center rounded-full active:opacity-80"
+                style={isDark ? {
+                  backgroundColor: "rgba(255, 0, 255, 0.1)",
+                  borderColor: "#FF00FF",
+                  borderWidth: 1.5
+                } : { backgroundColor: "rgba(255, 255, 255, 0.4)" }}
+              >
+                <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+              </Pressable>
             )}
             {onOpenWebPreview && (
-              <ActionIconButton
-                icon={GlobeIcon}
+              <Pressable
                 onPress={onOpenWebPreview}
                 accessibilityLabel="Open web preview"
-                className="w-11 h-11 rounded-xl"
-              />
+                className="w-11 h-11 items-center justify-center rounded-full active:opacity-80"
+                style={isDark ? {
+                  backgroundColor: "rgba(0, 229, 255, 0.1)",
+                  borderColor: "#00E5FF",
+                  borderWidth: 1.5
+                } : { backgroundColor: "rgba(255, 255, 255, 0.4)" }}
+              >
+                <GlobeIcon size={18} color={isDark ? "#00E5FF" : theme.colors.textPrimary} />
+              </Pressable>
             )}
             {onTerminateAgent && sessionRunning && (
               <ActionIconButton
@@ -394,13 +410,15 @@ export function InputPanel({
                   disabled
                     ? undefined
                     : {
-                      backgroundColor: "#111",
+                      backgroundColor: isDark ? "rgba(255, 214, 0, 0.1)" : "#111",
+                      borderColor: isDark ? "#FFD600" : "transparent",
+                      borderWidth: isDark ? 1.5 : 0,
                       ...Platform.select({
                         ios: {
-                          shadowColor: "#000",
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.1,
-                          shadowRadius: 4,
+                          shadowColor: isDark ? "#FFD600" : "#000",
+                          shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 2 },
+                          shadowOpacity: isDark ? 0.5 : 0.1,
+                          shadowRadius: isDark ? 8 : 4,
                         },
                         android: { elevation: 4 },
                         default: {},
@@ -416,13 +434,13 @@ export function InputPanel({
                         ? GeminiSendIcon
                         : provider === "codex"
                           ? (p: { size?: number }) => (
-                            <CodexEnterIcon {...p} stroke={theme.colors.textInverse} color={theme.colors.textInverse} />
+                            <CodexEnterIcon {...p} stroke={isDark ? "#FFD600" : theme.colors.textInverse} color={isDark ? "#FFD600" : theme.colors.textInverse} />
                           )
                           : CodexSendIcon
                   }
                   size="md"
-                  color={theme.colors.textInverse}
-                  style={{ color: theme.colors.textInverse }}
+                  color={isDark ? "#FFD600" : theme.colors.textInverse}
+                  style={{ color: isDark ? "#FFD600" : theme.colors.textInverse }}
                 />
               </Button>
             )}

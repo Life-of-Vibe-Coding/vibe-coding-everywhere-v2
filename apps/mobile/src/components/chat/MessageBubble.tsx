@@ -408,29 +408,38 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const isSystem = message.role === "system";
   const refs = message.codeReferences ?? [];
   const tailScrollRef = useRef<ScrollView>(null);
+  const isDark = theme.mode === "dark";
+
+  const textColor = isDark
+    ? (isUser ? "#FFE5FF" : "#E5FFFF")
+    : theme.colors.textPrimary;
+  const linkColor = isDark
+    ? (isUser ? "#FF88FF" : "#00E5FF")
+    : theme.colors.accent;
+
   const markdownStyles = useMemo(
     () => ({
-      body: { color: theme.colors.textPrimary },
-      text: { fontSize: 16, lineHeight: 26, color: theme.colors.textPrimary },
+      body: { color: textColor },
+      text: { fontSize: 16, lineHeight: 26, color: textColor },
       paragraph: { marginTop: 4, marginBottom: 4 },
-      heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: theme.colors.textPrimary },
-      heading2: { fontSize: 19, lineHeight: 28, fontWeight: "700" as const, color: theme.colors.textPrimary },
-      heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: spacing["3"], marginBottom: spacing["1"] },
-      heading4: { fontSize: 16, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading5: { fontSize: 15, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading6: { fontSize: 14, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      link: { color: theme.colors.accent, textDecorationLine: "underline" as const },
+      heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: textColor },
+      heading2: { fontSize: 19, lineHeight: 28, fontWeight: "700" as const, color: textColor },
+      heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: textColor, marginTop: spacing["3"], marginBottom: spacing["1"] },
+      heading4: { fontSize: 16, lineHeight: 22, fontWeight: "600" as const, color: textColor },
+      heading5: { fontSize: 15, lineHeight: 20, fontWeight: "600" as const, color: textColor },
+      heading6: { fontSize: 14, lineHeight: 18, fontWeight: "600" as const, color: textColor },
+      link: { color: linkColor, textDecorationLine: "underline" as const },
       code_inline: {
-        color: theme.colors.accent,
-        backgroundColor: theme.colors.accentSoft,
+        color: linkColor,
+        backgroundColor: isDark ? (isUser ? "rgba(255,0,255,0.15)" : "rgba(0,229,255,0.15)") : theme.colors.accentSoft,
         paddingHorizontal: 4,
         paddingVertical: 2,
         borderRadius: 4,
         fontSize: 14,
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       },
-      code_block: { color: theme.colors.textPrimary, backgroundColor: "transparent" },
-      fence: { color: theme.colors.textPrimary, backgroundColor: "transparent" },
+      code_block: { color: textColor, backgroundColor: "transparent" },
+      fence: { color: textColor, backgroundColor: "transparent" },
       blockquote: {
         backgroundColor: theme.colors.surfaceAlt,
         borderColor: theme.colors.accent,
@@ -439,7 +448,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         paddingVertical: spacing["2"],
         borderRadius: radii.sm,
       },
-      strong: { fontWeight: "700" as const, color: theme.colors.textPrimary },
+      strong: { fontWeight: "700" as const, color: textColor },
       bullet_list: {
         marginTop: spacing["2"],
         marginBottom: spacing["2"],
@@ -471,7 +480,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         alignItems: "flex-start" as const,
       },
     }),
-    [theme, codeBlockBg]
+    [theme, codeBlockBg, textColor, linkColor, isDark, isUser]
   );
   const styles = useMemo(
     () =>
@@ -489,36 +498,30 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         bubbleAssistant: {
           alignSelf: "stretch",
           marginHorizontal: -spacing["4"],
-          backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(255,255,255,0.7)",
+          backgroundColor: isDark ? "rgba(0, 229, 255, 0.08)" : "rgba(255,255,255,0.7)",
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderRadius: 24,
-          borderBottomLeftRadius: 4,
-          overflow: "hidden",
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: "rgba(255,255,255,0.5)",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
+          borderRadius: 8,
+          borderWidth: 1.5,
+          borderColor: isDark ? "#00E5FF" : "rgba(255,255,255,0.5)",
+          shadowColor: isDark ? "#00E5FF" : "#000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: isDark ? 0.6 : 0.05,
+          shadowRadius: isDark ? 12 : 10,
           elevation: 2,
         },
         bubbleUser: {
           maxWidth: "85%",
-          backgroundColor: "transparent",
+          backgroundColor: isDark ? "rgba(255, 0, 255, 0.08)" : "transparent",
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 4,
-          overflow: "hidden",
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: "rgba(255,255,255,0.2)",
-          shadowColor: "#6b66f5",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
+          borderRadius: 8,
+          borderWidth: 1.5,
+          borderColor: isDark ? "#FF00FF" : "rgba(255,255,255,0.2)",
+          shadowColor: isDark ? "#FF00FF" : "#6b66f5",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: isDark ? 0.6 : 0.3,
+          shadowRadius: isDark ? 12 : 8,
           elevation: 4,
         },
         bubbleSystem: {
@@ -647,7 +650,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         },
         commandTerminalStatus: { fontSize: 10, lineHeight: 18, color: terminalPrompt, fontWeight: "600" as const },
       }),
-    [theme, codeBlockBg, bashHeaderBg, terminalBg, terminalBorder, terminalText, terminalPrompt]
+    [theme, codeBlockBg, bashHeaderBg, terminalBg, terminalBorder, terminalText, terminalPrompt, isDark]
   );
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import {
 } from "@/design-system";
 import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
 import { BlurView } from "expo-blur";
+import { useTheme } from "@/theme/index";
 
 interface AppHeaderBarProps {
   visible: boolean;
@@ -71,12 +72,15 @@ export function AppHeaderBar({
   onOpenExplorer,
   onOpenSessionManagement,
 }: AppHeaderBarProps) {
+  const theme = useTheme();
+  const isDark = theme.mode === "dark";
+
   if (!visible) return null;
 
   return (
     <HStack className="relative h-14 flex-row items-center justify-between px-4 mt-2 mb-2" pointerEvents="box-none">
       <HeaderButton
-        icon={<MenuIcon color="#333" />}
+        icon={<MenuIcon color={isDark ? "#00E5FF" : "#333"} />}
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}
@@ -86,7 +90,13 @@ export function AppHeaderBar({
           <GluestackText
             size="xs"
             numberOfLines={1}
-            style={{ color: "rgba(0,0,0,0.4)", textTransform: "uppercase", letterSpacing: 1 }}
+            style={{
+              color: isDark ? "rgba(0, 229, 255, 0.7)" : "rgba(0,0,0,0.4)",
+              textTransform: "uppercase",
+              letterSpacing: 2,
+              textShadowColor: isDark ? "rgba(0, 229, 255, 0.5)" : "transparent",
+              textShadowRadius: isDark ? 4 : 0
+            }}
             className="font-bold text-center"
           >
             {workspaceName}
@@ -95,7 +105,11 @@ export function AppHeaderBar({
             size="md"
             numberOfLines={1}
             ellipsizeMode="middle"
-            style={{ color: "#111" }}
+            style={{
+              color: isDark ? "#E0E0FF" : "#111",
+              textShadowColor: isDark ? "rgba(255, 255, 255, 0.5)" : "transparent",
+              textShadowRadius: isDark ? 8 : 0
+            }}
             className="font-extrabold"
           >
             {statusLabel}
@@ -103,7 +117,7 @@ export function AppHeaderBar({
         </VStack>
       </Box>
       <HeaderButton
-        icon={<SettingsIcon color="#333" />}
+        icon={<SettingsIcon color={isDark ? "#FF00FF" : "#333"} />}
         onPress={onOpenSessionManagement}
         accessibilityLabel="Manage sessions"
         delay={200}

@@ -20,26 +20,16 @@ import { buildTypographyScale } from "@/theme/typography";
 // Brand Theme Definitions
 // ============================================================================
 
-export const claudeTheme = {
-  accent: "#D97706", // More vibrant amber/orange
-  accentSoft: "#FFF7ED",
-  accentMuted: "#FFEDD5",
-  accentOnDark: "#FBBF24",
+export const universalGlassTheme = {
+  accent: "#8B75FF", // Futuristic purple-blue accent
+  accentSoft: "rgba(139, 117, 255, 0.15)",
+  accentMuted: "rgba(139, 117, 255, 0.25)",
+  accentOnDark: "#A594FF",
 } as const;
 
-export const geminiTheme = {
-  accent: "#2563EB", // Modern blue
-  accentSoft: "#EFF6FF",
-  accentMuted: "#DBEAFE",
-  accentOnDark: "#60A5FA",
-} as const;
-
-export const codexTheme = {
-  accent: "#000000", // Black/white design: black accent in light mode
-  accentSoft: "#F3F4F6",
-  accentMuted: "#E5E7EB",
-  accentOnDark: "#FFFFFF", // White accent in dark mode
-} as const;
+export const claudeTheme = universalGlassTheme;
+export const geminiTheme = universalGlassTheme;
+export const codexTheme = universalGlassTheme;
 
 export const themes = { claude: claudeTheme, gemini: geminiTheme, codex: codexTheme } as const;
 export type Provider = keyof typeof themes;
@@ -192,75 +182,40 @@ const motion = {
   },
 };
 
-const isCodexDesign = (p: Provider) => p === "codex";
+const isCodexDesign = (p: Provider) => false;
 
 function getNeutrals(mode: ColorMode, provider: Provider) {
-  // Codex design: black background + white text (dark) or white background + black text (light)
-  if (isCodexDesign(provider)) {
-    if (mode === "dark") {
-      return {
-        background: "#000000",
-        surface: "#0A0A0A",
-        surfaceAlt: "#141414",
-        surfaceMuted: "#1F1F1F",
-        border: "#2A2A2A",
-        textPrimary: "#FFFFFF",
-        textSecondary: "#E5E5E5",
-        textMuted: "#A3A3A3",
-        textInverse: "#000000",
-        overlay: "rgba(0,0,0,0.7)",
-        shadow: "rgba(0,0,0,0.6)",
-        skeleton: "#141414",
-        skeletonHighlight: "#1F1F1F",
-      };
-    }
-    return {
-      background: "#FFFFFF",
-      surface: "#FFFFFF",
-      surfaceAlt: "#FAFAFA",
-      surfaceMuted: "#F5F5F5",
-      border: "#E5E5E5",
-      textPrimary: "#000000",
-      textSecondary: "#404040",
-      textMuted: "#737373",
-      textInverse: "#FFFFFF",
-      overlay: "rgba(0,0,0,0.4)",
-      shadow: "rgba(0,0,0,0.08)",
-      skeleton: "#F5F5F5",
-      skeletonHighlight: "#FAFAFA",
-    };
-  }
   if (mode === "dark") {
     return {
-      background: "#0A0B10", // Deeper black
-      surface: "#12141C",
-      surfaceAlt: "#1B1E29",
-      surfaceMuted: "#252936",
-      border: "#2E3345",
-      textPrimary: "#F8FAFC",
-      textSecondary: "#CBD5E1",
-      textMuted: "#64748B",
-      textInverse: "#0A0B10",
+      background: "#0A0A0A",
+      surface: "rgba(20, 20, 20, 0.6)",
+      surfaceAlt: "rgba(30, 30, 30, 0.6)",
+      surfaceMuted: "rgba(40, 40, 40, 0.6)",
+      border: "rgba(255, 255, 255, 0.15)",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#E5E5E5",
+      textMuted: "#A3A3A3",
+      textInverse: "#000000",
       overlay: "rgba(0,0,0,0.7)",
       shadow: "rgba(0,0,0,0.6)",
-      skeleton: "#1B1E29",
-      skeletonHighlight: "#252936",
+      skeleton: "#141414",
+      skeletonHighlight: "#1F1F1F",
     };
   }
   return {
-    background: "#F8FAFC", // Slate-50 for a cleaner look
-    surface: "#FFFFFF",
-    surfaceAlt: "#F1F5F9",
-    surfaceMuted: "#E2E8F0",
-    border: "#E2E8F0",
-    textPrimary: "#0F172A", // Slate-900
-    textSecondary: "#475569", // Slate-600
-    textMuted: "#94A3B8", // Slate-400
+    background: "transparent",
+    surface: "rgba(255, 255, 255, 0.6)",
+    surfaceAlt: "rgba(255, 255, 255, 0.4)",
+    surfaceMuted: "rgba(255, 255, 255, 0.2)",
+    border: "rgba(0, 0, 0, 0.1)",
+    textPrimary: "#000000",
+    textSecondary: "#404040",
+    textMuted: "#737373",
     textInverse: "#FFFFFF",
-    overlay: "rgba(15, 23, 42, 0.4)",
-    shadow: "rgba(15, 23, 42, 0.08)",
-    skeleton: "#E2E8F0",
-    skeletonHighlight: "#F1F5F9",
+    overlay: "rgba(0,0,0,0.4)",
+    shadow: "rgba(0,0,0,0.08)",
+    skeleton: "rgba(255, 255, 255, 0.5)",
+    skeletonHighlight: "rgba(255, 255, 255, 0.8)",
   };
 }
 

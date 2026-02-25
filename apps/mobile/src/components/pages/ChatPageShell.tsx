@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StyleSheet, Platform } from "react-native";
+import { StyleSheet, Platform, ImageBackground } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Box } from "@/components/ui/box";
@@ -38,14 +38,26 @@ export function ChatPageShell({
     setInputDockHeight(height);
   }, []);
 
+  const isDark = context.theme.mode === "dark";
+
   return (
     <Box className="flex-1 bg-white">
-      <LinearGradient
-        colors={['#5A6978', '#D3B1C2', '#C6B5CD', '#E8E3FA']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      {isDark ? (
+        <ImageBackground
+          source={require("../../../assets/chat-bg.png")}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        >
+          <Box style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(5, 0, 20, 0.7)" }]} />
+        </ImageBackground>
+      ) : (
+        <LinearGradient
+          colors={['#5A6978', '#D3B1C2', '#C6B5CD', '#E8E3FA']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
         <StatusBar style="dark" />
         <KeyboardAvoidingView
@@ -54,7 +66,6 @@ export function ChatPageShell({
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
           <Box className="flex-1 flex-col px-6 pt-2" style={{ paddingTop: insets.top }}>
-            <Box style={context.styles.providerTintOverlay} pointerEvents="none" />
             <Box className="relative flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
               <Box className="flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
                 <ChatHeaderSection

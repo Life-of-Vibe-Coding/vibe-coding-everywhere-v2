@@ -26,7 +26,7 @@ export const SESSION_STATUS_POLL_INTERVAL_MS = 3_000;
 export const SESSION_STORE_PAYLOAD_THROTTLE_MS = 30_000;
 
 export function getThemeModeForProvider(_provider: BrandProvider): "light" | "dark" {
-  return "light";
+  return "dark";
 }
 
 export function getDefaultPermissionModeUI(): PermissionModeUI {
