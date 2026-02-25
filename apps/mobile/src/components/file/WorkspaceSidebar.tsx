@@ -1,21 +1,25 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   StyleSheet,
-  Modal,
-  ActivityIndicator,
   useWindowDimensions,
   Platform,
-  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/index";
+import { showAlert } from "@/components/ui/alert/native-alert";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
+import { Spinner } from "@/components/ui/spinner";
 import { Input, InputField } from "@/components/ui/input";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { Badge, BadgeText } from "@/components/ui/badge";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { getDefaultServerConfig } from "@/core";
 import {
   FolderIconByType,
@@ -279,7 +283,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       if (!res.ok) throw new Error("Failed to stage");
       await fetchStatus();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showAlert("Error", e.message);
     } finally {
       setActionLoading(false);
     }
@@ -301,7 +305,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       if (!res.ok) throw new Error("Failed to stage all");
       await fetchStatus();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showAlert("Error", e.message);
     } finally {
       setActionLoading(false);
     }
@@ -321,7 +325,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       if (activeTab === "commits") await fetchCommits();
       else if (activeTab === "changes") await fetchStatus();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showAlert("Error", e.message);
     } finally {
       setActionLoading(false);
     }
@@ -340,7 +344,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       setCommitMessage("");
       await fetchStatus();
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showAlert("Error", e.message);
     } finally {
       setActionLoading(false);
     }
@@ -495,7 +499,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
       </Box>
       {loading && !data ? (
         <Box style={styles.loading}>
-          <ActivityIndicator size="small" color={theme.accent} />
+          <Spinner size="small" color={theme.colors.accent} />
         </Box>
       ) : (
         <ScrollView
@@ -627,7 +631,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                     handleStageAll();
                   }}
                 >
-                  <Text style={[styles.stageAllBtnText, { color: theme.accent }]}>Stage all</Text>
+                  <Text style={[styles.stageAllBtnText, { color: theme.colors.accent }]}>Stage all</Text>
                 </Pressable>
               )}
             </Box>
@@ -684,7 +688,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               <Pressable
                 style={[
                   styles.commitBtn,
-                  { backgroundColor: theme.accent, shadowColor: theme.accent },
+                  { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent },
                   (!aiCommitQuery.trim() || !canCommit) && { opacity: 0.5 },
                 ]}
                 onPress={() => {
@@ -719,7 +723,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
               <Pressable
                 style={[
                   styles.commitBtn,
-                  { backgroundColor: theme.accent, shadowColor: theme.accent },
+                  { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent },
                   (!hasStaged || !commitMessage.trim()) && { opacity: 0.5 },
                 ]}
                 onPress={handleCommit}
@@ -804,7 +808,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
 
             {gitLoading && activeTab !== "files" ? (
               <Box style={styles.loading}>
-                <ActivityIndicator size="large" color={theme.accent} />
+                <Spinner size="large" color={theme.colors.accent} />
               </Box>
             ) : gitError && activeTab !== "files" ? (
               <ScrollView style={styles.scroll} contentContainerStyle={styles.errorContainer}>
@@ -818,7 +822,7 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
                     accessibilityLabel="Initialize Git repository"
                   >
                     {actionLoading ? (
-                      <ActivityIndicator size="small" color="#fff" />
+                      <Spinner size="small" color="#fff" />
                     ) : (
                       <Text style={styles.initGitBtnText}>Initialize Git Repository</Text>
                     )}
@@ -843,12 +847,14 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      transparent
       onRequestClose={onClose}
-      statusBarTranslucent={false}
+      size="full"
     >
-      {overlayContent}
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          {overlayContent}
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }
@@ -923,9 +929,9 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 16,
       alignItems: "center",
     },
-    tabActive: { borderBottomWidth: 2, borderBottomColor: theme.accent },
+    tabActive: { borderBottomWidth: 2, borderBottomColor: theme.colors.accent },
     tabText: { fontSize: 12, fontWeight: "600", color: theme.colors.textSecondary },
-    tabTextActive: { color: theme.accent },
+    tabTextActive: { color: theme.colors.accent },
     tabCloseBtn: {
       width: 36,
       flexShrink: 0,
@@ -995,7 +1001,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       marginTop: 20,
       paddingVertical: 12,
       paddingHorizontal: 20,
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
       borderRadius: 12,
     },
     initGitBtnDisabled: { opacity: 0.7 },
@@ -1069,7 +1075,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)",
     },
     stageBtnPressed: { opacity: 0.8 },
-    stageBtnText: { fontSize: 12, fontWeight: "600", color: theme.accent },
+    stageBtnText: { fontSize: 12, fontWeight: "600", color: theme.colors.accent },
     stageAllBtn: {
       paddingHorizontal: 10,
       paddingVertical: 5,
@@ -1094,7 +1100,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     changeFileLabel: { flex: 1, minWidth: 0, fontSize: 12, color: theme.colors.textPrimary, paddingLeft: 4, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
     changeFileLabelStaged: { fontFamily: undefined },
     statusBadgeWrap: { flexShrink: 0, marginLeft: 8, justifyContent: "center" },
-    statusLabel: { fontSize: 11, color: theme.accent, fontWeight: "600" },
+    statusLabel: { fontSize: 11, color: theme.colors.accent, fontWeight: "600" },
     stageBtnWrap: { flexShrink: 0, marginLeft: 8 },
     stageAllBtnText: { fontSize: 12, fontWeight: "600" },
 
@@ -1141,11 +1147,11 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
     },
     commitBtn: {
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
       paddingVertical: 12,
       borderRadius: 12,
       alignItems: "center",
-      shadowColor: theme.accent,
+      shadowColor: theme.colors.accent,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.3,
       shadowRadius: 4,
@@ -1164,7 +1170,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       marginBottom: 6,
     },
-    commitHash: { fontSize: 12, color: theme.accent, fontWeight: "700", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+    commitHash: { fontSize: 12, color: theme.colors.accent, fontWeight: "700", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
     commitDate: { fontSize: 12, color: theme.colors.textSecondary },
     commitMessageTxt: { fontSize: 14, color: theme.colors.textPrimary, marginBottom: 4, fontWeight: "500" },
     commitAuthorTxt: { fontSize: 12, color: theme.colors.textSecondary, opacity: 0.8 },

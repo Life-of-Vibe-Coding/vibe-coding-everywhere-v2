@@ -1,5 +1,3 @@
-import type { Provider as BrandProvider } from "@/theme/index";
-
 export type ModelOption = {
   value: string;
   label: string;
@@ -34,7 +32,3 @@ export const MODEL_OPTIONS_BY_PROVIDER: {
 export const DEFAULT_CLAUDE_MODEL = "sonnet4.5";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export const DEFAULT_CODEX_MODEL = "gpt-5.1-codex-mini";
-
-export function isBrandProvider(value: string): value is BrandProvider {
-  return value === "claude" || value === "gemini" || value === "codex";
-}

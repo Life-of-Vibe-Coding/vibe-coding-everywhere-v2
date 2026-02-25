@@ -1,9 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
   StyleSheet,
-  Modal,
-  Alert,
-  RefreshControl,
   Platform,
   LayoutAnimation,
   UIManager,
@@ -25,9 +22,12 @@ import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
+import { RefreshControl } from "@/components/ui/refresh-control";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
+import { Modal } from "@/components/ui/modal";
 import { useTheme } from "@/theme/index";
+import { showAlert } from "@/components/ui/alert/native-alert";
 import {
   TrashIcon,
   CloseIcon,
@@ -322,7 +322,7 @@ export function SessionManagementModal({
     (session: ApiSession) => {
       triggerHaptic("medium");
       const title = session.title.slice(0, 50) + (session.title.length > 50 ? "…" : "");
-      Alert.alert(
+      showAlert(
         "Delete session",
         `Remove "${title}" from sessions?`,
         [
@@ -364,7 +364,7 @@ export function SessionManagementModal({
     (targetPath: string) => {
       if (!serverBaseUrl || !targetPath || targetPath === "(no workspace)") return;
       triggerHaptic("medium");
-      Alert.alert(
+      showAlert(
         "Destroy Workspace",
         `Delete all sessions for ${formatPathForWrap(getFileName(targetPath) || targetPath)}? This cannot be undone.`,
         [
@@ -629,7 +629,7 @@ export function SessionManagementModal({
                       onLongPress={() => {
                         if (fullPath !== "(no workspace)") {
                           triggerHaptic("light");
-                          Alert.alert("Workspace", fullPath, [{ text: "OK" }]);
+                          showAlert("Workspace", fullPath, [{ text: "OK" }]);
                         }
                       }}
                       style={[styles.menuHeader, isExpanded && { borderLeftWidth: 3, borderLeftColor: theme.colors.accent }]}

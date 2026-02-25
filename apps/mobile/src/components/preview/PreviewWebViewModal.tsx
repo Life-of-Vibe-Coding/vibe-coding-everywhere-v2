@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   StyleSheet,
-  ActivityIndicator,
   Platform,
   Keyboard,
   useWindowDimensions,
@@ -14,6 +13,7 @@ import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
+import { Spinner } from "@/components/ui/spinner";
 import { Input, InputField } from "@/components/ui/input";
 import {
   Modal,
@@ -395,7 +395,7 @@ export function PreviewWebViewModal({
                 accessibilityLabel="Reload"
               >
                 {loading && resolvedUrl ? (
-                  <ActivityIndicator size="small" color={theme.accent} />
+                  <Spinner size="small" color={theme.colors.accent} />
                 ) : (
                   <Text style={styles.iconBtnText}>↵</Text>
                 )}
@@ -482,7 +482,7 @@ export function PreviewWebViewModal({
             })}
             {loading && (
               <Box style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={theme.accent} />
+                <Spinner size="large" color={theme.colors.accent} />
                 <Text style={styles.loadingText}>加载中…</Text>
               </Box>
             )}
@@ -720,7 +720,7 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     marginTop: 16,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: theme.accent,
+    backgroundColor: theme.colors.accent,
     borderRadius: 8,
   },
   retryBtnText: {

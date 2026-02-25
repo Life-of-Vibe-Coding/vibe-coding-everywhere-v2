@@ -26,4 +26,4 @@ Migrate components with custom choreography/overlay behavior and add targeted re
 - `processes/ProcessesDashboardSection.tsx`
 
 ## Exit Criteria Status
-- High-risk wrappers removed or justified: **in progress**
+- High-risk wrappers removed or justified: **met (no remaining restricted raw primitive imports in feature layer)**

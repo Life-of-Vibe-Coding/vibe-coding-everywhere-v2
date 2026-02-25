@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform } from "react-native";
+import { Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Box } from "@/components/ui/box";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageHeader, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import { ChatConversationSection, ChatHeaderSection, ChatInputDockSection } from "@/components/pages/ChatPageSections";
 import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";

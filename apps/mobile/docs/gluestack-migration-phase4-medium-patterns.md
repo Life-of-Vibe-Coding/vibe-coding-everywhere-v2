@@ -29,4 +29,4 @@ Migrate interactive common patterns to Reusables equivalents.
   - `src/components/preview/__tests__/UrlChoiceModal.test.tsx`
 
 ## Exit Criteria Status
-- Shared action/sheet patterns routed through Reusables for active callsites: **in progress**
+- Shared action/sheet patterns routed through Reusables for active callsites: **met**

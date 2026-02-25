@@ -1,24 +1,28 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
-  Modal,
-  ActivityIndicator,
   Platform,
-  StatusBar,
-  Image,
   Dimensions,
   type TextStyle,
   Linking,
-  Text as RNText,
 } from "react-native";
 import { Highlight, themes } from "prism-react-renderer";
 import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
+import { Text, Text as RNText } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
+import { Image } from "@/components/ui/image";
+import { StatusBar } from "@/components/ui/status-bar";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -147,10 +151,10 @@ export function FileViewerModal({
       heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
       heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
       heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      link: { color: theme.accent, textDecorationLine: "underline" as const },
+      link: { color: theme.colors.accent, textDecorationLine: "underline" as const },
       code_inline: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
       fence: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, lineHeight: 20, color: theme.colors.textPrimary, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
-      blockquote: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderLeftColor: theme.accent, borderLeftWidth: 4, paddingLeft: 12, paddingVertical: 8, marginVertical: 8 },
+      blockquote: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderLeftColor: theme.colors.accent, borderLeftWidth: 4, paddingLeft: 12, paddingVertical: 8, marginVertical: 8 },
       strong: { fontWeight: "600" as const, color: theme.colors.textPrimary },
       bullet_list: {
         marginTop: 8,
@@ -268,7 +272,7 @@ export function FileViewerModal({
 
       {loading && (
         <Box style={styles.center}>
-          <ActivityIndicator size="large" color={theme.accent} />
+          <Spinner size="large" color={theme.colors.accent} />
         </Box>
       )}
 
@@ -438,12 +442,16 @@ export function FileViewerModal({
   return (
     <Modal
       visible
-      animationType="slide"
       onRequestClose={onClose}
-      statusBarTranslucent
+      size="full"
     >
-      <StatusBar barStyle="dark-content" />
-      {contentView}
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          <StatusBar barStyle="dark-content" />
+          {contentView}
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }
@@ -489,7 +497,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
     },
     closeBtnText: {
       fontSize: 18,
-      color: "#666",
+      color: theme.colors.textSecondary,
     },
     center: {
       flex: 1,
@@ -592,11 +600,11 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 8,
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
     },
     addRefBtnText: {
       fontSize: 14,
-      color: "#fff",
+      color: theme.colors.textInverse,
       fontWeight: "600",
     },
     cancelRefBtn: {
@@ -647,7 +655,7 @@ function createFileViewerStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textSecondary,
     },
     lineNumTextSelected: {
-      color: theme.accent,
+      color: theme.colors.accent,
       fontWeight: "600",
     },
     codeCell: {

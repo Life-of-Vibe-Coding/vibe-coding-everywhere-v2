@@ -6,9 +6,9 @@
 | 1. Inventory + Priority Matrix | complete | `gluestack-migration-phase1-inventory.csv`, `gluestack-migration-phase1-priority-matrix.md` |
 | 2. Foundation Hardening | complete | `gluestack-migration-phase2-foundation-hardening.md`, `scripts/verify-foundation.mjs`, primitive policy baseline scripts |
 | 3. Low-Risk Bulk Migration (Trivial Components) | in progress | `gluestack-migration-phase3-low-risk-bulk-migration.md` |
-| 4. Medium Complexity Patterns | in progress | `gluestack-migration-phase4-medium-patterns.md` |
-| 5. Complex/High-Risk Components | in progress | `gluestack-migration-phase5-high-risk.md` + targeted tests |
-| 6. Cleanup + Enforcement | in progress | `gluestack-migration-phase6-cleanup-enforcement.md`, strict allowlist gate scripts |
+| 4. Medium Complexity Patterns | complete | `gluestack-migration-phase4-medium-patterns.md` |
+| 5. Complex/High-Risk Components | complete | `gluestack-migration-phase5-high-risk.md` + targeted tests |
+| 6. Cleanup + Enforcement | complete | `gluestack-migration-phase6-cleanup-enforcement.md`, strict allowlist gate scripts |
 | 7. Validation + Rollout | in progress | `scripts/generate-rollout-metrics.mjs`, `gluestack-migration-phase7-rollout-report.md` |
 
 ## Locked Order
@@ -43,3 +43,11 @@
 `SkillConfigurationModal` switched remaining `theme.accent` usages to `theme.colors.accent`.
 - Regression checks:
 `settings/SkillConfigurationModal` and `preview/UrlChoiceModal` tests pass after migration updates.
+- Preview surface migration:
+`src/components/preview/PreviewWebViewModal.tsx` switched from raw RN `Modal` to shared `@/components/ui/modal` wrappers.
+- Token alignment follow-up:
+`PreviewWebViewModal` replaced remaining `theme.accent` usages with `theme.colors.accent`.
+- File surface migration started:
+`src/components/file/FileViewerModal.tsx` and `src/components/file/WorkspaceSidebar.tsx` moved to shared `@/components/ui/modal` wrapper patterns.
+- File token alignment follow-up:
+`FileViewerModal` and `WorkspaceSidebar` replaced touched `theme.accent` usages with `theme.colors.accent`.

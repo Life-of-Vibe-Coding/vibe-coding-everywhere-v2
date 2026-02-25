@@ -29,10 +29,9 @@ import { useChatExternalCallbacks } from "./useChatExternalCallbacks";
 import { useChatStreamingLifecycle } from "./useChatStreamingLifecycle";
 import { useChatActions } from "./useChatActions";
 
-// Re-export types for consumers that import from useChat/useSse
+// Re-export hook types for consumers.
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };
 export type { UseChatOptions, SessionRuntimeState };
-export const useSse = useChat;
 
 export function useChat(options: UseChatOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();

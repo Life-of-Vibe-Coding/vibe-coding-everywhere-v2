@@ -10,8 +10,7 @@ src/
 │   ├── chat/           # Chat-related components
 │   │   ├── AskQuestionModal.tsx
 │   │   ├── InputPanel.tsx
-│   │   ├── MessageBubble.tsx
-│   │   └── TypingIndicator.tsx
+│   │   └── MessageBubble.tsx
 │   ├── common/         # Shared/common components
 │   │   └── PermissionDenialBanner.tsx
 │   ├── file/           # File management components

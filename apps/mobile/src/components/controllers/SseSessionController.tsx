@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, FlatList, InteractionManager } from "react-native";
+import { Dimensions, InteractionManager, type FlatList as RNFlatList } from "react-native";
+import { FlatList } from "@/components/ui/flat-list";
 
 import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig";
 import { triggerHaptic } from "@/design-system";
@@ -39,7 +40,7 @@ export type SseSessionControllerState = {
   loadSession: ReturnType<typeof useChat>["loadSession"];
   startNewSession: ReturnType<typeof useChat>["startNewSession"];
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<FlatList<Message> | null>;
+  flatListRef: React.RefObject<RNFlatList<Message> | null>;
   onContentSizeChange: () => void;
   sessionStatuses: SessionStatus[];
   setSessionStatuses: (sessions: SessionStatus[]) => void;
@@ -132,7 +133,7 @@ export function SseSessionController({
   }, [provider, model]);
 
   const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
-  const flatListRef = useRef<FlatList<Message> | null>(null);
+  const flatListRef = useRef<RNFlatList<Message> | null>(null);
   const lastScrollToEndTimeRef = useRef(0);
 
   useEffect(() => {

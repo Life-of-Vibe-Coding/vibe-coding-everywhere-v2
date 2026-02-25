@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Linking,
 } from "react-native";
@@ -12,6 +11,7 @@ import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Button, ButtonText } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Modal,
   ModalBackdrop,
@@ -202,7 +202,7 @@ export function SkillDetailSheet({
             </Box>
             <Text className="text-[13px] text-text-primary font-mono font-semibold">{child.name}</Text>
             {isLoading && (
-              <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
+              <Spinner size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
             )}
           </Pressable>
           {isExpanded && (
@@ -310,7 +310,7 @@ export function SkillDetailSheet({
           showsVerticalScrollIndicator
         >
           {loading ? (
-            <ActivityIndicator
+            <Spinner
               size="small"
               color={theme.colors.accent}
               style={{ marginTop: 24 }}

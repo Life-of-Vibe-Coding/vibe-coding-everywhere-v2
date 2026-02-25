@@ -1,7 +1,4 @@
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  ActivityIndicator,
-} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
@@ -10,6 +7,7 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Switch } from "@/components/ui/switch";
 import { Modal } from "@/components/ui/modal";
+import { Spinner } from "@/components/ui/spinner";
 import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
 import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
@@ -157,7 +155,7 @@ export function SkillConfigurationModal({
                 included in the prompt. Tap a skill to view its details.
               </Text>
               {skillsLoading ? (
-                <ActivityIndicator
+                <Spinner
                   size="small"
                   color={theme.colors.accent}
                   style={{ marginTop: 16 }}

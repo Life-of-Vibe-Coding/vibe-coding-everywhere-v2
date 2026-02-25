@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
-import { FlatList, Platform, StyleProp, type ViewStyle } from "react-native";
+import { Platform, type StyleProp, type ViewStyle, type FlatList as RNFlatList } from "react-native";
+import { FlatList } from "@/components/ui/flat-list";
 import type { PermissionDenial, Message } from "@/services/chat/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
@@ -17,7 +18,7 @@ type ChatMessageListProps = {
   onRetryPermission: () => void;
   onDismissPermission: () => void;
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<FlatList<Message>>;
+  flatListRef: React.RefObject<RNFlatList<Message>>;
   onContentSizeChange: () => void;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;

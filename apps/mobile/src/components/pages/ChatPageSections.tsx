@@ -1,12 +1,12 @@
 import React from "react";
 import type { LayoutChangeEvent } from "react-native";
-import { View } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
 import { FileViewerPage } from "@/components/pages/FileViewerPage";
 import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
 import { Box } from "@/components/ui/box";
+import { View } from "@/components/ui/view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { createAppStyles } from "@/components/styles/appStyles";
 import type { getTheme } from "@/theme/index";

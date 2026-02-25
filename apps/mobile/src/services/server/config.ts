@@ -232,8 +232,3 @@ export function getDefaultServerConfig(): IServerConfig {
   if (!defaultInstance) defaultInstance = createDefaultServerConfig();
   return defaultInstance;
 }
-
-/** Expose connection mode for UI components that need to adapt (e.g. UrlChoiceModal). */
-export function getConnectionModeForUI(): ConnectionMode {
-  return getConnectionMode();
-}

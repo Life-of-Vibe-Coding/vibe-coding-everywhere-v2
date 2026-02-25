@@ -1,23 +1,23 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
-  Modal,
-  ScrollView,
   Platform,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { Skeleton, triggerHaptic } from "@/design-system";
 import { useTheme } from "@/theme/index";
+import { showAlert } from "@/components/ui/alert/native-alert";
 import { DockerIcon, ContainerIcon, ImageIcon, VolumeIcon, CloseIcon, CopyIcon, ChevronLeftIcon, PanelLeftIcon } from "@/components/docker/DockerTabIcons";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
+import { Spinner } from "@/components/ui/spinner";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { RefreshControl } from "@/components/ui/refresh-control";
 import { Text } from "@/components/ui/text";
+import { Modal } from "@/components/ui/modal";
 
 export type DockerTab = "containers" | "images" | "volumes";
 
@@ -257,7 +257,7 @@ export function DockerManagerModal({
   const handleAction = useCallback(
     async (id: string, op: "start" | "stop" | "restart" | "remove") => {
       if (op === "remove") {
-        Alert.alert(
+        showAlert(
           "Remove container",
           "Are you sure you want to remove this container?",
           [
@@ -293,7 +293,7 @@ export function DockerManagerModal({
         }
         await load(true);
       } catch (err) {
-        Alert.alert("Error", err instanceof Error ? err.message : `Failed to ${op}`);
+        showAlert("Error", err instanceof Error ? err.message : `Failed to ${op}`);
       } finally {
         setActingId(null);
       }
@@ -342,7 +342,7 @@ export function DockerManagerModal({
 
   const handleRemoveImage = useCallback(
     async (id: string) => {
-      Alert.alert(
+      showAlert(
         "Remove image",
         "Are you sure you want to remove this image?",
         [
@@ -361,7 +361,7 @@ export function DockerManagerModal({
                 if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to remove");
                 await loadImages(true);
               } catch (err) {
-                Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove image");
+                showAlert("Error", err instanceof Error ? err.message : "Failed to remove image");
               } finally {
                 setActingImageId(null);
               }
@@ -374,7 +374,7 @@ export function DockerManagerModal({
   );
 
   const handlePruneImages = useCallback(async () => {
-    Alert.alert(
+    showAlert(
       "Prune images",
       "Remove unused (dangling) images?",
       [
@@ -391,7 +391,7 @@ export function DockerManagerModal({
               if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to prune");
               await loadImages(true);
             } catch (err) {
-              Alert.alert("Error", err instanceof Error ? err.message : "Failed to prune images");
+              showAlert("Error", err instanceof Error ? err.message : "Failed to prune images");
             } finally {
               setLoading(false);
             }
@@ -403,7 +403,7 @@ export function DockerManagerModal({
 
   const handleRemoveVolume = useCallback(
     async (name: string) => {
-      Alert.alert(
+      showAlert(
         "Remove volume",
         `Are you sure you want to remove volume "${name}"?`,
         [
@@ -422,7 +422,7 @@ export function DockerManagerModal({
                 if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to remove");
                 await loadVolumes(true);
               } catch (err) {
-                Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove volume");
+                showAlert("Error", err instanceof Error ? err.message : "Failed to remove volume");
               } finally {
                 setActingVolumeName(null);
               }
@@ -435,7 +435,7 @@ export function DockerManagerModal({
   );
 
   const handlePruneVolumes = useCallback(async () => {
-    Alert.alert(
+    showAlert(
       "Prune volumes",
       "Remove volumes not used by any container? This cannot be undone.",
       [
@@ -452,7 +452,7 @@ export function DockerManagerModal({
               if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to prune");
               await loadVolumes(true);
             } catch (err) {
-              Alert.alert("Error", err instanceof Error ? err.message : "Failed to prune volumes");
+              showAlert("Error", err instanceof Error ? err.message : "Failed to prune volumes");
             } finally {
               setLoading(false);
             }
@@ -881,7 +881,7 @@ export function DockerManagerModal({
               </Box>
               {logsLoading ? (
                 <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
-                  <ActivityIndicator size="large" color={theme.colors.accent} />
+                  <Spinner size="large" color={theme.colors.accent} />
                   <Text size="sm" className="text-typography-500 mt-3">Loading logs…</Text>
                 </Box>
               ) : (

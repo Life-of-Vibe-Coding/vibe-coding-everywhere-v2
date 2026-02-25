@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   LayoutChangeEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +17,7 @@ import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text as GText } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
 import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
@@ -362,7 +362,7 @@ export function WorkspacePickerModal({
                     </GText>
                   </VStack>
                   {isLoading ? (
-                    <ActivityIndicator
+                    <Spinner
                       size="small"
                       color={theme.colors.accent}
                     />
@@ -462,7 +462,7 @@ export function WorkspacePickerModal({
           {!pickerRoot ? (
             <EntranceAnimation variant="fade" duration={220} delay={80}>
               <VStack className="flex-1 items-center justify-center">
-                <ActivityIndicator
+                <Spinner
                   size="large"
                   color={theme.colors.accent}
                 />
@@ -516,7 +516,7 @@ export function WorkspacePickerModal({
                             </GText>
                           </VStack>
                           {!currentPath && viewLoading ? (
-                            <ActivityIndicator size="small" color={theme.colors.accent} />
+                            <Spinner size="small" color={theme.colors.accent} />
                           ) : null}
                         </HStack>
                       </Pressable>
@@ -541,7 +541,7 @@ export function WorkspacePickerModal({
                     </Card>
                   ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
                     <VStack className="mx-4 mt-4 min-h-[160px] items-center justify-center rounded-2xl border border-outline-200 bg-background-0">
-                      <ActivityIndicator
+                      <Spinner
                         size="large"
                         color={theme.colors.accent}
                       />

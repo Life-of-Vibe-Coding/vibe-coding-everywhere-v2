@@ -1,21 +1,21 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
-  Modal,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { triggerHaptic } from "@/design-system";
 import { CloseIcon } from "@/components/icons/ChatActionIcons";
 import { useTheme } from "@/theme/index";
+import { showAlert } from "@/components/ui/alert/native-alert";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { Modal } from "@/components/ui/modal";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
 import type { ApiProcess } from "@/components/processes/ProcessesDashboardModal";
 
 export interface ProcessesDashboardSectionProps {
@@ -109,7 +109,7 @@ export function ProcessesDashboardSection({
         if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to load log");
         setLogViewer({ name: logPath, content: (data as { content?: string }).content ?? "" });
       } catch (err) {
-        Alert.alert("Error", err instanceof Error ? err.message : "Failed to load log");
+        showAlert("Error", err instanceof Error ? err.message : "Failed to load log");
       }
     },
     [serverBaseUrl]
@@ -118,7 +118,7 @@ export function ProcessesDashboardSection({
   const handleKillApiProcess = useCallback(
     async (proc: ApiProcess) => {
       triggerHaptic("warning");
-      Alert.alert("Terminate?", `Kill process PID ${proc.pid}?`, [
+      showAlert("Terminate?", `Kill process PID ${proc.pid}?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Kill",
@@ -134,7 +134,7 @@ export function ProcessesDashboardSection({
               if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to kill");
               await fetchProcesses();
             } catch (err) {
-              Alert.alert("Error", err instanceof Error ? err.message : "Failed to kill process");
+              showAlert("Error", err instanceof Error ? err.message : "Failed to kill process");
             } finally {
               setKillingPid(null);
             }
@@ -166,7 +166,7 @@ export function ProcessesDashboardSection({
 
       {loading && !refreshing && (
         <Box style={styles.loading} className="flex-row items-center gap-2 py-3">
-          <ActivityIndicator size="small" color={theme.colors?.accent ?? theme.accent} />
+          <Spinner size="small" color={theme.colors?.accent ?? theme.accent} />
           <Text size="sm" className="text-typography-500">Loading…</Text>
         </Box>
       )}

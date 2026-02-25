@@ -22,4 +22,5 @@ Prevent regressions and reduce long-term migration maintenance.
 
 ## Exit Criteria Status
 - CI-level policy implemented and executable: **met**
-- Deprecated wrappers fully removed: **pending**
+- Feature-layer raw primitive allowlist reduced to zero: **met**
+- Deprecated wrappers fully removed: **in progress (legacy adapter path still exists in `components/ui/_migration`)**

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { StyleSheet, Modal } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { PendingAskUserQuestion, AskUserQuestionItem } from "@/core/types";
 import { useTheme } from "@/theme/index";
@@ -8,6 +8,7 @@ import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
+import { Modal } from "@/components/ui/modal";
 import { EntranceAnimation, AnimatedPressableView, triggerHaptic } from "@/design-system";
 
 export interface AskQuestionModalProps {
