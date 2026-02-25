@@ -53,9 +53,8 @@ type FileViewerCodeLineProps = {
   isDiffMode: boolean;
   isDarkMode: boolean;
   language: string;
-  onPress: () => void;
-  selectionStart: number | null;
-  selectionEnd: number | null;
+  isSelected: boolean;
+  onLinePress: (lineIndex: number) => void;
   theme: DesignTheme;
   codeBaseStyle: TextStyle;
   lineNumStyle: TextStyle;
@@ -67,14 +66,15 @@ type FileViewerCodeLineProps = {
   codeContainerStyle: ViewStyle;
 };
 
-export function FileViewerCodeLine({
+const fileViewerCodeLineRenderCounts = new Map<string, number>();
+
+function FileViewerCodeLineInner({
   item,
   isDiffMode,
   isDarkMode,
   language,
-  onPress,
-  selectionStart,
-  selectionEnd,
+  isSelected,
+  onLinePress,
   theme,
   codeBaseStyle,
   lineNumStyle,
@@ -85,12 +85,14 @@ export function FileViewerCodeLine({
   lineNumContainerStyle,
   codeContainerStyle,
 }: FileViewerCodeLineProps) {
-  const lineNum = item.index + 1;
-  const selected =
-    selectionStart != null &&
-    selectionEnd != null &&
-    lineNum >= Math.min(selectionStart, selectionEnd) &&
-    lineNum <= Math.max(selectionStart, selectionEnd);
+  if (__DEV__) {
+    const previous = fileViewerCodeLineRenderCounts.get(item.id) ?? 0;
+    const next = previous + 1;
+    fileViewerCodeLineRenderCounts.set(item.id, next);
+    if (next === 1 || next % 20 === 0) {
+      console.debug("[FileViewerCodeLine] render", item.id, { count: next });
+    }
+  }
 
   let diffStyle: ViewStyle | undefined;
   if (isDiffMode) {
@@ -116,10 +118,10 @@ export function FileViewerCodeLine({
     <CodeLineRow
       index={item.index}
       lineContent={item.lineContent}
-      selected={selected}
+      selected={isSelected}
       language={language}
       isDarkMode={isDarkMode}
-      onPress={onPress}
+      onPress={() => onLinePress(item.index)}
       lineBaseStyle={codeBaseStyle}
       lineNumStyle={lineNumStyle}
       lineNumSelectedStyle={lineNumSelectedStyle}
@@ -132,6 +134,27 @@ export function FileViewerCodeLine({
     />
   );
 }
+
+export const FileViewerCodeLine = memo(
+  FileViewerCodeLineInner,
+  (prev, next) =>
+    prev.item.id === next.item.id &&
+    prev.item.lineContent === next.item.lineContent &&
+    prev.isSelected === next.isSelected &&
+    prev.isDiffMode === next.isDiffMode &&
+    prev.isDarkMode === next.isDarkMode &&
+    prev.language === next.language &&
+    prev.onLinePress === next.onLinePress &&
+    prev.theme.mode === next.theme.mode &&
+    prev.codeBaseStyle === next.codeBaseStyle &&
+    prev.lineNumStyle === next.lineNumStyle &&
+    prev.lineNumSelectedStyle === next.lineNumSelectedStyle &&
+    prev.lineRowStyle === next.lineRowStyle &&
+    prev.selectedLineStyle === next.selectedLineStyle &&
+    prev.lineNumSelectedContainerStyle === next.lineNumSelectedContainerStyle &&
+    prev.lineNumContainerStyle === next.lineNumContainerStyle &&
+    prev.codeContainerStyle === next.codeContainerStyle
+);
 
 type SelectionFooterProps = {
   hasSelection: boolean;

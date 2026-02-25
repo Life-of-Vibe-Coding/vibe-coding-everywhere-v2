@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import EventSource from "react-native-sse";
 import {
@@ -77,6 +77,11 @@ type UseChatStreamingLifecycleParams = {
   lastRunOptionsRef: MutableRefObject<LastRunOptions>;
 };
 
+const STREAM_FLUSH_INTERVAL_MS = 50;
+const STREAM_FLUSH_INTERVAL_LARGE_MS = 95;
+const STREAM_FLUSH_DRAFT_THRESHOLD = 2400;
+const STREAM_BOUNDARY_MARKER = /[.!?;,\n]/;
+
 export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParams) {
   const {
     serverUrl,
@@ -135,6 +140,11 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     },
     [sessionStatuses]
   );
+  const streamFlushPerfRef = useRef({
+    flushCount: 0,
+    totalChars: 0,
+    lastFlushAt: 0,
+  });
 
   const refreshCurrentSessionFromDisk = useCallback(
     async (sid: string | null) => {
@@ -294,15 +304,46 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       if (!pendingAssistantText) return;
       const chunk = pendingAssistantText;
       pendingAssistantText = "";
+      streamFlushPerfRef.current.flushCount += 1;
+      streamFlushPerfRef.current.totalChars += chunk.length;
+      const now = Date.now();
+      const sinceLast = streamFlushPerfRef.current.lastFlushAt
+        ? now - streamFlushPerfRef.current.lastFlushAt
+        : 0;
+      streamFlushPerfRef.current.lastFlushAt = now;
+      const start = Date.now();
       handlers.appendAssistantTextForSession(chunk);
+      const appendDuration = Date.now() - start;
+      if (__DEV__ && streamFlushPerfRef.current.flushCount % 15 === 0) {
+        console.debug("[stream] assistant flush", {
+          flushCount: streamFlushPerfRef.current.flushCount,
+          totalChars: streamFlushPerfRef.current.totalChars,
+          sinceLastMs: sinceLast,
+          appendMs: appendDuration,
+          chunkLen: chunk.length,
+        });
+      }
     };
     const queueAssistantText = (chunk: string) => {
       pendingAssistantText += chunk;
+      if (STREAM_BOUNDARY_MARKER.test(chunk)) {
+        if (streamFlushTimeoutRef.current) {
+          clearTimeout(streamFlushTimeoutRef.current);
+          streamFlushTimeoutRef.current = null;
+        }
+        flushAssistantText();
+        return;
+      }
       if (streamFlushTimeoutRef.current) return;
+      const currentDraft = getSessionDraft(connectionSessionIdRef.current);
+      const delay =
+        currentDraft.length + pendingAssistantText.length > STREAM_FLUSH_DRAFT_THRESHOLD
+          ? STREAM_FLUSH_INTERVAL_LARGE_MS
+          : STREAM_FLUSH_INTERVAL_MS;
       streamFlushTimeoutRef.current = setTimeout(() => {
         streamFlushTimeoutRef.current = null;
         flushAssistantText();
-      }, 50);
+      }, delay);
     };
 
     const dispatchProviderEvent = createEventDispatcher({

@@ -139,16 +139,17 @@ export function FileViewerModal({
 
   const [imageScale, setImageScale] = useState(1);
   /** Line selection for "Add to prompt" (1-based). First tap sets start, second tap sets end. */
-  const [selectionStart, setSelectionStart] = useState<number | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const [selection, setSelection] = useState<{ start: number | null; end: number | null }>({
+    start: null,
+    end: null,
+  });
 
   useEffect(() => {
     if (imageUri) setImageScale(1);
   }, [imageUri]);
   useEffect(() => {
     if (!isOpen) {
-      setSelectionStart(null);
-      setSelectionEnd(null);
+      setSelection({ start: null, end: null });
     }
   }, [isOpen]);
 
@@ -169,36 +170,56 @@ export function FileViewerModal({
     () => lines.map((lineContent, index) => ({ id: `${path}-${index}`, lineContent, index })),
     [lines, path]
   );
-  const onLinePress = useCallback(
-    (lineIndex: number) => {
-      const lineNum = lineIndex + 1;
-      if (selectionStart == null) {
-        setSelectionStart(lineNum);
-        setSelectionEnd(lineNum);
-      } else if (selectionStart === selectionEnd) {
-        setSelectionStart(Math.min(selectionStart, lineNum));
-        setSelectionEnd(Math.max(selectionEnd, lineNum));
-      } else {
-        setSelectionStart(null);
-        setSelectionEnd(null);
-      }
-    },
-    [selectionStart, selectionEnd]
+  const lineListContainerStyle = useMemo(
+    () => ({ paddingVertical: 12, paddingBottom: 32, paddingHorizontal: 0 }),
+    []
   );
+
+  const onLinePress = useCallback((lineIndex: number) => {
+    const lineNum = lineIndex + 1;
+    setSelection((prev) => {
+      if (prev.start == null) {
+        return { start: lineNum, end: lineNum };
+      }
+      if (prev.start === prev.end) {
+        return {
+          start: Math.min(prev.start, lineNum),
+          end: Math.max(prev.end, lineNum),
+        };
+      }
+      return { start: null, end: null };
+    });
+  }, []);
   const clearSelection = useCallback(() => {
-    setSelectionStart(null);
-    setSelectionEnd(null);
+    setSelection({ start: null, end: null });
   }, []);
   const handleAddToPrompt = useCallback(() => {
-    if (!path || !content || selectionStart == null || selectionEnd == null || !onAddCodeReference)
+    if (!path || !content || selection.start == null || selection.end == null || !onAddCodeReference)
       return;
-    const start = Math.min(selectionStart, selectionEnd);
-    const end = Math.max(selectionStart, selectionEnd);
+    const start = Math.min(selection.start, selection.end);
+    const end = Math.max(selection.start, selection.end);
     const snippet = lines.slice(start - 1, end).join("\n");
     onAddCodeReference({ path, startLine: start, endLine: end, snippet });
     clearSelection();
-  }, [path, content, selectionStart, selectionEnd, lines, onAddCodeReference, clearSelection]);
-  const hasSelection = selectionStart != null && selectionEnd != null;
+  }, [path, content, lines, onAddCodeReference, clearSelection, selection.start, selection.end]);
+  const selectionStart = selection.start;
+  const selectionEnd = selection.end;
+  const selectionRange = useMemo(() => {
+    if (selectionStart == null || selectionEnd == null) return null;
+    return {
+      start: Math.min(selectionStart, selectionEnd),
+      end: Math.max(selectionStart, selectionEnd),
+    };
+  }, [selectionStart, selectionEnd]);
+  const hasSelection = selectionRange != null;
+  const isLineSelected = useCallback(
+    (index: number) => {
+      if (!selectionRange) return false;
+      const lineNum = index + 1;
+      return lineNum >= selectionRange.start && lineNum <= selectionRange.end;
+    },
+    [selectionRange]
+  );
   const displayFileName = (realPath && realPath.trim() !== "") ? realPath : "Untitled";
   const headerLabel = isDiffMode && path?.startsWith("__diff__:staged:") ? "Diff (Staged)"
     : isDiffMode && path?.startsWith("__diff__:unstaged:") ? "Diff (Unstaged)"
@@ -298,7 +319,7 @@ export function FileViewerModal({
             data={lineData}
             keyExtractor={(item) => item.id}
             style={styles.codeListScroll}
-            contentContainerStyle={{ paddingVertical: 12, paddingBottom: 32, paddingHorizontal: 0 }}
+            contentContainerStyle={lineListContainerStyle}
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
@@ -307,10 +328,9 @@ export function FileViewerModal({
                 isDiffMode={!!isDiffMode}
                 isDarkMode={theme.mode === "dark"}
                 language={language}
-                onPress={() => onLinePress(item.index)}
+                isSelected={isLineSelected(item.index)}
+                onLinePress={onLinePress}
                 codeBaseStyle={codeBaseStyleWithTheme}
-                selectionStart={selectionStart}
-                selectionEnd={selectionEnd}
                 theme={theme}
                 lineNumStyle={styles.lineNumText}
                 lineNumSelectedStyle={styles.lineNumTextSelected}

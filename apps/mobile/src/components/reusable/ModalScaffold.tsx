@@ -12,6 +12,7 @@ import {
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { HStack } from "@/components/ui/hstack";
+import { useColorMode } from "@/theme/index";
 type ModalBodyProps = React.ComponentProps<typeof ModalBody>;
 
 type ModalScaffoldProps = {
@@ -48,6 +49,7 @@ export function ModalScaffold({
   bodyProps,
 }: ModalScaffoldProps) {
   const insets = useSafeAreaInsets();
+  const isDark = useColorMode() === "dark";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={size}>
@@ -56,15 +58,19 @@ export function ModalScaffold({
         {showHeader ? (
           <ModalHeader
             className="gap-3"
-            style={{ paddingTop: Math.max(insets.top, 0) }}
+            style={{
+              paddingTop: Math.max(insets.top, 0),
+              backgroundColor: isDark ? "rgba(10, 15, 30, 0.8)" : undefined,
+            }}
           >
             <Box className="flex-1 min-w-0 pr-2">
               {typeof title === "string" ? (
                 <Text
                   size="lg"
                   bold
-                  className="text-text-primary"
                   numberOfLines={1}
+                  style={isDark ? { color: "#ffffff" } : undefined}
+                  className={isDark ? undefined : "text-text-primary"}
                 >
                   {title}
                 </Text>
@@ -72,7 +78,12 @@ export function ModalScaffold({
                 title
               )}
               {subtitle ? (
-                <Text size="sm" className="text-text-secondary mt-1" numberOfLines={2}>
+                <Text
+                  size="sm"
+                  numberOfLines={2}
+                  style={isDark ? { color: "rgba(0, 229, 255, 0.6)", marginTop: 4 } : { marginTop: 4 }}
+                  className={isDark ? undefined : "text-text-secondary"}
+                >
                   {subtitle}
                 </Text>
               ) : null}
@@ -81,10 +92,24 @@ export function ModalScaffold({
               {headerRight}
               {showCloseButton ? (
                 <ModalCloseButton
-                  className="h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"
                   accessibilityLabel={closeLabel}
+                  style={isDark ? {
+                    height: 44,
+                    width: 44,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "rgba(0, 229, 255, 0.85)",
+                    backgroundColor: "rgba(0, 24, 46, 0.9)",
+                  } : undefined}
+                  className={isDark ? undefined : "h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"}
                 >
-                  <Text size="lg" className="text-text-primary">
+                  <Text
+                    size="lg"
+                    style={isDark ? { color: "#00e5ff" } : undefined}
+                    className={isDark ? undefined : "text-text-primary"}
+                  >
                     ×
                   </Text>
                 </ModalCloseButton>
@@ -107,3 +132,4 @@ export function ModalScaffold({
     </Modal>
   );
 }
+

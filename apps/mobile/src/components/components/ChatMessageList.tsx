@@ -34,6 +34,8 @@ type ChatMessageRowProps = {
   onFileSelect: (path: string) => void;
 };
 
+const chatMessageRowRenderCounts = new Map<string, number>();
+
 const ChatMessageRow = memo(function ChatMessageRow({
   item,
   isLast,
@@ -43,6 +45,15 @@ const ChatMessageRow = memo(function ChatMessageRow({
   onOpenUrl,
   onFileSelect,
 }: ChatMessageRowProps) {
+  if (__DEV__) {
+    const previous = chatMessageRowRenderCounts.get(item.id) ?? 0;
+    const next = previous + 1;
+    chatMessageRowRenderCounts.set(item.id, next);
+    if (next === 1 || next % 25 === 0) {
+      console.debug("[ChatMessageRow] render", item.id, { count: next });
+    }
+  }
+
   const showTerminated =
     lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
   const hasCodeOrFileContent =
@@ -65,18 +76,22 @@ const ChatMessageRow = memo(function ChatMessageRow({
     />
   );
 }, (prev, next) => {
+  if (prev.item.id !== next.item.id) return false;
+  if (prev.item.role !== next.item.role) return false;
+  if (prev.item.content !== next.item.content) return false;
+  if ((prev.item.codeReferences?.length ?? 0) !== (next.item.codeReferences?.length ?? 0)) return false;
+  if (prev.isLast !== next.isLast) return false;
+  if (prev.lastSessionTerminated !== next.lastSessionTerminated) return false;
+  if (prev.tailBoxMaxHeight !== next.tailBoxMaxHeight) return false;
+  if (prev.provider !== next.provider) return false;
+  if (prev.onOpenUrl !== next.onOpenUrl) return false;
+  if (prev.onFileSelect !== next.onFileSelect) return false;
   return (
-    prev.item === next.item &&
-    prev.isLast === next.isLast &&
-    prev.lastSessionTerminated === next.lastSessionTerminated &&
-    prev.tailBoxMaxHeight === next.tailBoxMaxHeight &&
-    prev.provider === next.provider &&
-    prev.onOpenUrl === next.onOpenUrl &&
-    prev.onFileSelect === next.onFileSelect
+    true
   );
 });
 
-export function ChatMessageList({
+export const ChatMessageList = memo(function ChatMessageList({
   messages,
   provider,
   sessionId,
@@ -97,15 +112,21 @@ export function ChatMessageList({
   const sessionScopedKey = useMemo(() => `chat-${sessionId ?? "none"}`, [sessionId]);
   const lastMessageId = displayMessages[displayMessages.length - 1]?.id ?? null;
   const flatListExtraData = useMemo(
-    () => `${lastSessionTerminated}-${lastMessageId ?? "none"}`,
-    [lastSessionTerminated, lastMessageId]
+    () => ({
+      lastMessageId: lastMessageId ?? "none",
+      permissionDenials: permissionDenials.length,
+      lastSessionTerminated,
+      tailBoxMaxHeight,
+    }),
+    [lastMessageId, permissionDenials.length, lastSessionTerminated, tailBoxMaxHeight]
   );
   const renderMessageItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
+      const isLast = index === displayMessages.length - 1;
       return (
         <ChatMessageRow
           item={item}
-          isLast={index === displayMessages.length - 1}
+          isLast={isLast}
           lastSessionTerminated={lastSessionTerminated}
           tailBoxMaxHeight={tailBoxMaxHeight}
           provider={provider}
@@ -144,7 +165,7 @@ export function ChatMessageList({
       keyboardShouldPersistTaps="handled"
       data={displayMessages}
       extraData={flatListExtraData}
-      keyExtractor={(item) => `${sessionScopedKey}:${item.id}`}
+      keyExtractor={(item) => item.id}
       renderItem={renderMessageItem}
       initialNumToRender={15}
       maxToRenderPerBatch={10}
@@ -155,9 +176,7 @@ export function ChatMessageList({
           {chatListFooter}
         </EntranceAnimation>
       }
-      onContentSizeChange={() => {
-        onContentSizeChange();
-      }}
+      onContentSizeChange={onContentSizeChange}
     />
   );
-}
+});

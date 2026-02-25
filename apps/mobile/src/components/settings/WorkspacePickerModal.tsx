@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { LayoutChangeEvent } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { triggerHaptic, EntranceAnimation } from "@/design-system";
 import { useTheme } from "@/theme/index";
@@ -15,10 +16,24 @@ import { Pressable } from "@/components/ui/pressable";
 import { Text as GText } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
-import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+
+// ── Cyberpunk color palette ──────────────────────────────────────────
+const CYAN = "#00e5ff";
+const CYAN_75 = "rgba(0, 229, 255, 0.75)";
+const CYAN_50 = "rgba(0, 229, 255, 0.5)";
+const CYAN_25 = "rgba(0, 229, 255, 0.25)";
+const CYAN_15 = "rgba(0, 229, 255, 0.15)";
+const PINK = "#ff00e5";
+const PINK_25 = "rgba(255, 0, 229, 0.25)";
+const TEXT_WHITE = "#ffffff";
+const TEXT_TINT = "#a5f5f5";
+const BG_SURFACE = "rgba(10, 15, 30, 0.6)";
+const BG_SURFACE_ALT = "rgba(0, 20, 35, 0.4)";
+const ORANGE = "#ff5e00";
+const MONO_FONT = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -41,6 +56,7 @@ export function WorkspacePickerModal({
   onWorkspaceSelected,
 }: WorkspacePickerModalProps) {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(), []);
   const scrollRef = useRef<ScrollView>(null);
   const currentWorkspaceRowY = useRef<number | null>(null);
 
@@ -318,29 +334,33 @@ export function WorkspacePickerModal({
 
       return (
         <EntranceAnimation key={child.path} variant="slideUp" delay={index * 32} duration={220}>
-          <Card
-            variant={isCurrentWorkspace ? "filled" : "outline"}
-            size="sm"
-            className={`mx-4 mb-2 rounded-2xl border ${isCurrentWorkspace ? "border-primary-300 bg-primary-50" : "border-outline-200 bg-background-0"}`}
+          <Box
+            style={[
+              styles.childCard,
+              isCurrentWorkspace && styles.childCardActive,
+            ]}
             onLayout={isCurrentWorkspace ? handleCurrentWorkspaceLayout : undefined}
           >
-            <HStack className="items-center justify-between gap-3">
+            <HStack style={styles.childCardRow}>
               <Pressable
                 onPress={() => handleNavigateInto(child.path)}
                 disabled={isLoading}
-                className="flex-1 min-w-0 min-h-11 justify-center rounded-xl"
+                style={styles.childPressable}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${child.name}`}
               >
-                <HStack className="items-center gap-2.5">
-                  <FolderIcon color={theme.colors.textSecondary} />
-                  <ChevronRightIcon size={14} color={theme.colors.accent} strokeWidth={2.5} />
-                  <VStack className="flex-1 min-w-0">
+                <HStack style={styles.childInnerRow}>
+                  <FolderIcon color={CYAN_75} />
+                  <ChevronRightIcon size={14} color={CYAN} strokeWidth={2.5} />
+                  <VStack style={styles.childTextCol}>
                     <GText
                       size="sm"
                       numberOfLines={1}
                       ellipsizeMode="head"
-                      className={`font-mono ${isCurrentWorkspace ? "text-primary-700" : "text-typography-900"}`}
+                      style={[
+                        styles.childName,
+                        isCurrentWorkspace && styles.childNameActive,
+                      ]}
                     >
                       {child.name}
                     </GText>
@@ -348,31 +368,30 @@ export function WorkspacePickerModal({
                       size="xs"
                       numberOfLines={1}
                       ellipsizeMode="middle"
-                      className="text-typography-500 font-mono"
+                      style={styles.childPath}
                     >
                       {relativeChildPath || child.name}
                     </GText>
                   </VStack>
                   {isLoading ? (
-                    <Spinner
-                      size="small"
-                      color={theme.colors.accent}
-                    />
+                    <Spinner size="small" color={CYAN} />
                   ) : null}
                 </HStack>
               </Pressable>
-              <Button
-                action="primary"
-                variant="solid"
-                size="sm"
-                className="min-h-11 rounded-xl px-4"
+              <Pressable
                 onPress={() => handleSelectWorkspace(child.path)}
-                isDisabled={pickerLoading}
+                disabled={pickerLoading}
+                style={({ pressed }) => [
+                  styles.selectButton,
+                  pressed && styles.selectButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${child.name}`}
               >
-                <ButtonText>Select</ButtonText>
-              </Button>
+                <GText size="sm" style={styles.selectButtonText}>Select</GText>
+              </Pressable>
             </HStack>
-          </Card>
+          </Box>
         </EntranceAnimation>
       );
     },
@@ -384,7 +403,7 @@ export function WorkspacePickerModal({
       handleSelectWorkspace,
       handleCurrentWorkspaceLayout,
       pickerLoading,
-      theme,
+      styles,
     ]
   );
 
@@ -394,50 +413,60 @@ export function WorkspacePickerModal({
     <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
-      title="Workspace Picker"
+      title={
+        <VStack>
+          <GText size="lg" style={styles.titleText}>Workspace Picker</GText>
+          <GText size="xs" style={styles.subtitleText}>
+            NAVIGATE // SELECT // CONFIRM
+          </GText>
+        </VStack>
+      }
       subtitle={pickerRoot ? truncatePathForDisplay(currentPath || pickerRoot) : "Select workspace"}
       size="full"
-      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
+      showCloseButton={true}
     >
-      <Box className="flex-1 bg-background-50">
+      <Box style={styles.container}>
         <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
           <EntranceAnimation variant="fade" duration={180}>
-            <VStack className="border-b border-outline-200 bg-background-0 px-4 pb-4 pt-3" space="sm">
-              <HStack className="items-center justify-start">
+            <VStack style={styles.headerSection}>
+              <HStack style={styles.navRow}>
                 {canGoBack ? (
                   <Pressable
                     onPress={handleGoToParent}
-                    className="min-h-11 min-w-[98px] rounded-xl border border-outline-200 bg-background-50 px-3.5 flex-row items-center gap-1.5"
+                    style={({ pressed }) => [
+                      styles.backButton,
+                      pressed && styles.backButtonPressed,
+                    ]}
                     accessibilityLabel="Go back to parent folder"
                     accessibilityRole="button"
                   >
-                    <ChevronLeftIcon size={18} color={theme.colors.accent} strokeWidth={2} />
-                    <GText size="xs" bold className="text-primary-600">Parent</GText>
+                    <ChevronLeftIcon size={18} color={CYAN} strokeWidth={2} />
+                    <GText size="xs" style={styles.backButtonText}>Parent</GText>
                   </Pressable>
                 ) : (
-                  <Box className="min-h-11 min-w-[90px]" />
+                  <Box style={{ minHeight: 44, minWidth: 90 }} />
                 )}
               </HStack>
 
-              <Card variant="filled" size="sm" className="rounded-2xl bg-background-50 border border-outline-100">
-                <VStack space="xs" className="py-0.5">
-                  <GText size="xs" className="uppercase tracking-wider text-typography-500">
+              <Box style={styles.browserCard}>
+                <VStack style={{ gap: 4 }}>
+                  <GText size="xs" style={styles.browserLabel}>
                     Workspace Browser
                   </GText>
                   <GText
                     size="sm"
-                    bold
                     numberOfLines={1}
                     ellipsizeMode="head"
-                    className="font-mono text-typography-900"
+                    style={styles.browserPath}
                   >
                     {pickerRoot ? truncatePathForDisplay(currentPath || pickerRoot) || "/" : "Select workspace"}
                   </GText>
                 </VStack>
-              </Card>
-              <GText size="xs" className="text-typography-500">
+              </Box>
+              <GText size="xs" style={styles.instructionText}>
                 Choose a folder, then tap Use Folder.
               </GText>
             </VStack>
@@ -445,34 +474,33 @@ export function WorkspacePickerModal({
 
           {!pickerRoot ? (
             <EntranceAnimation variant="fade" duration={220} delay={80}>
-              <VStack className="flex-1 items-center justify-center">
-                <Spinner
-                  size="large"
-                  color={theme.colors.accent}
-                />
+              <VStack style={styles.spinnerCenter}>
+                <Spinner size="large" color={CYAN} />
               </VStack>
             </EntranceAnimation>
           ) : (
             <EntranceAnimation variant="fade" duration={200} delay={60}>
               <ScrollView
                 ref={scrollRef}
-                className="flex-1"
+                style={{ flex: 1 }}
                 contentContainerStyle={{ paddingBottom: 28 }}
                 showsVerticalScrollIndicator
                 nestedScrollEnabled
               >
-                <VStack className="pt-3" space="sm">
-                  <Card
-                    variant={!currentPath && !currentRelativePath ? "filled" : "outline"}
-                    size="sm"
-                    className={`mx-4 rounded-2xl border ${!currentPath && !currentRelativePath ? "border-primary-300 bg-primary-50" : "border-outline-200 bg-background-0"}`}
+                <VStack style={styles.listContainer}>
+                  {/* Current folder card */}
+                  <Box
+                    style={[
+                      styles.currentFolderCard,
+                      !currentPath && !currentRelativePath && styles.currentFolderCardActive,
+                    ]}
                     onLayout={
                       !currentPath && !currentRelativePath
                         ? handleCurrentWorkspaceLayout
                         : undefined
                     }
                   >
-                    <HStack className="items-center justify-between gap-3">
+                    <HStack style={styles.childCardRow}>
                       <Pressable
                         onPress={() => {
                           triggerHaptic("selection");
@@ -480,68 +508,70 @@ export function WorkspacePickerModal({
                             loadRootChildren();
                           }
                         }}
-                        className="flex-1 min-w-0 min-h-11 justify-center rounded-xl"
+                        style={styles.childPressable}
                         accessibilityRole="button"
                         accessibilityLabel={`Current location ${truncatePathForDisplay(currentPath || pickerRoot)}`}
                       >
-                        <HStack className="items-center gap-2.5">
-                          <FolderIcon color={theme.colors.textSecondary} />
-                          <VStack className="flex-1 min-w-0">
+                        <HStack style={styles.childInnerRow}>
+                          <FolderIcon color={CYAN_75} />
+                          <VStack style={styles.childTextCol}>
                             <GText
                               size="sm"
                               numberOfLines={1}
                               ellipsizeMode="head"
-                              className={`font-mono ${!currentPath && !currentRelativePath ? "text-primary-700" : "text-typography-900"}`}
+                              style={[
+                                styles.childName,
+                                !currentPath && !currentRelativePath && styles.childNameActive,
+                              ]}
                             >
                               {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
                             </GText>
-                            <GText size="xs" className="text-typography-500">
+                            <GText size="xs" style={styles.childPath}>
                               Current folder
                             </GText>
                           </VStack>
                           {!currentPath && viewLoading ? (
-                            <Spinner size="small" color={theme.colors.accent} />
+                            <Spinner size="small" color={CYAN} />
                           ) : null}
                         </HStack>
                       </Pressable>
-                      <Button
-                        action="primary"
-                        variant="solid"
-                        size="sm"
-                        className="min-h-11 rounded-xl px-4"
+                      <Pressable
                         onPress={() => handleSelectWorkspace(currentPath || pickerRoot)}
-                        isDisabled={pickerLoading}
+                        disabled={pickerLoading}
+                        style={({ pressed }) => [
+                          styles.useFolderButton,
+                          pressed && styles.useFolderButtonPressed,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Use this folder"
                       >
-                        <ButtonText>Use Folder</ButtonText>
-                      </Button>
+                        <GText size="sm" style={styles.useFolderButtonText}>Select</GText>
+                      </Pressable>
                     </HStack>
-                  </Card>
+                  </Box>
 
                   {pickerError ? (
-                    <Card variant="outline" size="sm" className="mx-4 rounded-xl border-error-300 bg-error-50">
-                      <GText size="xs" className="text-error-700">
+                    <Box style={styles.errorCard}>
+                      <GText size="xs" style={styles.errorText}>
                         {pickerError}
                       </GText>
-                    </Card>
+                    </Box>
                   ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
-                    <VStack className="mx-4 mt-4 min-h-[160px] items-center justify-center rounded-2xl border border-outline-200 bg-background-0">
-                      <Spinner
-                        size="large"
-                        color={theme.colors.accent}
-                      />
+                    <VStack style={styles.loadingBox}>
+                      <Spinner size="large" color={CYAN} />
                     </VStack>
                   ) : (
                     <VStack>
-                      <GText size="xs" className="mx-4 mb-1 mt-2 uppercase tracking-wider text-typography-500">
+                      <GText size="xs" style={styles.sectionLabel}>
                         Subfolders ({viewChildren.length})
                       </GText>
                       {viewChildren.map((child, index) => renderChildRow(child, index))}
                       {!pickerError && viewChildren.length === 0 && !viewLoading ? (
-                        <Card variant="outline" size="sm" className="mx-4 mt-2 rounded-xl border-outline-200 bg-background-0">
-                          <GText size="xs" className="text-typography-500">
+                        <Box style={styles.emptyCard}>
+                          <GText size="xs" style={styles.emptyText}>
                             No subfolders here. Tap the current folder card to refresh.
                           </GText>
-                        </Card>
+                        </Box>
                       ) : null}
                     </VStack>
                   )}
@@ -553,4 +583,323 @@ export function WorkspacePickerModal({
       </Box>
     </ModalScaffold>
   );
+}
+
+// ── Cyberpunk Styles ─────────────────────────────────────────────────
+function createStyles() {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: "rgba(5, 10, 20, 0.45)",
+    },
+
+    // Title
+    titleText: {
+      color: TEXT_WHITE,
+      fontSize: 18,
+      fontWeight: "900",
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      fontFamily: MONO_FONT,
+      textShadowColor: "rgba(0, 229, 255, 0.9)",
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 12,
+    },
+    subtitleText: {
+      color: CYAN_50,
+      fontFamily: MONO_FONT,
+      fontSize: 10,
+      fontWeight: "600",
+      marginTop: -2,
+      letterSpacing: 1,
+    },
+
+    // Header section
+    headerSection: {
+      borderBottomWidth: 1,
+      borderBottomColor: CYAN_25,
+      backgroundColor: BG_SURFACE,
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      paddingTop: 12,
+      gap: 10,
+    },
+    navRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+    },
+    backButton: {
+      minHeight: 44,
+      minWidth: 98,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: CYAN,
+      backgroundColor: "rgba(0, 24, 46, 0.9)",
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      shadowColor: CYAN,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    backButtonPressed: {
+      backgroundColor: CYAN_15,
+      shadowOpacity: 0.75,
+      shadowRadius: 12,
+      transform: [{ scale: 0.97 }],
+    },
+    backButtonText: {
+      color: CYAN,
+      fontFamily: MONO_FONT,
+      fontWeight: "800",
+      fontSize: 13,
+    },
+
+    // Browser card
+    browserCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: CYAN_25,
+      backgroundColor: BG_SURFACE_ALT,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    browserLabel: {
+      color: CYAN_50,
+      fontFamily: MONO_FONT,
+      fontWeight: "800",
+      fontSize: 10,
+      letterSpacing: 2,
+      textTransform: "uppercase",
+    },
+    browserPath: {
+      color: TEXT_TINT,
+      fontFamily: MONO_FONT,
+      fontWeight: "700",
+      fontSize: 14,
+    },
+    instructionText: {
+      color: CYAN_50,
+      fontFamily: MONO_FONT,
+      fontSize: 12,
+    },
+
+    // Spinner
+    spinnerCenter: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    // List
+    listContainer: {
+      paddingTop: 12,
+      gap: 10,
+    },
+
+    // Current folder card
+    currentFolderCard: {
+      marginHorizontal: 16,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: CYAN,
+      backgroundColor: BG_SURFACE,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      shadowColor: CYAN,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    currentFolderCardActive: {
+      borderColor: CYAN,
+      backgroundColor: "rgba(0, 25, 45, 0.7)",
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+    },
+
+    // Child rows
+    childCard: {
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: PINK_25,
+      backgroundColor: BG_SURFACE,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      shadowColor: PINK,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    childCardActive: {
+      borderColor: CYAN,
+      backgroundColor: "rgba(0, 25, 45, 0.7)",
+      shadowColor: CYAN,
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+    },
+    childCardRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    childPressable: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 44,
+      justifyContent: "center",
+      borderRadius: 12,
+    },
+    childInnerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    childTextCol: {
+      flex: 1,
+      minWidth: 0,
+    },
+    childName: {
+      color: TEXT_TINT,
+      fontFamily: MONO_FONT,
+      fontWeight: "700",
+      fontSize: 14,
+    },
+    childNameActive: {
+      color: CYAN,
+      fontWeight: "800",
+    },
+    childPath: {
+      color: CYAN_50,
+      fontFamily: MONO_FONT,
+      fontSize: 12,
+    },
+
+    // Select button
+    selectButton: {
+      minHeight: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: PINK,
+      backgroundColor: "rgba(255, 0, 229, 0.15)",
+      paddingHorizontal: 16,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: PINK,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    selectButtonPressed: {
+      backgroundColor: "rgba(255, 0, 229, 0.3)",
+      shadowOpacity: 0.6,
+      transform: [{ scale: 0.97 }],
+    },
+    selectButtonText: {
+      color: TEXT_WHITE,
+      fontFamily: MONO_FONT,
+      fontWeight: "800",
+      fontSize: 13,
+    },
+
+    // Use Folder button (primary)
+    useFolderButton: {
+      minHeight: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: PINK,
+      backgroundColor: "rgba(255, 0, 229, 0.15)",
+      paddingHorizontal: 16,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: PINK,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    useFolderButtonPressed: {
+      backgroundColor: "rgba(255, 0, 229, 0.3)",
+      shadowOpacity: 0.6,
+      transform: [{ scale: 0.97 }],
+    },
+    useFolderButtonText: {
+      color: TEXT_WHITE,
+      fontFamily: MONO_FONT,
+      fontWeight: "800",
+      fontSize: 14,
+    },
+
+    // Section label
+    sectionLabel: {
+      color: CYAN,
+      fontFamily: MONO_FONT,
+      fontWeight: "800",
+      fontSize: 11,
+      letterSpacing: 2,
+      textTransform: "uppercase",
+      marginHorizontal: 16,
+      marginBottom: 4,
+      marginTop: 8,
+      textShadowColor: "rgba(0, 229, 255, 0.6)",
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 6,
+    },
+
+    // Error
+    errorCard: {
+      marginHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "rgba(255, 60, 60, 0.6)",
+      backgroundColor: "rgba(255, 0, 0, 0.1)",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    errorText: {
+      color: "#ff6b6b",
+      fontFamily: MONO_FONT,
+      fontSize: 12,
+    },
+
+    // Loading
+    loadingBox: {
+      marginHorizontal: 16,
+      marginTop: 16,
+      minHeight: 160,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: CYAN_25,
+      backgroundColor: BG_SURFACE,
+    },
+
+    // Empty
+    emptyCard: {
+      marginHorizontal: 16,
+      marginTop: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: CYAN_25,
+      backgroundColor: BG_SURFACE_ALT,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    emptyText: {
+      color: CYAN_50,
+      fontFamily: MONO_FONT,
+      fontSize: 12,
+    },
+  });
 }

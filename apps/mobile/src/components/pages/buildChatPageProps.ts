@@ -18,6 +18,7 @@ export type BuildChatPagePropsInput = {
   setSidebarActiveTab: (tab: SidebarTab) => void;
   openSidebar: () => void;
   closeSidebar: () => void;
+  onChatFileSelect: (path: string) => void;
   onWorkspaceSelectedFromPicker: (path?: string) => void;
   serverConfig: Pick<IServerConfig, "getBaseUrl" | "resolvePreviewUrl">;
 };
@@ -33,6 +34,7 @@ export function buildChatPageProps({
   setSidebarActiveTab,
   openSidebar,
   closeSidebar,
+  onChatFileSelect,
   onWorkspaceSelectedFromPicker,
   serverConfig,
 }: BuildChatPagePropsInput): ChatPageProps {
@@ -73,10 +75,7 @@ export function buildChatPageProps({
       flatListRef: sseState.flatListRef,
       onContentSizeChange: sseState.onContentSizeChange,
       onOpenUrl: chatActionState.onOpenPreviewInApp,
-      onFileSelect: (path: string) => {
-        openSidebar();
-        workspaceState.onFileSelectFromChat(path);
-      },
+      onFileSelect: onChatFileSelect,
       onRetryPermission: chatActionState.onRetryPermission,
       onDismissPermission: sseState.dismissPermission,
     },

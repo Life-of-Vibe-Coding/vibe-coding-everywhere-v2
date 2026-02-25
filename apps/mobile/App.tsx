@@ -1,6 +1,6 @@
 import "./global.css";
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { getDefaultServerConfig } from "@/core";
 import { ThemeProvider } from "@/theme/index";
@@ -60,23 +60,49 @@ export default function App() {
                   }}
                 >
                   {(chatActionState) => {
-                    const chatPageProps = buildChatPageProps({
-                      themeState,
-                      sseState,
-                      sessionRunningFromStore,
-                      workspaceState,
-                      chatActionState,
-                      sidebarVisible: sidebarState.sidebarVisible,
-                      sidebarActiveTab: sidebarState.sidebarActiveTab,
-                      setSidebarActiveTab: sidebarState.setSidebarActiveTab,
-                      openSidebar: sidebarState.openSidebar,
-                      closeSidebar: sidebarState.closeSidebar,
-                      onWorkspaceSelectedFromPicker: (path?: string) => {
-                        sseState.resetSession();
-                        workspaceState.onWorkspaceSelectedFromPicker(path);
-                      },
-                      serverConfig,
-                    });
+                    const onChatFileSelect = useCallback((path: string) => {
+                      sidebarState.openSidebar();
+                      workspaceState.onFileSelectFromChat(path);
+                    }, [sidebarState.openSidebar, workspaceState.onFileSelectFromChat]);
+
+                    const onWorkspaceSelected = useCallback((path?: string) => {
+                      sseState.resetSession();
+                      workspaceState.onWorkspaceSelectedFromPicker(path);
+                    }, [sseState.resetSession, workspaceState.onWorkspaceSelectedFromPicker]);
+
+                    const chatPageProps = useMemo(
+                      () =>
+                        buildChatPageProps({
+                          themeState,
+                          sseState,
+                          sessionRunningFromStore,
+                          workspaceState,
+                          chatActionState,
+                          sidebarVisible: sidebarState.sidebarVisible,
+                          sidebarActiveTab: sidebarState.sidebarActiveTab,
+                          setSidebarActiveTab: sidebarState.setSidebarActiveTab,
+                          openSidebar: sidebarState.openSidebar,
+                          closeSidebar: sidebarState.closeSidebar,
+                          onChatFileSelect,
+                          onWorkspaceSelectedFromPicker: onWorkspaceSelected,
+                          serverConfig,
+                        }),
+                      [
+                        themeState,
+                        sseState,
+                        sessionRunningFromStore,
+                        workspaceState,
+                        chatActionState,
+                        sidebarState.sidebarVisible,
+                        sidebarState.sidebarActiveTab,
+                        sidebarState.setSidebarActiveTab,
+                        sidebarState.openSidebar,
+                        sidebarState.closeSidebar,
+                        onChatFileSelect,
+                        onWorkspaceSelected,
+                        serverConfig,
+                      ]
+                    );
 
                     useSessionSideEffects({
                       serverConfig,
