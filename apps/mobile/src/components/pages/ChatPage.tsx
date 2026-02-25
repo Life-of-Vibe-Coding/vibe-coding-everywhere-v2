@@ -143,7 +143,6 @@ type ChatPageSessionManagement = {
   workspaceLoading: boolean;
   sessionRunning: boolean;
   onSelectActiveChat: () => void;
-  currentMessages: Message[];
   showActiveChat: boolean;
 };
 
@@ -190,7 +189,6 @@ export function ChatPage({
     <ChatModalsSection
       context={context}
       modals={modals}
-      currentMessages={conversation.messages}
       onSelectActiveChat={modals.sessionManagement.onSelectActiveChat}
     >
       {(modalHandlers) => (

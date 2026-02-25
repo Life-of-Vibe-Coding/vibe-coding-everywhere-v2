@@ -14,7 +14,12 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { Modal } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
 import { RefreshControl } from "@/components/ui/refresh-control";
@@ -167,18 +172,19 @@ export function ProcessesDashboardModal({
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-      statusBarTranslucent
+      isOpen={visible}
+      onClose={onClose}
+      size="full"
     >
-      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {/* Header with accent bar */}
-          <HStack style={[styles.header, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.colors.border }]}>
+          <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
             <HStack className="flex-1 items-center gap-2">
-              <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+              <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
               <Text size="xl" bold className="text-typography-900">Running Processes</Text>
             </HStack>
             <Button
@@ -205,7 +211,7 @@ export function ProcessesDashboardModal({
           )}
           {warning && !error && (
             <EntranceAnimation variant="fade">
-              <Box style={[styles.warningBanner, { backgroundColor: theme.colors.accentSoft ?? theme.colors?.accentSoft ?? "rgba(124,58,237,0.12)" }]}>
+              <Box style={[styles.warningBanner, { backgroundColor: theme.colors.accentSoft }]}>
                 <Text size="sm" className="text-typography-900">{warning}</Text>
               </Box>
             </EntranceAnimation>
@@ -218,13 +224,13 @@ export function ProcessesDashboardModal({
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={() => load(true)}
-                tintColor={theme.colors?.accent ?? theme.accent}
+                tintColor={theme.colors.accent}
               />
             }
           >
             {loading && !refreshing && (
               <Box style={styles.loading} className="py-8 items-center gap-2.5">
-                <Spinner size="large" color={theme.colors?.accent ?? theme.accent} />
+                <Spinner size="large" color={theme.colors.accent} />
                 <Text size="xs" className="text-typography-500">Loading processes…</Text>
               </Box>
             )}
@@ -234,14 +240,14 @@ export function ProcessesDashboardModal({
                 {hasOther && (
                   <VStack style={styles.section} className="gap-3">
                     <HStack className="items-center gap-2">
-                      <Box style={[styles.sectionAccent, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+                      <Box style={[styles.sectionAccent, { backgroundColor: theme.colors.accent }]} />
                       <Text size="xs" bold style={{ color: theme.colors?.textSecondary ?? theme.colors.textSecondary }} className="uppercase tracking-wider">Port-bound processes</Text>
                     </HStack>
                     {[...apiProcesses]
                       .sort((a, b) => b.pid - a.pid)
                       .map((proc) => {
                       const logPaths = proc.logPaths ?? [];
-                      const accent = theme.colors?.accent ?? theme.accent;
+                      const accent = theme.colors.accent;
                       return (
                         <EntranceAnimation key={`${proc.pid}-${proc.port}`} variant="slideUp" delay={0}>
                           <Box
@@ -310,8 +316,8 @@ export function ProcessesDashboardModal({
 
                 {empty && (
                   <VStack style={styles.empty} className="items-center gap-4 py-12">
-                    <Box style={[styles.emptyIconContainer, { backgroundColor: (theme.colors?.accent ?? theme.accent) + "15", borderColor: (theme.colors?.accent ?? theme.accent) + "40" }]}>
-                      <TerminalIcon size={40} color={theme.colors?.accent ?? theme.accent} strokeWidth={1.5} />
+                    <Box style={[styles.emptyIconContainer, { backgroundColor: (theme.colors.accent) + "15", borderColor: (theme.colors.accent) + "40" }]}>
+                      <TerminalIcon size={40} color={theme.colors.accent} strokeWidth={1.5} />
                     </Box>
                     <Text size="md" bold className="text-typography-600">No running processes found</Text>
                     <Text size="xs" className="text-typography-500 text-center max-w-70 leading-5">
@@ -322,22 +328,25 @@ export function ProcessesDashboardModal({
               </>
             )}
           </ScrollView>
-        </SafeAreaView>
-      </Box>
+            </SafeAreaView>
+          </Box>
+        </ModalBody>
+      </ModalContent>
 
       {logViewer && (
         <Modal
-          visible={true}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setLogViewer(null)}
-          statusBarTranslucent
+          isOpen={true}
+          onClose={() => setLogViewer(null)}
+          size="full"
         >
-          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-            <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
-            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors?.accent ? theme.colors.accent + "30" : theme.colors.border }]}>
+          <ModalBackdrop onPress={() => setLogViewer(null)} />
+          <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+            <ModalBody className="m-0 p-0">
+              <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+                <SafeAreaView style={styles.logViewerSafe} edges={["left", "right", "bottom"]}>
+            <HStack style={[styles.logViewerHeader, { borderBottomColor: theme.colors.accent + "30" }]}>
               <HStack className="flex-1 items-center gap-2 min-w-0">
-                <Box style={[styles.accentBar, { backgroundColor: theme.colors?.accent ?? theme.accent }]} />
+                <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
                 <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900 min-w-0">
                   {logViewer.name}
                 </Text>
@@ -367,8 +376,10 @@ export function ProcessesDashboardModal({
                 {logViewer.content || "(empty)"}
               </Text>
             </ScrollView>
-            </SafeAreaView>
-          </Box>
+                </SafeAreaView>
+              </Box>
+            </ModalBody>
+          </ModalContent>
         </Modal>
       )}
     </Modal>
@@ -506,7 +517,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logButtonText: {
       fontSize: 11,
       fontWeight: "700",
-      color: theme.accent,
+      color: theme.colors.accent,
     },
     pidPortRow: {
       flexDirection: "row",
@@ -522,7 +533,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     pillText: {
       fontSize: 11,
       fontWeight: "700",
-      color: theme.accent,
+      color: theme.colors.accent,
       letterSpacing: 0.2,
     },
     command: {

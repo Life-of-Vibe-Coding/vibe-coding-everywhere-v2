@@ -143,7 +143,6 @@ export function buildChatPageProps({
         workspaceLoading: workspaceState.workspacePathLoading,
         sessionRunning: sessionRunningFromStore,
         onSelectActiveChat: sseState.handleSelectActiveChat,
-        currentMessages: sseState.messages,
         showActiveChat: false,
       },
       preview: {

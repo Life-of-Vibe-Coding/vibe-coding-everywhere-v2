@@ -846,8 +846,8 @@ export function WorkspaceSidebar({ visible, embedded, onClose, onFileSelect, onC
 
   return (
     <Modal
-      visible={visible}
-      onRequestClose={onClose}
+      isOpen={visible}
+      onClose={onClose}
       size="full"
     >
       <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">

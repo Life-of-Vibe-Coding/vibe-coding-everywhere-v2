@@ -441,8 +441,8 @@ export function FileViewerModal({
 
   return (
     <Modal
-      visible
-      onRequestClose={onClose}
+      isOpen
+      onClose={onClose}
       size="full"
     >
       <ModalBackdrop onPress={onClose} />

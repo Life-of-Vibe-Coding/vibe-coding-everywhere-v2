@@ -8,7 +8,12 @@ import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
-import { Modal } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { EntranceAnimation, AnimatedPressableView, triggerHaptic } from "@/design-system";
 
 export interface AskQuestionModalProps {
@@ -117,13 +122,14 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
 
   return (
     <Modal
-      visible
-      animationType="slide"
-      transparent
-      onRequestClose={onCancel}
+      isOpen
+      onClose={onCancel}
+      size="full"
     >
-      <Box style={styles.overlay} className="flex-1 bg-black/40 justify-end">
-        <SafeAreaView style={styles.safe}>
+      <ModalBackdrop onPress={onCancel} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 bg-transparent p-0 justify-end">
+        <ModalBody className="m-0 p-0 grow-0">
+          <SafeAreaView style={styles.safe}>
           <EntranceAnimation variant="slideUp" duration={320}>
           <Box style={styles.card} className="rounded-t-2xl pt-4 pb-6 px-5 border border-outline-200 border-b-0 bg-surface shadow-lg">
             <Box style={styles.titleRow} className="flex-row items-center justify-between mb-3">
@@ -195,19 +201,15 @@ export function AskQuestionModal({ pending, onSubmit, onCancel }: AskQuestionMod
             </Box>
           </Box>
           </EntranceAnimation>
-        </SafeAreaView>
-      </Box>
+          </SafeAreaView>
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }
 
 function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.4)",
-      justifyContent: "flex-end",
-    },
     safe: {
       maxHeight: "80%",
     },
@@ -244,7 +246,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.colors.border,
     },
     dotActive: {
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
       transform: [{ scale: 1.2 }],
     },
     dotAnswered: {
@@ -290,7 +292,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.colors.surface,
     },
     optionSelected: {
-      borderColor: theme.accent,
+      borderColor: theme.colors.accent,
       backgroundColor: theme.colors.accentSoft,
     },
     optionLabel: {
@@ -299,7 +301,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textPrimary,
     },
     optionLabelSelected: {
-      color: theme.accent,
+      color: theme.colors.accent,
     },
     optionDesc: {
       fontSize: 13,
@@ -324,7 +326,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
     },
     btnBackText: {
       fontSize: 16,
-      color: theme.accent,
+      color: theme.colors.accent,
       fontWeight: "600",
     },
     btnBackPlaceholder: {
@@ -334,7 +336,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 12,
       paddingHorizontal: 24,
       borderRadius: 12,
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
     },
     btnCancel: {
       paddingVertical: 12,
@@ -351,7 +353,7 @@ function createAskQuestionStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 12,
       paddingHorizontal: 24,
       borderRadius: 12,
-      backgroundColor: theme.accent,
+      backgroundColor: theme.colors.accent,
     },
     btnConfirmDisabled: {
       backgroundColor: theme.colors.border,

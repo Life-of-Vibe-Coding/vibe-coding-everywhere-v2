@@ -13,7 +13,12 @@ import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { Modal } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
 import type { ApiProcess } from "@/components/processes/ProcessesDashboardModal";
@@ -166,7 +171,7 @@ export function ProcessesDashboardSection({
 
       {loading && !refreshing && (
         <Box style={styles.loading} className="flex-row items-center gap-2 py-3">
-          <Spinner size="small" color={theme.colors?.accent ?? theme.accent} />
+          <Spinner size="small" color={theme.colors.accent} />
           <Text size="sm" className="text-typography-500">Loading…</Text>
         </Box>
       )}
@@ -241,30 +246,34 @@ export function ProcessesDashboardSection({
 
       {logViewer && (
         <Modal
-          visible={true}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setLogViewer(null)}
+          isOpen={true}
+          onClose={() => setLogViewer(null)}
+          size="full"
         >
-          <SafeAreaView style={styles.logViewerSafe}>
-            <Box style={styles.logViewerHeader} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
-              <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900">
-                {logViewer.name}
-              </Text>
-              <Button action="default" variant="link" size="md" onPress={() => setLogViewer(null)} accessibilityLabel="Close log viewer" className="min-w-11 min-h-11 -mr-2">
-                <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
-              </Button>
-            </Box>
-            <ScrollView
-              style={styles.logViewerScroll}
-              contentContainerStyle={styles.logViewerContent}
-              horizontal={false}
-            >
-              <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
-                {logViewer.content || "(empty)"}
-              </Text>
-            </ScrollView>
-          </SafeAreaView>
+          <ModalBackdrop onPress={() => setLogViewer(null)} />
+          <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+            <ModalBody className="m-0 p-0">
+              <SafeAreaView style={styles.logViewerSafe}>
+                <Box style={styles.logViewerHeader} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
+                  <Text size="md" bold numberOfLines={1} className="flex-1 text-typography-900">
+                    {logViewer.name}
+                  </Text>
+                  <Button action="default" variant="link" size="md" onPress={() => setLogViewer(null)} accessibilityLabel="Close log viewer" className="min-w-11 min-h-11 -mr-2">
+                    <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors.textMuted }} />
+                  </Button>
+                </Box>
+                <ScrollView
+                  style={styles.logViewerScroll}
+                  contentContainerStyle={styles.logViewerContent}
+                  horizontal={false}
+                >
+                  <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
+                    {logViewer.content || "(empty)"}
+                  </Text>
+                </ScrollView>
+              </SafeAreaView>
+            </ModalBody>
+          </ModalContent>
         </Modal>
       )}
     </Box>
@@ -341,7 +350,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: 6,
       backgroundColor: theme.colors.accentSoft ?? "rgba(0,122,255,0.15)",
       borderWidth: 1,
-      borderColor: theme.accent,
+      borderColor: theme.colors.accent,
     },
     logButtonVisible: {
       minWidth: 70,
@@ -349,7 +358,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logButtonText: {
       fontSize: 12,
       fontWeight: "600",
-      color: theme.accent,
+      color: theme.colors.accent,
     },
     pidPortRow: {
       flexDirection: "row",
@@ -363,12 +372,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: 6,
       backgroundColor: theme.colors.accentSoft ?? "rgba(0,122,255,0.12)",
       borderWidth: 1,
-      borderColor: theme.accent,
+      borderColor: theme.colors.accent,
     },
     pillText: {
       fontSize: 12,
       fontWeight: "700",
-      color: theme.accent,
+      color: theme.colors.accent,
       letterSpacing: 0.2,
     },
     command: {
@@ -399,7 +408,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     refreshText: {
       fontSize: 13,
       fontWeight: "600",
-      color: theme.accent,
+      color: theme.colors.accent,
     },
     closeBtn: {
       minWidth: 44,

@@ -15,10 +15,6 @@ import {
 } from '@gluestack-ui/utils/nativewind-utils';
 import { withUniwind } from 'uniwind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  resolveLegacyStyle,
-  warnLegacyProp,
-} from '@/components/ui/_migration/legacyAdapter';
 
 type IAnimatedPressableProps = React.ComponentProps<typeof Pressable> &
   MotionComponentProps<typeof Pressable, ViewStyle, unknown, unknown, unknown>;
@@ -96,9 +92,6 @@ const modalFooterStyle = tva({
 type IModalProps = React.ComponentProps<typeof UIModal> &
   VariantProps<typeof modalStyle> & {
     className?: string;
-    visible?: boolean;
-    onRequestClose?: () => void;
-    legacyStyle?: React.ComponentProps<typeof UIModal>['style'];
   };
 
 type IModalBackdropProps = React.ComponentProps<typeof UIModal.Backdrop> &
@@ -124,30 +117,18 @@ const Modal = React.forwardRef<React.ComponentRef<typeof UIModal>, IModalProps>(
     {
       className,
       size = 'md',
-      visible,
       isOpen,
-      onRequestClose,
       onClose,
-      legacyStyle,
-      style,
       ...props
     },
     ref
   ) => {
-    if (visible !== undefined) {
-      warnLegacyProp('Modal', 'visible', 'isOpen');
-    }
-    if (onRequestClose !== undefined) {
-      warnLegacyProp('Modal', 'onRequestClose', 'onClose');
-    }
-
     return (
       <UIModal
         ref={ref}
         {...props}
-        isOpen={isOpen ?? visible}
-        onClose={onClose ?? onRequestClose}
-        style={resolveLegacyStyle('Modal', style, legacyStyle)}
+        isOpen={isOpen}
+        onClose={onClose}
         pointerEvents="box-none"
         className={modalStyle({ size, class: className })}
         context={{ size }}

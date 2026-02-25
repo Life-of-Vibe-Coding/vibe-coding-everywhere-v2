@@ -17,7 +17,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 import { Text } from "@/components/ui/text";
-import { Modal } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 
 export type DockerTab = "containers" | "images" | "volumes";
 
@@ -486,19 +491,20 @@ export function DockerManagerModal({
 
   const tabColor = (t: DockerTab) =>
     activeTab === t
-      ? (theme.accent ?? theme.colors.accent)
+      ? theme.colors.accent
       : (theme.colors.textSecondary);
 
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
       onRequestClose={onClose}
-      statusBarTranslucent
+      size="full"
     >
-      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           <Box style={styles.header} className="flex-row items-center justify-between py-3 px-4 border-b border-outline-400">
             <Box style={styles.headerLeft} className="flex-row items-center gap-3 flex-1 min-w-0">
               <Pressable
@@ -511,13 +517,13 @@ export function DockerManagerModal({
                 accessibilityLabel={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
               >
                 {sidebarVisible ? (
-                  <ChevronLeftIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary ?? theme.colors?.textSecondary} />
+                  <ChevronLeftIcon color={theme.colors.textMuted} />
                 ) : (
-                  <PanelLeftIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary ?? theme.colors?.textSecondary} />
+                  <PanelLeftIcon color={theme.colors.textMuted} />
                 )}
               </Pressable>
               <Box style={styles.headerTitleRow} className="flex-row items-center gap-2 min-w-0 flex-1">
-                <DockerIcon color={theme.colors?.textPrimary ?? theme.colors.textPrimary} size={24} />
+                <DockerIcon color={theme.colors.textPrimary} size={24} />
                 <Text style={styles.title} size="lg" bold className="text-typography-900">Docker</Text>
               </Box>
             </Box>
@@ -529,7 +535,7 @@ export function DockerManagerModal({
               accessibilityLabel="Close Docker manager"
               className="min-w-11 min-h-11 -mr-2"
             >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
+              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
             </Button>
           </Box>
 
@@ -640,7 +646,7 @@ export function DockerManagerModal({
                         style={styles.copyBtn}
                         accessibilityLabel="Copy container ID"
                       >
-                        <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
+                        <CopyIcon color={theme.colors.textMuted} size={18} />
                       </Pressable>
                       <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
                         <Text size="xs">{c.status || "—"}</Text>
@@ -741,7 +747,7 @@ export function DockerManagerModal({
                                 style={styles.copyBtn}
                                 accessibilityLabel="Copy image ID"
                               >
-                                <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
+                                <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
                             </Box>
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
@@ -774,7 +780,7 @@ export function DockerManagerModal({
                         value={volumeSearch}
                         onChangeText={setVolumeSearch}
                         accessibilityLabel="Search volumes by name or mount point"
-                        placeholderTextColor={theme.colors?.textMuted ?? theme.colors.textSecondary}
+                        placeholderTextColor={theme.colors.textMuted}
                       />
                     </Input>
                     <Button action="secondary" variant="outline" size="sm" onPress={handlePruneVolumes} isDisabled={loading}>
@@ -824,7 +830,7 @@ export function DockerManagerModal({
                             <Box style={styles.cardHeader} className="flex-row items-start gap-2 mb-2">
                               <Text size="sm" bold numberOfLines={1} className="flex-1 min-w-0 text-typography-900">{v.name}</Text>
                               <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
-                                <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
+                                <CopyIcon color={theme.colors.textMuted} size={18} />
                               </Pressable>
                             </Box>
                             <Box style={styles.cardRow} className="flex-row gap-2 mb-1">
@@ -836,7 +842,7 @@ export function DockerManagerModal({
                               <Box style={styles.cardValueRow} className="flex-1 flex-row items-start gap-2 min-w-0">
                                 <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">{v.mountpoint || "—"}</Text>
                                 <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
-                                  <CopyIcon color={theme.colors?.textMuted ?? theme.colors.textSecondary} size={18} />
+                                  <CopyIcon color={theme.colors.textMuted} size={18} />
                                 </Pressable>
                               </Box>
                             </Box>
@@ -858,44 +864,49 @@ export function DockerManagerModal({
               )}
             </Box>
           </Box>
-        </SafeAreaView>
-      </Box>
+            </SafeAreaView>
+          </Box>
+        </ModalBody>
+      </ModalContent>
 
       {logsFor && (
         <Modal
           visible={!!logsFor}
-          animationType="slide"
-          presentationStyle="pageSheet"
           onRequestClose={closeLogs}
-          statusBarTranslucent
+          size="full"
         >
-          <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-              <Box style={styles.header} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-400">
-                <Text size="lg" bold numberOfLines={1} className="flex-1 text-typography-900">
-                  Logs: {logsFor.name}
-                </Text>
-                <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
-                  <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
-                </Button>
+          <ModalBackdrop onPress={closeLogs} />
+          <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+            <ModalBody className="m-0 p-0">
+              <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+                <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+                  <Box style={styles.header} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-400">
+                    <Text size="lg" bold numberOfLines={1} className="flex-1 text-typography-900">
+                      Logs: {logsFor.name}
+                    </Text>
+                    <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
+                      <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+                    </Button>
+                  </Box>
+                  {logsLoading ? (
+                    <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
+                      <Spinner size="large" color={theme.colors.accent} />
+                      <Text size="sm" className="text-typography-500 mt-3">Loading logs…</Text>
+                    </Box>
+                  ) : (
+                    <ScrollView
+                      style={styles.scroll}
+                      contentContainerStyle={[styles.scrollContent, styles.logsContent]}
+                    >
+                      <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
+                        {logsContent}
+                      </Text>
+                    </ScrollView>
+                  )}
+                </SafeAreaView>
               </Box>
-              {logsLoading ? (
-                <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
-                  <Spinner size="large" color={theme.colors.accent} />
-                  <Text size="sm" className="text-typography-500 mt-3">Loading logs…</Text>
-                </Box>
-              ) : (
-                <ScrollView
-                  style={styles.scroll}
-                  contentContainerStyle={[styles.scrollContent, styles.logsContent]}
-                >
-                  <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
-                    {logsContent}
-                  </Text>
-                </ScrollView>
-              )}
-            </SafeAreaView>
-          </Box>
+            </ModalBody>
+          </ModalContent>
         </Modal>
       )}
     </Modal>

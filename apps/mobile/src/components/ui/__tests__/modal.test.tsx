@@ -40,20 +40,20 @@ jest.mock('uniwind', () => ({
 import { Modal } from '@/components/ui/modal';
 
 describe('ui/modal', () => {
-  it('maps legacy visible prop to isOpen', () => {
+  it('passes isOpen through to modal root', () => {
     const { getByTestId } = render(
-      <Modal testID="modal" visible />
+      <Modal testID="modal" isOpen />
     );
 
     expect(getByTestId('modal').props.isOpen).toBe(true);
   });
 
-  it('maps legacy onRequestClose prop to onClose', () => {
-    const onRequestClose = jest.fn();
+  it('passes onClose through to modal root', () => {
+    const onClose = jest.fn();
     const { getByTestId } = render(
-      <Modal testID="modal" visible onRequestClose={onRequestClose} />
+      <Modal testID="modal" isOpen onClose={onClose} />
     );
 
-    expect(getByTestId('modal').props.onClose).toBe(onRequestClose);
+    expect(getByTestId('modal').props.onClose).toBe(onClose);
   });
 });

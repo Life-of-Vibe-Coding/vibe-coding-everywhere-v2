@@ -400,8 +400,8 @@ export function WorkspacePickerModal({
 
   return (
     <Modal
-      visible={visible}
-      onRequestClose={onClose}
+      isOpen={visible}
+      onClose={onClose}
       size="full"
     >
       <ModalBackdrop onPress={onClose} />

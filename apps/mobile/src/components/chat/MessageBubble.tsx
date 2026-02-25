@@ -300,7 +300,7 @@ function CollapsibleReadResult({
   content: string;
   previewLength: number;
   markdownStyles: React.ComponentProps<typeof Markdown>["style"];
-  theme: { textMuted: string; accent: string };
+  theme: ReturnType<typeof useTheme>;
   markdownRules: React.ComponentProps<typeof Markdown>["rules"];
   onLinkPress: (url: string) => boolean;
   wrapBareUrls: (s: string) => string;
@@ -315,7 +315,7 @@ function CollapsibleReadResult({
   return (
     <Box style={isLong && !expanded ? { minHeight: 80 } : undefined}>
       <Markdown style={markdownStyles} mergeStyle rules={markdownRules ?? undefined} onLinkPress={onLinkPress}>
-        {wrapBareUrls(replaceHighlight(displayContent, theme.accent))}
+        {wrapBareUrls(replaceHighlight(displayContent, theme.colors.accent))}
       </Markdown>
       {isLong && (
         <Pressable
@@ -375,7 +375,7 @@ const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect, isStreaming }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.colors.surfaceMuted;
-  const codeTextColor = theme.accent;
+  const codeTextColor = theme.colors.accent;
   const quoteBg = theme.colors.surface;
   const bashHeaderBg = theme.colors.surfaceMuted;
   const terminalBg = TERMINAL_BG;
@@ -571,7 +571,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           paddingVertical: 4,
           paddingHorizontal: 12,
           borderRadius: 6,
-          backgroundColor: theme.accent,
+          backgroundColor: theme.colors.accent,
         },
         bashRunButtonPressed: { opacity: 0.85 },
         bashRunButtonText: { fontSize: 13, fontWeight: "600" as const, color: "#fff" },
@@ -820,7 +820,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
               rules={markdownRules}
               onLinkPress={handleMarkdownLinkPress}
             >
-              {wrapBareUrlsInMarkdown(replaceHighlightWithTextColor(seg.text, theme.accent))}
+              {wrapBareUrlsInMarkdown(replaceHighlightWithTextColor(seg.text, theme.colors.accent))}
             </Markdown>
           );
         })}
@@ -835,7 +835,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       markdownStyles,
       onFileSelect,
       styles,
-      theme.accent,
+      theme.colors.accent,
     ]
   );
 
@@ -846,7 +846,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       const fileActivitySegments = parseFileActivitySegments(textContent);
       const hasRawFileActivityLinks = fileActivitySegments.some((seg) => seg.kind === "file");
 
-      let markdownContent = replaceHighlightWithTextColor(textContent, theme.accent);
+      let markdownContent = replaceHighlightWithTextColor(textContent, theme.colors.accent);
       for (let i = 0; i < 8; i++) {
         const next = fillEmptyBashBlocks(markdownContent);
         if (next === markdownContent) break;
@@ -951,7 +951,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                   onLinkPress={handleMarkdownLinkPress}
                 >
                   {wrapBareUrlsInMarkdown(
-                    replaceHighlightWithTextColor(textSection, theme.accent)
+                    replaceHighlightWithTextColor(textSection, theme.colors.accent)
                   )}
                 </Markdown>
               );
@@ -983,7 +983,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       styles,
       terminalPrompt,
       terminalText,
-      theme.accent,
+      theme.colors.accent,
     ]
   );
   const showProviderIcon = !isUser && !isSystem && provider;

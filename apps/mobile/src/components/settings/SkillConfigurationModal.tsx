@@ -112,8 +112,8 @@ export function SkillConfigurationModal({
 
   return (
     <Modal
-      visible={visible}
-      onRequestClose={onClose}
+      isOpen={visible}
+      onClose={onClose}
     >
       <Box className="flex-1 bg-background-0 overflow-hidden">
         {showDetailOverlay ? (

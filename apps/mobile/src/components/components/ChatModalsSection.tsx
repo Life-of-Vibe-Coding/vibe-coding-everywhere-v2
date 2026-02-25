@@ -1,6 +1,5 @@
 import React from "react";
 
-import type { Message } from "@/services/chat/hooks";
 import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
 import { SkillConfigurationModal } from "@/components/settings/SkillConfigurationModal";
 import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
@@ -16,7 +15,6 @@ import { useChatModalsController } from "@/components/hooks/useChatModalsControl
 type ChatModalsSectionProps = {
   context: ChatPageContext;
   modals: ChatPageModals;
-  currentMessages: Message[];
   onSelectActiveChat: () => void;
   children: (open: ChatModalOpenHandlers) => React.ReactNode;
 };
@@ -24,7 +22,6 @@ type ChatModalsSectionProps = {
 export function ChatModalsSection({
   context,
   modals,
-  currentMessages,
   onSelectActiveChat,
   children,
 }: ChatModalsSectionProps) {
@@ -66,14 +63,10 @@ export function ChatModalsSection({
       <SessionManagementModal
         visible={modalStates.sessionManagement.isOpen}
         onClose={modalStates.sessionManagement.close}
-        currentMessages={currentMessages}
         currentSessionId={modals.sessionManagement.currentSessionId}
         workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
         serverBaseUrl={modals.sessionManagement.serverBaseUrl}
-        provider={context.provider}
-        model={context.model}
         workspaceLoading={modals.sessionManagement.workspaceLoading}
-        onRefreshWorkspace={modals.sessionManagement.onRefreshSessionManagementWorkspace}
         onOpenWorkspacePicker={handleWorkspacePickerFromSession}
         onSelectSession={handleSessionSelect}
         onNewSession={handleNewSession}

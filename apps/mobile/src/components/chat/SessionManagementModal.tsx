@@ -25,7 +25,12 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
-import { Modal } from "@/components/ui/modal";
+import {
+  Modal,
+  ModalBackdrop,
+  ModalBody,
+  ModalContent,
+} from "@/components/ui/modal";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import {
@@ -124,22 +129,14 @@ function groupSessionsByWorkspace(
 export interface SessionManagementModalProps {
   visible: boolean;
   onClose: () => void;
-  /** Current messages (unused - we don't save to client storage). */
-  currentMessages: Message[];
   /** Current session id if we're viewing a persisted session. */
   currentSessionId: string | null;
   /** Current workspace path for display. */
   workspacePath?: string | null;
-  /** Current AI provider (unused). */
-  provider?: string | null;
-  /** Current AI model (unused). */
-  model?: string | null;
   /** Base URL for API (e.g. http://localhost:3456). */
   serverBaseUrl?: string;
   /** Loading state for workspace path. */
   workspaceLoading?: boolean;
-  /** Called to refresh workspace path. */
-  onRefreshWorkspace?: () => void;
   /** Called when user taps "Change workspace" - opens full-screen picker. */
   onOpenWorkspacePicker?: () => void;
   /** Called when user selects a session (fetches messages from API first). */
@@ -414,13 +411,15 @@ export function SessionManagementModal({
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
+      isOpen={visible}
+      onClose={onClose}
+      size="full"
     >
-      <Box style={[styles.container, { paddingTop: insets.top }]}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+      <ModalBackdrop onPress={onClose} />
+      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
+        <ModalBody className="m-0 p-0">
+          <Box style={[styles.container, { paddingTop: insets.top }]}>
+            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {/* Header with accent bar */}
           <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
             <HStack className="flex-1 items-center gap-2">
@@ -789,8 +788,10 @@ export function SessionManagementModal({
               })}
             </ScrollView>
           )}
-        </SafeAreaView>
-      </Box>
+            </SafeAreaView>
+          </Box>
+        </ModalBody>
+      </ModalContent>
     </Modal>
   );
 }
@@ -823,15 +824,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
     },
-    title: {
-      fontWeight: "700",
-      color: theme.colors.textPrimary,
-    },
-    closeButton: {
-      minWidth: 44,
-      minHeight: 44,
-      marginRight: -spacing["2"],
-    },
     errorBanner: {
       padding: spacing["4"],
       marginHorizontal: spacing["5"],
@@ -851,17 +843,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       alignSelf: "flex-start",
       minHeight: 44,
     },
-    retryText: {
-      fontWeight: "600",
-    },
     workspaceSection: {
       paddingBottom: spacing["4"],
-    },
-    sectionTitle: {
-      marginTop: spacing["4"],
-      marginBottom: spacing["2"],
-      marginHorizontal: spacing["5"],
-      fontWeight: "600",
     },
     workspacePathContainer: {
       minHeight: 28,
@@ -886,13 +869,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       letterSpacing: 0.1,
       color: theme.colors.textPrimary,
     },
-    workspacePathLabel: {
-      fontWeight: "700",
-      fontSize: 12,
-      lineHeight: 20,
-      color: theme.colors.textSecondary,
-      flexShrink: 0,
-    },
     workspaceBox: {
       marginHorizontal: spacing["5"],
     },
@@ -911,27 +887,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       width: "100%",
       minHeight: 48,
       borderRadius: 10,
-    },
-    workspaceButtonFill: {
-      width: "100%",
-      height: 52,
-      paddingVertical: spacing["3"],
-      paddingHorizontal: spacing["4"],
-    },
-    workspaceActionLabel: {
-      fontSize: 13,
-    },
-    workspaceChangeButton: {
-      backgroundColor: theme.colors.surfaceMuted,
-      borderColor: theme.colors.border,
-    },
-    workspaceNewSessionButton: {
-      backgroundColor: theme.colors.accent,
-      borderColor: theme.colors.accent,
-    },
-    workspaceNewSessionLabel: {
-      color: theme.colors.textInverse,
-      fontWeight: "600",
     },
     scrollView: {
       flex: 1,
@@ -961,13 +916,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       justifyContent: "center",
     },
-    menuHeaderText: {
-      flex: 1,
-    },
-    menuHeaderCount: {
-      marginLeft: spacing["1"],
-      opacity: 0.8,
-    },
     countBadge: {
       paddingHorizontal: spacing["2"],
       paddingVertical: spacing["0.5"],
@@ -977,13 +925,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingLeft: spacing["4"],
       paddingTop: spacing["1"],
       paddingBottom: spacing["2"],
-    },
-    sectionHeader: {
-      paddingVertical: spacing["1"],
-      paddingHorizontal: 0,
-      marginTop: spacing["3"],
-      marginBottom: spacing["1"],
-      position: "relative",
     },
     sectionHeaderTooltip: {
       position: "absolute",
@@ -1013,11 +954,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginBottom: spacing["2"],
       overflow: "hidden",
     },
-    sessionCardActive: {
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.accent + "05",
-      borderWidth: 2,
-    },
     sessionCardContentWrapper: {
       flexDirection: "row",
       alignItems: "center",
@@ -1035,12 +971,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexWrap: "wrap",
       marginTop: spacing["0.5"],
       gap: spacing["1"],
-    },
-    sessionCardCwd: {
-      marginTop: spacing["1"],
-      fontFamily: uiMonoFontFamily,
-      fontSize: 10,
-      opacity: 0.8,
     },
     sessionCardTime: {
       flexShrink: 0,
@@ -1061,15 +991,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     activeChatCardContent: {
       flex: 1,
     },
-    sessionId: {
-      opacity: 0.7,
-    },
-    deleteBtn: {
-      opacity: 0.7,
-      minWidth: 44,
-      minHeight: 44,
-      marginLeft: spacing["0.5"],
-    },
     empty: {
       flex: 1,
       justifyContent: "center",
@@ -1084,9 +1005,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing["4"],
-    },
-    emptyTitle: {
-      marginBottom: spacing["2"],
     },
     emptySubtitle: {
       lineHeight: 22,
