@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, FlatList, InteractionManager } from "react-native";
 
 import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig";
@@ -23,14 +23,11 @@ export type SseSessionControllerProps = {
 export type SseSessionControllerState = {
   connected: boolean;
   messages: Message[];
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
-  typingIndicator: boolean;
-  currentActivity: string | null;
   permissionDenials: PermissionDenial[] | null;
   lastSessionTerminated: boolean;
   sessionId: string | null;
-  sessionInitLoading: boolean;
   pendingAskQuestion: PendingAskUserQuestion | null;
   submitPrompt: ReturnType<typeof useSse>["submitPrompt"];
   submitAskQuestionAnswer: ReturnType<typeof useSse>["submitAskQuestionAnswer"];
@@ -73,19 +70,15 @@ export function SseSessionController({
   const storeModel = useSessionManagementStore((state) => state.model);
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
   const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
-
-  const {
-    connected,
-    messages,
-    agentRunning,
-    waitingForUserInput,
-    typingIndicator,
-    currentActivity,
-    permissionDenials,
-    lastSessionTerminated,
+  const [connected, setConnected] = useState(false);
+  const [sessionRunning, setSessionRunning] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [waitingForUserInput, setWaitingForUserInput] = useState(false);
+  const [permissionDenials, setPermissionDenials] = useState<PermissionDenial[] | null>(null);
+  const [lastSessionTerminated, setLastSessionTerminated] = useState(false);
+  const [pendingAskQuestion, setPendingAskQuestion] = useState<PendingAskUserQuestion | null>(null);
+  const { 
     sessionId,
-    sessionInitLoading,
-    pendingAskQuestion,
     submitPrompt,
     submitAskQuestionAnswer,
     dismissAskQuestion,
@@ -98,6 +91,13 @@ export function SseSessionController({
   } = useSse({
     provider,
     model,
+    onConnectedChange: setConnected,
+    onSessionRunningChange: setSessionRunning,
+    onMessagesChange: setMessages,
+    onWaitingForUserInputChange: setWaitingForUserInput,
+    onPermissionDenialsChange: setPermissionDenials,
+    onLastSessionTerminatedChange: setLastSessionTerminated,
+    onPendingAskQuestionChange: setPendingAskQuestion,
   });
 
   useEffect(() => {
@@ -213,7 +213,7 @@ export function SseSessionController({
         sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
       }
 
-      loadSession(sessionMessages, session.id);
+      loadSession(sessionMessages, session.id, session.running || session.sseConnected);
 
       runAfterInteractionScroll();
     },
@@ -237,14 +237,11 @@ export function SseSessionController({
   const state: SseSessionControllerState = {
     connected,
     messages,
-    agentRunning,
+    sessionRunning,
     waitingForUserInput,
-    typingIndicator,
-    currentActivity,
     permissionDenials,
     lastSessionTerminated,
     sessionId,
-    sessionInitLoading,
     pendingAskQuestion,
     submitPrompt,
     submitAskQuestionAnswer,

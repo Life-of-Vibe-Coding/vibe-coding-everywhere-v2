@@ -3,15 +3,13 @@ import { FlatList, Platform, StyleProp, type ViewStyle } from "react-native";
 import type { PermissionDenial, Message } from "@/services/sse/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
-import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { PermissionDenialBanner } from "@/components/common/PermissionDenialBanner";
 import type { BrandProvider } from "@/theme/index";
 
 type ChatMessageListProps = {
   messages: Message[];
   provider: BrandProvider;
-  typingIndicator: boolean;
-  currentActivity: string | null;
+  sessionId: string | null;
   permissionDenials: PermissionDenial[];
   lastSessionTerminated: boolean;
   onOpenUrl: (url: string) => void;
@@ -28,8 +26,7 @@ type ChatMessageListProps = {
 export function ChatMessageList({
   messages,
   provider,
-  typingIndicator,
-  currentActivity,
+  sessionId,
   permissionDenials,
   lastSessionTerminated,
   onOpenUrl,
@@ -44,25 +41,17 @@ export function ChatMessageList({
 }: ChatMessageListProps) {
   const displayMessages = messages;
 
-  const useStreamingList =
-    !!typingIndicator && displayMessages.length > 0 && displayMessages[displayMessages.length - 1]?.role === "assistant";
-
+  const sessionScopedKey = useMemo(() => `chat-${sessionId ?? "none"}`, [sessionId]);
   const listIdsKey = useMemo(() => displayMessages.map((message) => message.id).join(","), [displayMessages]);
 
-  const listDataStable = useMemo(
-    () => displayMessages.slice(0, -1),
-    [displayMessages.length, listIdsKey]
-  );
-
-  const chatListData = useStreamingList ? listDataStable : displayMessages;
   const flatListExtraData = useMemo(
-    () => `${lastSessionTerminated}-${chatListData.length}`,
-    [lastSessionTerminated, chatListData.length]
+    () => `${lastSessionTerminated}-${displayMessages.length}-${listIdsKey}`,
+    [lastSessionTerminated, displayMessages.length, listIdsKey]
   );
 
   const renderMessageItem = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
-      const isLast = !useStreamingList && index === displayMessages.length - 1;
+      const isLast = index === displayMessages.length - 1;
       const showTerminated =
         lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
       const hasCodeOrFileContent =
@@ -82,30 +71,15 @@ export function ChatMessageList({
           provider={provider}
           onOpenUrl={onOpenUrl}
           onFileSelect={onFileSelect}
-          isStreaming={typingIndicator && isLast && item.role === "assistant"}
         />
       );
     },
-    [
-      useStreamingList,
-      displayMessages.length,
-      lastSessionTerminated,
-      provider,
-      tailBoxMaxHeight,
-      typingIndicator,
-      onOpenUrl,
-      onFileSelect,
-    ]
+    [displayMessages.length, lastSessionTerminated, provider, tailBoxMaxHeight, onOpenUrl, onFileSelect]
   );
 
   const chatListFooter = useMemo(
     () => (
       <>
-        {typingIndicator && (
-          <EntranceAnimation variant="fade" duration={200}>
-            <TypingIndicator visible provider={provider} activity={currentActivity} />
-          </EntranceAnimation>
-        )}
         {permissionDenials && permissionDenials.length > 0 && (
           <PermissionDenialBanner
             denials={permissionDenials}
@@ -115,51 +89,12 @@ export function ChatMessageList({
         )}
       </>
     ),
-    [
-      typingIndicator,
-      provider,
-      currentActivity,
-      permissionDenials,
-      onDismissPermission,
-      onRetryPermission,
-    ]
+    [permissionDenials, onDismissPermission, onRetryPermission]
   );
-
-  const streamingFooterContent = useMemo(() => {
-    const last = displayMessages[displayMessages.length - 1];
-    if (!last) return chatListFooter;
-    const hasCodeOrFileContent =
-      hasFileActivityContent(last.content) || hasCodeBlockContent(last.content);
-    const showTailBox = !!(last.content && last.content.trim()) && hasCodeOrFileContent;
-    return (
-      <>
-        <MessageBubble
-          message={last}
-          isTerminatedLabel={false}
-          showAsTailBox={showTailBox}
-          tailBoxMaxHeight={tailBoxMaxHeight}
-          provider={provider}
-          onOpenUrl={onOpenUrl}
-          onFileSelect={onFileSelect}
-          isStreaming
-        />
-        {chatListFooter}
-      </>
-    );
-  }, [
-    displayMessages,
-    chatListFooter,
-    onFileSelect,
-    onOpenUrl,
-    provider,
-    tailBoxMaxHeight,
-  ]);
-
-  const flatListFooterComponent = useStreamingList ? streamingFooterContent : chatListFooter;
 
   return (
     <FlatList
-      key="chat"
+      key={sessionScopedKey}
       ref={flatListRef}
       style={style}
       contentContainerStyle={contentContainerStyle}
@@ -167,15 +102,19 @@ export function ChatMessageList({
       showsHorizontalScrollIndicator={false}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
-      data={chatListData}
+      data={displayMessages}
       extraData={flatListExtraData}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => `${sessionScopedKey}:${item.id}`}
       renderItem={renderMessageItem}
       initialNumToRender={15}
       maxToRenderPerBatch={10}
       windowSize={10}
       removeClippedSubviews={Platform.OS === "android"}
-      ListFooterComponent={flatListFooterComponent}
+      ListFooterComponent={
+        <EntranceAnimation variant="fade" duration={200}>
+          {chatListFooter}
+        </EntranceAnimation>
+      }
       onContentSizeChange={() => {
         onContentSizeChange();
       }}

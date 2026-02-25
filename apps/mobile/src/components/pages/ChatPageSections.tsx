@@ -16,8 +16,7 @@ export type ChatHeaderSectionProps = {
   styles: ReturnType<typeof createAppStyles>;
   workspaceName: string;
   sessionIdLabel: string;
-  typingIndicator: boolean;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
   onOpenExplorer: () => void;
   onOpenSessionManagement: () => void;
@@ -29,8 +28,7 @@ export function ChatHeaderSection({
   styles,
   workspaceName,
   sessionIdLabel,
-  typingIndicator,
-  agentRunning,
+  sessionRunning,
   waitingForUserInput,
   onOpenExplorer,
   onOpenSessionManagement,
@@ -45,11 +43,9 @@ export function ChatHeaderSection({
         sessionIdCenter: styles.sessionIdCenter,
         headerStatusStack: styles.headerStatusStack,
         headerStatusRow: styles.headerStatusRow,
-        runningDot: styles.runningDot,
       }}
       workspaceName={workspaceName}
-      typingIndicator={typingIndicator}
-      agentRunning={agentRunning}
+      sessionRunning={sessionRunning}
       waitingForUserInput={waitingForUserInput}
       sessionIdLabel={sessionIdLabel}
       onOpenExplorer={onOpenExplorer}
@@ -74,8 +70,7 @@ export function ChatConversationSection({ styles, conversation, fileViewer, side
       <ChatMessageList
         messages={conversation.messages}
         provider={conversation.provider}
-        typingIndicator={conversation.typingIndicator}
-        currentActivity={conversation.currentActivity}
+        sessionId={conversation.sessionId}
         permissionDenials={conversation.permissionDenials}
         lastSessionTerminated={conversation.lastSessionTerminated}
         onOpenUrl={conversation.onOpenUrl}
@@ -152,7 +147,7 @@ export function ChatInputDockSection({
     >
       <ChatInputDock
         connected={runtime.connected}
-        agentRunning={runtime.agentRunning}
+        sessionRunning={runtime.sessionRunning}
         waitingForUserInput={runtime.waitingForUserInput}
         permissionModeUI={context.permissionModeUI}
         onSubmit={input.onSubmitPrompt}

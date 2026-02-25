@@ -4,7 +4,7 @@
  * This hook manages:
  * - SSE EventSource connection lifecycle
  * - Chat message state
- * - Session state (idle, running, waiting)
+ * - Session state (idle, running)
  * - Permission handling
  */
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -27,8 +27,9 @@ import {
   deduplicateMessageIds as deduplicateMessageIdsUtil,
   getMaxMessageId,
   appendCodeRefsToPrompt,
-  createEmptySessionState,
 } from "./hooks-utils";
+import { getOrCreateSessionState, getOrCreateSessionMessages, getSessionDraft, moveSessionCacheData, setSessionDraft, setSessionMessages } from "./sessionCacheHelpers";
+import { resolveDefaultModel, resolveStreamUrl } from "./sseHookHelpers";
 import type { EventSourceCtor, EventSourceLike, SessionLiveState, SessionRuntimeState, UseSseOptions } from "./hooks-types";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
 
@@ -40,33 +41,35 @@ export function useSse(options: UseSseOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();
   const serverUrl = serverConfig.getBaseUrl();
   const provider = options.provider ?? "codex";
-  const defaultModel =
-    provider === "claude" ? "sonnet4.5" : provider === "codex" ? "gpt-5.1-codex-mini" : "gemini-2.5-flash";
+  const {
+    onConnectedChange,
+    onSessionRunningChange,
+    onWaitingForUserInputChange,
+    onPermissionDenialsChange,
+    onPendingAskQuestionChange,
+    onLastSessionTerminatedChange,
+    onMessagesChange,
+  } = options;
+  const defaultModel = resolveDefaultModel(provider);
   const model = options.model ?? defaultModel;
   const [connected, setConnected] = useState(false);
   const [liveSessionMessages, setLiveSessionMessages] = useState<Message[]>([]);
 
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
-  const [typingIndicator, setTypingIndicator] = useState(false);
-  const [currentActivity, setCurrentActivity] = useState<string | null>(null);
   const [sessionState, setSessionState] = useState<SessionRuntimeState>("idle");
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionInitLoading, setSessionInitLoading] = useState(false);
-  const messages = liveSessionMessages;
 
   const [permissionDenials, setPermissionDenials] = useState<PermissionDenial[] | null>(null);
-  const [lastRunOptions, setLastRunOptions] = useState<LastRunOptions>({
+  const lastRunOptionsRef = useRef<LastRunOptions>({
     permissionMode: null,
     allowedTools: [],
     useContinue: false,
   });
   
   const [pendingAskQuestion, setPendingAskQuestion] = useState<PendingAskUserQuestion | null>(null);
-  const [modelName, setModelName] = useState("Sonnet 4.5");
   const [lastSessionTerminated, setLastSessionTerminated] = useState(false);
-  const [mockSequences, setMockSequences] = useState<string[]>([]);
-  const [selectedSequence, setSelectedSequence] = useState<string | null>(null);
 
   const activeSseRef = useRef<{ id: string; source: EventSourceLike } | null>(null);
   const activeSseHandlersRef = useRef<{
@@ -77,21 +80,88 @@ export function useSse(options: UseSseOptions = {}) {
     done: (event: any) => void;
   } | null>(null);
   const suppressActiveSessionSwitchRef = useRef(false);
+  const selectedSessionRuntimeRef = useRef<{ id: string | null; running: boolean } | null>(null);
+  const connectionIntentBySessionRef = useRef<Map<string, boolean>>(new Map());
   const outputBufferRef = useRef("");
   const currentAssistantContentRef = useRef("");
-  const hasCompletedFirstRunRef = useRef(false);
+  const runtimeStateCallbacksRef = useRef({
+    onConnectedChange,
+    onSessionRunningChange,
+    onWaitingForUserInputChange,
+    onPermissionDenialsChange,
+    onPendingAskQuestionChange,
+    onLastSessionTerminatedChange,
+    onMessagesChange,
+  });
+  useEffect(() => {
+    runtimeStateCallbacksRef.current = {
+      onConnectedChange,
+      onSessionRunningChange,
+      onWaitingForUserInputChange,
+      onPermissionDenialsChange,
+      onPendingAskQuestionChange,
+      onLastSessionTerminatedChange,
+      onMessagesChange,
+    };
+  }, [
+      onConnectedChange,
+      onSessionRunningChange,
+      onWaitingForUserInputChange,
+      onPermissionDenialsChange,
+      onPendingAskQuestionChange,
+    onLastSessionTerminatedChange,
+    onMessagesChange,
+  ]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onConnectedChange?.(connected);
+  }, [connected]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onSessionRunningChange?.(sessionState !== "idle");
+  }, [sessionState]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onWaitingForUserInputChange?.(waitingForUserInput);
+  }, [waitingForUserInput]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onPermissionDenialsChange?.(permissionDenials);
+  }, [permissionDenials]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onPendingAskQuestionChange?.(pendingAskQuestion);
+  }, [pendingAskQuestion]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onLastSessionTerminatedChange?.(lastSessionTerminated);
+  }, [lastSessionTerminated]);
+
+  useEffect(() => {
+    runtimeStateCallbacksRef.current.onMessagesChange?.(liveSessionMessages);
+  }, [liveSessionMessages]);
 
   const sessionStatesRef = useRef<Map<string, SessionLiveState>>(new Map());
+  const sessionMessagesRef = useRef<Map<string, Message[]>>(new Map());
+  const sessionDraftRef = useRef<Map<string, string>>(new Map());
   const displayedSessionIdRef = useRef<string | null>(null);
 
   const getOrCreateSessionState = useCallback((sid: string): SessionLiveState => {
-    let s = sessionStatesRef.current.get(sid);
-    if (!s) {
-      s = createEmptySessionState();
-      sessionStatesRef.current.set(sid, s);
-    }
-    return s;
+    return getOrCreateSessionState(sessionStatesRef.current, sid);
   }, []);
+  const getOrCreateSessionMessages = useCallback(
+    (sid: string): Message[] => getOrCreateSessionMessages(sessionMessagesRef.current, sid),
+    []
+  );
+  const getSessionDraft = useCallback((sid: string): string => getSessionDraft(sessionDraftRef.current, sid), []);
+  const setSessionDraft = useCallback(
+    (sid: string, draft: string) => setSessionDraft(sessionDraftRef.current, sid, draft),
+    []
+  );
+  const setSessionMessages = useCallback(
+    (sid: string, messages: Message[]) => setSessionMessages(sessionMessagesRef.current, sid, messages),
+    []
+  );
   const setSessionStateForSession = useCallback((sid: string | null, next: SessionRuntimeState) => {
     if (!sid) {
       setSessionState(next);
@@ -104,7 +174,6 @@ export function useSse(options: UseSseOptions = {}) {
     }
   }, [getOrCreateSessionState]);
   const nextIdRef = useRef(0);
-  const workspaceRootRef = useRef<string | null>(null);
   const toolUseByIdRef = useRef<Map<string, { tool_name: string; tool_input?: Record<string, unknown> }>>(new Map());
   const liveMessagesRef = useRef<Message[]>([]);
   liveMessagesRef.current = liveSessionMessages;
@@ -162,42 +231,52 @@ export function useSse(options: UseSseOptions = {}) {
     [getSessionStatusFromStore]
   );
 
+  const getConnectionIntent = useCallback((sid: string | null): boolean | undefined => {
+    if (!sid) return undefined;
+    const intent = connectionIntentBySessionRef.current.get(sid);
+    if (intent === undefined) return undefined;
+    connectionIntentBySessionRef.current.delete(sid);
+    return intent;
+  }, []);
+
+  const setConnectionIntent = useCallback((sid: string | null, shouldConnect: boolean) => {
+    if (!sid) return;
+    if (shouldConnect) {
+      connectionIntentBySessionRef.current.set(sid, true);
+      return;
+    }
+    connectionIntentBySessionRef.current.delete(sid);
+  }, []);
+
+  const clearConnectionIntent = useCallback((sid: string | null) => {
+    if (!sid) return;
+    connectionIntentBySessionRef.current.delete(sid);
+  }, []);
+
   const syncSessionToReact = useCallback((sid: string | null) => {
     if (!sid) return;
-    let s = sessionStatesRef.current.get(sid);
-    // Fallback: state may be keyed by migrated id (e.g. Pi session_id) while sid is stale
-    if (!s && displayedSessionIdRef.current) {
-      s = sessionStatesRef.current.get(displayedSessionIdRef.current);
-    }
+    const s = sessionStatesRef.current.get(sid);
+    const messages = getOrCreateSessionMessages(sid);
     if (s) {
-      setLiveSessionMessages(s.messages);
+      setLiveSessionMessages(messages);
       setSessionState(s.sessionState);
-      setTypingIndicator(s.typingIndicator);
-      setWaitingForUserInput(s.waitingForUserInput);
-      setCurrentActivity(s.currentActivity);
-      setLastSessionTerminated(s.lastSessionTerminated);
-      outputBufferRef.current = s.outputBuffer;
-      currentAssistantContentRef.current = s.currentAssistantContent;
-      hasCompletedFirstRunRef.current = s.hasCompletedFirstRun;
-      liveMessagesRef.current = s.messages;
+      outputBufferRef.current = "";
+      currentAssistantContentRef.current = getSessionDraft(sid);
+      liveMessagesRef.current = messages;
     } else {
-      // Avoid blanking when switching back to a running session: state may be keyed by
-      // a different id (server migrated session_id) or not yet populated. Preserve
-      // existing display so we don't clear messages that were just shown.
+      // Preserve previously displayed messages when switching to an in-flight migrated session id.
       const isDisplayedSession = displayedSessionIdRef.current === sid;
       const hasDisplayedMessages = liveMessagesRef.current.length > 0;
       if (!(isDisplayedSession && hasDisplayedMessages)) {
         setLiveSessionMessages([]);
         liveMessagesRef.current = [];
       }
-      setSessionState("idle");
-      setTypingIndicator(false);
-      setWaitingForUserInput(false);
-      setCurrentActivity(null);
       outputBufferRef.current = "";
+      setSessionState("idle");
+      setWaitingForUserInput(false);
       currentAssistantContentRef.current = "";
     }
-  }, []);
+  }, [getOrCreateSessionMessages, getSessionDraft]);
 
   const closeActiveSse = useCallback(
     (reason?: string) => {
@@ -220,9 +299,7 @@ export function useSse(options: UseSseOptions = {}) {
       source.close();
       if (displayedSessionIdRef.current === id) {
         setSessionStateForSession(id, "idle");
-        setTypingIndicator(false);
         setWaitingForUserInput(false);
-        setCurrentActivity(null);
         setManagedSessionStatus(id, false);
       }
       suppressActiveSessionSwitchRef.current = false;
@@ -232,9 +309,10 @@ export function useSse(options: UseSseOptions = {}) {
         clearTimeout(streamFlushTimeoutRef.current);
         streamFlushTimeoutRef.current = null;
       }
+      clearConnectionIntent(id);
       setConnected(false);
     },
-    [setCurrentActivity, setManagedSessionStatus, setSessionStateForSession, setTypingIndicator, setWaitingForUserInput]
+    [clearConnectionIntent, setManagedSessionStatus, setSessionStateForSession, setWaitingForUserInput]
   );
 
   /** Deduplicate message IDs; bump nextIdRef for any reassignments. */
@@ -255,38 +333,44 @@ export function useSse(options: UseSseOptions = {}) {
         pendingMessagesForNewSessionRef.current = [...pendingMessagesForNewSessionRef.current, newMsg];
         return id;
       }
-      const state = getOrCreateSessionState(sid);
-      state.messages = [...state.messages, newMsg];
+      const messages = getOrCreateSessionMessages(sid);
+      const nextMessages = [...messages, newMsg];
+      setSessionMessages(sid, nextMessages);
       if (displayedSessionIdRef.current === sid) {
-        setLiveSessionMessages([...state.messages]);
-        liveMessagesRef.current = state.messages;
+        setLiveSessionMessages([...nextMessages]);
+        liveMessagesRef.current = nextMessages;
       }
       return id;
     },
-    [getOrCreateSessionState]
+    [getOrCreateSessionMessages, setSessionMessages]
   );
   addMessageRef.current = addMessage;
 
   const seedSessionFromMessages = useCallback(
-    (sid: string, initialMessages: Message[] | undefined) => {
-      const shouldRun = isSessionManagedRunning(sid);
+    (sid: string, initialMessages: Message[] | undefined, statusHint?: boolean) => {
+      const shouldRun = typeof statusHint === "boolean" ? statusHint : isSessionManagedRunning(sid);
       const state = getOrCreateSessionState(sid);
+      if (typeof statusHint === "boolean") {
+        setManagedSessionStatus(sid, statusHint);
+        setConnectionIntent(sid, statusHint);
+      } else {
+        clearConnectionIntent(sid);
+      }
       if (initialMessages && initialMessages.length > 0) {
         const maxN = getMaxMessageId(initialMessages);
         nextIdRef.current = Math.max(nextIdRef.current, maxN);
         const deduped = deduplicateMessageIds(initialMessages);
-        state.messages = [...deduped];
-        state.outputBuffer = "";
-        state.currentAssistantContent = "";
+        setSessionMessages(sid, [...deduped]);
+        setSessionDraft(sid, "");
         setLiveSessionMessages([...deduped]);
-        liveMessagesRef.current = state.messages;
+        liveMessagesRef.current = deduped;
         skipReplayForSessionRef.current = sid; // SSE effect will add skipReplay=1 so server does not replay
       } else {
-        state.messages = [];
-        state.outputBuffer = "";
-        state.currentAssistantContent = "";
+        setSessionMessages(sid, []);
+        setSessionDraft(sid, "");
       }
       state.sessionState = shouldRun ? "running" : "idle";
+      setSessionState(state.sessionState);
 
       setSessionId(sid);
       setSessionStateForSession(sid, state.sessionState);
@@ -297,53 +381,117 @@ export function useSse(options: UseSseOptions = {}) {
       deduplicateMessageIds,
       getMaxMessageId,
       getOrCreateSessionState,
+      getOrCreateSessionMessages,
+      setSessionMessages,
+      setSessionDraft,
       isSessionManagedRunning,
+      setManagedSessionStatus,
+      setConnectionIntent,
+      clearConnectionIntent,
       setSessionStateForSession,
       syncSessionToReact,
     ]
   );
 
-  const loadSession = useCallback((loadedMessages: Message[], sessionIdToResume?: string | null) => {
-    if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs", { sessionIdToResume });
-    if (sessionIdToResume && !sessionIdToResume.startsWith("temp-")) {
-      seedSessionFromMessages(sessionIdToResume, loadedMessages);
-    }
-  }, [seedSessionFromMessages]);
+  const loadSession = useCallback(
+    (loadedMessages: Message[], sessionIdToResume?: string | null, statusHint?: boolean) => {
+      if (__DEV__) console.log("[sse] loadSession", loadedMessages.length, "msgs", { sessionIdToResume, statusHint });
+      if (sessionIdToResume && !sessionIdToResume.startsWith("temp-")) {
+        if (activeSseRef.current && activeSseRef.current.id !== sessionIdToResume) {
+          closeActiveSse("session-load");
+        }
+        seedSessionFromMessages(sessionIdToResume, loadedMessages, statusHint);
+      }
+    },
+    [activeSseRef, closeActiveSse, seedSessionFromMessages]
+  );
+
+  const refreshCurrentSessionFromDisk = useCallback(
+    async (sid: string | null) => {
+      if (!sid || sid.startsWith("temp-")) return;
+      try {
+        const res = await fetch(`${serverUrl}/api/sessions/${encodeURIComponent(sid)}/messages`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const loadedMessages = Array.isArray(data?.messages) ? (data.messages as Message[]) : [];
+        const state = getOrCreateSessionState(sid);
+        const deduped = deduplicateMessageIds(loadedMessages);
+        const maxN = getMaxMessageId(deduped);
+
+        nextIdRef.current = Math.max(nextIdRef.current, maxN);
+        setSessionMessages(sid, deduped);
+        setSessionDraft(sid, "");
+        state.sessionState = "idle";
+        setSessionState(state.sessionState);
+
+        if (displayedSessionIdRef.current === sid) {
+          setLiveSessionMessages([...deduped]);
+          liveMessagesRef.current = deduped;
+          setSessionStateForSession(sid, "idle");
+          setWaitingForUserInput(false);
+          outputBufferRef.current = "";
+          currentAssistantContentRef.current = "";
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.warn("[sse] refresh session from disk failed", { sessionId: sid, error: String(err) });
+        }
+      }
+    },
+    [
+      deduplicateMessageIds,
+      getMaxMessageId,
+      getOrCreateSessionState,
+      getOrCreateSessionMessages,
+      getSessionDraft,
+      setSessionDraft,
+      setSessionMessages,
+      serverUrl,
+      setSessionStateForSession,
+      setWaitingForUserInput,
+    ]
+  );
 
   const appendAssistantText = useCallback(
     (chunk: string) => {
       const sid = currentSessionIdRef.current;
       if (!sid) return;
-      const state = getOrCreateSessionState(sid);
       const sanitized = stripAnsi(chunk);
       if (!sanitized) return;
-      const next = state.currentAssistantContent ? state.currentAssistantContent + sanitized : sanitized;
-      state.currentAssistantContent = next;
-      const last = state.messages[state.messages.length - 1];
+      const currentMessages = getOrCreateSessionMessages(sid);
+      const nextDraft = getSessionDraft(sid);
+      const draft = nextDraft ? nextDraft + sanitized : sanitized;
+      setSessionDraft(sid, draft);
+      const last = currentMessages[currentMessages.length - 1];
       if (last?.role === "assistant") {
-        state.messages = [...state.messages.slice(0, -1), { ...last, content: next }];
+        setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: draft }]);
       } else {
-        state.messages = [...state.messages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }];
+        setSessionMessages(sid, [...currentMessages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }]);
       }
-      state.typingIndicator = true;
-      currentAssistantContentRef.current = next;
-      liveMessagesRef.current = state.messages;
+      const nextMessages = getOrCreateSessionMessages(sid);
+      currentAssistantContentRef.current = draft;
+      liveMessagesRef.current = nextMessages;
       if (displayedSessionIdRef.current === sid) {
         if (!streamFlushTimeoutRef.current) {
           streamFlushTimeoutRef.current = setTimeout(() => {
             streamFlushTimeoutRef.current = null;
             const currentSid = currentSessionIdRef.current;
             if (currentSid) {
-              const s = getOrCreateSessionState(currentSid);
-              setLiveSessionMessages([...s.messages]);
-              setTypingIndicator(true);
+              const messages = getOrCreateSessionMessages(currentSid);
+              setLiveSessionMessages([...messages]);
             }
           }, STREAM_UPDATE_THROTTLE_MS);
         }
       }
       setSessionStateForSession(sid, "running");
     },
-    [getOrCreateSessionState, setSessionStateForSession]
+    [
+      getOrCreateSessionMessages,
+      getSessionDraft,
+      setSessionDraft,
+      setSessionMessages,
+      setSessionStateForSession,
+    ]
   );
   appendAssistantTextRef.current = appendAssistantText;
 
@@ -356,32 +504,39 @@ export function useSse(options: UseSseOptions = {}) {
       const sid = currentSessionIdRef.current;
       if (!sid) return;
       const state = getOrCreateSessionState(sid);
-      const raw = state.currentAssistantContent;
+      const raw = getSessionDraft(sid);
       const cleaned = stripTrailingIncompleteTag(raw ?? "");
       if (cleaned !== (raw ?? "")) {
-        const last = state.messages[state.messages.length - 1];
+        const currentMessages = getOrCreateSessionMessages(sid);
+        const last = currentMessages[currentMessages.length - 1];
         if (last?.role === "assistant") {
           const trimmed = cleaned.trim();
-          if (trimmed === "") state.messages = state.messages.slice(0, -1);
-          else state.messages = [...state.messages.slice(0, -1), { ...last, content: cleaned }];
+          if (trimmed === "") setSessionMessages(sid, currentMessages.slice(0, -1));
+          else setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: cleaned }]);
         }
-        state.currentAssistantContent = cleaned;
       }
-      const last = state.messages[state.messages.length - 1];
+      const normalizedMessages = getOrCreateSessionMessages(sid);
+      const last = normalizedMessages[normalizedMessages.length - 1];
       if (last?.role === "assistant" && (last.content ?? "").trim() === "") {
-        state.messages = state.messages.slice(0, -1);
+        setSessionMessages(sid, normalizedMessages.slice(0, -1));
       }
-      state.currentAssistantContent = "";
-      state.typingIndicator = false;
+      setSessionDraft(sid, "");
+      const normalized = getOrCreateSessionMessages(sid);
       if (displayedSessionIdRef.current === sid) {
-        setLiveSessionMessages([...state.messages]);
-        setTypingIndicator(false);
+        setLiveSessionMessages([...normalized]);
         currentAssistantContentRef.current = "";
-        liveMessagesRef.current = state.messages;
+        liveMessagesRef.current = normalized;
       }
       setSessionStateForSession(sid, "idle");
     },
-    [getOrCreateSessionState, setSessionStateForSession]
+    [
+      getOrCreateSessionMessages,
+      getSessionDraft,
+      setSessionDraft,
+      setSessionMessages,
+      getOrCreateSessionState,
+      setSessionStateForSession,
+    ]
   );
   finalizeAssistantMessageRef.current = finalizeAssistantMessage;
 
@@ -443,10 +598,23 @@ export function useSse(options: UseSseOptions = {}) {
   // ===== EventSource Connection Setup (single active SSE) ===== //
   useEffect(() => {
     const targetSessionId = storeSessionId;
-    if (!targetSessionId || !isSessionManagedRunning(targetSessionId)) {
+    const targetSessionIntent = getConnectionIntent(targetSessionId);
+    const targetSessionRunning = targetSessionId
+      ? (targetSessionIntent ?? isSessionManagedRunning(targetSessionId))
+      : false;
+    const prevSessionRuntime = selectedSessionRuntimeRef.current;
+    if (prevSessionRuntime?.id === targetSessionId && prevSessionRuntime.running && !targetSessionRunning) {
+      void refreshCurrentSessionFromDisk(targetSessionId);
+    }
+    if (!targetSessionId || !targetSessionRunning) {
       closeActiveSse("inactive");
+      selectedSessionRuntimeRef.current = {
+        id: targetSessionId ?? null,
+        running: false,
+      };
       return;
     }
+    selectedSessionRuntimeRef.current = { id: targetSessionId, running: true };
 
     syncSessionToReact(targetSessionId);
 
@@ -476,20 +644,21 @@ export function useSse(options: UseSseOptions = {}) {
     const handlers = createSessionMessageHandlers({
       sidRef: connectionSessionIdRef,
       getOrCreateSessionState,
+      getOrCreateSessionMessages,
+      setSessionMessages,
+      getSessionDraft,
+      setSessionDraft,
       displayedSessionIdRef,
       setLiveSessionMessages,
-      setTypingIndicator,
       setSessionStateForSession,
       liveMessagesRef,
-      currentAssistantContentRef,
       nextIdRef,
     });
     const state = getOrCreateSessionState(sid);
     const hasStreamEndedRef = { current: false };
 
-    let streamUrl = `${serverUrl}/api/sessions/${sid}/stream?activeOnly=1`;
-    if (skipReplayForSessionRef.current === sid) {
-      streamUrl += "&skipReplay=1";
+    const { url: streamUrl, applySkipReplay } = resolveStreamUrl(serverUrl, sid, skipReplayForSessionRef.current);
+    if (applySkipReplay) {
       skipReplayForSessionRef.current = null;
     }
     const EventSourceCtor = ((EventSource as unknown as { default?: EventSourceCtor }).default ??
@@ -500,15 +669,23 @@ export function useSse(options: UseSseOptions = {}) {
     const setSessionIdWithRekey = (newId: string | null) => {
       const currentSid = connectionSessionIdRef.current;
       if (newId && newId !== currentSid && !newId.startsWith("temp-")) {
-        const s = sessionStatesRef.current.get(currentSid);
-        if (s) {
-          sessionStatesRef.current.delete(currentSid);
-          sessionStatesRef.current.set(newId, s);
-        }
+        moveSessionCacheData(currentSid, newId, sessionStatesRef.current, sessionMessagesRef.current, sessionDraftRef.current);
         connectionSessionIdRef.current = newId;
         if (activeSseRef.current && activeSseRef.current.id === currentSid) {
           activeSseRef.current.id = newId;
           suppressActiveSessionSwitchRef.current = true;
+        }
+        const selectedSessionRuntime = selectedSessionRuntimeRef.current;
+        if (selectedSessionRuntime?.id === currentSid) {
+          selectedSessionRuntimeRef.current = {
+            ...selectedSessionRuntime,
+            id: newId,
+          };
+        }
+        const intent = connectionIntentBySessionRef.current.get(currentSid);
+        if (intent !== undefined) {
+          connectionIntentBySessionRef.current.delete(currentSid);
+          connectionIntentBySessionRef.current.set(newId, intent);
         }
         setManagedSessionStatus(currentSid, false);
         setManagedSessionStatus(newId, true);
@@ -518,33 +695,26 @@ export function useSse(options: UseSseOptions = {}) {
 
     const dispatchProviderEvent = createEventDispatcher({
       setPermissionDenials: (d) => setPermissionDenials(d ? deduplicateDenialsRef.current(d) : null),
-      setModelName,
       setWaitingForUserInput: (v) => {
-        state.waitingForUserInput = v;
-        if (v) {
-          state.sessionState = "waiting";
-        } else if (state.sessionState === "waiting") {
-          state.sessionState = "running";
-        }
+        state.sessionState = "running";
         if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
           setSessionState(state.sessionState);
           setWaitingForUserInput(v);
         }
       },
       setPendingAskQuestion,
-      setCurrentActivity: (v) => {
-        state.currentActivity = v;
-        if (displayedSessionIdRef.current === connectionSessionIdRef.current) setCurrentActivity(v);
+      setCurrentActivity: () => {
+        // Activity is currently not surfaced in mobile chat UI and intentionally ignored.
       },
       addMessage: (role, content, codeRefs) => handlers.addMessageForSession(role, content, codeRefs),
       appendAssistantText: (chunk) => handlers.appendAssistantTextForSession(chunk),
-      getCurrentAssistantContent: () => state.currentAssistantContent,
+      getCurrentAssistantContent: () => getSessionDraft(connectionSessionIdRef.current),
       getLastMessageRole: () => {
-        const m = state.messages;
+        const m = getOrCreateSessionMessages(connectionSessionIdRef.current);
         return m.length ? m[m.length - 1]?.role ?? null : null;
       },
       getLastMessageContent: () => {
-        const m = state.messages;
+        const m = getOrCreateSessionMessages(connectionSessionIdRef.current);
         const last = m.length ? m[m.length - 1] : null;
         return (last?.content as string) ?? "";
       },
@@ -577,7 +747,6 @@ export function useSse(options: UseSseOptions = {}) {
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
         setConnected(false);
         setSessionStateForSession(connectionSessionIdRef.current, "idle");
-        setTypingIndicator(false);
       }
       setManagedSessionStatus(connectionSessionIdRef.current, false);
     };
@@ -586,9 +755,9 @@ export function useSse(options: UseSseOptions = {}) {
       if (!event.data && typeof event.data !== "string") return;
 
       const dataStr = event.data;
-      state.outputBuffer += dataStr + "\n";
-      const lines = state.outputBuffer.split("\n");
-      state.outputBuffer = lines.pop() ?? "";
+      outputBufferRef.current += dataStr + "\n";
+      const lines = outputBufferRef.current.split("\n");
+      outputBufferRef.current = lines.pop() ?? "";
 
       for (const line of lines) {
         const trimmed = line.trim();
@@ -605,12 +774,9 @@ export function useSse(options: UseSseOptions = {}) {
           if (parsed.type === "session-started" || parsed.type === "claude-started") {
             hasStreamEndedRef.current = false;
             state.sessionState = "running";
-            state.typingIndicator = true;
-            state.waitingForUserInput = false;
-            state.lastSessionTerminated = false;
+            setLastSessionTerminated(false);
             if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
               setSessionStateForSession(connectionSessionIdRef.current, "running");
-              setTypingIndicator(true);
               setWaitingForUserInput(false);
               setLastSessionTerminated(false);
             }
@@ -619,11 +785,11 @@ export function useSse(options: UseSseOptions = {}) {
             if (id && !id.startsWith("temp-")) {
               setSessionIdWithRekey(id);
             }
-            setLastRunOptions({
+            lastRunOptionsRef.current = {
               permissionMode: (parsed.permissionMode as string | null) ?? null,
               allowedTools: (Array.isArray(parsed.allowedTools) ? parsed.allowedTools : []) as string[],
               useContinue: Boolean(parsed.useContinue),
-            });
+            };
             continue;
           }
 
@@ -680,16 +846,9 @@ export function useSse(options: UseSseOptions = {}) {
       } catch (e) {}
 
       state.sessionState = "idle";
-      state.typingIndicator = false;
-      state.currentActivity = null;
-      state.waitingForUserInput = false;
-      if (exitCode !== 0) state.lastSessionTerminated = true;
-      if (!state.hasCompletedFirstRun && exitCode === 0) state.hasCompletedFirstRun = true;
-
+      setLastSessionTerminated(exitCode !== 0);
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
         setSessionStateForSession(connectionSessionIdRef.current, "idle");
-        setTypingIndicator(false);
-        setCurrentActivity(null);
         setWaitingForUserInput(false);
         if (exitCode !== 0) setLastSessionTerminated(true);
       }
@@ -723,7 +882,9 @@ export function useSse(options: UseSseOptions = {}) {
   }, [
     closeActiveSse,
     getOrCreateSessionState,
+    refreshCurrentSessionFromDisk,
     setSessionStateForSession,
+    getConnectionIntent,
     isSessionManagedRunning,
     storeSessionId,
     serverUrl,
@@ -777,9 +938,7 @@ export function useSse(options: UseSseOptions = {}) {
       setPermissionDenials(null);
       setLastSessionTerminated(false);
       setSessionStateForSession(sessionId, "running");
-      setTypingIndicator(true);
       setWaitingForUserInput(false);
-      setManagedSessionStatus(sessionId, true);
 
       // Yield to main thread so React paints loading state before fetch (immediate visual feedback)
       await new Promise<void>((resolve) => queueMicrotask(resolve));
@@ -802,7 +961,6 @@ export function useSse(options: UseSseOptions = {}) {
 
       const resetRunningState = () => {
         setSessionStateForSession(sessionId, "idle");
-        setTypingIndicator(false);
         setWaitingForUserInput(false);
       };
 
@@ -816,18 +974,20 @@ export function useSse(options: UseSseOptions = {}) {
           if (data.ok && data.sessionId) {
             const newSessionId = data.sessionId;
             const newState = getOrCreateSessionState(newSessionId);
+            const currentMessages = getOrCreateSessionMessages(newSessionId);
             newState.sessionState = "running";
-            newState.typingIndicator = true;
-            const merged = deduplicateMessageIds([...newState.messages, ...pendingMessagesForNewSessionRef.current]);
+            const merged = deduplicateMessageIds([...currentMessages, ...pendingMessagesForNewSessionRef.current]);
             if (merged.length > 0) {
-              newState.messages = merged;
+              setSessionMessages(newSessionId, merged);
+            } else {
+              setSessionMessages(newSessionId, []);
             }
             pendingMessagesForNewSessionRef.current = [];
-            newState.outputBuffer = "";
-            newState.currentAssistantContent = "";
+            setSessionDraft(newSessionId, "");
+            const messagesToDisplay = getOrCreateSessionMessages(newSessionId);
             if (displayedSessionIdRef.current === newSessionId) {
-              setLiveSessionMessages([...newState.messages]);
-              liveMessagesRef.current = newState.messages;
+              setLiveSessionMessages([...messagesToDisplay]);
+              liveMessagesRef.current = messagesToDisplay;
             }
             outputBufferRef.current = "";
             currentAssistantContentRef.current = "";
@@ -840,12 +1000,13 @@ export function useSse(options: UseSseOptions = {}) {
             // Server error - reset running state so user isn't stuck. Use sessionId from error response if present (client can connect to stream).
             if (data.sessionId && typeof data.sessionId === "string" && !data.sessionId.startsWith("temp-")) {
               const errorState = getOrCreateSessionState(data.sessionId);
+              const errorStateMessages = getOrCreateSessionMessages(data.sessionId);
               errorState.sessionState = "idle";
-              errorState.typingIndicator = false;
-              errorState.messages = deduplicateMessageIds([...errorState.messages, ...pendingMessagesForNewSessionRef.current]);
+              const merged = deduplicateMessageIds([...errorStateMessages, ...pendingMessagesForNewSessionRef.current]);
+              setSessionMessages(data.sessionId, merged);
               pendingMessagesForNewSessionRef.current = [];
-              setLiveSessionMessages([...errorState.messages]);
-              liveMessagesRef.current = errorState.messages;
+              setLiveSessionMessages([...merged]);
+              liveMessagesRef.current = merged;
               setSessionId(data.sessionId);
               setSessionStateForSession(data.sessionId, "idle");
               setManagedSessionStatus(data.sessionId, false);
@@ -862,10 +1023,13 @@ export function useSse(options: UseSseOptions = {}) {
         resetRunningState();
       }
     },
-    [ 
+    [
       addMessage,
       deduplicateMessageIds,
       getOrCreateSessionState,
+      getOrCreateSessionMessages,
+      setSessionMessages,
+      setSessionDraft,
       setManagedSessionStatus,
       provider,
       model,
@@ -916,7 +1080,7 @@ export function useSse(options: UseSseOptions = {}) {
 
       const payload = {
         prompt,
-        permissionMode: permissionMode ?? lastRunOptions.permissionMode ?? undefined,
+        permissionMode: permissionMode ?? lastRunOptionsRef.current.permissionMode ?? undefined,
         approvalMode,
         allowedTools,
         replaceRunning: true,
@@ -926,9 +1090,7 @@ export function useSse(options: UseSseOptions = {}) {
       };
 
       setSessionStateForSession(sessionId, "running");
-      setTypingIndicator(true);
       setWaitingForUserInput(false);
-      setManagedSessionStatus(sessionId, true);
       try {
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
@@ -940,7 +1102,6 @@ export function useSse(options: UseSseOptions = {}) {
           const sid = data.sessionId;
           const s = getOrCreateSessionState(sid);
           s.sessionState = "running";
-          s.typingIndicator = true;
           setSessionId(sid);
           setSessionStateForSession(sid, "running");
           setManagedSessionStatus(sid, true);
@@ -954,7 +1115,6 @@ export function useSse(options: UseSseOptions = {}) {
     },
     [
       permissionDenials,
-      lastRunOptions,
       provider,
       model,
       serverUrl,
@@ -998,16 +1158,19 @@ export function useSse(options: UseSseOptions = {}) {
       if (__DEV__) console.log("[sse] disconnected (reset)", { sessionId });
       closeActiveSse("reset");
       sessionStatesRef.current.delete(sessionId);
+      sessionMessagesRef.current.delete(sessionId);
+      sessionDraftRef.current.delete(sessionId);
+      clearConnectionIntent(sessionId);
       setManagedSessionStatus(sessionId, false);
     }
     setLiveSessionMessages([]);
     setSessionId(null);
     setPermissionDenials(null);
-    setLastRunOptions({ permissionMode: null, allowedTools: [], useContinue: false });
+    lastRunOptionsRef.current = { permissionMode: null, allowedTools: [], useContinue: false };
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
-  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus]);
+  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus, clearConnectionIntent]);
 
   /** Start new session: clear state; session is created on first prompt (no dummy session). */
   const startNewSession = useCallback(async () => {
@@ -1024,34 +1187,24 @@ export function useSse(options: UseSseOptions = {}) {
       if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
       closeActiveSse("new-session");
       sessionStatesRef.current.delete(sessionId);
+      sessionMessagesRef.current.delete(sessionId);
+      sessionDraftRef.current.delete(sessionId);
+      clearConnectionIntent(sessionId);
       setManagedSessionStatus(sessionId, false);
     }
     setSessionId(null);
     pendingMessagesForNewSessionRef.current = [];
     setLiveSessionMessages([]);
     setPermissionDenials(null);
-    setLastRunOptions({ permissionMode: null, allowedTools: [], useContinue: false });
+    lastRunOptionsRef.current = { permissionMode: null, allowedTools: [], useContinue: false };
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
-  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus]);
+  }, [closeActiveSse, sessionId, serverUrl, setManagedSessionStatus, clearConnectionIntent]);
 
   return {
-    connected,
-    messages,
-    agentRunning: sessionState !== "idle",
-    waitingForUserInput,
-    typingIndicator,
-    currentActivity,
-    permissionDenials,
-    lastRunOptions,
-    pendingAskQuestion,
-    mockSequences,
-    selectedSequence,
-    setSelectedSequence,
+    sessionRunning: sessionState !== "idle",
     sessionId,
-    sessionInitLoading,
-    lastSessionTerminated,
     submitPrompt,
     submitAskQuestionAnswer,
     dismissAskQuestion,

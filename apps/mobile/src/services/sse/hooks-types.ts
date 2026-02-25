@@ -5,6 +5,13 @@ export interface UseSseOptions {
   serverConfig?: IServerConfig;
   provider?: Provider;
   model?: string;
+  onConnectedChange?: (connected: boolean) => void;
+  onSessionRunningChange?: (sessionRunning: boolean) => void;
+  onWaitingForUserInputChange?: (waitingForUserInput: boolean) => void;
+  onPermissionDenialsChange?: (permissionDenials: PermissionDenial[] | null) => void;
+  onPendingAskQuestionChange?: (pendingAskQuestion: PendingAskUserQuestion | null) => void;
+  onLastSessionTerminatedChange?: (lastSessionTerminated: boolean) => void;
+  onMessagesChange?: (messages: Message[]) => void;
 }
 
 export type EventSourceLike = {
@@ -15,18 +22,10 @@ export type EventSourceLike = {
 
 export type EventSourceCtor = new (url: string) => EventSourceLike;
 
-export type SessionRuntimeState = "idle" | "running" | "waiting";
+export type SessionRuntimeState = "idle" | "running";
 
 export type SessionLiveState = {
-  messages: Message[];
-  outputBuffer: string;
-  currentAssistantContent: string;
   sessionState: SessionRuntimeState;
-  typingIndicator: boolean;
-  waitingForUserInput: boolean;
-  currentActivity: string | null;
-  lastSessionTerminated: boolean;
-  hasCompletedFirstRun: boolean;
 };
 
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };

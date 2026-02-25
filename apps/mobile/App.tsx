@@ -14,10 +14,17 @@ import { ThemeSessionState } from "@/components/controllers/ThemeSessionState";
 import { WorkspaceFileController } from "@/components/controllers/WorkspaceFileController";
 import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
 import { useSidebarState } from "@/components/hooks/useSidebarState";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
 
 export default function App() {
   const serverConfig = useMemo(() => getDefaultServerConfig(), []);
   const sidebarState = useSidebarState();
+  const storeSessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
+  const storeSessionId = useSessionManagementStore((state) => state.sessionId);
+  const sessionRunningFromStore = useMemo(
+    () => storeSessionStatuses.some((session) => session.id === storeSessionId && session.status === "running"),
+    [storeSessionStatuses, storeSessionId]
+  );
 
   return (
     <ThemeSessionState>
@@ -55,6 +62,7 @@ export default function App() {
                     const chatPageProps = buildChatPageProps({
                       themeState,
                       sseState,
+                      sessionRunningFromStore,
                       workspaceState,
                       chatActionState,
                       sidebarVisible: sidebarState.sidebarVisible,

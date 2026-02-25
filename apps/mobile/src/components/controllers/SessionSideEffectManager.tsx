@@ -17,26 +17,26 @@ export type SessionSideEffectManagerInput = {
 };
 
 function useAgentFinishedSideEffect({
-  agentRunning,
+  sessionRunning,
   sessionId,
   serverConfig,
 }: {
-  agentRunning: boolean;
+  sessionRunning: boolean;
   sessionId: string | null;
   serverConfig: SessionManagerServerConfig;
 }): void {
-  const prevAgentRunningRef = useRef(false);
+  const prevSessionRunningRef = useRef(false);
 
   useEffect(() => {
-    if (prevAgentRunningRef.current && !agentRunning) {
+    if (prevSessionRunningRef.current && !sessionRunning) {
       void notifyAgentFinished();
       if (sessionId && !sessionId.startsWith("temp-")) {
         const baseUrl = serverConfig.getBaseUrl();
         fetch(`${baseUrl}/api/sessions/${encodeURIComponent(sessionId)}/finished`, { method: "POST" }).catch(() => {});
       }
     }
-    prevAgentRunningRef.current = agentRunning;
-  }, [agentRunning, sessionId, serverConfig]);
+    prevSessionRunningRef.current = sessionRunning;
+  }, [sessionRunning, sessionId, serverConfig]);
 }
 
 function useApprovalNeededSideEffect({
@@ -84,20 +84,19 @@ export function useSessionSideEffects({
     permissionDenials,
     waitingForUserInput,
     pendingAskQuestion,
-    agentRunning,
+    sessionRunning,
     sessionId,
     sessionStatuses,
     setSessionStatuses,
     storeProvider,
     storeModel,
     storeSessionId,
-    typingIndicator,
   } = sseState;
 
   usePerformanceMonitor(__DEV__);
 
   useAgentFinishedSideEffect({
-    agentRunning,
+    sessionRunning,
     sessionId,
     serverConfig,
   });
@@ -122,7 +121,6 @@ export function useSessionSideEffects({
     model,
     additionalSnapshot: {
       messages,
-      typingIndicator,
       liveMessages: messages.length,
     },
   });

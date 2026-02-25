@@ -43,11 +43,10 @@ export type ChatPageContext = {
 
 export type ChatPageRuntime = {
   connected: boolean;
-  typingIndicator: boolean;
   permissionDenials: PermissionDenial[];
   lastSessionTerminated: boolean;
   tailBoxMaxHeight: number;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
 };
 
@@ -61,8 +60,7 @@ export type ChatPageHeader = {
 export type ChatPageConversation = {
   messages: Message[];
   provider: BrandProvider;
-  typingIndicator: boolean;
-  currentActivity: string | null;
+  sessionId: string | null;
   permissionDenials: PermissionDenial[];
   lastSessionTerminated: boolean;
   tailBoxMaxHeight: number;

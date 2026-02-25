@@ -48,8 +48,7 @@ export function ChatPageShell({
                 styles={context.styles}
                 workspaceName={header.workspaceName}
                 sessionIdLabel={header.sessionIdLabel}
-                typingIndicator={runtime.typingIndicator}
-                agentRunning={runtime.agentRunning}
+                sessionRunning={runtime.sessionRunning}
                 waitingForUserInput={runtime.waitingForUserInput}
                 onOpenExplorer={header.onOpenExplorer}
                 onOpenSessionManagement={modalHandlers.onOpenSessionManagement}

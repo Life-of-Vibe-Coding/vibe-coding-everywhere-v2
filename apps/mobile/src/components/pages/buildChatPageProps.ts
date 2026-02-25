@@ -10,6 +10,7 @@ import type { SidebarTab } from "@/components/hooks/useSidebarState";
 export type BuildChatPagePropsInput = {
   themeState: ThemeSessionStateState;
   sseState: SseSessionControllerState;
+  sessionRunningFromStore: boolean;
   workspaceState: WorkspaceFileControllerState;
   chatActionState: ChatActionControllerState;
   sidebarVisible: boolean;
@@ -24,6 +25,7 @@ export type BuildChatPagePropsInput = {
 export function buildChatPageProps({
   themeState,
   sseState,
+  sessionRunningFromStore,
   workspaceState,
   chatActionState,
   sidebarVisible,
@@ -49,11 +51,10 @@ export function buildChatPageProps({
     },
     runtime: {
       connected: sseState.connected,
-      typingIndicator: sseState.typingIndicator,
       permissionDenials: sseState.permissionDenials ?? [],
       lastSessionTerminated: sseState.lastSessionTerminated,
       tailBoxMaxHeight: sseState.tailBoxMaxHeight,
-      agentRunning: sseState.agentRunning,
+      sessionRunning: sessionRunningFromStore,
       waitingForUserInput: sseState.waitingForUserInput,
     },
     header: {
@@ -65,10 +66,9 @@ export function buildChatPageProps({
     conversation: {
       messages: sseState.messages,
       provider: themeState.provider,
-      typingIndicator: sseState.typingIndicator,
-      currentActivity: sseState.currentActivity,
       permissionDenials: sseState.permissionDenials ?? [],
       lastSessionTerminated: sseState.lastSessionTerminated,
+      sessionId: sseState.sessionId,
       tailBoxMaxHeight: sseState.tailBoxMaxHeight,
       flatListRef: sseState.flatListRef,
       onContentSizeChange: sseState.onContentSizeChange,
@@ -140,7 +140,7 @@ export function buildChatPageProps({
         onNewSession: sseState.handleNewSession,
         currentSessionId: sseState.sessionId,
         workspaceLoading: workspaceState.workspacePathLoading,
-        sessionRunning: sseState.agentRunning,
+        sessionRunning: sessionRunningFromStore,
         onSelectActiveChat: sseState.handleSelectActiveChat,
         currentMessages: sseState.messages,
         showActiveChat: false,

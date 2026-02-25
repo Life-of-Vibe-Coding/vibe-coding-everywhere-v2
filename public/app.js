@@ -168,7 +168,7 @@ async function initSidebar() {
   });
 }
 
-let agentRunning = false;
+let sessionRunning = false;
 /** Options used for the current or last Claude run (set by server on claude-started). */
 let lastRunOptions = { permissionMode: null, allowedTools: [], useContinue: false };
 let waitingForUserInput = false;
@@ -281,7 +281,7 @@ function appendAssistantText(chunk) {
   const next = current + sanitized;
   bubble.dataset.rawText = next;
   bubble.innerHTML = formatText(next);
-  if (agentRunning) {
+  if (sessionRunning) {
     setTypingIndicator(true);
   }
 }
@@ -311,7 +311,7 @@ function refreshInputState() {
     return;
   }
   promptInput.placeholder = DEFAULT_PLACEHOLDER;
-  const disabled = agentRunning;
+  const disabled = sessionRunning;
   promptInput.disabled = disabled;
   sendBtn.disabled = disabled;
 }
@@ -503,7 +503,7 @@ socket.on("claude-started", (payload) => {
       useContinue: !!payload.useContinue,
     };
   }
-  agentRunning = true;
+  sessionRunning = true;
   finalizeAssistantMessage();
   setTypingIndicator(true);
   disableInteractiveInput();
@@ -511,7 +511,7 @@ socket.on("claude-started", (payload) => {
 });
 
 socket.on("exit", () => {
-  agentRunning = false;
+  sessionRunning = false;
   disableInteractiveInput();
   refreshInputState();
   finalizeAssistantMessage();
@@ -523,7 +523,7 @@ function submitPrompt() {
   const prompt = promptInput.value.trim();
   if (!prompt) return;
 
-  if (waitingForUserInput && agentRunning) {
+  if (waitingForUserInput && sessionRunning) {
     socket.emit("input", `${prompt}\r`);
     addUserMessage(prompt);
     promptInput.value = "";
@@ -531,7 +531,7 @@ function submitPrompt() {
     return;
   }
 
-  if (agentRunning) return;
+  if (sessionRunning) return;
 
   const permissionMode = permissionModeSelect?.value || undefined;
   socket.emit("submit-prompt", { prompt, permissionMode, provider: currentProvider, model: currentModel });

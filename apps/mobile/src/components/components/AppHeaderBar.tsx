@@ -7,7 +7,6 @@ import { Text as GluestackText } from "@/components/ui/text";
 import {
   AnimatedPressableView,
   EntranceAnimation,
-  FlashAnimation,
   triggerHaptic,
 } from "@/design-system";
 import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
@@ -27,7 +26,6 @@ type HeaderStyleSet = {
   sessionIdCenter: StyleProp<ViewStyle>;
   headerStatusStack: StyleProp<ViewStyle>;
   headerStatusRow: StyleProp<ViewStyle>;
-  runningDot: StyleProp<ViewStyle>;
 };
 
 interface AppHeaderBarProps {
@@ -35,8 +33,7 @@ interface AppHeaderBarProps {
   theme: ThemeLike;
   styles: HeaderStyleSet;
   workspaceName: string;
-  typingIndicator: boolean;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
   sessionIdLabel: string;
   onOpenExplorer: () => void;
@@ -74,8 +71,7 @@ export function AppHeaderBar({
   theme,
   styles,
   workspaceName,
-  typingIndicator,
-  agentRunning,
+  sessionRunning,
   waitingForUserInput,
   sessionIdLabel,
   onOpenExplorer,
@@ -101,28 +97,27 @@ export function AppHeaderBar({
           >
             {workspaceName}
           </GluestackText>
-          {typingIndicator ? (
-            <FlashAnimation style={styles.headerStatusRow} duration={600}>
-              <HStack style={styles.headerStatusRow} className="items-center gap-1.5">
-                <Box style={[styles.runningDot, { backgroundColor: theme.colors.success }]} />
-                <GluestackText size="xs" style={{ color: theme.colors.success }} className="font-medium">
-                  Running
-                </GluestackText>
-              </HStack>
-            </FlashAnimation>
-          ) : (
-            <GluestackText
+          <GluestackText
               size="xs"
               numberOfLines={1}
               ellipsizeMode="middle"
-              style={{ color: agentRunning && waitingForUserInput ? theme.colors.warning : theme.colors.textMuted }}
-              className="font-medium"
-            >
-              {agentRunning && waitingForUserInput ? "Wait" : "Idle"}
-              {": "}
-              {sessionIdLabel}
-            </GluestackText>
-          )}
+                style={{
+              color: sessionRunning
+                  ? waitingForUserInput
+                    ? theme.colors.warning
+                    : theme.colors.success
+                  : theme.colors.textMuted,
+              }}
+            className="font-medium"
+          >
+            {sessionRunning
+              ? waitingForUserInput
+                ? "Wait"
+                : "Running"
+              : "Idle"}
+            {": "}
+            {sessionIdLabel}
+          </GluestackText>
         </VStack>
       </Box>
       <HeaderButton

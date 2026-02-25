@@ -12,7 +12,7 @@ type ModelOption = {
 
 type ChatInputDockProps = {
   connected: boolean;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
   permissionModeUI: PermissionModeUI;
   onSubmit: (prompt: string) => void;
@@ -38,7 +38,7 @@ type ChatInputDockProps = {
 
 export function ChatInputDock({
   connected,
-  agentRunning,
+  sessionRunning,
   waitingForUserInput,
   permissionModeUI,
   onSubmit,
@@ -62,7 +62,7 @@ export function ChatInputDock({
   return (
     <InputPanel
       connected={connected}
-      agentRunning={agentRunning}
+      sessionRunning={sessionRunning}
       waitingForUserInput={waitingForUserInput}
       permissionMode={permissionMode.permissionMode ?? permissionMode.approvalMode ?? null}
       onPermissionModeChange={() => {}}

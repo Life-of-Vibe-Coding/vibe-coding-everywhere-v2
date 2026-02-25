@@ -80,7 +80,7 @@ export interface HealthCheckModalProps {
   model: string;
   activeSessionId: string | null;
   isViewingLiveSession: boolean;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
   sessionStatuses: SessionStatus[];
   workspacePath: string | null;
@@ -161,7 +161,7 @@ export function HealthCheckModal({
   model,
   activeSessionId,
   isViewingLiveSession,
-  agentRunning,
+  sessionRunning,
   waitingForUserInput,
   sessionStatuses,
   workspacePath,
@@ -459,7 +459,7 @@ export function HealthCheckModal({
                       Conversation state
                     </Text>
                     <Text size="xs" bold style={{ color: theme.colors.accent }}>
-                      {agentRunning
+                      {sessionRunning
                         ? waitingForUserInput
                           ? "Waiting for user input"
                           : "Running"

@@ -40,7 +40,7 @@ export type PendingCodeRef = {
 
 export interface InputPanelProps {
   connected: boolean;
-  agentRunning: boolean;
+  sessionRunning: boolean;
   waitingForUserInput: boolean;
   permissionMode: string | null;
   onPermissionModeChange: (mode: string) => void;
@@ -63,7 +63,7 @@ export interface InputPanelProps {
 
 export function InputPanel({
   connected,
-  agentRunning,
+  sessionRunning,
   waitingForUserInput,
   permissionMode,
   onPermissionModeChange,
@@ -99,7 +99,7 @@ export function InputPanel({
     modelOptions.find((m) => m.value === model)?.label ??
     (model?.startsWith("claude-") ? model.slice(7) : model ?? "");
 
-  const disabled = !waitingForUserInput && agentRunning;
+  const disabled = !waitingForUserInput && sessionRunning;
   const placeholder = waitingForUserInput ? INPUT_PLACEHOLDER : DEFAULT_PLACEHOLDER;
 
   const handleContentSizeChange = useCallback(
@@ -115,15 +115,15 @@ export function InputPanel({
     if (!trimmed && !pendingCodeRefs.length) return;
     Keyboard.dismiss();
     triggerHaptic("medium");
-    if (waitingForUserInput && agentRunning) {
+    if (waitingForUserInput && sessionRunning) {
       onSubmit(trimmed, permissionMode ?? undefined);
       setPrompt("");
       return;
     }
-    if (agentRunning) return;
+    if (sessionRunning) return;
     onSubmit(trimmed || "See code references below.", permissionMode ?? undefined);
     setPrompt("");
-  }, [prompt, pendingCodeRefs.length, waitingForUserInput, agentRunning, permissionMode, onSubmit]);
+  }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
   const isDark = theme.mode === "dark";
 
@@ -378,7 +378,7 @@ export function InputPanel({
                 <ButtonIcon as={GlobeIcon} size="md" style={{ color: theme.colors.accent }} />
               </Button>
             )}
-            {onTerminateAgent && agentRunning && (
+            {onTerminateAgent && sessionRunning && (
               <Button
                 action="negative"
                 variant="solid"
@@ -393,7 +393,7 @@ export function InputPanel({
                 <ButtonIcon as={StopCircleIcon} size="md" />
               </Button>
             )}
-            {!(agentRunning && !waitingForUserInput) && (
+            {!(sessionRunning && !waitingForUserInput) && (
               <Button
                 action="primary"
                 variant="solid"

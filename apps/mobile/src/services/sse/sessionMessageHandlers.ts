@@ -12,12 +12,14 @@ export interface SessionMessageHandlers {
 type SessionMessageHandlerDeps = {
   sidRef: { current: string };
   getOrCreateSessionState: (sid: string) => SessionLiveState;
+  getOrCreateSessionMessages: (sid: string) => Message[];
+  setSessionMessages: (sid: string, messages: Message[]) => void;
+  getSessionDraft: (sid: string) => string;
+  setSessionDraft: (sid: string, draft: string) => void;
   displayedSessionIdRef: MutableRefObject<string | null>;
   setLiveSessionMessages: Dispatch<SetStateAction<Message[]>>;
-  setTypingIndicator: (value: boolean) => void;
   setSessionStateForSession: (sid: string | null, next: SessionRuntimeState) => void;
   liveMessagesRef: MutableRefObject<Message[]>;
-  currentAssistantContentRef: MutableRefObject<string>;
   nextIdRef: MutableRefObject<number>;
 };
 
@@ -25,23 +27,28 @@ export const createSessionMessageHandlers = (deps: SessionMessageHandlerDeps): S
   const {
     sidRef,
     getOrCreateSessionState,
+    getOrCreateSessionMessages,
+    setSessionMessages,
+    getSessionDraft,
+    setSessionDraft,
     displayedSessionIdRef,
     setLiveSessionMessages,
-    setTypingIndicator,
     setSessionStateForSession,
     liveMessagesRef,
-    currentAssistantContentRef,
     nextIdRef,
   } = deps;
 
   const addMessageForSession = (role: Message["role"], content: string, codeReferences?: CodeReference[]) => {
     const id = `msg-${++nextIdRef.current}`;
-    const state = getOrCreateSessionState(sidRef.current);
+    const sid = sidRef.current;
+    const currentMessages = getOrCreateSessionMessages(sid);
     const newMsg: Message = { id, role, content, codeReferences };
-    state.messages = [...state.messages, newMsg];
-    if (displayedSessionIdRef.current === sidRef.current) {
-      setLiveSessionMessages([...state.messages]);
-      liveMessagesRef.current = state.messages;
+    const nextMessages = [...currentMessages, newMsg];
+
+    setSessionMessages(sid, nextMessages);
+    if (displayedSessionIdRef.current === sid) {
+      setLiveSessionMessages([...nextMessages]);
+      liveMessagesRef.current = nextMessages;
     }
     return id;
   };
@@ -49,52 +56,61 @@ export const createSessionMessageHandlers = (deps: SessionMessageHandlerDeps): S
   const appendAssistantTextForSession = (chunk: string) => {
     const sanitized = stripAnsi(chunk);
     if (!sanitized) return;
-    const state = getOrCreateSessionState(sidRef.current);
-    const next = state.currentAssistantContent ? state.currentAssistantContent + sanitized : sanitized;
-    state.currentAssistantContent = next;
-    const last = state.messages[state.messages.length - 1];
+    const sid = sidRef.current;
+    const state = getOrCreateSessionState(sid);
+    const currentMessages = getOrCreateSessionMessages(sid);
+    const currentDraft = getSessionDraft(sid);
+    const nextDraft = currentDraft ? currentDraft + sanitized : sanitized;
+
+    setSessionDraft(sid, nextDraft);
+    const last = currentMessages[currentMessages.length - 1];
     if (last?.role === "assistant") {
-      state.messages = [...state.messages.slice(0, -1), { ...last, content: next }];
+      setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: nextDraft }]);
     } else {
-      state.messages = [...state.messages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }];
+      setSessionMessages(sid, [...currentMessages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }]);
     }
-    state.typingIndicator = true;
+
     state.sessionState = "running";
-    if (displayedSessionIdRef.current === sidRef.current) {
-      setLiveSessionMessages([...state.messages]);
-      setTypingIndicator(true);
-      setSessionStateForSession(sidRef.current, "running");
-      liveMessagesRef.current = state.messages;
-      currentAssistantContentRef.current = next;
+    const nextMessages = getOrCreateSessionMessages(sid);
+    if (displayedSessionIdRef.current === sid) {
+      setLiveSessionMessages([...nextMessages]);
+      setSessionStateForSession(sid, "running");
+      liveMessagesRef.current = nextMessages;
     }
   };
 
   const finalizeAssistantMessageForSession = () => {
-    const state = getOrCreateSessionState(sidRef.current);
-    const raw = state.currentAssistantContent;
+    const sid = sidRef.current;
+    const state = getOrCreateSessionState(sid);
+    const currentMessages = getOrCreateSessionMessages(sid);
+    const raw = getSessionDraft(sid);
     const cleaned = stripTrailingIncompleteTag(raw ?? "");
+
     if (cleaned !== (raw ?? "")) {
-      const last = state.messages[state.messages.length - 1];
+      const last = currentMessages[currentMessages.length - 1];
       if (last?.role === "assistant") {
         const trimmed = cleaned.trim();
-        if (trimmed === "") state.messages = state.messages.slice(0, -1);
-        else state.messages = [...state.messages.slice(0, -1), { ...last, content: cleaned }];
+        if (trimmed === "") {
+          setSessionMessages(sid, currentMessages.slice(0, -1));
+        } else {
+          setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: cleaned }]);
+        }
       }
-      state.currentAssistantContent = cleaned;
     }
-    const last = state.messages[state.messages.length - 1];
+
+    const afterTrimMessages = getOrCreateSessionMessages(sid);
+    const last = afterTrimMessages[afterTrimMessages.length - 1];
     if (last?.role === "assistant" && (last.content ?? "").trim() === "") {
-      state.messages = state.messages.slice(0, -1);
+      setSessionMessages(sid, afterTrimMessages.slice(0, -1));
     }
-    state.currentAssistantContent = "";
-    state.typingIndicator = false;
+
+    setSessionDraft(sid, "");
+    const finalMessages = getOrCreateSessionMessages(sid);
     state.sessionState = "idle";
-    if (displayedSessionIdRef.current === sidRef.current) {
-      setLiveSessionMessages([...state.messages]);
-      setTypingIndicator(false);
-      setSessionStateForSession(sidRef.current, "idle");
-      currentAssistantContentRef.current = "";
-      liveMessagesRef.current = state.messages;
+    if (displayedSessionIdRef.current === sid) {
+      setLiveSessionMessages([...finalMessages]);
+      setSessionStateForSession(sid, "idle");
+      liveMessagesRef.current = finalMessages;
     }
   };
 

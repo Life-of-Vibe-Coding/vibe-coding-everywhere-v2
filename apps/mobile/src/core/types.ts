@@ -119,10 +119,8 @@ export type PendingAskUserQuestion = {
 export interface IChatState {
   /** All messages in the conversation */
   messages: Message[];
-  /** Whether typing indicator should show */
-  typingIndicator: boolean;
   /** Whether the AI agent is currently running */
-  agentRunning: boolean;
+  sessionRunning: boolean;
   /** Whether waiting for user input (permission prompt) */
   waitingForUserInput: boolean;
 }
