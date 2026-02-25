@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
+import type { Ref } from 'react';
 
 jest.mock('@legendapp/motion', () => {
   const React = require('react');
@@ -16,9 +17,9 @@ jest.mock('@gluestack-ui/core/modal/creator', () => {
   const { View, Pressable, ScrollView } = require('react-native');
 
   const createPart = (Tag: React.ComponentType<any>) =>
-    React.forwardRef((props: any, ref) => <Tag ref={ref} {...props} />);
+    React.forwardRef((props: any, ref: Ref<unknown>) => <Tag ref={ref} {...props} />);
 
-  const ModalRoot = React.forwardRef((props: any, ref) => (
+  const ModalRoot = React.forwardRef((props: any, ref: Ref<unknown>) => (
     <View ref={ref} {...props} />
   ));
   ModalRoot.Backdrop = createPart(Pressable);

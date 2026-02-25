@@ -1,0 +1,836 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = `
+<View>
+  <View
+    className="flex-col gap-3 border rounded-2xl py-3 px-4 mt-6 border-outline-200"
+    style={
+      [
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E5E5E5",
+          "borderLeftColor": "#000000",
+          "borderLeftWidth": 3,
+        },
+        {
+          "shadowColor": "#000000",
+          "shadowOffset": {
+            "height": 4,
+            "width": 0,
+          },
+          "shadowOpacity": 0.1,
+          "shadowRadius": 14,
+        },
+      ]
+    }
+  >
+    <View
+      className="flex-row items-start gap-3 min-h-11"
+    >
+      <View
+        className="border-background-300 overflow-hidden flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
+        style={
+          {
+            "backgroundColor": "#F3F4F6",
+            "borderColor": "rgba(0,0,0,0.14)",
+            "height": 48,
+            "maxHeight": 112,
+            "minHeight": 48,
+          }
+        }
+      >
+        <TextInput
+          autoCapitalize="sentences"
+          autoComplete="off"
+          autoCorrect={true}
+          blurOnSubmit={false}
+          className="p-2 text-typography-900 w-full min-w-0 text-base py-2 min-h-6 flex-none"
+          editable={true}
+          maxLength={8000}
+          multiline={true}
+          onBlur={[Function]}
+          onChangeText={[Function]}
+          onContentSizeChange={[Function]}
+          onFocus={[Function]}
+          onSubmitEditing={[Function]}
+          placeholder="How can I help you today?"
+          placeholderTextColor="#737373"
+          returnKeyType="default"
+          scrollEnabled={false}
+          style={
+            {
+              "color": "#000000",
+              "maxHeight": 96,
+              "minHeight": 32,
+              "minWidth": 0,
+              "overflow": "hidden",
+              "width": "100%",
+            }
+          }
+          textAlignVertical="top"
+          value=""
+        />
+      </View>
+      <View
+        className="w-2 h-2 rounded-full self-center bg-success-500 opacity-100"
+      />
+    </View>
+    <View
+      className="flex-row items-center justify-between gap-2 flex-nowrap"
+    >
+      <View
+        className="flex-1 flex-row items-center gap-2 min-w-0"
+      >
+        <View
+          accessibilityHint="Opens Skills and Docker dropdown"
+          accessibilityLabel="More options"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+          collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
+          focusable={true}
+          hitSlop={
+            {
+              "bottom": 12,
+              "left": 12,
+              "right": 12,
+              "top": 12,
+            }
+          }
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          states={
+            {
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
+            }
+          }
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View />
+          <View />
+        </View>
+        <View
+          accessibilityLabel="Select model"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+          collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
+          focusable={true}
+          hitSlop={
+            {
+              "bottom": 12,
+              "left": 12,
+              "right": 12,
+              "top": 12,
+            }
+          }
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          states={
+            {
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
+            }
+          }
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <Text
+            className="text-typography-900 text-sm font-bold flex-1 min-w-0"
+            ellipsizeMode="tail"
+            numberOfLines={2}
+            style={
+              [
+                undefined,
+                {
+                  "color": "#000000",
+                },
+              ]
+            }
+          >
+            gpt-5.1-codex-mini
+          </Text>
+          <View
+            className="shrink-0 self-center"
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+      <View
+        className="flex-row items-center gap-2 shrink-0"
+      >
+        <View
+          accessibilityLabel="Open processes dashboard"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#000000",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Open web preview"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#000000",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Send message"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#000000",
+              "shadowColor": "#000000",
+              "shadowOffset": {
+                "height": 2,
+                "width": 0,
+              },
+              "shadowOpacity": 0.4,
+              "shadowRadius": 6,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#FFFFFF",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-input state 1`] = `
+<View>
+  <View
+    className="flex-col gap-3 border rounded-2xl py-3 px-4 mt-6 border-outline-200"
+    style={
+      [
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E5E5E5",
+          "borderLeftColor": "#000000",
+          "borderLeftWidth": 3,
+        },
+        {
+          "shadowColor": "#000000",
+          "shadowOffset": {
+            "height": 4,
+            "width": 0,
+          },
+          "shadowOpacity": 0.1,
+          "shadowRadius": 14,
+        },
+      ]
+    }
+  >
+    <View
+      className="flex-row items-start gap-3 min-h-11"
+    >
+      <View
+        className="border-background-300 overflow-hidden flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
+        style={
+          {
+            "backgroundColor": "#F3F4F6",
+            "borderColor": "rgba(0,0,0,0.14)",
+            "height": 48,
+            "maxHeight": 112,
+            "minHeight": 48,
+          }
+        }
+      >
+        <TextInput
+          autoCapitalize="sentences"
+          autoComplete="off"
+          autoCorrect={true}
+          blurOnSubmit={false}
+          className="p-2 text-typography-900 w-full min-w-0 text-base py-2 min-h-6 flex-none"
+          editable={true}
+          maxLength={8000}
+          multiline={true}
+          onBlur={[Function]}
+          onChangeText={[Function]}
+          onContentSizeChange={[Function]}
+          onFocus={[Function]}
+          onSubmitEditing={[Function]}
+          placeholder="Type response for Claude…"
+          placeholderTextColor="#737373"
+          returnKeyType="default"
+          scrollEnabled={false}
+          style={
+            {
+              "color": "#000000",
+              "maxHeight": 96,
+              "minHeight": 32,
+              "minWidth": 0,
+              "overflow": "hidden",
+              "width": "100%",
+            }
+          }
+          textAlignVertical="top"
+          value=""
+        />
+      </View>
+      <View
+        className="w-2 h-2 rounded-full self-center bg-success-500 opacity-100"
+      />
+    </View>
+    <View
+      className="flex-row items-center justify-between gap-2 flex-nowrap"
+    >
+      <View
+        className="flex-1 flex-row items-center gap-2 min-w-0"
+      >
+        <View
+          accessibilityHint="Opens Skills and Docker dropdown"
+          accessibilityLabel="More options"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+          collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
+          focusable={true}
+          hitSlop={
+            {
+              "bottom": 12,
+              "left": 12,
+              "right": 12,
+              "top": 12,
+            }
+          }
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          states={
+            {
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
+            }
+          }
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View />
+          <View />
+        </View>
+        <View
+          accessibilityLabel="Select model"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40 flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+          collapsable={false}
+          dataSet={
+            {
+              "active": "false",
+              "disabled": "false",
+              "focus": "false",
+              "focusVisible": "false",
+              "hover": "false",
+            }
+          }
+          focusable={true}
+          hitSlop={
+            {
+              "bottom": 12,
+              "left": 12,
+              "right": 12,
+              "top": 12,
+            }
+          }
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          states={
+            {
+              "active": false,
+              "disabled": false,
+              "focus": false,
+              "focusVisible": false,
+              "hover": false,
+            }
+          }
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <Text
+            className="text-typography-900 text-sm font-bold flex-1 min-w-0"
+            ellipsizeMode="tail"
+            numberOfLines={2}
+            style={
+              [
+                undefined,
+                {
+                  "color": "#000000",
+                },
+              ]
+            }
+          >
+            gpt-5.1-codex-mini
+          </Text>
+          <View
+            className="shrink-0 self-center"
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+      <View
+        className="flex-row items-center gap-2 shrink-0"
+      >
+        <View
+          accessibilityLabel="Open processes dashboard"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#000000",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Open web preview"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 border border-secondary-300 bg-transparent w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#F3F4F6",
+              "borderColor": "rgba(0,0,0,0.14)",
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#000000",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Terminate agent response"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 bg-error-500 w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+        >
+          <View>
+            <View />
+          </View>
+        </View>
+        <View
+          accessibilityLabel="Send message"
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": false,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          className="group/button flex-row items-center justify-center gap-2 px-5 bg-primary-500 w-11 h-11 rounded-xl active:opacity-80"
+          collapsable={false}
+          focusable={true}
+          onBlur={[Function]}
+          onClick={[Function]}
+          onFocus={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "backgroundColor": "#000000",
+              "shadowColor": "#000000",
+              "shadowOffset": {
+                "height": 2,
+                "width": 0,
+              },
+              "shadowOpacity": 0.4,
+              "shadowRadius": 6,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "color": "#FFFFFF",
+              }
+            }
+          >
+            <View />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;

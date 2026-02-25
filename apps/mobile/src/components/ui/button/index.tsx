@@ -161,7 +161,12 @@ const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, ButtonProp
   },
   ref
 ) {
-  const mappedDisabled = normalizeLegacyBoolean('Button', 'disabled', disabled, isDisabled);
+  const mappedDisabled = normalizeLegacyBoolean(
+    'Button',
+    'disabled',
+    disabled == null ? undefined : disabled,
+    isDisabled
+  );
   const finalDisabled = Boolean(mappedDisabled ?? loading);
 
   if (loading !== undefined) {

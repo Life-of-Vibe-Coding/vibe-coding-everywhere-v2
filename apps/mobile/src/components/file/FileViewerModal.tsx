@@ -4,10 +4,8 @@ import {
   Platform,
   Dimensions,
   type TextStyle,
-  Linking,
 } from "react-native";
 import { Highlight, themes } from "prism-react-renderer";
-import Markdown from "react-native-markdown-display";
 import { WebView } from "react-native-webview";
 import { useTheme } from "@/theme/index";
 import { Box } from "@/components/ui/box";
@@ -15,16 +13,11 @@ import { Text, Text as RNText } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
 import { Image } from "@/components/ui/image";
 import { StatusBar } from "@/components/ui/status-bar";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MarkdownContent, ModalScaffold } from "@/components/reusable";
 
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;
@@ -140,46 +133,6 @@ export function FileViewerModal({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createFileViewerStyles(theme), [theme]);
-  const markdownStyles = useMemo(
-    () => ({
-      body: { color: theme.colors.textPrimary },
-      text: { fontSize: 15, lineHeight: 24, color: theme.colors.textPrimary },
-      paragraph: { marginTop: 8, marginBottom: 8 },
-      heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: theme.colors.textPrimary, marginTop: 16, marginBottom: 8 },
-      heading2: { fontSize: 19, lineHeight: 27, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 14, marginBottom: 6 },
-      heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: theme.colors.textPrimary, marginTop: 12, marginBottom: 4 },
-      heading4: { fontSize: 15, lineHeight: 22, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading5: { fontSize: 14, lineHeight: 20, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      heading6: { fontSize: 13, lineHeight: 18, fontWeight: "600" as const, color: theme.colors.textPrimary },
-      link: { color: theme.colors.accent, textDecorationLine: "underline" as const },
-      code_inline: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-      fence: { fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", fontSize: 13, lineHeight: 20, color: theme.colors.textPrimary, backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border },
-      blockquote: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderLeftColor: theme.colors.accent, borderLeftWidth: 4, paddingLeft: 12, paddingVertical: 8, marginVertical: 8 },
-      strong: { fontWeight: "600" as const, color: theme.colors.textPrimary },
-      bullet_list: {
-        marginTop: 8,
-        marginBottom: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      },
-      ordered_list: {
-        marginTop: 8,
-        marginBottom: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      },
-      list_item: { flexDirection: "row" as const, marginBottom: 4, minHeight: 22, alignItems: "flex-start" as const },
-    }),
-    [theme]
-  );
   if (!isOpen) return null;
 
   const isDiffMode = path?.startsWith("__diff__:");
@@ -252,23 +205,27 @@ export function FileViewerModal({
       : "File";
 
   const topInset = embedded ? 0 : insets.top;
-  const contentView = (
+  const contentBody = (
     <Box style={[styles.container, embedded ? undefined : { paddingTop: topInset }]}>
-      <Box style={styles.header}>
-        <Box style={styles.headerTitleWrap}>
-          <Text style={styles.headerLabel}>{headerLabel}</Text>
-          <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
-            {displayFileName}
-          </Text>
+      {embedded ? (
+        <Box style={styles.header}>
+          <Box style={styles.headerTitleWrap}>
+            <Text style={styles.headerLabel}>{headerLabel}</Text>
+            <Text style={styles.path} numberOfLines={1} ellipsizeMode="middle">
+              {displayFileName}
+            </Text>
+          </Box>
+          <Pressable
+            onPress={onClose}
+            style={styles.closeBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.closeBtnText}>✕</Text>
+          </Pressable>
         </Box>
-        <Pressable
-          onPress={onClose}
-          style={styles.closeBtn}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={styles.closeBtnText}>✕</Text>
-        </Pressable>
-      </Box>
+      ) : null}
+
+      <StatusBar barStyle="dark-content" />
 
       {loading && (
         <Box style={styles.center}>
@@ -320,16 +277,7 @@ export function FileViewerModal({
             showsVerticalScrollIndicator
             showsHorizontalScrollIndicator={false}
           >
-            <Markdown
-              style={markdownStyles}
-              mergeStyle
-              onLinkPress={(url) => {
-                Linking.openURL(url);
-                return false;
-              }}
-            >
-              {wrapBareUrlsInMarkdown(content)}
-            </Markdown>
+            <MarkdownContent content={wrapBareUrlsInMarkdown(content)} />
           </ScrollView>
         </Box>
       )}
@@ -436,23 +384,22 @@ export function FileViewerModal({
   );
 
   if (embedded) {
-    return contentView;
+    return contentBody;
   }
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen
       onClose={onClose}
       size="full"
+      title={displayFileName}
+      subtitle={headerLabel}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
-          <StatusBar barStyle="dark-content" />
-          {contentView}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+      {contentBody}
+    </ModalScaffold>
   );
 }
 

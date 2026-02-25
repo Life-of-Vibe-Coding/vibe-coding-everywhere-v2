@@ -15,12 +15,7 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
 import { Input, InputField } from "@/components/ui/input";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
+import { ModalScaffold, TabBarPills } from "@/components/reusable";
 import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
@@ -308,14 +303,16 @@ export function PreviewWebViewModal({
   const resolvedUrl = currentUrl || "";
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title={title}
+      subtitle={resolvedUrl || "Web preview"}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
       <Box style={styles.safe}>
         {/* Chrome-like toolbar - hidden in full screen */}
         {!isFullScreen && (
@@ -335,37 +332,27 @@ export function PreviewWebViewModal({
                 contentContainerStyle={styles.tabBarContent}
                 style={styles.tabBarScroll}
               >
-                {tabs.map((tab, i) => {
-                  const isActive = i === activeIndex;
-                  const label = `tab ${i + 1}`;
-                  return (
-                    <Pressable
-                      key={tab.id}
-                      style={[styles.tab, isActive && styles.tabActive]}
-                      onPress={() => selectTab(i)}
-                    >
-                      <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
-                        {label}
-                      </Text>
-                      {tabs.length > 1 && (
-                        <Pressable
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          style={styles.tabClose}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            closeTab(i);
-                          }}
-                        >
-                          <Text style={[styles.tabCloseText, isActive && styles.tabCloseTextActive]}>×</Text>
-                        </Pressable>
-                      )}
-                    </Pressable>
-                  );
-                })}
+                <TabBarPills
+                  tabs={tabs.map((tab, i) => ({
+                    key: String(i),
+                    label: `Tab ${i + 1}`,
+                  }))}
+                  value={String(activeIndex)}
+                  onChange={(next) => selectTab(Number(next))}
+                />
               </ScrollView>
               <Pressable style={styles.addTabBtn} onPress={addTab}>
                 <Text style={styles.addTabText}>+</Text>
               </Pressable>
+              {tabs.length > 1 ? (
+                <Pressable
+                  style={styles.closeCurrentTabBtn}
+                  onPress={() => closeTab(activeIndex)}
+                  accessibilityLabel="Close current tab"
+                >
+                  <Text style={styles.closeCurrentTabText}>×</Text>
+                </Pressable>
+              ) : null}
             </Box>
 
             {/* Row 2: Address bar | Refresh | Fullscreen */}
@@ -520,9 +507,7 @@ export function PreviewWebViewModal({
         onChooseOriginal={handleUrlChoiceOriginal}
         onCancel={handleUrlChoiceCancel}
       />
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+    </ModalScaffold>
   );
 }
 
@@ -611,41 +596,6 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     alignItems: "center",
     gap: 6,
   },
-  tab: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    paddingLeft: 10,
-    paddingRight: 8,
-    borderRadius: 8,
-    backgroundColor: theme.colors.border,
-    maxWidth: 85,
-  },
-  tabActive: {
-    // no theme color - same neutral as inactive
-  },
-  tabText: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    flex: 1,
-    textAlign: "center",
-  },
-  tabTextActive: {
-    color: theme.colors.textPrimary,
-    fontWeight: "600",
-  },
-  tabClose: {
-    marginLeft: 4,
-    padding: 2,
-  },
-  tabCloseText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    lineHeight: 16,
-  },
-  tabCloseTextActive: {
-    color: theme.colors.textPrimary,
-  },
   addTabBtn: {
     width: 32,
     height: 32,
@@ -660,6 +610,20 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     color: theme.colors.textPrimary,
     fontWeight: "300",
     lineHeight: 22,
+  },
+  closeCurrentTabBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 6,
+  },
+  closeCurrentTabText: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
   },
   placeholder: {
     flex: 1,

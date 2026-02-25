@@ -15,11 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Input, InputField } from "@/components/ui/input";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { Badge, BadgeText } from "@/components/ui/badge";
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
+import { ListSectionCard, ModalScaffold, TabBarPills } from "@/components/reusable";
 import { getDefaultServerConfig } from "@/core";
 import {
   FolderIconByType,
@@ -588,15 +584,17 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       <Box style={[styles.changesLayout, { backgroundColor: theme.colors.background }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.changesScrollContent} showsVerticalScrollIndicator={false}>
           {/* Staged section card */}
-          <Box style={[styles.sectionCard, isDark && styles.sectionCardDark]}>
-            <Box style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.success }]}>Staged</Text>
-              {hasStaged && (
+          <ListSectionCard
+            title="Staged"
+            style={[styles.sectionCard, isDark && styles.sectionCardDark]}
+            action={
+              hasStaged ? (
                 <Badge action="success" variant="outline" size="sm">
                   <BadgeText>{stagedFiles.length}</BadgeText>
                 </Badge>
-              )}
-            </Box>
+              ) : undefined
+            }
+          >
             {hasStaged ? (
               <Box style={styles.changeList}>
                 {stagedFiles.map((f, i) =>
@@ -612,29 +610,33 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
             ) : (
               <Text style={styles.emptyText}>No staged changes</Text>
             )}
-          </Box>
+          </ListSectionCard>
 
           {/* Unstaged section card */}
-          <Box style={[styles.sectionCard, isDark && styles.sectionCardDark]}>
-            <Box style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Unstaged</Text>
-              {totalUnstaged > 0 && (
-                <Badge action="muted" variant="outline" size="sm">
-                  <BadgeText>{totalUnstaged}</BadgeText>
-                </Badge>
-              )}
-              {totalUnstaged > 0 && (
-                <Pressable
-                  style={({ pressed }) => [styles.stageAllBtn, pressed && styles.stageAllBtnPressed]}
-                  onPress={() => {
-                    triggerHaptic("light");
-                    handleStageAll();
-                  }}
-                >
-                  <Text style={[styles.stageAllBtnText, { color: theme.colors.accent }]}>Stage all</Text>
-                </Pressable>
-              )}
-            </Box>
+          <ListSectionCard
+            title="Unstaged"
+            style={[styles.sectionCard, isDark && styles.sectionCardDark]}
+            action={
+              <Box style={styles.unstagedHeaderActions}>
+                {totalUnstaged > 0 ? (
+                  <Badge action="muted" variant="outline" size="sm">
+                    <BadgeText>{totalUnstaged}</BadgeText>
+                  </Badge>
+                ) : null}
+                {totalUnstaged > 0 ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.stageAllBtn, pressed && styles.stageAllBtnPressed]}
+                    onPress={() => {
+                      triggerHaptic("light");
+                      handleStageAll();
+                    }}
+                  >
+                    <Text style={[styles.stageAllBtnText, { color: theme.colors.accent }]}>Stage all</Text>
+                  </Pressable>
+                ) : null}
+              </Box>
+            }
+          >
             {hasUnstaged ? (
               <Box style={styles.changeList}>
                 {unstagedFiles.map((f, i) =>
@@ -664,7 +666,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
               </Box>
             ) : null}
             {!hasUnstaged && !hasUntracked && <Text style={styles.emptyText}>No unstaged changes</Text>}
-          </Box>
+          </ListSectionCard>
         </ScrollView>
 
         {/* Commit form */}
@@ -779,20 +781,18 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
             <Box style={styles.tabContainer}>
               <Box style={styles.tabSpacer} />
               <Box style={styles.tabGroup}>
-                {(["files", "changes", "commits"] as const).map(tab => (
-                  <Pressable
-                    key={tab}
-                    style={[styles.tab, activeTab === tab && styles.tabActive, tab === "changes" && { marginLeft: 4 }]}
-                    onPress={() => {
-                      setActiveTab(tab);
-                      onActiveTabChange?.(tab);
-                    }}
-                  >
-                    <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </Text>
-                  </Pressable>
-                ))}
+                <TabBarPills
+                  tabs={[
+                    { key: "files", label: "Files" },
+                    { key: "changes", label: "Changes" },
+                    { key: "commits", label: "Commits" },
+                  ]}
+                  value={activeTab}
+                  onChange={(tab) => {
+                    setActiveTab(tab);
+                    onActiveTabChange?.(tab);
+                  }}
+                />
               </Box>
               <Box style={styles.tabSpacerRight}>
                 <Pressable
@@ -845,17 +845,19 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
   }
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title="Workspace"
+      subtitle="Files, changes, and commits"
+      showCloseButton={false}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
-          {overlayContent}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+      {overlayContent}
+    </ModalScaffold>
   );
 }
 
@@ -924,14 +926,6 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "flex-end",
       alignItems: "center",
     },
-    tab: {
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      alignItems: "center",
-    },
-    tabActive: { borderBottomWidth: 2, borderBottomColor: theme.colors.accent },
-    tabText: { fontSize: 12, fontWeight: "600", color: theme.colors.textSecondary },
-    tabTextActive: { color: theme.colors.accent },
     tabCloseBtn: {
       width: 36,
       flexShrink: 0,
@@ -1084,6 +1078,12 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       marginLeft: "auto",
     },
     stageAllBtnPressed: { opacity: 0.8 },
+    unstagedHeaderActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginLeft: "auto",
+    },
 
     changeItem: {
       flexDirection: "row",

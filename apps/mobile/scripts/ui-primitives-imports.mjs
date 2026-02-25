@@ -12,7 +12,7 @@ function normalizeImportToken(token) {
 }
 
 function parseReactNativeImportTokens(content) {
-  const importRegex = /import\s+(type\s+)?\{([\s\S]*?)\}\s+from\s+['"]react-native['"]/g;
+  const importRegex = /import\s+(type\s+)?\{([^}]*)\}\s+from\s+['"]react-native['"]/g;
   const runtimeNames = [];
   let match;
 
@@ -48,4 +48,3 @@ export function parseReactNativeImports(content) {
     unapproved,
   };
 }
-

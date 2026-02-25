@@ -43,11 +43,16 @@ function parseEnvHost(value: string): string | null {
 
 function parseHostFromRuntimeMetadata(): string | null {
   if (typeof process === "undefined") return null;
+  const appConstants = Constants as unknown as {
+    manifest?: Record<string, unknown>;
+    expoConfig?: Record<string, unknown>;
+    expoGoConfig?: Record<string, unknown>;
+  };
   const rawCandidates = [
-    (Constants as { manifest?: unknown })?.manifest && (Constants as { manifest?: Record<string, unknown> }).manifest?.debuggerHost,
-    (Constants as { manifest?: unknown })?.manifest && (Constants as { manifest?: Record<string, unknown> }).manifest?.hostUri,
-    (Constants as { expoConfig?: unknown })?.expoConfig && (Constants as { expoConfig?: Record<string, unknown> }).expoConfig?.hostUri,
-    (Constants as { expoGoConfig?: unknown })?.expoGoConfig && (Constants as { expoGoConfig?: Record<string, unknown> }).expoGoConfig?.hostUri,
+    appConstants.manifest?.debuggerHost,
+    appConstants.manifest?.hostUri,
+    appConstants.expoConfig?.hostUri,
+    appConstants.expoGoConfig?.hostUri,
   ];
 
   for (const candidate of rawCandidates) {

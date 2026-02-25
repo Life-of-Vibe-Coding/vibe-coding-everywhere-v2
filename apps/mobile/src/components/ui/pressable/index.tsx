@@ -3,7 +3,6 @@ import React from 'react';
 import { createPressable } from '@gluestack-ui/core/pressable/creator';
 import {
   Pressable as RNPressable,
-  type PressableProps as RNPressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -30,6 +29,7 @@ type IPressableProps = Omit<
 > &
   VariantProps<typeof pressableStyle> & {
     disabled?: boolean;
+    isDisabled?: boolean;
     legacyStyle?: StyleProp<ViewStyle>;
   };
 const Pressable = React.forwardRef<
@@ -40,19 +40,23 @@ const Pressable = React.forwardRef<
   ref
 ) {
   const finalDisabled = Boolean(
-    normalizeLegacyBoolean('Pressable', 'disabled', disabled, isDisabled)
+    normalizeLegacyBoolean('Pressable', 'isDisabled', isDisabled, disabled)
   );
+  const resolvedStyle =
+    typeof style === 'function'
+      ? style
+      : resolveLegacyStyle(
+          'Pressable',
+          style as StyleProp<ViewStyle>,
+          legacyStyle as StyleProp<ViewStyle>
+        );
 
   return (
     <UIPressable
       {...props}
       ref={ref}
-      isDisabled={finalDisabled}
-      style={resolveLegacyStyle(
-        'Pressable',
-        style as RNPressableProps['style'],
-        legacyStyle as RNPressableProps['style']
-      )}
+      disabled={finalDisabled}
+      style={resolvedStyle}
       className={pressableStyle({
         class: className,
       })}

@@ -1,10 +1,10 @@
 # Gluestack Migration: Component Execution Plan
 
 ## Scope Baseline (2026-02-25)
-- Non-`ui` component modules in `src/components`: `45`
+- Non-`ui` component modules in `src/components`: `41`
 - Modules already using `@/components/ui/*`: `23`
-- Modules still importing `react-native` directly: `22`
-- Note: `phase1-inventory.csv` references `health/HealthCheckModal.tsx`, but file is not present in current tree.
+- Modules still importing `react-native` directly: `21`
+- Inventory regenerated from live tree; stale `health/HealthCheckModal.tsx` entry removed.
 
 ## Guardrails (from ui-ux-pro-max and project rules)
 - Keep minimum touch target size of `44x44` for actionable elements.
@@ -12,20 +12,32 @@
 - Respect reduced motion in new/extracted reusable components.
 - No net-new raw RN primitives in feature UI files (except approved APIs: `Platform`, `Keyboard`, `Dimensions`, `Animated`, type-only imports).
 
+## Latest Verification
+- Shared UI/type gate fixes applied for migration enforcement:
+`ui/pressable`, `ui/button`, `ui/__tests__/modal`, and `services/server/config`.
+- Chat composition contract alignment applied:
+`ChatPage`, `ChatMessageList`, `ChatPageSections`, `appStyles`, `useFileViewer`, and `WorkspaceFileController`.
+- Batch 2 progress update:
+`chat/SessionManagementModal` moved to `ModalScaffold + AsyncStateView`;
+`file/FileViewerModal` moved to `ModalScaffold + MarkdownContent`.
+- Current `pnpm exec tsc --noEmit` status (from `apps/mobile`): passing.
+- Phase 7 gate command `pnpm run phase7:check` now passes end-to-end (foundation + strict primitive lint + visual snapshots + a11y + rollout metrics report).
+- Pressable deprecation-noise cleanup: `disabled` is treated as canonical and no longer emits migration warnings in test gates.
+
 ## PR Batch Plan
 
 ### Batch 0: Foundation + Tracker Sync
-- [ ] Refresh inventory from live tree and remove stale `health/HealthCheckModal.tsx`.
-- [ ] Add/confirm lint guard for raw RN primitive imports in feature UI layer.
-- [ ] Keep explicit exception list for non-primitive RN APIs and platform libs.
+- [x] Refresh inventory from live tree and remove stale `health/HealthCheckModal.tsx`.
+- [x] Add/confirm lint guard for raw RN primitive imports in feature UI layer.
+- [x] Keep explicit exception list for non-primitive RN APIs and platform libs.
 
 ### Batch 1: Reusable Extraction
-- [ ] Add `ModalScaffold` reusable (header, body, close, safe-area handling).
-- [ ] Add `AsyncStateView` reusable (loading/error/empty/content).
-- [ ] Add `TabBarPills` reusable for segmented tab-like controls.
-- [ ] Add `ListSectionCard` reusable for repeated list sections.
-- [ ] Add `MarkdownContent` reusable for markdown/code rendering.
-- [ ] Add `ActionIconButton` reusable for icon-only/compact actions.
+- [x] Add `ModalScaffold` reusable (header, body, close, safe-area handling).
+- [x] Add `AsyncStateView` reusable (loading/error/empty/content).
+- [x] Add `TabBarPills` reusable for segmented tab-like controls.
+- [x] Add `ListSectionCard` reusable for repeated list sections.
+- [x] Add `MarkdownContent` reusable for markdown/code rendering.
+- [x] Add `ActionIconButton` reusable for icon-only/compact actions.
 
 ### Batch 2: High-Risk Critical Path Components
 - [~] `chat/MessageBubble.tsx` -> token alignment completed; `MarkdownContent` extraction pending.

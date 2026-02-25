@@ -14,6 +14,7 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { AsyncStateView, ModalScaffold } from "@/components/reusable";
 import {
   Modal,
   ModalBackdrop,
@@ -171,14 +172,17 @@ export function ProcessesDashboardModal({
   if (!isOpen) return null;
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title="Running Processes"
+      subtitle="Port-bound server processes"
+      showCloseButton={false}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
           <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
             <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {/* Header with accent bar */}
@@ -228,16 +232,14 @@ export function ProcessesDashboardModal({
               />
             }
           >
-            {loading && !refreshing && (
-              <Box style={styles.loading} className="py-8 items-center gap-2.5">
-                <Spinner size="large" color={theme.colors.accent} />
-                <Text size="xs" className="text-typography-500">Loading processes…</Text>
-              </Box>
-            )}
-
-            {!loading && (
-              <>
-                {hasOther && (
+            <AsyncStateView
+              isLoading={loading && !refreshing}
+              isEmpty={empty}
+              loadingText="Loading processes..."
+              emptyTitle="No running processes found"
+              emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
+            >
+                {hasOther ? (
                   <VStack style={styles.section} className="gap-3">
                     <HStack className="items-center gap-2">
                       <Box style={[styles.sectionAccent, { backgroundColor: theme.colors.accent }]} />
@@ -312,26 +314,11 @@ export function ProcessesDashboardModal({
                       );
                     })}
                   </VStack>
-                )}
-
-                {empty && (
-                  <VStack style={styles.empty} className="items-center gap-4 py-12">
-                    <Box style={[styles.emptyIconContainer, { backgroundColor: (theme.colors.accent) + "15", borderColor: (theme.colors.accent) + "40" }]}>
-                      <TerminalIcon size={40} color={theme.colors.accent} strokeWidth={1.5} />
-                    </Box>
-                    <Text size="md" bold className="text-typography-600">No running processes found</Text>
-                    <Text size="xs" className="text-typography-500 text-center max-w-70 leading-5">
-                      Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active.
-                    </Text>
-                  </VStack>
-                )}
-              </>
-            )}
+                ) : null}
+            </AsyncStateView>
           </ScrollView>
             </SafeAreaView>
           </Box>
-        </ModalBody>
-      </ModalContent>
 
       {logViewer && (
         <Modal
@@ -382,7 +369,7 @@ export function ProcessesDashboardModal({
           </ModalContent>
         </Modal>
       )}
-    </Modal>
+    </ModalScaffold>
   );
 }
 

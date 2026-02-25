@@ -1,7 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import {
-  LayoutChangeEvent,
-} from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { triggerHaptic, EntranceAnimation } from "@/design-system";
 import { useTheme } from "@/theme/index";

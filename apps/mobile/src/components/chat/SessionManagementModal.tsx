@@ -31,11 +31,11 @@ import {
   ModalBody,
   ModalContent,
 } from "@/components/ui/modal";
+import { AsyncStateView, ModalScaffold } from "@/components/reusable";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import {
   TrashIcon,
-  CloseIcon,
   RefreshCwIcon,
   SessionManagementIcon,
   ChevronDownIcon,
@@ -410,32 +410,37 @@ export function SessionManagementModal({
   if (!isOpen) return null;
 
   return (
-    <Modal
+    <ModalScaffold
       isOpen={isOpen}
       onClose={onClose}
       size="full"
+      title="Sessions"
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0"
+      bodyProps={{ scrollEnabled: false }}
+      headerRight={
+        <Button
+          action="default"
+          variant="link"
+          size="md"
+          onPress={() => void refresh(false)}
+          accessibilityLabel="Refresh sessions"
+          className="min-w-11 min-h-11"
+        >
+          <ButtonIcon as={RefreshCwIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+        </Button>
+      }
     >
-      <ModalBackdrop onPress={onClose} />
-      <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-        <ModalBody className="m-0 p-0">
-          <Box style={[styles.container, { paddingTop: insets.top }]}>
-            <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+      <Box style={[styles.container, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {/* Header with accent bar */}
           <HStack style={[styles.header, { borderBottomColor: theme.colors.accent + "30" }]}>
             <HStack className="flex-1 items-center gap-2">
               <Box style={[styles.accentBar, { backgroundColor: theme.colors.accent }]} />
-              <Text size="xl" bold className="text-typography-900">Sessions</Text>
+              <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
+                Session Management
+              </Text>
             </HStack>
-            <Button
-              action="default"
-              variant="link"
-              size="md"
-              onPress={onClose}
-              accessibilityLabel="Close"
-              className="min-w-11 min-h-11 -mr-2"
-            >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
-            </Button>
           </HStack>
 
           {(selectError || listError) && (
@@ -543,27 +548,16 @@ export function SessionManagementModal({
             <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>Recent Sessions</Text>
           </HStack>
 
-          {loading && !listError ? (
-            <Box style={styles.empty}>
-              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
-              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
-              <Skeleton width="80%" height={60} style={{ marginBottom: 12 }} />
-            </Box>
-          ) : sessions.length === 0 && !showActiveChat ? (
-            <EntranceAnimation variant="fade" delay={100}>
-              <Box style={styles.empty}>
-                <Box style={[styles.emptyIconContainer, { backgroundColor: theme.colors.accent + "15", borderWidth: 2, borderColor: theme.colors.accent + "40" }]}>
-                  <SessionManagementIcon size={40} color={theme.colors.accent} strokeWidth={1.5} />
-                </Box>
-                <Text size="lg" bold className="text-center mb-2 text-typography-900">
-                  {listError ? "Connection Error" : "No Sessions Yet"}
-                </Text>
-                <Text size="md" className="text-center text-typography-600" style={styles.emptySubtitle}>
-                  {listError ? "Check your server connection and tap Retry above." : "Start a conversation and it will appear here."}
-                </Text>
-              </Box>
-            </EntranceAnimation>
-          ) : (
+          <AsyncStateView
+            isLoading={loading && !listError}
+            error={sessions.length === 0 && !showActiveChat ? listError : null}
+            isEmpty={sessions.length === 0 && !showActiveChat && !listError}
+            loadingText="Loading sessions..."
+            emptyTitle="No Sessions Yet"
+            emptyDescription="Start a conversation and it will appear here."
+            onRetry={listError ? () => void refresh(false) : undefined}
+            className="flex-1"
+          >
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.list}
@@ -787,12 +781,10 @@ export function SessionManagementModal({
                 );
               })}
             </ScrollView>
-          )}
-            </SafeAreaView>
-          </Box>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+          </AsyncStateView>
+        </SafeAreaView>
+      </Box>
+    </ModalScaffold>
   );
 }
 
