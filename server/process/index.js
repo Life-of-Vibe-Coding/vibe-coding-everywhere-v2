@@ -47,6 +47,29 @@ function emitError(socket, message) {
   socket.emit("output", `\r\n\x1b[31m[Error] ${message}\x1b[0m\r\n`);
 }
 
+function safeStringify(value, space = 0) {
+  try {
+    return JSON.stringify(value, null, space);
+  } catch (_) {
+    const seen = new WeakSet();
+    try {
+      return JSON.stringify(
+        value,
+        (_, nested) => {
+          if (typeof nested === "object" && nested !== null) {
+            if (seen.has(nested)) return "[Circular]";
+            seen.add(nested);
+          }
+          return nested;
+        },
+        space
+      );
+    } catch (_) {
+      return "[Unserializable payload]";
+    }
+  }
+}
+
 /** Format current time as yyyy-MM-dd_HH-mm-ss (24-hour) for log directory names. */
 export function formatSessionLogTimestamp() {
   const d = new Date();
@@ -77,7 +100,7 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
   }
 
   function handleSubmitPrompt(payload) {
-    console.log("[submit-prompt] full input:", JSON.stringify(payload, null, 2));
+    console.log("[submit-prompt] full input:", safeStringify(payload, 2));
     const prompt = typeof payload?.prompt === "string" ? payload.prompt.trim() : "";
 
     if (!prompt) {
@@ -158,7 +181,7 @@ export function createProcessManager(socket, { hasCompletedFirstRunRef, session_
   }
 
   function handleDebug(payload) {
-    console.log("[claude-debug]", JSON.stringify(payload, null, 2));
+    console.log("[claude-debug]", safeStringify(payload, 2));
   }
 
   function cleanup() {

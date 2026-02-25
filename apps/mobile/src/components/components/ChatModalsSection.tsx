@@ -69,6 +69,7 @@ export function ChatModalsSection({
         currentMessages={currentMessages}
         currentSessionId={modals.sessionManagement.currentSessionId}
         workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
+        serverBaseUrl={modals.sessionManagement.serverBaseUrl}
         provider={context.provider}
         model={context.model}
         workspaceLoading={modals.sessionManagement.workspaceLoading}

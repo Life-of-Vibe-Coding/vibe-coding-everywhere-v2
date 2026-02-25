@@ -28,7 +28,14 @@ import {
   getMaxMessageId,
   appendCodeRefsToPrompt,
 } from "./hooks-utils";
-import { getOrCreateSessionState, getOrCreateSessionMessages, getSessionDraft, moveSessionCacheData, setSessionDraft, setSessionMessages } from "./sessionCacheHelpers";
+import {
+  getOrCreateSessionState as getOrCreateSessionStateFromCache,
+  getOrCreateSessionMessages as getOrCreateSessionMessagesFromCache,
+  getSessionDraft as getSessionDraftFromCache,
+  moveSessionCacheData,
+  setSessionDraft as setSessionDraftFromCache,
+  setSessionMessages as setSessionMessagesFromCache,
+} from "./sessionCacheHelpers";
 import { resolveDefaultModel, resolveStreamUrl } from "./sseHookHelpers";
 import type { EventSourceCtor, EventSourceLike, SessionLiveState, SessionRuntimeState, UseSseOptions } from "./hooks-types";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
@@ -36,6 +43,98 @@ import { useSessionManagementStore } from "@/state/sessionManagementStore";
 // Re-export types for consumers that import from useSse
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };
 export type { UseSseOptions, SessionRuntimeState };
+
+function stableStringify(value: unknown): string {
+  const seen = new WeakSet();
+  try {
+    return JSON.stringify(value, (_, nested) => {
+      if (typeof nested === "object" && nested !== null) {
+        if (seen.has(nested)) return "[Circular]";
+        seen.add(nested);
+      }
+      return nested;
+    });
+  } catch (_) {
+    const safe = toSafePlainValue(value, new WeakMap(), 0);
+    return JSON.stringify(safe);
+  }
+}
+
+function toSafePlainValue(value: unknown, seen: WeakMap<object, string>, depth: number): unknown {
+  if (depth > 8) {
+    return "[MaxDepth]";
+  }
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "function") return `[Function ${value.name || "anonymous"}]`;
+  if (value instanceof Error) return value.message;
+  if (typeof value === "symbol") return value.toString();
+  if (typeof value !== "object") return String(value);
+  if (seen.has(value)) return "[Circular]";
+  seen.set(value, "[Circular]");
+  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Map) {
+    return { __type: "Map", values: Array.from(value.values()).map((v) => toSafePlainValue(v, seen, depth + 1)) };
+  }
+  if (value instanceof Set) {
+    return { __type: "Set", values: Array.from(value.values()).map((v) => toSafePlainValue(v, seen, depth + 1)) };
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    const item = (value as Record<string, unknown>)[key];
+    out[key] = toSafePlainValue(item, seen, depth + 1);
+  }
+  return out;
+}
+
+function normalizeSubmitPayload(payload: {
+  prompt: unknown;
+  permissionMode?: unknown;
+  allowedTools?: unknown;
+  provider?: unknown;
+  model?: unknown;
+  approvalMode?: unknown;
+  sessionId?: unknown;
+  replaceRunning?: unknown;
+  effort?: unknown;
+  askForApproval?: unknown;
+  fullAuto?: unknown;
+  yolo?: unknown;
+}) {
+  return {
+    prompt:
+      typeof payload.prompt === "string"
+        ? payload.prompt
+        : typeof payload.prompt?.toString === "function"
+          ? String(payload.prompt)
+          : "",
+    permissionMode:
+      payload.permissionMode === undefined ? undefined : String(payload.permissionMode),
+    allowedTools: Array.isArray(payload.allowedTools)
+      ? payload.allowedTools
+          .map((item) => (typeof item === "string" ? item : String(item)))
+          .filter(Boolean)
+      : undefined,
+    provider:
+      payload.provider === "claude" || payload.provider === "gemini" || payload.provider === "codex"
+        ? payload.provider
+        : "codex",
+    model: typeof payload.model === "string" && payload.model.trim() ? payload.model.trim() : undefined,
+    approvalMode: payload.approvalMode === undefined ? undefined : String(payload.approvalMode),
+    sessionId:
+      typeof payload.sessionId === "string" && payload.sessionId.trim()
+        ? payload.sessionId.trim()
+        : undefined,
+    replaceRunning: Boolean(payload.replaceRunning),
+    effort: typeof payload.effort === "string" ? payload.effort : undefined,
+    askForApproval:
+      payload.askForApproval === undefined ? undefined : String(payload.askForApproval),
+    fullAuto: typeof payload.fullAuto === "boolean" ? payload.fullAuto : undefined,
+    yolo: typeof payload.yolo === "boolean" ? payload.yolo : undefined,
+  };
+}
 
 export function useSse(options: UseSseOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();
@@ -147,19 +246,19 @@ export function useSse(options: UseSseOptions = {}) {
   const displayedSessionIdRef = useRef<string | null>(null);
 
   const getOrCreateSessionState = useCallback((sid: string): SessionLiveState => {
-    return getOrCreateSessionState(sessionStatesRef.current, sid);
+    return getOrCreateSessionStateFromCache(sessionStatesRef.current, sid);
   }, []);
   const getOrCreateSessionMessages = useCallback(
-    (sid: string): Message[] => getOrCreateSessionMessages(sessionMessagesRef.current, sid),
+    (sid: string): Message[] => getOrCreateSessionMessagesFromCache(sessionMessagesRef.current, sid),
     []
   );
-  const getSessionDraft = useCallback((sid: string): string => getSessionDraft(sessionDraftRef.current, sid), []);
+  const getSessionDraft = useCallback((sid: string): string => getSessionDraftFromCache(sessionDraftRef.current, sid), []);
   const setSessionDraft = useCallback(
-    (sid: string, draft: string) => setSessionDraft(sessionDraftRef.current, sid, draft),
+    (sid: string, draft: string) => setSessionDraftFromCache(sessionDraftRef.current, sid, draft),
     []
   );
   const setSessionMessages = useCallback(
-    (sid: string, messages: Message[]) => setSessionMessages(sessionMessagesRef.current, sid, messages),
+    (sid: string, messages: Message[]) => setSessionMessagesFromCache(sessionMessagesRef.current, sid, messages),
     []
   );
   const setSessionStateForSession = useCallback((sid: string | null, next: SessionRuntimeState) => {
@@ -929,12 +1028,13 @@ export function useSse(options: UseSseOptions = {}) {
       approvalMode?: string,
       codexOptions?: { askForApproval?: string; fullAuto?: boolean; yolo?: boolean; effort?: string }
     ) => {
+      const safePrompt = typeof prompt === "string" ? prompt : String(prompt ?? "");
       const fullPrompt = appendCodeRefsToPrompt(
-        prompt,
+        safePrompt,
         codeRefs ? codeRefs.map((ref) => ({ path: ref.path, snippet: ref.snippet })) : undefined
       );
 
-      addMessage("user", prompt);
+      addMessage("user", safePrompt);
       setPermissionDenials(null);
       setLastSessionTerminated(false);
       setSessionStateForSession(sessionId, "running");
@@ -943,7 +1043,7 @@ export function useSse(options: UseSseOptions = {}) {
       // Yield to main thread so React paints loading state before fetch (immediate visual feedback)
       await new Promise<void>((resolve) => queueMicrotask(resolve));
 
-      const payload = {
+      const payload = normalizeSubmitPayload({
         prompt: fullPrompt,
         permissionMode,
         allowedTools,
@@ -957,20 +1057,32 @@ export function useSse(options: UseSseOptions = {}) {
           fullAuto: codexOptions.fullAuto,
           yolo: codexOptions.yolo,
         }),
-      };
+      });
 
       const resetRunningState = () => {
         setSessionStateForSession(sessionId, "idle");
         setWaitingForUserInput(false);
       };
 
+      let submitStage = "prepare";
       try {
+        const requestBody = stableStringify(payload);
+        if (__DEV__) {
+          const payloadKeys = Object.entries(payload)
+            .filter(([, value]) => value !== undefined)
+            .map(([key]) => key);
+          console.log("[sse] submit prompt payload keys", payloadKeys);
+          console.log("[sse] submit prompt body length", requestBody.length);
+        }
+        submitStage = "fetch";
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: requestBody,
         });
+        submitStage = "parse-json";
         const data = await res.json();
+        submitStage = "apply-result";
           if (data.ok && data.sessionId) {
             const newSessionId = data.sessionId;
             const newState = getOrCreateSessionState(newSessionId);
@@ -1018,7 +1130,18 @@ export function useSse(options: UseSseOptions = {}) {
             }
           }
       } catch (err) {
-        console.error("Failed to submit prompt", err);
+        const errStage = submitStage;
+        const errStatus = err && typeof err === "object" && "status" in err ? (err as { status?: number }).status : undefined;
+        if (__DEV__) {
+          console.error("Failed to submit prompt", {
+            stage: errStage ?? "request",
+            message: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined,
+            status: errStatus,
+          });
+        } else {
+          console.error("Failed to submit prompt", err);
+        }
         setManagedSessionStatus(sessionId, false);
         resetRunningState();
       }
@@ -1078,24 +1201,25 @@ export function useSse(options: UseSseOptions = {}) {
           ? retryPrompt.trim()
           : "(retry with new permissions)";
 
-      const payload = {
-        prompt,
-        permissionMode: permissionMode ?? lastRunOptionsRef.current.permissionMode ?? undefined,
-        approvalMode,
-        allowedTools,
-        replaceRunning: true,
-        provider,
-        model,
-        sessionId,
-      };
-
       setSessionStateForSession(sessionId, "running");
       setWaitingForUserInput(false);
       try {
+        const requestBody = stableStringify(
+          normalizeSubmitPayload({
+            prompt,
+            permissionMode: permissionMode ?? lastRunOptionsRef.current.permissionMode ?? undefined,
+            approvalMode,
+            allowedTools,
+            replaceRunning: true,
+            provider,
+            model,
+            sessionId,
+          }),
+        );
         const res = await fetch(`${serverUrl}/api/sessions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: requestBody,
         });
         const data = await res.json();
         if (data.ok && data.sessionId) {

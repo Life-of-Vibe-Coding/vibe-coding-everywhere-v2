@@ -8,6 +8,8 @@ import {
   SESSION_STORE_PAYLOAD_THROTTLE_MS,
 } from "@/features/app/appConfig";
 
+const SESSION_MANAGEMENT_LOGS_ENABLED = false;
+
 type ServerConfig = {
   getBaseUrl: () => string;
 };
@@ -26,6 +28,21 @@ type UseSessionManagementSyncArgs = {
   storeSessionId: string | null;
   additionalSnapshot?: Record<string, unknown>;
 };
+
+function stableStringify(value: unknown): string {
+  const seen = new WeakSet();
+  try {
+    return JSON.stringify(value, (_, nested) => {
+      if (typeof nested === "object" && nested !== null) {
+        if (seen.has(nested)) return "[Circular]";
+        seen.add(nested);
+      }
+      return nested;
+    });
+  } catch {
+    return "[Unserializable snapshot]";
+  }
+}
 
 export function useSessionManagementSync({
   serverConfig,
@@ -104,43 +121,62 @@ export function useSessionManagementSync({
       },
       ...additionalSnapshot,
     };
-    const signature = JSON.stringify(snapshot);
+    const signature = stableStringify(snapshot);
+    if (signature === "[Unserializable snapshot]") {
+      if (__DEV__ && SESSION_MANAGEMENT_LOGS_ENABLED) {
+        console.warn("[session-management] failed to serialize snapshot for comparison");
+      }
+      return;
+    }
+
     const now = Date.now();
     const shouldUpload =
       sessionStorePayloadRef.current !== signature ||
       now - sessionStoreUploadedAtRef.current >= SESSION_STORE_PAYLOAD_THROTTLE_MS;
     if (shouldUpload) {
+      const body = stableStringify(snapshot);
+      if (body === "[Unserializable snapshot]") {
+        if (__DEV__ && SESSION_MANAGEMENT_LOGS_ENABLED) {
+          console.warn("[session-management] failed to serialize snapshot for upload");
+        }
+        return;
+      }
+
       sessionStorePayloadRef.current = signature;
       sessionStoreUploadedAtRef.current = now;
-      if (__DEV__) {
+      if (__DEV__ && SESSION_MANAGEMENT_LOGS_ENABLED) {
         console.log("[session-management] store snapshot:", snapshot);
       }
       const endpoint = `${serverConfig.getBaseUrl()}/api/session-management-store`;
-      if (__DEV__) {
+      if (__DEV__ && SESSION_MANAGEMENT_LOGS_ENABLED) {
         console.log("[session-management] uploading snapshot to:", endpoint);
       }
       void fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(snapshot),
+        body,
       })
         .then(async (res) => {
           if (!res.ok) {
             const text = await res.text();
-            console.error(
-              "[session-management] failed to upload snapshot:",
-              res.status,
-              text
-            );
+            if (SESSION_MANAGEMENT_LOGS_ENABLED) {
+              console.error(
+                "[session-management] failed to upload snapshot:",
+                res.status,
+                text
+              );
+            }
           }
         })
         .catch((error) => {
-          console.error(
-            "[session-management] failed to upload snapshot:",
-            String(error),
-            "to",
-            endpoint
-          );
+          if (SESSION_MANAGEMENT_LOGS_ENABLED) {
+            console.error(
+              "[session-management] failed to upload snapshot:",
+              String(error),
+              "to",
+              endpoint
+            );
+          }
         });
     }
   }, [

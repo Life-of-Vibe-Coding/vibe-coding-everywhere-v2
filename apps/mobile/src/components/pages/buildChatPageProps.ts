@@ -134,6 +134,7 @@ export function buildChatPageProps({
         serverBaseUrl: serverConfig.getBaseUrl(),
       },
       sessionManagement: {
+        serverBaseUrl: serverConfig.getBaseUrl(),
         onRefreshSessionManagementWorkspace: workspaceState.fetchWorkspacePath,
         workspacePathForSessionManagement: workspaceState.workspacePath,
         onSelectSession: sseState.handleSelectSession,
