@@ -15,7 +15,8 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
 import { Input, InputField } from "@/components/ui/input";
-import { ModalScaffold, TabBarPills } from "@/components/reusable";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { TabBarPills } from "@/components/reusable/TabBarPills";
 import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";

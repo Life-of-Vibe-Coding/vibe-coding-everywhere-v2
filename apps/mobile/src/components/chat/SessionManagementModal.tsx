@@ -25,13 +25,8 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
-import { AsyncStateView, ModalScaffold } from "@/components/reusable";
+import { AsyncStateView } from "@/components/reusable/AsyncStateView";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import {

@@ -17,7 +17,8 @@ import { Image } from "@/components/ui/image";
 import { StatusBar } from "@/components/ui/status-bar";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MarkdownContent, ModalScaffold } from "@/components/reusable";
+import { MarkdownContent } from "@/components/reusable/MarkdownContent";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;

@@ -4,7 +4,7 @@ import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
 import { SkillConfigurationModal } from "@/components/settings/SkillConfigurationModal";
 import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
 import { DockerManagerModal } from "@/components/docker/DockerManagerModal";
-import { ProcessesDashboardModal } from "@/components/processes/ProcessesDashboardModal";
+import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardModal";
 import { SessionManagementModal } from "@/components/chat/SessionManagementModal";
 import { PreviewWebViewModal } from "@/components/preview/PreviewWebViewModal";
 import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
@@ -82,7 +82,7 @@ export function ChatModalsSection({
         onCloseSkillDetail={closeSkillDetail}
         serverBaseUrl={modals.skills.serverBaseUrl}
       />
-      <ProcessesDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
+      <ProcessDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
       <DockerManagerModal isOpen={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
       <ModelPickerSheet
         isOpen={modalStates.modelPicker.isOpen}

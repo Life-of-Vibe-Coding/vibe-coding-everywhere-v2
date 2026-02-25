@@ -4,7 +4,7 @@ import { triggerHaptic } from "@/design-system";
 import { ClaudeIcon, GeminiIcon, CodexIcon } from "@/components/icons/ProviderIcons";
 import { Box } from "@/components/ui/box";
 import { Text as GluestackText } from "@/components/ui/text";
-import { ActionsheetOptionRow } from "@/components/reusable";
+import { ActionsheetOptionRow } from "@/components/reusable/ActionsheetOptionRow";
 import {
   Actionsheet,
   ActionsheetBackdrop,

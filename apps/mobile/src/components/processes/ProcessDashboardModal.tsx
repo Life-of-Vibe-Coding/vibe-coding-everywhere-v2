@@ -27,9 +27,6 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
 import { RefreshControl } from "@/components/ui/refresh-control";
 
-/** Minimum touch target per UI/UX Pro Max (44x44px). */
-const MIN_TOUCH_TARGET = 44;
-
 export interface ApiProcess {
   pid: number;
   port: number;
@@ -38,7 +35,7 @@ export interface ApiProcess {
   logPaths?: string[];
 }
 
-export interface ProcessesDashboardModalProps {
+export interface ProcessDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   serverBaseUrl: string;
@@ -63,11 +60,11 @@ function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
   });
 }
 
-export function ProcessesDashboardModal({
+export function ProcessDashboardModal({
   isOpen,
   onClose,
   serverBaseUrl,
-}: ProcessesDashboardModalProps) {
+}: ProcessDashboardModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -391,11 +388,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       height: 22,
       borderRadius: 2,
     },
-    sectionAccent: {
-      width: 3,
-      height: 14,
-      borderRadius: 2,
-    },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -405,20 +397,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
     },
-    title: {
-      fontSize: 17,
-      fontWeight: "700",
-      color: theme.colors.textPrimary,
-      letterSpacing: -0.3,
-    },
-    closeBtn: {
-      minWidth: MIN_TOUCH_TARGET,
-      minHeight: MIN_TOUCH_TARGET,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: -8,
-      marginVertical: -8,
-    },
     errorBanner: {
       marginHorizontal: spacing["5"],
       marginTop: spacing["2"],
@@ -426,26 +404,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: radii.lg,
       borderWidth: 1,
     },
-    errorText: {
-      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.colors.danger ?? "#dc2626",
-      fontSize: 14,
-    },
-    errorHint: {
-      color: (theme as { colors?: { error?: string } }).colors?.error ?? theme.colors.danger ?? "#dc2626",
-      fontSize: 12,
-      marginTop: 8,
-      lineHeight: 18,
-      opacity: 0.95,
-    },
     warningBanner: {
       marginHorizontal: spacing["5"],
       marginTop: spacing["2"],
       padding: spacing["4"],
       borderRadius: radii.lg,
-    },
-    warningText: {
-      color: theme.colors.textPrimary,
-      fontSize: 13,
     },
     scroll: {
       flex: 1,
@@ -455,25 +418,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingTop: spacing["4"],
       paddingBottom: spacing["6"],
     },
-    loading: {
-      paddingVertical: 32,
-      alignItems: "center",
-      gap: 10,
-    },
-    loadingText: {
-      fontSize: 12,
-      color: theme.colors.textSecondary,
-    },
     section: {
       marginBottom: spacing["4"],
-    },
-    sectionTitle: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: theme.colors.textSecondary,
-      textTransform: "uppercase",
-      letterSpacing: 0.8,
-      marginBottom: 10,
     },
     row: {
       flexDirection: "column",
@@ -502,14 +448,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderWidth: 1,
       minWidth: 64,
     },
-    logButtonVisible: {
-      minWidth: 64,
-    },
-    logButtonText: {
-      fontSize: 11,
-      fontWeight: "700",
-      color: theme.colors.accent,
-    },
     pidPortRow: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -521,53 +459,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: radii.sm,
       borderWidth: 1,
     },
-    pillText: {
-      fontSize: 11,
-      fontWeight: "700",
-      color: theme.colors.accent,
-      letterSpacing: 0.2,
-    },
-    command: {
-      fontSize: 12,
-      lineHeight: 18,
-      fontWeight: "600",
-      color: theme.colors.textPrimary,
-      fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
-    },
     killButtonWrap: {
       minHeight: 36,
       justifyContent: "center",
     },
     killButton: {
       borderRadius: radii.md,
-    },
-    killButtonLabel: {
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    empty: {
-      alignItems: "center",
-    },
-    emptyIconContainer: {
-      width: 72,
-      height: 72,
-      borderRadius: radii.xl,
-      borderWidth: 2,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    emptyText: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: theme.colors.textSecondary,
-      marginBottom: 6,
-    },
-    emptyHint: {
-      fontSize: 12,
-      lineHeight: 18,
-      color: theme.colors.textSecondary,
-      textAlign: "center",
-      maxWidth: 280,
     },
     logViewerSafe: {
       flex: 1,
@@ -582,23 +479,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
     },
-    logViewerTitle: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: theme.colors.textPrimary,
-      flex: 1,
-    },
     logViewerScroll: {
       flex: 1,
     },
     logViewerContent: {
       padding: spacing["5"],
       paddingBottom: spacing["6"],
-    },
-    logViewerText: {
-      fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
-      fontSize: 11,
-      color: theme.colors.textPrimary,
     },
   });
 }

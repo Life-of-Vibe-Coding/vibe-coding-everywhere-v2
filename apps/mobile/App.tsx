@@ -1,4 +1,4 @@
-import "@/../global.css";
+import "./global.css";
 
 import React, { useMemo } from "react";
 
