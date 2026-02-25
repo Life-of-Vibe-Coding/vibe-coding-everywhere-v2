@@ -34,6 +34,8 @@ import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { useTheme } from "@/theme/index";
 import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
+import { BlurView } from "expo-blur";
+import { StyleSheet } from "react-native";
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 const INPUT_PLACEHOLDER = "Type response for Claude…";
@@ -145,17 +147,20 @@ export function InputPanel({
     <Box>
       <VStack
         space="md"
-        className={cn(
-          "flex-col gap-3 border rounded-2xl py-3 px-4 mt-6",
-          isDark ? "border-outline-500/60" : "border-outline-200"
-        )}
+        className="flex-col gap-3 py-3 px-4 mt-6"
         style={[
-          { borderLeftWidth: 3, borderLeftColor: theme.colors.accent, backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+          {
+            borderRadius: 36,
+            overflow: "hidden",
+            backgroundColor: "rgba(255, 255, 255, 0.3)",
+            borderColor: "rgba(255, 255, 255, 0.4)",
+            borderWidth: StyleSheet.hairlineWidth,
+          },
           Platform.select({
             ios: {
-              shadowColor: theme.colors.accent,
+              shadowColor: "#000",
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isDark ? 0.22 : 0.1,
+              shadowOpacity: 0.1,
               shadowRadius: 14,
             },
             android: { elevation: 6 },
@@ -163,6 +168,7 @@ export function InputPanel({
           }),
         ]}
       >
+        <BlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
         {pendingCodeRefs.length > 0 && (
           <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
             {pendingCodeRefs.map((ref, index) => {
@@ -206,10 +212,10 @@ export function InputPanel({
           <Textarea
             size="md"
             isDisabled={disabled}
-            className="flex-1 min-h-10 h-auto rounded-xl border min-w-0 w-full"
+            className="flex-1 min-h-10 h-auto min-w-0 w-full"
             style={{
-              borderColor: theme.colors.accentSubtle,
-              backgroundColor: isDark ? theme.colors.surfaceAlt : theme.colors.accentSoft,
+              backgroundColor: "transparent",
+              borderWidth: 0,
               minHeight: DEFAULT_INPUT_HEIGHT + INPUT_VERTICAL_PADDING,
               height: inputHeight + INPUT_VERTICAL_PADDING,
               maxHeight: MAX_INPUT_HEIGHT + INPUT_VERTICAL_PADDING,
@@ -266,10 +272,9 @@ export function InputPanel({
                   accessibilityLabel="More options"
                   accessibilityHint="Opens Skills and Docker dropdown"
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  className="flex-row items-center gap-1 py-2 px-2 rounded-xl border min-h-11 active:opacity-90"
+                  className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
                   style={{
-                    backgroundColor: theme.colors.accentSoft,
-                    borderColor: theme.colors.accentSubtle,
+                    backgroundColor: "rgba(255, 255, 255, 0.4)",
                   }}
                 >
                   <AttachPlusIcon size={18} color={theme.colors.accent} />
@@ -327,10 +332,9 @@ export function InputPanel({
               disabled={!onOpenModelPicker}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               accessibilityLabel="Select model"
-              className="flex-1 flex-row items-center gap-0.5 py-0.5 px-1 rounded-xl border min-h-11 min-w-0 max-w-35 justify-start active:opacity-90"
+              className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
               style={{
-                backgroundColor: theme.colors.accentSoft,
-                borderColor: theme.colors.accentSubtle,
+                backgroundColor: "rgba(255, 255, 255, 0.4)",
               }}
             >
               <Text
@@ -343,7 +347,7 @@ export function InputPanel({
               >
                 {currentModelLabel}
               </Text>
-              <Box className="shrink-0 self-center">
+              <Box className="shrink-0 self-center pl-1">
                 <ChevronDownIcon size={12} color={theme.colors.accent} />
               </Box>
             </Pressable>
@@ -385,23 +389,23 @@ export function InputPanel({
                 onPress={handleSubmit}
                 isDisabled={disabled}
                 accessibilityLabel="Send message"
-                className="w-11 h-11 rounded-xl active:opacity-80"
+                className="w-12 h-12 rounded-full active:opacity-80"
                 style={
                   disabled
                     ? undefined
                     : {
-                        backgroundColor: theme.colors.accent,
-                        ...Platform.select({
-                          ios: {
-                            shadowColor: theme.colors.accent,
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.4,
-                            shadowRadius: 6,
-                          },
-                          android: { elevation: 4 },
-                          default: {},
-                        }),
-                      }
+                      backgroundColor: "#111",
+                      ...Platform.select({
+                        ios: {
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                        },
+                        android: { elevation: 4 },
+                        default: {},
+                      }),
+                    }
                 }
               >
                 <ButtonIcon
@@ -412,8 +416,8 @@ export function InputPanel({
                         ? GeminiSendIcon
                         : provider === "codex"
                           ? (p: { size?: number }) => (
-                              <CodexEnterIcon {...p} stroke={theme.colors.textInverse} color={theme.colors.textInverse} />
-                            )
+                            <CodexEnterIcon {...p} stroke={theme.colors.textInverse} color={theme.colors.textInverse} />
+                          )
                           : CodexSendIcon
                   }
                   size="md"

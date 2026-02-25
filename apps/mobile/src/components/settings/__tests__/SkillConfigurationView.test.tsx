@@ -28,9 +28,9 @@ jest.mock('@/components/icons/ChatActionIcons', () => {
   };
 });
 
-import { SkillConfigurationModal } from '@/components/settings/SkillConfigurationModal';
+import { SkillConfigurationView } from '@/components/settings/SkillConfigurationView';
 
-describe('settings/SkillConfigurationModal', () => {
+describe('settings/SkillConfigurationView', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -69,7 +69,7 @@ describe('settings/SkillConfigurationModal', () => {
     });
 
     const { getByText } = render(
-      <SkillConfigurationModal
+      <SkillConfigurationView
         isOpen
         onClose={jest.fn()}
         serverBaseUrl="http://localhost:3456"

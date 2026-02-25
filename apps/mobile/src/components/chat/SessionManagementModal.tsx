@@ -12,9 +12,7 @@ import {
   EntranceAnimation,
   AnimatedPressableView,
   spacing,
-  radii,
 } from "@/design-system";
-import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
@@ -25,7 +23,6 @@ import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { AsyncStateView } from "@/components/reusable/AsyncStateView";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { SessionListItemCard } from "@/components/reusable/SessionListItem";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import {
@@ -34,6 +31,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CloseIcon,
+  PlayIcon,
 } from "@/components/icons/ChatActionIcons";
 import { getFileName } from "@/utils/path";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
@@ -75,29 +73,29 @@ const uiMonoFontFamily = Platform.select({
   default: "monospace",
 });
 
-const SESSIONS_UI = {
-  background: "#f3f4f6",
-  surface: "#ffffff",
-  primary: "#22c55e",
-  textPrimary: "#111827",
-  textSecondary: "#6b7280",
-  textTertiary: "#9ca3af",
-  border: "#e5e7eb",
-} as const;
-const SECTION_GAP = 24;
-const INTERNAL_GAP = 12;
+const APP_SURFACE_BG = "#eceef2";
+const APP_CARD_BG = "#ffffff";
+const APP_CARD_BORDER = "#dde1e8";
+const APP_TEXT_PRIMARY = "#1f2937";
+const APP_TEXT_SECONDARY = "#697386";
+const APP_TEXT_TERTIARY = "#8b94a6";
+const APP_ACCENT = "#d98300";
+const APP_RUNNING = "#37b37e";
 
-/** Strip provider prefix from model id for display (e.g. claude-sonnet-4-5 → sonnet-4-5). */
-function modelDisplayName(model: string | null | undefined): string {
-  if (!model) return "";
-  const m = model.trim();
-  if (!m) return "";
-  if (m.startsWith("claude-")) return m.slice(7);
-  if (m.startsWith("anthropic/")) return m.slice(10);
-  if (m.startsWith("gemini-")) return m.slice(8);
-  if (m.startsWith("gpt-")) return m.slice(4);
-  return m;
-}
+const SOFT_LAYOUT_ANIMATION = {
+  duration: 160,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
 
 /** Get relative path from root to fullPath. */
 function getRelativePath(fullPath: string, root: string): string {
@@ -109,28 +107,36 @@ function getRelativePath(fullPath: string, root: string): string {
   return fullPath;
 }
 
-/** Group sessions by workspace cwd for sectioned list. */
-function groupSessionsByWorkspace(
-  sessions: ApiSession[],
-  fallbackWorkspacePath?: string
-): { title: string; data: ApiSession[] }[] {
-  const byCwd = new Map<string, ApiSession[]>();
-  for (const s of sessions) {
-    // Use cwd from API; fallback to current workspace when missing
-    const key = (typeof s.cwd === "string" && s.cwd.trim()) ? s.cwd : (fallbackWorkspacePath ?? "");
-    if (!byCwd.has(key)) byCwd.set(key, []);
-    byCwd.get(key)!.push(s);
-  }
-  const entries = Array.from(byCwd.entries()).sort((a, b) => {
-    if (a[0] === "") return 1;
-    if (b[0] === "") return -1;
-    return a[0].localeCompare(b[0]);
-  });
-  return entries.map(([cwd, data]) => ({
-    title: cwd || "(no workspace)",
-    data,
-  }));
+function displayWorkspace(cwd: string | null | undefined, fallbackWorkspace?: string | null): string {
+  const raw = (typeof cwd === "string" && cwd.trim())
+    ? cwd.trim()
+    : ((fallbackWorkspace ?? "").trim() || "(no workspace)");
+  return raw === "(no workspace)" ? raw : (getFileName(raw) || raw);
 }
+
+function formatSessionTime(ts: number): string {
+  if (!Number.isFinite(ts) || ts <= 0) return "—";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(ts));
+  } catch {
+    return "—";
+  }
+}
+
+function formatModelLabel(model: string | null | undefined): string {
+  const raw = (model ?? "").trim();
+  if (!raw) return "MODEL N/A";
+  return raw.replace(/^models\//i, "").toUpperCase();
+}
+
+type WorkspaceSessionGroup = {
+  key: string;
+  sessions: ApiSession[];
+  latestAccess: number;
+};
 
 export interface SessionManagementModalProps {
   isOpen: boolean;
@@ -157,21 +163,6 @@ export interface SessionManagementModalProps {
   sessionRunning?: boolean;
 }
 
-function formatDate(ts: number): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) {
-    return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  }
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) {
-    return `Yesterday ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
-  }
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
-}
-
 export function SessionManagementModal({
   isOpen,
   onClose,
@@ -188,18 +179,24 @@ export function SessionManagementModal({
 }: SessionManagementModalProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const uiColors = useMemo(
+    () => ({
+      accent: APP_ACCENT,
+      textInverse: "#ffffff",
+    }),
+    []
+  );
 
   const sessions = useSessionManagementStore((state) => state.sessionStatuses);
   const removeSessionStatus = useSessionManagementStore((state) => state.removeSessionStatus);
-  const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
   const [selectError, setSelectError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  const [hoveredHeaderCwd, setHoveredHeaderCwd] = useState<string | null>(null);
-  const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
+  const [showAllSessions, setShowAllSessions] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -207,26 +204,6 @@ export function SessionManagementModal({
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
-
-  const sections = useMemo(
-    () => groupSessionsByWorkspace(sessions, workspacePath ?? undefined),
-    [sessions, workspacePath]
-  );
-
-  // Expand current workspace and any section containing current session on first load
-  useEffect(() => {
-    if (!isOpen || sections.length === 0) return;
-    setExpandedWorkspaces((prev) => {
-      const next = new Set(prev);
-      const currentCwd = (workspacePath ?? "").trim();
-      if (currentCwd) next.add(currentCwd);
-      const sectionWithCurrent = sections.find((s) =>
-        s.data.some((session) => session.id === currentSessionId)
-      );
-      if (sectionWithCurrent) next.add(sectionWithCurrent.title);
-      return next.size > prev.size ? next : prev;
-    });
-  }, [isOpen, sections, workspacePath, currentSessionId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -236,6 +213,8 @@ export function SessionManagementModal({
       }
       setSelectError(null);
       setListError(null);
+      setShowAllSessions(false);
+      setCollapsedGroups({});
     }
   }, [isOpen]);
 
@@ -250,6 +229,76 @@ export function SessionManagementModal({
 
   const currentRelativePath =
     allowedRoot && workspacePath ? getRelativePath(workspacePath, allowedRoot) : "";
+  const workspaceDisplayPath = useMemo(
+    () => (
+      allowedRoot && workspacePath
+        ? (currentRelativePath || "(root)")
+        : (workspacePath ?? "—")
+    ),
+    [allowedRoot, workspacePath, currentRelativePath]
+  );
+
+  const workspacePreviewPrefix = useMemo(() => {
+    const normalized = workspaceDisplayPath.replace(/^\/*/, "");
+    const first = normalized.split("/").filter(Boolean)[0];
+    return first ? `~/${first}/` : "~/";
+  }, [workspaceDisplayPath]);
+
+  const groupedSessions = useMemo(() => {
+    const byWorkspace = new Map<string, ApiSession[]>();
+    for (const session of sessions) {
+      const path = (typeof session.cwd === "string" && session.cwd.trim())
+        ? session.cwd.trim()
+        : ((workspacePath ?? "").trim() || "(no workspace)");
+      if (!byWorkspace.has(path)) byWorkspace.set(path, []);
+      byWorkspace.get(path)!.push(session);
+    }
+
+    const currentWorkspace = (workspacePath ?? "").trim();
+    const groups: WorkspaceSessionGroup[] = Array.from(byWorkspace.entries()).map(([key, data]) => {
+      const sorted = [...data].sort((a, b) => b.lastAccess - a.lastAccess);
+      return {
+        key,
+        sessions: sorted,
+        latestAccess: sorted[0]?.lastAccess ?? 0,
+      };
+    });
+
+    groups.sort((a, b) => {
+      if (currentWorkspace) {
+        if (a.key === currentWorkspace && b.key !== currentWorkspace) return -1;
+        if (b.key === currentWorkspace && a.key !== currentWorkspace) return 1;
+      }
+      return b.latestAccess - a.latestAccess;
+    });
+
+    return groups;
+  }, [sessions, workspacePath]);
+
+  const totalSessionCount = useMemo(
+    () => groupedSessions.reduce((acc, group) => acc + group.sessions.length, 0),
+    [groupedSessions]
+  );
+  const showViewAllToggle = useMemo(() => {
+    if (groupedSessions.length > 1) return true;
+    const firstGroupSize = groupedSessions[0]?.sessions.length ?? 0;
+    return firstGroupSize > 3;
+  }, [groupedSessions]);
+  const visibleGroups = useMemo(() => {
+    if (showAllSessions) return groupedSessions;
+    const primary = groupedSessions[0];
+    if (!primary) return [];
+    return [
+      {
+        ...primary,
+        sessions: primary.sessions.slice(0, 3),
+      },
+    ];
+  }, [showAllSessions, groupedSessions]);
+  const groupedSessionsByKey = useMemo(
+    () => new Map(groupedSessions.map((group) => [group.key, group])),
+    [groupedSessions]
+  );
 
   const refresh = useCallback(async (isPullRefresh = false) => {
     if (isPullRefresh) {
@@ -262,7 +311,7 @@ export function SessionManagementModal({
       setLoading(false);
       setRefreshing(false);
     }, 120);
-  }, [setLoading, setRefreshing, setListError]);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -280,14 +329,16 @@ export function SessionManagementModal({
         onClose();
         return;
       }
+      if (!serverBaseUrl) {
+        setSelectError("Server URL is unavailable");
+        return;
+      }
       if (transitionTimeoutRef.current) {
         clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
       }
       setSelectError(null);
       setLoadingSessionId(session.id);
-      // Always load conversation from disk first (GET /messages reads .pi/agent/sessions).
-      // Then onSelectSession will connect SSE only if session is running.
       fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(session.id)}/messages`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load session");
@@ -296,7 +347,6 @@ export function SessionManagementModal({
         .then((data: { messages?: Message[]; sessionId?: string; activeSessionId?: string; provider?: string | null; model?: string | null; running?: boolean; sseConnected?: boolean; cwd?: string | null }) => {
           const messages = data.messages ?? [];
           const canonicalId = data.sessionId ?? session.id;
-          // Use activeSessionId when session is running so we connect to the stream id (avoids duplicate SSE that gets "end" and blanks the UI).
           const id = (data.running || data.sseConnected) && data.activeSessionId ? data.activeSessionId : canonicalId;
           const cwd = data.cwd ?? session.cwd ?? null;
           onSelectSession({
@@ -339,7 +389,7 @@ export function SessionManagementModal({
                   method: "DELETE",
                 });
                 if (!res.ok) throw new Error("Delete failed");
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                LayoutAnimation.configureNext(SOFT_LAYOUT_ANIMATION);
                 removeSessionStatus(session.id);
                 if (session.id === currentSessionId) {
                   onNewSession();
@@ -362,54 +412,59 @@ export function SessionManagementModal({
     onClose();
   }, [onNewSession, onClose]);
 
-  const handleDestroyWorkspace = useCallback(
-    (targetPath: string) => {
-      if (!serverBaseUrl || !targetPath || targetPath === "(no workspace)") return;
+  const handleToggleGroup = useCallback((groupKey: string) => {
+    LayoutAnimation.configureNext(SOFT_LAYOUT_ANIMATION);
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
+  }, []);
+
+  const handleDeleteWorkspaceSessions = useCallback(
+    (group: WorkspaceSessionGroup) => {
+      const groupLabel = displayWorkspace(group.key, workspacePath);
+      const sessionCount = group.sessions.length;
       triggerHaptic("medium");
       showAlert(
-        "Destroy Workspace",
-        `Delete all sessions for ${formatPathForWrap(getFileName(targetPath) || targetPath)}? This cannot be undone.`,
+        "Delete workspace sessions",
+        `Remove ${sessionCount} session${sessionCount === 1 ? "" : "s"} in "${groupLabel}"?`,
         [
           { text: "Cancel", style: "cancel" },
           {
-            text: "Destroy",
+            text: "Delete",
             style: "destructive",
             onPress: async () => {
+              if (!serverBaseUrl) return;
               try {
-                const res = await fetch(`${serverBaseUrl}/api/sessions/destroy-workspace`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ path: targetPath }),
-                });
-                const data = (await res.json()) as { ok?: boolean; deletedCount?: number; error?: string };
-                if (!res.ok || !data.ok) throw new Error(data.error ?? "Destroy failed");
-                const deleted = data.deletedCount ?? 0;
-                if (
-                  currentSessionId &&
-                  sections.some((s) => s.title === targetPath && s.data.some((d) => d.id === currentSessionId))
-                ) {
-                  onNewSession();
-                }
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setSessionStatuses(
-                  sessions.filter((session) => {
-                    const sessionPathBase = (typeof session.cwd === "string" && session.cwd.trim())
-                      ? session.cwd
-                      : (workspacePath ?? "");
-                    const sessionPath = sessionPathBase || "(no workspace)";
-                    return sessionPath !== targetPath;
+                const ids = group.sessions.map((session) => session.id);
+                const results = await Promise.all(
+                  ids.map(async (id) => {
+                    const res = await fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(id)}`, {
+                      method: "DELETE",
+                    });
+                    return { id, ok: res.ok };
                   })
                 );
-                if (deleted > 0) triggerHaptic("heavy");
+                const failed = results.find((result) => !result.ok);
+                if (failed) throw new Error("Delete failed");
+
+                LayoutAnimation.configureNext(SOFT_LAYOUT_ANIMATION);
+                for (const { id } of results) {
+                  removeSessionStatus(id);
+                }
+                if (currentSessionId && ids.includes(currentSessionId)) {
+                  onNewSession();
+                }
+                triggerHaptic("success");
               } catch {
-                setSelectError("Failed to destroy workspace sessions");
+                setSelectError("Failed to delete workspace sessions");
               }
             },
           },
         ]
       );
     },
-    [serverBaseUrl, currentSessionId, sections, onNewSession, setSessionStatuses, sessions, workspacePath]
+    [serverBaseUrl, currentSessionId, onNewSession, removeSessionStatus, workspacePath]
   );
 
   if (!isOpen) return null;
@@ -428,25 +483,25 @@ export function SessionManagementModal({
         <HStack style={styles.headerActions}>
           <Button
             action="default"
-            variant="link"
-            size="md"
+            variant="outline"
+            size="sm"
             onPress={() => void refresh(false)}
             accessibilityLabel="Refresh sessions"
             style={styles.headerIconButton}
             className="min-w-11 min-h-11"
           >
-            <ButtonIcon as={RefreshCwIcon} size="md" style={{ color: SESSIONS_UI.textSecondary }} />
+            <ButtonIcon as={RefreshCwIcon} size="sm" style={styles.headerIconColor} />
           </Button>
           <Button
             action="default"
-            variant="link"
-            size="md"
+            variant="outline"
+            size="sm"
             onPress={onClose}
             accessibilityLabel="Close sessions"
             style={styles.headerIconButton}
             className="min-w-11 min-h-11"
           >
-            <ButtonIcon as={CloseIcon} size="md" style={{ color: SESSIONS_UI.textSecondary }} />
+            <ButtonIcon as={CloseIcon} size="sm" style={styles.headerIconColor} />
           </Button>
         </HStack>
       }
@@ -454,7 +509,7 @@ export function SessionManagementModal({
       <Box style={styles.container}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {(selectError || listError) && (
-            <EntranceAnimation variant="fade">
+            <EntranceAnimation variant="fade" duration={140}>
               <HStack style={styles.errorBanner}>
                 <Text size="sm" className="text-error-600 flex-1">{selectError ?? listError}</Text>
                 {listError && (
@@ -464,8 +519,8 @@ export function SessionManagementModal({
                     style={styles.retryButton}
                     accessibilityLabel="Retry loading sessions"
                   >
-                    <RefreshCwIcon size={16} color={SESSIONS_UI.primary} strokeWidth={1.8} />
-                    <Text size="sm" bold style={{ color: SESSIONS_UI.primary }}>
+                    <RefreshCwIcon size={16} color={uiColors.accent} strokeWidth={1.8} />
+                    <Text size="sm" bold style={{ color: uiColors.accent }}>
                       Retry
                     </Text>
                   </AnimatedPressableView>
@@ -474,36 +529,44 @@ export function SessionManagementModal({
             </EntranceAnimation>
           )}
 
-          {/* Workspace section - tech-styled card */}
-          <VStack style={styles.workspaceSection}>
-            <Text size="sm" bold style={styles.sectionLabel}>
+          <VStack style={styles.introSection}>
+            <Text size="sm" style={styles.sectionIntroTitle}>
               Session Management
             </Text>
-            <HStack style={styles.sectionHeaderRow}>
-              <Text size="sm" bold style={{ color: SESSIONS_UI.textSecondary }}>Workspace</Text>
-            </HStack>
-            <Box style={styles.workspaceBox} className="mx-5 rounded-xl border overflow-hidden">
+            <Text size="xs" style={styles.sectionIntroText}>
+              Choose your workspace, start a new session, or jump back into recent work.
+            </Text>
+          </VStack>
+
+          <VStack style={styles.workspaceSection}>
+            <Box style={styles.workspaceBox}>
               <VStack style={styles.workspacePathContainer}>
+                <Text size="xs" style={styles.workspaceLabel}>
+                  Current Workspace
+                </Text>
                 {workspaceLoading ? (
-                  <SkeletonText lineHeight={18} lines={1} lastLineWidth="60%" />
+                  <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
                 ) : (
-                  <VStack style={styles.workspacePathRow}>
-                    <Text size="xs" bold style={{ color: SESSIONS_UI.textSecondary }} className="uppercase tracking-wide">
-                      CWD
-                    </Text>
-                    <Box style={styles.cwdPathBox} className="rounded-lg border">
-                      <Text
-                        size="xs"
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                        style={styles.cwdPathText}
-                      >
-                        {formatPathForWrap(
-                          allowedRoot && workspacePath ? (currentRelativePath || "(root)") : (workspacePath ?? "—")
-                        )}
+                  <Box style={styles.cwdPathBox}>
+                    <HStack style={styles.cwdPathTopRow}>
+                      <Text size="xs" style={styles.cwdPreviewPrefix}>
+                        {workspacePreviewPrefix}
                       </Text>
-                    </Box>
-                  </VStack>
+                      <HStack style={styles.cwdDots}>
+                        <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
+                        <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
+                        <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
+                      </HStack>
+                    </HStack>
+                    <Text
+                      size="xs"
+                      numberOfLines={3}
+                      ellipsizeMode="tail"
+                      style={styles.cwdPathText}
+                    >
+                      {formatPathForWrap(workspaceDisplayPath)}
+                    </Text>
+                  </Box>
                 )}
               </VStack>
               <HStack style={styles.workspaceActions}>
@@ -516,7 +579,9 @@ export function SessionManagementModal({
                       onPress={onOpenWorkspacePicker}
                       style={styles.workspaceActionButtonSecondary}
                     >
-                      <ButtonText style={{ color: SESSIONS_UI.textPrimary }} className="font-medium">Change Workspace</ButtonText>
+                      <ButtonText style={styles.secondaryActionText}>
+                        Change Workspace
+                      </ButtonText>
                     </Button>
                   </Box>
                 )}
@@ -528,22 +593,40 @@ export function SessionManagementModal({
                     onPress={handleNewSession}
                     style={styles.workspaceActionButtonPrimary}
                   >
-                    <ButtonText style={{ color: "#ffffff" }} className="font-semibold">Start Session</ButtonText>
+                    <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
+                    <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
                   </Button>
                 </Box>
               </HStack>
             </Box>
           </VStack>
 
-          {/* Recent Sessions section */}
-          <HStack style={styles.sectionHeaderRow}>
-            <Text size="sm" bold style={{ color: SESSIONS_UI.textSecondary }}>Recent Sessions</Text>
+          <HStack style={styles.recentHeaderRow}>
+            <VStack style={styles.recentHeaderText}>
+              <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
+              <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
+            </VStack>
+            {showViewAllToggle && (
+              <Pressable
+                onPress={() => setShowAllSessions((prev) => !prev)}
+                style={({ pressed }) => [
+                  styles.viewAllButton,
+                  pressed && styles.viewAllButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
+              >
+                <Text size="sm" style={styles.viewAllText}>
+                  {showAllSessions ? "View Less" : "View All"}
+                </Text>
+              </Pressable>
+            )}
           </HStack>
 
           <AsyncStateView
             isLoading={loading && !listError}
-            error={sessions.length === 0 && !showActiveChat ? listError : null}
-            isEmpty={sessions.length === 0 && !showActiveChat && !listError}
+            error={totalSessionCount === 0 && !showActiveChat ? listError : null}
+            isEmpty={totalSessionCount === 0 && !showActiveChat && !listError}
             loadingText="Loading sessions..."
             emptyTitle="No Sessions Yet"
             emptyDescription="Start a conversation and it will appear here."
@@ -557,144 +640,147 @@ export function SessionManagementModal({
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={() => void refresh(true)}
-                  tintColor={SESSIONS_UI.primary}
-                  colors={[SESSIONS_UI.primary]}
+                  tintColor={uiColors.accent}
+                  colors={[uiColors.accent]}
                 />
               }
-              showsVerticalScrollIndicator
+              showsVerticalScrollIndicator={false}
             >
               {showActiveChat && onSelectActiveChat && (
-                <EntranceAnimation variant="fade" delay={100}>
+                <EntranceAnimation variant="fade" delay={60} duration={150}>
                   <Pressable
                     onPress={onSelectActiveChat}
-                    style={styles.activeChatCard}
-                    className="rounded-xl border"
+                    style={({ pressed }) => [
+                      styles.activeChatCard,
+                      pressed && styles.pressState,
+                    ]}
                     accessibilityRole="button"
                     accessibilityLabel="Open active chat"
                     accessibilityHint="Switches back to the currently active live chat"
                   >
+                    <Box style={[styles.sessionStatusDot, styles.sessionStatusDotActive]} />
                     <VStack style={styles.activeChatCardContent}>
-                      <Text size="sm" bold numberOfLines={1} style={{ color: SESSIONS_UI.primary }}>
+                      <Text size="sm" style={styles.activeChatTitle}>
                         Active Chat
                       </Text>
-                      <Text size="xs" className="mt-0.5" style={{ color: SESSIONS_UI.textSecondary }}>
-                        {sessionRunning ? "Receiving updates • tap to view" : "Tap to resume"}
+                      <Text size="xs" style={styles.activeChatSubtitle}>
+                        {sessionRunning ? "Receiving updates now" : "Tap to resume"}
                       </Text>
                     </VStack>
-                    <Badge action="success" variant="solid" size="sm">
-                      <BadgeText>LIVE</BadgeText>
-                    </Badge>
+                    <ChevronRightIcon size={18} color={APP_TEXT_TERTIARY} strokeWidth={1.8} />
                   </Pressable>
                 </EntranceAnimation>
               )}
 
-              {sections.map((section) => {
-                const fullPath = section.title;
-                const lastName = fullPath === "(no workspace)"
-                  ? "(no workspace)"
-                  : getFileName(fullPath) || fullPath;
-                const isExpanded = expandedWorkspaces.has(fullPath);
-                const isHovered = hoveredHeaderCwd === fullPath;
-                const runningCount = section.data.filter((s) => s.status === "running").length;
-                const idlingCount = section.data.length - runningCount;
+              {visibleGroups.map((group, groupIndex) => (
+                <VStack key={group.key} style={styles.workspaceGroupSection}>
+                  <HStack style={styles.workspaceGroupLabelRow}>
+                    <Text size="xs" numberOfLines={1} style={styles.workspaceGroupLabel}>
+                      {displayWorkspace(group.key, workspacePath)}
+                    </Text>
+                    <Text size="xs" style={styles.workspaceGroupMeta}>
+                      {group.sessions.length}
+                    </Text>
+                  </HStack>
 
-                const toggleWorkspace = () => {
-                  triggerHaptic("light");
-                  setExpandedWorkspaces((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(fullPath)) next.delete(fullPath);
-                    else next.add(fullPath);
-                    return next;
-                  });
-                };
+                  {group.sessions.map((item, index) => {
+                    const isLoading = loadingSessionId === item.id;
+                    const isActive = item.id === currentSessionId;
+                    const statusRunning = item.status === "running";
+                    const showDeleteAction = statusRunning || isActive;
+                    const workspaceInfo = displayWorkspace(item.cwd, workspacePath);
 
-                return (
-                  <Box key={fullPath} style={styles.menuSection}>
-                    <Pressable
-                      onHoverIn={() => setHoveredHeaderCwd(fullPath)}
-                      onHoverOut={() => setHoveredHeaderCwd(null)}
-                      onPress={toggleWorkspace}
-                      onLongPress={() => {
-                        if (fullPath !== "(no workspace)") {
-                          triggerHaptic("light");
-                          showAlert("Workspace", fullPath, [{ text: "OK" }]);
-                        }
-                      }}
-                      style={[styles.menuHeader, isExpanded && { borderLeftWidth: 3, borderLeftColor: SESSIONS_UI.primary }]}
-                      accessibilityLabel={`${lastName} workspace, ${runningCount} running, ${idlingCount} idling, ${isExpanded ? "expanded" : "collapsed"}`}
-                      accessibilityRole="button"
-                    >
-                      <Box style={styles.menuHeaderChevron}>
-                        {isExpanded ? (
-                          <ChevronDownIcon size={18} color={SESSIONS_UI.textSecondary} strokeWidth={1.8} />
-                        ) : (
-                          <ChevronRightIcon size={18} color={SESSIONS_UI.textSecondary} strokeWidth={1.8} />
-                        )}
-                      </Box>
-                      <Text size="sm" bold className="flex-1 min-w-0" style={{ color: SESSIONS_UI.textPrimary }}>
-                        {lastName}
-                      </Text>
-                      <HStack space="xs" className="ml-1 gap-2 flex-row items-center shrink-0">
-                        <Box style={styles.countBadge}>
-                          <Text size="xs" bold style={{ color: SESSIONS_UI.textSecondary }}>
-                            {section.data.length}
-                          </Text>
-                        </Box>
-                        {fullPath !== "(no workspace)" && (
-                          <Button
-                            action="default"
-                            variant="link"
-                            size="sm"
-                            onPress={() => handleDestroyWorkspace(fullPath)}
-                            accessibilityLabel={`Destroy workspace ${lastName}`}
-                            className="min-w-11 min-h-11"
-                          >
-                            <ButtonIcon as={TrashIcon} size="sm" style={{ color: SESSIONS_UI.textTertiary }} />
-                          </Button>
-                        )}
-                      </HStack>
-                      {isHovered && fullPath !== "(no workspace)" && (
-                        <Box style={[styles.sectionHeaderTooltip, { backgroundColor: theme.colors.textPrimary }]}>
-                          <Text size="xs" numberOfLines={4} className="text-white" style={styles.tooltipText}>
-                            {formatPathForWrap(fullPath)}
-                          </Text>
-                        </Box>
-                      )}
-                    </Pressable>
+                    return (
+                      <EntranceAnimation
+                        key={item.id}
+                        variant="slideUp"
+                        delay={24 * ((groupIndex + index) % 8)}
+                        duration={150}
+                      >
+                        <Pressable
+                          onPress={() => handleSelect(item)}
+                          onLongPress={() => handleDelete(item)}
+                          delayLongPress={280}
+                          disabled={isLoading}
+                          style={({ pressed }) => [
+                            styles.sessionCard,
+                            isActive && styles.sessionCardActive,
+                            isLoading && styles.sessionCardLoading,
+                            pressed && styles.pressState,
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
+                          accessibilityHint="Loads this session. Long press to delete."
+                        >
+                          <Box style={styles.sessionIconBox}>
+                            {statusRunning ? (
+                              <TerminalIcon color={APP_TEXT_SECONDARY} size={18} strokeWidth={1.8} />
+                            ) : index % 2 === 0 ? (
+                              <FolderIcon color={APP_TEXT_SECONDARY} />
+                            ) : (
+                              <SessionManagementIcon color={APP_TEXT_SECONDARY} size={16} strokeWidth={1.8} />
+                            )}
+                          </Box>
 
-                    {isExpanded && (
-                      <Box style={styles.menuContent}>
-                        {section.data.map((item, index) => {
-                          const isLoading = loadingSessionId === item.id;
-                          const isActive = item.id === currentSessionId;
-                          return (
-                            <EntranceAnimation key={item.id} variant="slideUp" delay={50 * (index % 10)}>
-                              <SessionListItemCard
-                                item={item}
-                                isActive={isActive}
-                                isLoading={isLoading}
-                                relativeDisplayPath={
-                                  fullPath === "(no workspace)" ? "(no workspace)" : (getFileName(fullPath) || fullPath)
-                                }
-                                modelLabel={modelDisplayName(item.model)}
-                                dateText={formatDate(item.lastAccess)}
-                                accentColor={SESSIONS_UI.primary}
-                                borderColor={SESSIONS_UI.border}
-                                textSecondary={SESSIONS_UI.textSecondary}
-                                textTertiary={SESSIONS_UI.textTertiary}
-                                surfaceColor={SESSIONS_UI.surface}
-                                dangerColor={SESSIONS_UI.textTertiary}
-                                onOpenSession={handleSelect}
-                                onDeleteSession={handleDelete}
+                          <VStack style={styles.sessionTextWrap}>
+                            <Text size="xs" numberOfLines={1} style={styles.sessionTitle}>
+                              {item.title || "(No Input)"}
+                            </Text>
+                            <HStack style={styles.sessionInfoRow}>
+                              <Text size="xs" numberOfLines={1} style={styles.sessionWorkspaceText}>
+                                {workspaceInfo}
+                              </Text>
+                              <Text size="xs" style={styles.sessionInfoSeparator}>|</Text>
+                              <Text size="xs" numberOfLines={1} style={styles.sessionIdText}>
+                                {shortSessionId(item.id)}
+                              </Text>
+                            </HStack>
+                            <HStack style={styles.sessionMetaRow}>
+                              <Box
+                                style={[
+                                  styles.sessionStatusDot,
+                                  statusRunning ? styles.sessionStatusDotActive : styles.sessionStatusDotIdle,
+                                ]}
                               />
-                            </EntranceAnimation>
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
+                              <Text size="xs" style={[styles.sessionStatusText, statusRunning && styles.sessionStatusTextActive]}>
+                                {statusRunning ? "Active" : "Idle"}
+                              </Text>
+                              <Text size="xs" style={styles.sessionEditedText}>
+                                {`Edited ${formatRelativeAge(item.lastAccess)}`}
+                              </Text>
+                            </HStack>
+                          </VStack>
+
+                          <HStack style={styles.sessionRightRail}>
+                            <Box style={styles.sessionCountBadge}>
+                              <Text size="xs" style={styles.sessionCountText}>
+                                {getSessionCountBadge(item)}
+                              </Text>
+                            </Box>
+                            {showDeleteAction ? (
+                              <Button
+                                action="default"
+                                variant="outline"
+                                size="sm"
+                                onPress={() => handleDelete(item)}
+                                accessibilityLabel="Delete session"
+                                className="min-w-9 min-h-9"
+                                style={styles.sessionDeleteButton}
+                              >
+                                <ButtonIcon as={TrashIcon} size="xs" style={styles.sessionDeleteIcon} />
+                              </Button>
+                            ) : (
+                              <Box style={styles.sessionChevronWrap}>
+                                <ChevronRightIcon size={15} color={APP_TEXT_TERTIARY} strokeWidth={1.9} />
+                              </Box>
+                            )}
+                          </HStack>
+                        </Pressable>
+                      </EntranceAnimation>
+                    );
+                  })}
+                </VStack>
+              ))}
             </ScrollView>
           </AsyncStateView>
         </SafeAreaView>
@@ -707,29 +793,51 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: SESSIONS_UI.background,
+      backgroundColor: APP_SURFACE_BG,
     },
     safe: {
       flex: 1,
     },
     headerActions: {
-      gap: spacing["1"],
+      gap: spacing["2"],
       alignItems: "center",
     },
     headerIconButton: {
       minWidth: 44,
       minHeight: 44,
-      borderRadius: 10,
+      borderRadius: 12,
       borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: SESSIONS_UI.surface,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: "#f8f9fb",
+    },
+    headerIconColor: {
+      color: APP_TEXT_SECONDARY,
+    },
+    introSection: {
+      marginTop: spacing["3"],
+      marginHorizontal: spacing["5"],
+      marginBottom: spacing["3"],
+      gap: spacing["1"],
+    },
+    sectionIntroTitle: {
+      color: APP_TEXT_TERTIARY,
+      fontWeight: "700",
+      fontSize: 12,
+      letterSpacing: 1.2,
+      lineHeight: 16,
+      textTransform: "uppercase",
+    },
+    sectionIntroText: {
+      color: APP_TEXT_SECONDARY,
+      lineHeight: 16,
+      fontSize: 11,
     },
     errorBanner: {
-      padding: spacing["4"],
+      padding: spacing["3"],
       marginHorizontal: spacing["5"],
       marginTop: spacing["2"],
       backgroundColor: theme.colors.danger + "12",
-      borderRadius: radii.lg,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: theme.colors.danger + "25",
     },
@@ -744,67 +852,91 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 44,
     },
     workspaceSection: {
-      marginTop: INTERNAL_GAP,
-      paddingBottom: SECTION_GAP,
-      gap: INTERNAL_GAP,
+      paddingBottom: spacing["4"],
     },
-    sectionLabel: {
+    workspaceBox: {
       marginHorizontal: spacing["5"],
-      marginBottom: INTERNAL_GAP,
-      color: SESSIONS_UI.textSecondary,
-    },
-    sectionHeaderRow: {
-      marginHorizontal: spacing["5"],
-      marginBottom: INTERNAL_GAP,
-      alignItems: "center",
-      justifyContent: "space-between",
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: APP_CARD_BG,
+      shadowColor: "#0f172a",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      elevation: 2,
     },
     workspacePathContainer: {
-      minHeight: 28,
       justifyContent: "center",
       paddingHorizontal: spacing["4"],
-      paddingVertical: spacing["4"],
-    },
-    workspacePathRow: {
-      flexDirection: "column",
-      alignItems: "flex-start",
+      paddingTop: spacing["3"],
+      paddingBottom: spacing["2"],
       gap: spacing["2"],
+    },
+    workspaceLabel: {
+      color: APP_TEXT_TERTIARY,
+      fontWeight: "700",
+      fontSize: 12,
+      letterSpacing: 0.9,
+      lineHeight: 16,
+      textTransform: "uppercase",
     },
     cwdPathBox: {
       width: "100%",
+      borderRadius: 12,
       borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: SESSIONS_UI.surface,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: "#f5f7fa",
       paddingHorizontal: spacing["3"],
       paddingVertical: spacing["2"],
-      minHeight: 56,
+      minHeight: 72,
       justifyContent: "center",
+      gap: spacing["1"],
+    },
+    cwdPathTopRow: {
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    cwdPreviewPrefix: {
+      color: APP_TEXT_TERTIARY,
+      fontFamily: uiMonoFontFamily,
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "500",
+    },
+    cwdDots: {
+      gap: spacing["1"],
+      alignItems: "center",
+    },
+    cwdDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 999,
+    },
+    cwdDotAmber: {
+      backgroundColor: "#f4a6a0",
+    },
+    cwdDotYellow: {
+      backgroundColor: "#f2d28c",
+    },
+    cwdDotGreen: {
+      backgroundColor: "#9dd6ab",
     },
     cwdPathText: {
       minWidth: 0,
       flexShrink: 1,
       fontFamily: uiMonoFontFamily,
-      fontSize: 13,
+      fontSize: 12,
       lineHeight: 18,
-      fontWeight: "400",
+      fontWeight: "700",
       letterSpacing: 0.1,
-      color: SESSIONS_UI.textPrimary,
-    },
-    workspaceBox: {
-      marginHorizontal: spacing["5"],
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: SESSIONS_UI.surface,
+      color: "#5a66d1",
     },
     workspaceActions: {
       flexDirection: "row",
       alignItems: "stretch",
-      gap: INTERNAL_GAP,
-      borderTopWidth: 1,
-      borderTopColor: SESSIONS_UI.border,
+      gap: spacing["3"],
       paddingHorizontal: spacing["4"],
-      paddingTop: INTERNAL_GAP,
       paddingBottom: spacing["4"],
     },
     workspaceActionWrap: {
@@ -813,17 +945,70 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     workspaceActionButtonPrimary: {
       width: "100%",
-      height: 48,
-      borderRadius: 10,
-      backgroundColor: SESSIONS_UI.primary,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: APP_ACCENT,
+      gap: spacing["2"],
     },
     workspaceActionButtonSecondary: {
       width: "100%",
-      height: 48,
-      borderRadius: 10,
+      height: 56,
+      borderRadius: 14,
       borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: SESSIONS_UI.surface,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: APP_CARD_BG,
+    },
+    secondaryActionText: {
+      color: APP_TEXT_PRIMARY,
+      fontWeight: "500",
+      fontSize: 13,
+      lineHeight: 16,
+      textAlign: "center",
+    },
+    primaryActionText: {
+      color: "#ffffff",
+      fontWeight: "700",
+      fontSize: 13,
+      lineHeight: 16,
+    },
+    recentHeaderRow: {
+      marginHorizontal: spacing["5"],
+      marginTop: spacing["2"],
+      marginBottom: spacing["2"],
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+      gap: spacing["3"],
+    },
+    recentHeaderText: {
+      gap: spacing["0.5"],
+    },
+    recentHeaderTitle: {
+      color: APP_TEXT_TERTIARY,
+      fontWeight: "700",
+      fontSize: 12,
+      letterSpacing: 1.1,
+      lineHeight: 16,
+      textTransform: "uppercase",
+    },
+    recentHeaderHint: {
+      color: APP_TEXT_SECONDARY,
+      lineHeight: 16,
+      fontSize: 11,
+    },
+    viewAllButton: {
+      paddingVertical: spacing["1"],
+      paddingHorizontal: spacing["2"],
+      borderRadius: 8,
+    },
+    viewAllButtonPressed: {
+      opacity: 0.75,
+    },
+    viewAllText: {
+      color: APP_ACCENT,
+      fontWeight: "500",
+      fontSize: 12,
+      lineHeight: 16,
     },
     scrollView: {
       flex: 1,
@@ -832,97 +1017,213 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     list: {
       paddingHorizontal: spacing["5"],
       paddingBottom: spacing["8"],
-      paddingTop: INTERNAL_GAP,
-      gap: INTERNAL_GAP,
+      paddingTop: spacing["2"],
+      gap: spacing["3"],
     },
-    menuSection: {
-      position: "relative",
+    workspaceGroupSection: {
+      gap: spacing["2"],
     },
-    menuHeader: {
+    workspaceGroupLabelRow: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: spacing["3"],
-      paddingHorizontal: spacing["3"],
-      marginBottom: spacing["2"],
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: SESSIONS_UI.surface,
-      minHeight: 52,
-      position: "relative",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing["1"],
     },
-    menuHeaderChevron: {
-      width: 24,
-      height: 24,
-      marginRight: spacing["2"],
-      alignItems: "center",
-      justifyContent: "center",
+    workspaceGroupLabel: {
+      color: APP_TEXT_SECONDARY,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "700",
+      letterSpacing: 0.3,
+      textTransform: "uppercase",
+      flex: 1,
+      minWidth: 0,
     },
-    countBadge: {
-      paddingHorizontal: spacing["2"],
-      paddingVertical: spacing["0.5"],
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      backgroundColor: "#f9fafb",
-      minWidth: 28,
-      alignItems: "center",
-    },
-    menuContent: {
-      paddingLeft: spacing["3"],
-      paddingRight: spacing["2"],
-      paddingTop: spacing["1"],
-      paddingBottom: spacing["2"],
-    },
-    sectionHeaderTooltip: {
-      position: "absolute",
-      top: "100%",
-      left: 0,
-      marginTop: spacing["0.5"],
-      paddingVertical: spacing["2"],
-      paddingHorizontal: spacing["3"],
-      borderRadius: radii.md,
-      maxWidth: 320,
-      zIndex: 10,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 4,
-    },
-    tooltipText: {
-      color: "#fff",
+    workspaceGroupMeta: {
+      color: APP_TEXT_TERTIARY,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "600",
     },
     activeChatCard: {
-      padding: spacing["3"],
-      borderRadius: 12,
-      backgroundColor: SESSIONS_UI.surface,
+      borderRadius: 14,
       borderWidth: 1,
-      borderColor: SESSIONS_UI.border,
-      marginBottom: spacing["3"],
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: APP_CARD_BG,
+      paddingHorizontal: spacing["3"],
+      paddingVertical: spacing["3"],
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing["2"],
+      shadowColor: "#0f172a",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 5,
+      elevation: 1,
     },
     activeChatCardContent: {
       flex: 1,
+      gap: spacing["0.5"],
     },
-    empty: {
+    activeChatTitle: {
+      color: APP_TEXT_PRIMARY,
+      fontWeight: "700",
+    },
+    activeChatSubtitle: {
+      color: APP_TEXT_SECONDARY,
+    },
+    sessionCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: APP_CARD_BG,
+      paddingHorizontal: spacing["3"],
+      paddingVertical: spacing["3"],
+      minHeight: 80,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing["3"],
+      shadowColor: "#0f172a",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 5,
+      elevation: 1,
+    },
+    sessionCardActive: {
+      borderColor: "#d6dbe4",
+      backgroundColor: "#fdfefe",
+    },
+    sessionCardLoading: {
+      opacity: 0.65,
+    },
+    pressState: {
+      opacity: 0.92,
+      transform: [{ scale: 0.995 }],
+    },
+    sessionIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: "#f4f6f9",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    sessionTextWrap: {
       flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      padding: spacing["10"],
+      minWidth: 0,
+      gap: spacing["1"],
     },
-    emptyIconContainer: {
-      width: 72,
-      height: 72,
-      borderRadius: radii.xl,
-      backgroundColor: theme.colors.surfaceAlt,
+    sessionTitle: {
+      color: APP_TEXT_PRIMARY,
+      fontWeight: "700",
+      fontSize: 13,
+      lineHeight: 16,
+      fontFamily: uiMonoFontFamily,
+    },
+    sessionInfoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing["1"],
+      minWidth: 0,
+    },
+    sessionWorkspaceText: {
+      color: APP_TEXT_SECONDARY,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "500",
+      flexShrink: 1,
+      minWidth: 0,
+    },
+    sessionInfoSeparator: {
+      color: APP_TEXT_TERTIARY,
+      fontSize: 11,
+      lineHeight: 14,
+      opacity: 0.8,
+    },
+    sessionIdText: {
+      color: APP_TEXT_TERTIARY,
+      fontSize: 11,
+      lineHeight: 14,
+      fontFamily: uiMonoFontFamily,
+      flexShrink: 1,
+      minWidth: 0,
+    },
+    sessionMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing["1"],
+      minWidth: 0,
+    },
+    sessionStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      flexShrink: 0,
+    },
+    sessionStatusDotActive: {
+      backgroundColor: APP_RUNNING,
+    },
+    sessionStatusDotIdle: {
+      backgroundColor: "#c8ced9",
+    },
+    sessionStatusText: {
+      color: APP_TEXT_TERTIARY,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "500",
+    },
+    sessionStatusTextActive: {
+      color: APP_RUNNING,
+    },
+    sessionEditedText: {
+      color: APP_TEXT_TERTIARY,
+      fontSize: 11,
+      lineHeight: 14,
+      flexShrink: 1,
+    },
+    sessionRightRail: {
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: spacing["4"],
+      gap: spacing["2"],
+      marginLeft: spacing["1"],
     },
-    emptySubtitle: {
-      lineHeight: 22,
-      maxWidth: 280,
-      opacity: 0.9,
+    sessionCountBadge: {
+      minWidth: 28,
+      paddingVertical: spacing["0.5"],
+      paddingHorizontal: spacing["2"],
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: "#f6f8fb",
+      alignItems: "center",
+    },
+    sessionCountText: {
+      color: APP_TEXT_SECONDARY,
+      fontSize: 12,
+      lineHeight: 14,
+      fontWeight: "600",
+    },
+    sessionChevronWrap: {
+      width: 28,
+      height: 28,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sessionDeleteButton: {
+      width: 32,
+      height: 32,
+      minWidth: 32,
+      minHeight: 32,
+      borderRadius: 9,
+      borderWidth: 1,
+      borderColor: APP_CARD_BORDER,
+      backgroundColor: APP_CARD_BG,
+    },
+    sessionDeleteIcon: {
+      color: APP_TEXT_TERTIARY,
     },
   });
 }

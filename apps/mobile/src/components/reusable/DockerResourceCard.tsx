@@ -19,16 +19,12 @@ type DockerResourceCardProps = {
 };
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    gap: 8,
-  },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
     marginTop: 14,
-    paddingTop: 12,
+    paddingTop: 14,
   },
 });
 
@@ -41,23 +37,27 @@ function DockerResourceCardInner({
   actionRowStyle,
 }: DockerResourceCardProps) {
   return (
-    <ListSectionCard title={title} className={className} action={action}>
+    <ListSectionCard
+      title={title}
+      className={["border-outline-200 rounded-2xl bg-background-0", className ?? ""].join(" ")}
+      action={action}
+    >
       <Box className="gap-2">
         {rows.map((row) => (
-          <Box key={row.label} className="flex-row gap-2">
-            <Text size="xs" className="text-typography-500 shrink-0">
+          <Box key={row.label} className="flex-row gap-2.5">
+            <Text size="xs" className="text-typography-500 shrink-0 font-medium">
               {row.label}
             </Text>
             <Box className="flex-1 min-w-0">{row.value}</Box>
           </Box>
         ))}
         {actions ? (
-          <Box className="flex-row flex-wrap gap-2 border-t border-outline-200" style={actionRowStyle ?? styles.actions}>
+          <Box className="flex-row flex-wrap gap-2.5 border-t border-outline-200" style={actionRowStyle ?? styles.actions}>
             {actions}
           </Box>
         ) : null}
       </Box>
-      </ListSectionCard>
+    </ListSectionCard>
   );
 }
 

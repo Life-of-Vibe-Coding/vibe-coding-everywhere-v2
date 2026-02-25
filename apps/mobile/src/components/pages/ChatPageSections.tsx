@@ -63,9 +63,9 @@ const overlayStyles = {
   fileViewer: {
     position: "absolute" as const,
     top: 0,
-    // Align embedded file viewer width with workspace drawer (12px side margin)
-    left: -12,
-    right: -12,
+    // Cancel ChatPageShell horizontal padding (`px-6`) so open file is edge-to-edge.
+    left: -24,
+    right: -24,
     bottom: 0,
     zIndex: 6,
   },

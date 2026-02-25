@@ -15,7 +15,12 @@ import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
-import { PreviewWebViewTopBar, PreviewWebViewAddressBar } from "@/components/preview/PreviewWebViewSubcomponents";
+import {
+  PreviewWebViewAddressBar,
+  PreviewWebViewPlaceholder,
+  PreviewWebViewBottomBar,
+  PreviewWebViewTabsPage
+} from "@/components/preview/PreviewWebViewSubcomponents";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
 
@@ -39,7 +44,6 @@ function genTabId(): string {
   return "tab-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 }
 
-/** Strip our cache-bust param so storing this URL doesn't cause loadUri to change every time and trigger reload loop. */
 function stripPreviewParam(href: string): string {
   try {
     const u = new URL(href);
@@ -56,7 +60,6 @@ interface PreviewWebViewModalProps {
   url: string;
   title?: string;
   onClose: () => void;
-  /** Resolver for localhost/127.0.0.1 -> tunnel URL. When set, prompts user to use tunnel URL when localhost is detected. */
   resolvePreviewUrl?: (url: string) => string;
 }
 
@@ -84,17 +87,26 @@ export function PreviewWebViewModal({
   const insets = useSafeAreaInsets();
   const [urlChoiceVisible, setUrlChoiceVisible] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showTabs, setShowTabs] = useState(false);
   const pendingUrlChoice = useRef<{ normalized: string; thenApply: (u: string) => void } | null>(null);
   const initializedRef = useRef(false);
   const lastInitUrlRef = useRef<string>("");
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isLandscape = windowWidth > windowHeight;
 
-  // Auto full screen only when phone is rotated to landscape (90°); portrait shows toolbar
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
     setIsFullScreen(isLandscape);
   }, [isOpen, isLandscape]);
+
+  useEffect(() => {
+    if (showTabs && isFullScreen) {
+      setIsFullScreen(false);
+    }
+  }, [showTabs, isFullScreen]);
 
   const currentTab = tabs[activeIndex] ?? null;
   const currentUrl = currentTab?.url ?? "";
@@ -150,11 +162,11 @@ export function PreviewWebViewModal({
       initializedRef.current = false;
       lastInitUrlRef.current = "";
       setIsFullScreen(false);
+      setShowTabs(false);
       return;
     }
     const initialUrl = (url?.trim() ?? "") || "";
     const normalized = initialUrl ? normalizeUrl(initialUrl) : "";
-    // Re-init when user clicks a new link (url prop changed while modal was open)
     if (normalized && lastInitUrlRef.current !== normalized) {
       initializedRef.current = false;
     }
@@ -163,7 +175,6 @@ export function PreviewWebViewModal({
       lastInitUrlRef.current = normalized;
 
       (async () => {
-        // When user explicitly clicks a link, always use that URL instead of restored tabs
         if (!normalized) {
           try {
             const raw = await AsyncStorage.getItem(PREVIEW_TABS_KEY);
@@ -178,9 +189,7 @@ export function PreviewWebViewModal({
               setLoading(!!restored[idx]?.url);
               return;
             }
-          } catch {
-            // Fall through to empty init
-          }
+          } catch { }
         }
 
         const willShowChoice = !!normalized && !!resolvePreviewUrl && isLocalhostUrl(normalized);
@@ -226,7 +235,7 @@ export function PreviewWebViewModal({
       tabs: tabs.map((t) => ({ id: t.id, url: t.url })),
       activeIndex,
     };
-    AsyncStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(payload)).catch(() => {});
+    AsyncStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(payload)).catch(() => { });
   }, [isOpen, tabs, activeIndex]);
 
   const handleGo = () => {
@@ -234,6 +243,13 @@ export function PreviewWebViewModal({
     const raw = urlInputValue.trim();
     if (!raw) return;
     const normalized = normalizeUrl(raw);
+    const currentClean = stripPreviewParam(resolvedUrl) || resolvedUrl;
+    if (normalized === currentClean) {
+      setLoading(true);
+      setError(null);
+      if (webViewRef.current) webViewRef.current.reload();
+      return;
+    }
     promptLocalhostToVpn(normalized, applyUrl);
   };
 
@@ -251,24 +267,30 @@ export function PreviewWebViewModal({
     if (!resolvedUrl) return;
     setError(null);
     setLoading(true);
-    setTabs((prev) => {
-      const next = [...prev];
-      const tab = next[activeIndex];
-      if (tab) next[activeIndex] = { ...tab, loadKey: Date.now() };
-      return next;
-    });
+    if (webViewRef.current) {
+      webViewRef.current.reload();
+    }
   };
 
-  const handleNavigationStateChange = (navState: { url?: string }, tabIndex: number) => {
+  const handleNavigationStateChange = (navState: { url?: string; canGoBack?: boolean; canGoForward?: boolean }, tabIndex: number) => {
+    if (tabIndex === activeIndex) {
+      setCanGoBack(navState.canGoBack ?? false);
+      setCanGoForward(navState.canGoForward ?? false);
+    }
     if (navState.url) {
       const clean = stripPreviewParam(navState.url);
       setTabs((prev) => {
         const next = [...prev];
         const tab = next[tabIndex];
-        if (tab) next[tabIndex] = { ...tab, url: clean };
-        return next;
+        if (tab && tab.url !== clean) {
+          next[tabIndex] = { ...tab, url: clean };
+          return next;
+        }
+        return prev;
       });
-      if (tabIndex === activeIndex) setUrlInputValue(clean);
+      if (tabIndex === activeIndex) {
+        setUrlInputValue((prev) => prev !== clean ? clean : prev);
+      }
     }
   };
 
@@ -279,10 +301,17 @@ export function PreviewWebViewModal({
     setUrlInputValue("");
     setError(null);
     setLoading(false);
+    setShowTabs(false);
   };
 
   const closeTab = (index: number) => {
-    if (tabs.length <= 1) return;
+    if (tabs.length <= 1) {
+      setTabs([{ id: genTabId(), url: "", loadKey: 0 }]);
+      setActiveIndex(0);
+      setUrlInputValue("");
+      setShowTabs(false);
+      return;
+    }
     const nextTabs = tabs.filter((_, i) => i !== index);
     const nextActive =
       activeIndex === index ? (index > 0 ? index - 1 : 0) : activeIndex > index ? activeIndex - 1 : activeIndex;
@@ -295,6 +324,7 @@ export function PreviewWebViewModal({
     setActiveIndex(index);
     setUrlInputValue(tabs[index]?.url ?? "");
     setError(null);
+    setShowTabs(false);
   };
 
   if (!isOpen) return null;
@@ -310,135 +340,165 @@ export function PreviewWebViewModal({
       subtitle={resolvedUrl || "Web preview"}
       showHeader={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
-      bodyClassName="m-0 p-0"
-      bodyProps={{ scrollEnabled: false }}
+      bodyClassName="m-0 p-0 flex-1"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flexGrow: 1 } }}
     >
       <Box style={styles.safe}>
-        {/* Chrome-like toolbar - hidden in full screen */}
-        {!isFullScreen && (
-          <>
-            <PreviewWebViewTopBar
-              insetsTop={insets.top}
-              tabs={tabs}
-              activeIndex={activeIndex}
-              onClose={onClose}
-              onAddTab={addTab}
-              onCloseCurrentTab={() => closeTab(activeIndex)}
-              onSelectTab={selectTab}
-            />
-            <PreviewWebViewAddressBar
-              value={urlInputValue}
-              onChangeText={setUrlInputValue}
-              onSubmit={handleGo}
-              onReload={handleReload}
-              onFullscreen={() => setIsFullScreen(true)}
-              resolvedUrl={resolvedUrl}
-              loading={loading}
-              theme={theme}
-            />
-          </>
-        )}
-
-        {!resolvedUrl ? (
-          <Box style={styles.placeholder}>
-            <Text style={styles.placeholderText}>Enter a URL and press Go or Reload to load the page</Text>
-          </Box>
+        {showTabs ? (
+          <PreviewWebViewTabsPage
+            tabs={tabs}
+            activeIndex={activeIndex}
+            onSelectTab={selectTab}
+            onCloseTab={closeTab}
+            onAddTab={addTab}
+            onDone={() => setShowTabs(false)}
+            insetsTop={insets.top}
+            theme={theme}
+          />
         ) : (
-          <Box style={styles.webContainer}>
-            {/* Render one WebView per tab so switching tabs does not remount/reload. */}
-            {tabs.map((tab, i) => {
-              const tabUrl = tab.url ?? "";
-              const tabBaseUrl = tabUrl ? stripPreviewParam(tabUrl) : "";
-              const tabLoadUri =
-                tabUrl && tab.loadKey
-                  ? tabBaseUrl + (tabBaseUrl.includes("?") ? "&" : "?") + "_preview=" + tab.loadKey
-                  : "";
-              const isActive = i === activeIndex;
-              if (!tabLoadUri) return null;
-              return (
-                <Box
-                  key={tab.id}
-                  style={[
-                    styles.webviewWrapper,
-                    !isActive && styles.webviewWrapperHidden,
-                  ]}
-                  pointerEvents={isActive ? "auto" : "none"}
-                >
-                  <WebView
-                    ref={isActive ? webViewRef : undefined}
-                    key={tab.loadKey ? `${tab.loadKey}-${tabBaseUrl}` : tabUrl}
-                    source={{ uri: tabLoadUri }}
-                    style={styles.webview}
-                    onLoadStart={() => {
-                      if (i === activeIndex) {
-                        setLoading(true);
-                        setError(null);
-                      }
-                    }}
-                    onLoadEnd={() => {
-                      if (i === activeIndex) setLoading(false);
-                    }}
-                    onError={(e) => {
-                      if (i === activeIndex) {
-                        setLoading(false);
-                        const desc = e.nativeEvent?.description ?? "Failed to load";
-                        setError(desc);
-                      }
-                    }}
-                    onHttpError={(e) => {
-                      if (i === activeIndex) {
-                        setLoading(false);
-                        const status = e.nativeEvent?.statusCode;
-                        setError(status ? `HTTP ${status}` : "Failed to load");
-                      }
-                    }}
-                    onNavigationStateChange={(navState) => {
-                      if (navState.url) handleNavigationStateChange(navState, i);
-                    }}
-                    javaScriptEnabled
-                    domStorageEnabled
-                    startInLoadingState
-                    scalesPageToFit
-                    mixedContentMode="compatibility"
-                    cacheEnabled={false}
-                    {...(Platform.OS === "android" ? { cacheMode: "LOAD_NO_CACHE" as const } : {})}
-                  />
-                </Box>
-              );
-            })}
-            {loading && (
-              <Box style={styles.loadingOverlay}>
-                <Spinner size="large" color={theme.colors.accent} />
-                <Text style={styles.loadingText}>Loading...</Text>
+          <>
+            {!isFullScreen && (
+              <PreviewWebViewAddressBar
+                value={urlInputValue}
+                onChangeText={setUrlInputValue}
+                onSubmit={handleGo}
+                onReload={handleReload}
+                onFullscreen={() => setIsFullScreen(true)}
+                resolvedUrl={resolvedUrl}
+                loading={loading}
+                theme={theme}
+                insetsTop={insets.top}
+              />
+            )}
+
+            {!resolvedUrl ? (
+              <PreviewWebViewPlaceholder
+                theme={theme}
+                onStartBrowsing={() => {
+                  // user can tap address bar, but we can also just focus it. we don't have a ref though.
+                  // for now a no-op that just prompts action visually.
+                }}
+              />
+            ) : (
+              <Box style={styles.webContainer}>
+                {tabs.map((tab, i) => {
+                  const tabUrl = tab.url ?? "";
+                  const tabLoadUri = tabUrl ? stripPreviewParam(tabUrl) : "";
+                  const isActive = i === activeIndex;
+                  if (!tabLoadUri) return null;
+                  return (
+                    <Box
+                      key={tab.id}
+                      style={[
+                        styles.webviewWrapper,
+                        !isActive && styles.webviewWrapperHidden,
+                      ]}
+                      pointerEvents={isActive ? "auto" : "none"}
+                    >
+                      <WebView
+                        ref={isActive ? webViewRef : undefined}
+                        key={tab.id}
+                        source={{ uri: tabLoadUri }}
+                        style={styles.webview}
+                        onLoadStart={() => {
+                          if (i === activeIndex) {
+                            setLoading(true);
+                            setError(null);
+                          }
+                        }}
+                        onLoadEnd={() => {
+                          if (i === activeIndex) setLoading(false);
+                        }}
+                        onError={(e) => {
+                          if (i === activeIndex) {
+                            setLoading(false);
+                            const desc = e.nativeEvent?.description ?? "Failed to load";
+                            setError(desc);
+                          }
+                        }}
+                        onHttpError={(e) => {
+                          if (i === activeIndex) {
+                            setLoading(false);
+                            const status = e.nativeEvent?.statusCode;
+                            setError(status ? `HTTP ${status}` : "Failed to load");
+                          }
+                        }}
+                        onNavigationStateChange={(navState) => {
+                          handleNavigationStateChange(navState, i);
+                        }}
+                        javaScriptEnabled
+                        domStorageEnabled
+                        startInLoadingState
+                        scalesPageToFit
+                        mixedContentMode="compatibility"
+                        cacheEnabled={false}
+                        {...(Platform.OS === "android" ? { cacheMode: "LOAD_NO_CACHE" as const } : {})}
+                      />
+                    </Box>
+                  );
+                })}
+                {loading && (
+                  <Box style={styles.loadingOverlay}>
+                    <Box style={styles.loadingCard}>
+                      <Spinner size="large" color={theme.colors.accent} />
+                      <Text style={styles.loadingText}>Loading page...</Text>
+                    </Box>
+                  </Box>
+                )}
+                {error ? (
+                  <Box style={styles.errorOverlay}>
+                    <Box style={styles.errorBox}>
+                      <Text style={styles.errorTitle}>Could not load page</Text>
+                      <Text style={styles.errorText}>{error}</Text>
+                      <Text style={styles.urlHint} numberOfLines={2}>
+                        {resolvedUrl}
+                      </Text>
+                      <Box style={styles.errorActions}>
+                        <Pressable style={styles.retryBtn} onPress={handleReload} accessibilityRole="button" accessibilityLabel="Retry">
+                          <Text style={styles.retryBtnText}>Retry</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.editBtn}
+                          onPress={() => setError(null)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Edit URL"
+                        >
+                          <Text style={styles.editBtnText}>Edit URL</Text>
+                        </Pressable>
+                      </Box>
+                    </Box>
+                  </Box>
+                ) : null}
               </Box>
             )}
-            {error ? (
-              <Box style={styles.errorOverlay}>
-                <Box style={styles.errorBox}>
-                  <Text style={styles.errorTitle}>Could not load page</Text>
-                  <Text style={styles.errorText}>{error}</Text>
-                  <Text style={styles.urlHint} numberOfLines={2}>
-                    {resolvedUrl}
-                  </Text>
-                  <Pressable style={styles.retryBtn} onPress={handleReload} accessibilityRole="button" accessibilityLabel="Retry">
-                    <Text style={styles.retryBtnText}>Retry</Text>
-                  </Pressable>
-                </Box>
-              </Box>
-            ) : null}
-          </Box>
-        )}
 
-        {/* Floating exit fullscreen button (in landscape this closes the preview since full screen is locked) */}
-        {isFullScreen && (
-          <Pressable
-            style={[styles.fullScreenExit, { top: insets.top }]}
-            onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
-            accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}
-            accessibilityRole="button"
-          >
-            <Text style={styles.fullScreenExitText}>✕</Text>
-          </Pressable>
+            {!isFullScreen && (
+              <Box className="pb-8 bg-surface border-t border-outline-200">
+                <PreviewWebViewBottomBar
+                  onBack={() => { if (canGoBack && webViewRef.current) webViewRef.current.goBack(); }}
+                  onForward={() => { if (canGoForward && webViewRef.current) webViewRef.current.goForward(); }}
+                  onHome={() => onClose()}
+                  tabCount={tabs.length}
+                  onShowTabs={() => setShowTabs(true)}
+                  onMenu={() => { }}
+                  theme={theme}
+                  canGoBack={canGoBack}
+                  canGoForward={canGoForward}
+                />
+              </Box>
+            )}
+
+            {isFullScreen && (
+              <Pressable
+                style={[styles.fullScreenExit, { top: insets.top }]}
+                onPress={() => (isLandscape ? onClose() : setIsFullScreen(false))}
+                accessibilityLabel={isLandscape ? "Close preview" : "Exit full screen"}
+                accessibilityRole="button"
+              >
+                <Text style={styles.fullScreenExitText}>✕</Text>
+              </Pressable>
+            )}
+          </>
         )}
       </Box>
 
@@ -458,114 +518,134 @@ export function PreviewWebViewModal({
 
 function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-  },
-  webContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  webviewWrapper: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  webviewWrapperHidden: {
-    opacity: 0,
-    zIndex: -1,
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: theme.colors.surfaceAlt,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 4,
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.96)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    zIndex: 5,
-  },
-  errorBox: {
-    width: "100%",
-    maxWidth: 360,
-    alignItems: "center",
-    paddingVertical: 22,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 14,
-    backgroundColor: theme.colors.surface,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 15,
-    color: theme.colors.danger,
-    textAlign: "center",
-  },
-  urlHint: {
-    marginTop: 10,
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-  },
-  retryBtn: {
-    marginTop: 18,
-    minHeight: 44,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    backgroundColor: theme.colors.accent,
-    borderRadius: 10,
-  },
-  retryBtnText: {
-    fontSize: 15,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  fullScreenExit: {
-    position: "absolute",
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-  },
-  fullScreenExitText: {
-    fontSize: 20,
-    color: "#fff",
-    fontWeight: "400",
-  },
+    safe: {
+      flex: 1,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    webContainer: {
+      flex: 1,
+      position: "relative",
+    },
+    webviewWrapper: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    webviewWrapperHidden: {
+      opacity: 0,
+      zIndex: -1,
+    },
+    webview: {
+      flex: 1,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    loadingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 4,
+    },
+    loadingCard: {
+      minWidth: 180,
+      alignItems: "center",
+      paddingVertical: 16,
+      paddingHorizontal: 18,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 14,
+      color: theme.colors.textPrimary,
+      fontWeight: "600",
+    },
+    errorOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+      zIndex: 5,
+    },
+    errorBox: {
+      width: "100%",
+      maxWidth: 380,
+      alignItems: "center",
+      paddingVertical: 24,
+      paddingHorizontal: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    errorTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.colors.textPrimary,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    errorText: {
+      fontSize: 15,
+      color: theme.colors.danger,
+      textAlign: "center",
+    },
+    urlHint: {
+      marginTop: 10,
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      textAlign: "center",
+    },
+    retryBtn: {
+      minHeight: 44,
+      paddingVertical: 11,
+      paddingHorizontal: 20,
+      backgroundColor: theme.colors.accent,
+      borderRadius: 12,
+    },
+    retryBtnText: {
+      fontSize: 15,
+      color: theme.colors.textInverse,
+      fontWeight: "600",
+    },
+    errorActions: {
+      marginTop: 18,
+      width: "100%",
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    editBtn: {
+      marginLeft: 10,
+      minHeight: 44,
+      paddingVertical: 11,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    editBtnText: {
+      fontSize: 15,
+      color: theme.colors.textPrimary,
+      fontWeight: "600",
+    },
+    fullScreenExit: {
+      position: "absolute",
+      right: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 10,
+    },
+    fullScreenExitText: {
+      fontSize: 20,
+      color: "#fff",
+      fontWeight: "400",
+    },
   });
 }

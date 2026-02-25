@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Box } from "@/components/ui/box";
@@ -9,6 +10,7 @@ import {
   triggerHaptic,
 } from "@/design-system";
 import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
+import { BlurView } from "expo-blur";
 
 interface AppHeaderBarProps {
   visible: boolean;
@@ -38,10 +40,21 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
         }}
         haptic={undefined}
         scaleTo={0.92}
-        style={{ width: 44, height: 44, justifyContent: "center", alignItems: "center" }}
+        style={{
+          width: 44,
+          height: 44,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 22,
+          overflow: "hidden",
+          backgroundColor: "rgba(255, 255, 255, 0.2)",
+          borderColor: "rgba(255, 255, 255, 0.4)",
+          borderWidth: StyleSheet.hairlineWidth,
+        }}
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
       >
+        <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
         {icon}
       </AnimatedPressableView>
     </EntranceAnimation>
@@ -61,36 +74,36 @@ export function AppHeaderBar({
   if (!visible) return null;
 
   return (
-    <HStack className="relative h-11 flex-row items-center justify-between px-2 mb-1.5" pointerEvents="box-none">
+    <HStack className="relative h-14 flex-row items-center justify-between px-4 mt-2 mb-2" pointerEvents="box-none">
       <HeaderButton
-        icon={<MenuIcon color={iconColor} />}
+        icon={<MenuIcon color="#333" />}
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}
       />
-      <Box className="min-w-0 flex-1 shrink min-h-10 justify-center items-center px-1">
+      <Box className="min-w-0 flex-1 shrink justify-center items-center px-2">
         <VStack className="max-w-full gap-0.5 items-center">
           <GluestackText
             size="xs"
-            numberOfLines={2}
-            style={{ color: workspaceColor }}
-            className="font-medium text-center"
+            numberOfLines={1}
+            style={{ color: "rgba(0,0,0,0.4)", textTransform: "uppercase", letterSpacing: 1 }}
+            className="font-bold text-center"
           >
             {workspaceName}
           </GluestackText>
           <GluestackText
-            size="xs"
+            size="md"
             numberOfLines={1}
             ellipsizeMode="middle"
-            style={{ color: statusColor }}
-            className="font-medium"
+            style={{ color: "#111" }}
+            className="font-extrabold"
           >
             {statusLabel}
           </GluestackText>
         </VStack>
       </Box>
       <HeaderButton
-        icon={<SettingsIcon color={iconColor} />}
+        icon={<SettingsIcon color="#333" />}
         onPress={onOpenSessionManagement}
         accessibilityLabel="Manage sessions"
         delay={200}

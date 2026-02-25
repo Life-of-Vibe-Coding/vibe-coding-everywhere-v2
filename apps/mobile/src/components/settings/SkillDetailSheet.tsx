@@ -11,6 +11,7 @@ import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "@/components/icons
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
+import type { ScrollView as RNScrollView } from "react-native";
 
 export interface SkillDetailSheetProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export function SkillDetailSheet({
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [loadedChildren, setLoadedChildren] = useState<Map<string, SkillChild[]>>(new Map());
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
+  const scrollViewRef = React.useRef<RNScrollView>(null);
 
   const fetchChildren = useCallback(
     (path: string) => {
@@ -177,6 +179,12 @@ export function SkillDetailSheet({
       .finally(() => setLoading(false));
   }, [isOpen, skillId, serverBaseUrl]);
 
+  useEffect(() => {
+    if (isOpen) {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }
+  }, [isOpen, skillId]);
+
   const handleRetry = useCallback(() => {
     if (!skillId || !serverBaseUrl) return;
     setError(null);
@@ -205,6 +213,8 @@ export function SkillDetailSheet({
 
   const body = (
     <ScrollView
+      ref={scrollViewRef}
+      key={skillId ?? "skill-detail"}
       className="flex-1"
       contentContainerStyle={{
         paddingHorizontal: 20,
@@ -245,7 +255,7 @@ export function SkillDetailSheet({
               <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
                 SKILL.md
               </Text>
-              <Box className="overflow-hidden rounded-xl border border-outline-500 bg-secondary-100 px-4 py-3.5">
+              <Box className="rounded-xl border border-outline-500 bg-secondary-100 px-4 pt-4 pb-3.5">
                 <MarkdownContent
                   content={wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
                 />
@@ -259,7 +269,7 @@ export function SkillDetailSheet({
 
   if (embedded) {
     const safeStyle = {
-      paddingTop: Math.max(insets.top, 8),
+      paddingTop: 0,
       paddingBottom: Math.max(insets.bottom, 8),
     };
 

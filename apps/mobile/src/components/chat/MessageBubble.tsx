@@ -23,6 +23,8 @@ import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -396,7 +398,7 @@ const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect, isStreaming }: MessageBubbleProps) {
   const theme = useTheme();
   const codeBlockBg = theme.colors.surfaceMuted;
-  
+
   const bashHeaderBg = theme.colors.surfaceMuted;
   const terminalBg = TERMINAL_BG;
   const terminalBorder = theme.colors.border;
@@ -487,28 +489,45 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         bubbleAssistant: {
           alignSelf: "stretch",
           marginHorizontal: -spacing["4"],
-          backgroundColor: "transparent",
+          backgroundColor: Platform.OS === "ios" ? "transparent" : "rgba(255,255,255,0.7)",
+          paddingVertical: spacing["3"],
+          paddingHorizontal: spacing["4"],
+          borderRadius: 24,
+          borderBottomLeftRadius: 4,
+          overflow: "hidden",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: "rgba(255,255,255,0.5)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          elevation: 2,
         },
         bubbleUser: {
           maxWidth: "85%",
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          backgroundColor: theme.colors.surfaceAlt,
+          backgroundColor: "transparent",
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderRadius: 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.06,
-          shadowRadius: 3,
-          elevation: 2,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          borderBottomLeftRadius: 24,
+          borderBottomRightRadius: 4,
+          overflow: "hidden",
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: "rgba(255,255,255,0.2)",
+          shadowColor: "#6b66f5",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 4,
         },
         bubbleSystem: {
           alignSelf: "center",
           paddingVertical: spacing["2"],
           marginVertical: spacing["2"],
         },
-        bubbleText: { fontSize: 16, lineHeight: 26, color: theme.colors.textPrimary },
+        bubbleText: { fontSize: 16, lineHeight: 26, color: "#111" },
+        bubbleTextUser: { fontSize: 16, lineHeight: 26, color: "#fff" },
         bubbleTextSystem: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center" },
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },
@@ -1005,8 +1024,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       ) : (message.content && message.content.trim() !== "" ? (
         isUser || isSystem ? (
           <Text
-            style={isSystem ? styles.bubbleTextSystem : styles.bubbleText}
-            className={isSystem ? "text-typography-500" : "text-typography-900"}
+            style={isSystem ? styles.bubbleTextSystem : (isUser ? styles.bubbleTextUser : styles.bubbleText)}
           >
             {message.content}
           </Text>
@@ -1033,7 +1051,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         <Text className="text-typography-500" style={styles.bubbleTextPlaceholder}>
           …
         </Text>
-      ) : null) }
+      ) : null)}
       {refs.length > 0 && (
         <Box style={[styles.refPills, message.content ? styles.refPillsWithContent : null]} className="flex-row flex-wrap gap-2">
           {refs.map((ref, index) => (
@@ -1053,31 +1071,47 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 
   return (
     <EntranceAnimation variant="slideUp" duration={220} delay={0}>
-    <Box
-      style={[
-        styles.row,
-        isUser && styles.rowUser,
-        showProviderIcon && styles.rowAssistant,
-      ]}
-      className="flex-row"
-    >
-      {showProviderIcon && (
-        <Box style={styles.providerIconWrap} className="items-center justify-center pr-2">
-          <ProviderIcon size={24} color={theme.colors.accent} />
-        </Box>
-      )}
       <Box
         style={[
-          styles.bubble,
-          isUser && styles.bubbleUser,
-          isSystem && styles.bubbleSystem,
-          !isUser && !isSystem && styles.bubbleAssistant,
+          styles.row,
+          isUser && styles.rowUser,
+          showProviderIcon && styles.rowAssistant,
         ]}
-        {...bubbleLayoutProps}
+        className="flex-row"
       >
-        {bubbleContent}
+        {showProviderIcon && (
+          <Box style={styles.providerIconWrap} className="items-center justify-center pr-2">
+            <ProviderIcon size={24} color={theme.colors.accent} />
+          </Box>
+        )}
+        <Box
+          style={[
+            styles.bubble,
+            isUser && styles.bubbleUser,
+            isSystem && styles.bubbleSystem,
+            !isUser && !isSystem && styles.bubbleAssistant,
+          ]}
+          {...bubbleLayoutProps}
+        >
+          {isUser && (
+            <LinearGradient
+              colors={['#8B75FF', '#6A5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          {!isUser && !isSystem && Platform.OS === 'ios' && (
+            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+          )}
+          {bubbleContent}
+        </Box>
       </Box>
-    </Box>
+      {!isUser && !isSystem && provider && (
+        <Box className="ml-1 mt-1 mb-2 max-w-[80%] opacity-60">
+          <Text size="xs" style={{ color: "#333" }} className="font-semibold uppercase tracking-wider">{provider}</Text>
+        </Box>
+      )}
     </EntranceAnimation>
   );
 }

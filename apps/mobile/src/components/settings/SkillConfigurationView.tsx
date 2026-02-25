@@ -12,7 +12,7 @@ import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons"
 import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
 type Skill = { id: string; name: string; description: string };
 
-export interface SkillConfigurationModalProps {
+export interface SkillConfigurationViewProps {
   isOpen: boolean;
   onClose: () => void;
   presentation?: "modal" | "inline";
@@ -26,7 +26,7 @@ export interface SkillConfigurationModalProps {
   serverBaseUrl: string;
 }
 
-export function SkillConfigurationModal({
+export function SkillConfigurationView({
   isOpen,
   onClose,
   presentation = "modal",
@@ -34,7 +34,7 @@ export function SkillConfigurationModal({
   selectedSkillId = null,
   onCloseSkillDetail,
   serverBaseUrl,
-}: SkillConfigurationModalProps) {
+}: SkillConfigurationViewProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -109,13 +109,17 @@ export function SkillConfigurationModal({
     paddingTop: Math.max(insets.top, 4),
     paddingBottom: Math.max(insets.bottom, 8),
   };
+  const detailOverlayStyle = {
+    paddingTop: 0,
+    paddingBottom: 0,
+  };
 
   const showDetailOverlay = Boolean(selectedSkillId);
 
   const content = (
     <Box className="flex-1 bg-background-0 overflow-hidden">
       {showDetailOverlay ? (
-        <Box className="flex-1" style={safeStyle}>
+        <Box className="flex-1" style={detailOverlayStyle}>
           <SkillDetailSheet
             embedded
             isOpen

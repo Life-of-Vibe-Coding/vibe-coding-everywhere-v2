@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { triggerHaptic, spacing } from "@/design-system";
-import { CloseIcon } from "@/components/icons/ChatActionIcons";
+import { CloseIcon, RefreshCwIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import { Box } from "@/components/ui/box";
@@ -167,10 +167,15 @@ export function ProcessDashboardModal({
 
   const hasProcesses = apiProcesses.length > 0;
   const isEmpty = !hasProcesses && !loading && !error;
+  const processCount = apiProcesses.length;
+  const uniquePortCount = useMemo(
+    () => new Set(apiProcesses.map((proc) => proc.port)).size,
+    [apiProcesses]
+  );
   const headerDividerStyle = useMemo(
     () => ({
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: `${theme.colors.accent}30`,
+      borderBottomColor: `${theme.colors.accent}38`,
     }),
     [theme.colors.accent]
   );
@@ -191,6 +196,47 @@ export function ProcessDashboardModal({
     () => ({ backgroundColor: theme.colors.background, paddingTop: insets.top }),
     [theme.colors.background, insets.top]
   );
+  const heroCardStyle = useMemo(
+    () => ({
+      backgroundColor: theme.colors.surface,
+      borderColor: `${theme.colors.accent}30`,
+      shadowColor: theme.colors.shadow,
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
+    }),
+    [theme.colors.accent, theme.colors.shadow, theme.colors.surface]
+  );
+  const statPillStyle = useMemo(
+    () => ({
+      backgroundColor: `${theme.colors.accent}14`,
+      borderColor: `${theme.colors.accent}30`,
+    }),
+    [theme.colors.accent]
+  );
+  const sectionCardStyle = useMemo(
+    () => ({
+      borderColor: `${theme.colors.accent}2A`,
+      backgroundColor: theme.colors.surface,
+    }),
+    [theme.colors.accent, theme.colors.surface]
+  );
+  const topActionIconStyle = useMemo(
+    () => ({ color: theme.colors.textMuted }),
+    [theme.colors.textMuted]
+  );
+  const refreshButtonStyle = useMemo(
+    () => ({
+      borderColor: `${theme.colors.accent}35`,
+      backgroundColor: `${theme.colors.accent}12`,
+    }),
+    [theme.colors.accent]
+  );
+  const handleRefreshPress = useCallback(() => {
+    triggerHaptic("selection");
+    load(true);
+  }, [load]);
 
   if (!isOpen) return null;
 
@@ -201,6 +247,7 @@ export function ProcessDashboardModal({
       size="full"
       title="Process Dashboard"
       subtitle="Port-bound process information"
+      showHeader={false}
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0"
@@ -209,22 +256,45 @@ export function ProcessDashboardModal({
       <Box className="flex-1" style={containerStyle}>
         <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
           <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
-            <HStack className="flex-1 items-center gap-2">
-              <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
-              <Text size="xl" bold className="text-typography-900">
-                Process Dashboard
-              </Text>
+            <HStack className="flex-1 items-center gap-3">
+              <Box
+                className="h-10 w-10 rounded-xl items-center justify-center border"
+                style={statPillStyle}
+              >
+                <TerminalIcon color={theme.colors.accent} size={18} />
+              </Box>
+              <Box className="flex-1 min-w-0">
+                <Text size="xl" bold className="text-typography-900">
+                  Process Dashboard
+                </Text>
+                <Text size="xs" className="text-typography-500 mt-0.5">
+                  Local servers and logs
+                </Text>
+              </Box>
             </HStack>
-            <Button
-              action="default"
-              variant="link"
-              size="md"
-              onPress={onClose}
-              accessibilityLabel="Close"
-              className="min-w-11 min-h-11 -mr-2"
-            >
-              <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
-            </Button>
+            <HStack className="items-center gap-1">
+              <Button
+                action="default"
+                variant="outline"
+                size="sm"
+                onPress={handleRefreshPress}
+                accessibilityLabel="Refresh process list"
+                className="min-w-11 min-h-11 rounded-xl border"
+                style={refreshButtonStyle}
+              >
+                <ButtonIcon as={RefreshCwIcon} size="md" style={{ color: theme.colors.accent }} />
+              </Button>
+              <Button
+                action="default"
+                variant="link"
+                size="md"
+                onPress={onClose}
+                accessibilityLabel="Close"
+                className="min-w-11 min-h-11"
+              >
+                <ButtonIcon as={CloseIcon} size="lg" style={topActionIconStyle} />
+              </Button>
+            </HStack>
           </HStack>
 
           {error ? (
@@ -264,6 +334,36 @@ export function ProcessDashboardModal({
               />
             }
           >
+            <Box className="rounded-2xl border p-4 mb-4" style={heroCardStyle}>
+              <HStack className="items-center justify-between">
+                <Box className="flex-1 min-w-0 pr-4">
+                  <Text size="sm" bold className="text-typography-900">
+                    Active local processes
+                  </Text>
+                  <Text size="xs" className="text-typography-500 mt-1">
+                    Pull to refresh or use the refresh action for live status.
+                  </Text>
+                </Box>
+                <HStack className="gap-2">
+                  <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
+                    <Text size="xs" className="text-typography-500">
+                      Processes
+                    </Text>
+                    <Text size="sm" bold style={{ color: theme.colors.accent }}>
+                      {processCount}
+                    </Text>
+                  </Box>
+                  <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
+                    <Text size="xs" className="text-typography-500">
+                      Ports
+                    </Text>
+                    <Text size="sm" bold style={{ color: theme.colors.accent }}>
+                      {uniquePortCount}
+                    </Text>
+                  </Box>
+                </HStack>
+              </HStack>
+            </Box>
             <AsyncStateView
               isLoading={loading && !refreshing}
               isEmpty={isEmpty}
@@ -276,6 +376,7 @@ export function ProcessDashboardModal({
                   title="Port-bound processes"
                   subtitle="Active local/dev server processes"
                   className="mb-4"
+                  style={sectionCardStyle}
                 >
                   <VStack className="gap-3">
                     {[...apiProcesses]
@@ -328,7 +429,7 @@ export function ProcessDashboardModal({
                       accessibilityLabel="Close log viewer"
                       className="min-w-11 min-h-11 -mr-2"
                     >
-                      <ButtonIcon as={CloseIcon} size="md" style={{ color: theme.colors?.textMuted ?? theme.colors.textSecondary }} />
+                      <ButtonIcon as={CloseIcon} size="md" style={topActionIconStyle} />
                     </Button>
                   </HStack>
                   <ScrollView

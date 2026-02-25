@@ -381,34 +381,6 @@ export function DockerManagerModal({
     [serverBaseUrl, loadImages]
   );
 
-  const handlePruneImages = useCallback(async () => {
-    showAlert(
-      "Prune images",
-      "Remove unused (dangling) images?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Prune",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              const res = await fetch(`${serverBaseUrl}/api/docker/images/prune`, { method: "POST" });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to prune");
-              await loadImages(true);
-            } catch (err) {
-              showAlert("Error", err instanceof Error ? err.message : "Failed to prune images");
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [serverBaseUrl, loadImages]);
-
   const handleRemoveVolume = useCallback(
     async (name: string) => {
       showAlert(
@@ -441,34 +413,6 @@ export function DockerManagerModal({
     },
     [serverBaseUrl, loadVolumes]
   );
-
-  const handlePruneVolumes = useCallback(async () => {
-    showAlert(
-      "Prune volumes",
-      "Remove volumes not used by any container? This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Prune",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              const res = await fetch(`${serverBaseUrl}/api/docker/volumes/prune`, { method: "POST" });
-              const data = await res.json().catch(() => ({}));
-              if (!res.ok) throw new Error((data as { error?: string })?.error ?? "Failed to prune");
-              await loadVolumes(true);
-            } catch (err) {
-              showAlert("Error", err instanceof Error ? err.message : "Failed to prune volumes");
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [serverBaseUrl, loadVolumes]);
 
   const handleTabChange = useCallback((tab: DockerTab) => {
     setActiveTab(tab);
@@ -557,7 +501,7 @@ export function DockerManagerModal({
           <Box style={styles.contentArea} className="flex-1 min-w-0">
               {activeTab === "containers" && (
                 <>
-                  <Box style={styles.toolbar} className="flex-row items-center justify-between gap-3 py-3">
+                  <Box style={styles.toolbar} className="flex-row items-center gap-3 py-3">
                     <HStack space="sm">
                       <Box style={styles.tabIconBadge}>
                         <ContainerIcon color={theme.colors.accent} size={16} />
@@ -701,7 +645,7 @@ export function DockerManagerModal({
                                     </Button>
                                   </>
                                 )}
-                                <Button action="negative" variant="solid" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
+                                <Button action="negative" variant="outline" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
                                   <ButtonText>Remove</ButtonText>
                                 </Button>
                               </>
@@ -716,10 +660,15 @@ export function DockerManagerModal({
 
               {activeTab === "images" && (
                 <>
-                  <Box style={styles.toolbar} className="flex-row gap-2 py-2">
-                    <Button action="secondary" variant="outline" size="sm" onPress={handlePruneImages} isDisabled={loading}>
-                      <ButtonText>Prune unused</ButtonText>
-                    </Button>
+                  <Box style={styles.toolbar} className="flex-row items-center justify-between gap-3 py-3">
+                    <HStack space="sm">
+                      <Box style={styles.tabIconBadge}>
+                        <ImageIcon color={theme.colors.accent} size={16} />
+                      </Box>
+                      <Text size="sm" bold className="text-typography-700">
+                        Image Cache
+                      </Text>
+                    </HStack>
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
@@ -784,7 +733,7 @@ export function DockerManagerModal({
                               },
                             ]}
                             actions={
-                              <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
+                              <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
                                 <ButtonText>Remove</ButtonText>
                               </Button>
                             }
@@ -798,7 +747,15 @@ export function DockerManagerModal({
 
               {activeTab === "volumes" && (
                 <>
-                  <Box style={styles.toolbar} className="flex-row gap-2 py-2 flex-wrap">
+                  <Box style={styles.toolbar} className="flex-row gap-2 py-3 flex-wrap items-center">
+                    <HStack space="sm">
+                      <Box style={styles.tabIconBadge}>
+                        <VolumeIcon color={theme.colors.accent} size={16} />
+                      </Box>
+                      <Text size="sm" bold className="text-typography-700">
+                        Persistent Storage
+                      </Text>
+                    </HStack>
                     <Input variant="outline" size="md" className="flex-1 min-w-0">
                       <InputField
                         placeholder="Search volumes…"
@@ -808,9 +765,6 @@ export function DockerManagerModal({
                         placeholderTextColor={theme.colors.textMuted}
                       />
                     </Input>
-                    <Button action="secondary" variant="outline" size="sm" onPress={handlePruneVolumes} isDisabled={loading}>
-                      <ButtonText>Prune unused</ButtonText>
-                    </Button>
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
@@ -885,7 +839,7 @@ export function DockerManagerModal({
                               },
                             ]}
                             actions={
-                              <Button action="negative" variant="solid" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
+                              <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
                                 <ButtonText>Remove</ButtonText>
                               </Button>
                             }
@@ -897,7 +851,6 @@ export function DockerManagerModal({
                 </>
               )}
             </Box>
-          </Box>
             </SafeAreaView>
           </Box>
 
@@ -912,7 +865,7 @@ export function DockerManagerModal({
             <ModalBody className="m-0 p-0">
               <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
                 <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-                  <Box style={styles.header} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-400">
+                  <Box style={styles.logsHeader} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-200">
                     <Text size="lg" bold numberOfLines={1} className="flex-1 text-typography-900">
                       Logs: {logsFor.name}
                     </Text>
@@ -949,71 +902,96 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
-      backgroundColor: theme.colors.background ?? theme.colors.background,
+      backgroundColor: theme.colors.background,
     },
     safe: {
       flex: 1,
     },
     header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border ?? theme.colors.border,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 14,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    headerTopRow: {
+      marginBottom: 12,
     },
     title: {
-      fontSize: 18,
-      fontWeight: "600",
+      fontSize: 20,
+      fontWeight: "700",
       color: theme.colors.textPrimary,
     },
     headerLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
+      flexDirection: "column",
     },
     headerTitleRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 8,
+      gap: 10,
     },
-    menuToggleBtn: {
-      minWidth: 44,
-      minHeight: 44,
+    headerIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      backgroundColor: theme.colors.accentSoft,
       alignItems: "center",
       justifyContent: "center",
     },
-    tabRow: {
-      flex: 1,
-      flexDirection: "row",
-    },
-    tabBar: {
-      minWidth: 120,
-      width: 140,
-      paddingVertical: 12,
+    livePill: {
       paddingHorizontal: 8,
-      borderRightWidth: StyleSheet.hairlineWidth,
-      borderRightColor: theme.colors.border ?? theme.colors.border,
-      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
+      paddingVertical: 4,
+      backgroundColor: theme.colors.accentSoft,
+    },
+    tabRail: {
+      backgroundColor: theme.colors.surfaceAlt,
+      borderRadius: 14,
+      padding: 4,
     },
     contentArea: {
       flex: 1,
+      backgroundColor: theme.colors.background,
     },
     toolbar: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border ?? theme.colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
     },
-    copyBtn: {
-      minWidth: 36,
-      minHeight: 36,
+    tabIconBadge: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      backgroundColor: theme.colors.accentSoft,
       alignItems: "center",
       justifyContent: "center",
+    },
+    filterChip: {
+      minHeight: 44,
+      minWidth: 72,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.surface,
+    },
+    filterChipActive: {
+      backgroundColor: theme.colors.accentSoft,
+      borderColor: theme.colors.accent,
+    },
+    copyBtn: {
+      minWidth: 40,
+      minHeight: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 10,
     },
     errorBox: {
       flex: 1,
@@ -1028,16 +1006,22 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       padding: 24,
     },
     skeletonList: {
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingTop: 14,
       paddingBottom: 32,
     },
     card: {
-      marginBottom: 16,
+      marginBottom: 14,
       padding: 16,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface ?? theme.colors.surfaceMuted,
+      borderRadius: 14,
+      backgroundColor: theme.colors.surface,
       borderWidth: 1,
-      borderColor: theme.colors.border ?? theme.colors.border,
+      borderColor: theme.colors.border,
+      shadowColor: theme.colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 2,
     },
     emptyBox: {
       flex: 1,
@@ -1049,12 +1033,20 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
     },
     scrollContent: {
-      padding: 16,
+      paddingHorizontal: 16,
+      paddingTop: 14,
       paddingBottom: 32,
     },
     logsContent: {
       padding: 16,
       paddingBottom: 32,
+    },
+    logsHeader: {
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
     },
   });
 }

@@ -6,7 +6,7 @@ import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { EntranceAnimation } from "@/design-system";
-import { useTheme } from "@/theme";
+import { useTheme } from "@/theme/index";
 import { StopCircleIcon } from "@/components/icons/ChatActionIcons";
 
 type ProcessListItemProps = {
@@ -97,7 +97,7 @@ function ProcessListItem({
           <HStack className="flex-wrap items-center gap-2 mb-3">
             <ProcessMetaPill label={`PID ${pid}`} accentColor={accentColor} />
             <ProcessMetaPill label={`Port ${port}`} accentColor={accentColor} />
-            <Text size="xs" className="uppercase tracking-wide" style={labelMutedStyle}>
+            <Text size="xs" className="uppercase" style={labelMutedStyle}>
               {shellHint}
             </Text>
           </HStack>

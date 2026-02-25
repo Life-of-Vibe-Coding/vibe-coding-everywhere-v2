@@ -1,7 +1,7 @@
 import React from "react";
 
 import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
-import { SkillConfigurationModal } from "@/components/settings/SkillConfigurationModal";
+import { SkillConfigurationView } from "@/components/settings/SkillConfigurationView";
 import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
 import { DockerManagerModal } from "@/components/docker/DockerManagerModal";
 import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardModal";
@@ -59,7 +59,7 @@ export function ChatModalsSection({
     <>
       {isSkillsConfigOpen ? (
         <Box className="flex-1">
-          <SkillConfigurationModal
+          <SkillConfigurationView
             isOpen
             presentation="inline"
             onClose={closeSkillsConfig}
