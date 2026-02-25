@@ -201,6 +201,17 @@ export function createPiRpcSession({
     piIoOutputStream = null;
   }
 
+  function openPiIoOutputStream() {
+    if (!existingSessionPath || typeof existingSessionPath !== "string" || piIoOutputStream?.writable) return;
+    try {
+      fs.mkdirSync(path.dirname(existingSessionPath), { recursive: true });
+      piIoOutputStream = fs.createWriteStream(existingSessionPath, { flags: "a" });
+      piIoOutputStream.on("error", () => {
+        piIoOutputStream = null;
+      });
+    } catch (_) { }
+  }
+
   function signalTurnComplete(exitCode = 0, options = {}) {
     if (turnCompleted) return;
     turnCompleted = true;
@@ -272,7 +283,10 @@ export function createPiRpcSession({
         turnRunning,
       };
       console.log("[pi] agent_end received", JSON.stringify(context));
+      // Ensure agent_end remains observable in the streamed payload before finalizing.
+      emitOutputLine(JSON.stringify(parsed) + "\n");
       signalTurnComplete(0, { markCompleted: true });
+      return;
     }
 
     if (type === "response" && parsed.success === false) {
@@ -434,12 +448,13 @@ export function createPiRpcSession({
 
   async function startTurn({ prompt, options }) {
     turnCompleted = false;
+    closeIoOutputStream();
     await ensurePiProcess({
       clientProvider: options.clientProvider,
       model: options.model,
     });
 
-    closeIoOutputStream();
+    openPiIoOutputStream();
     // No temp folders: Pi writes to .pi/sessions; we only emit to socket
     socket.emit("claude-started", {
       provider: options.clientProvider ?? sessionManagement?.provider ?? "claude",

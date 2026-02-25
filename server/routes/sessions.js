@@ -78,9 +78,38 @@ export function registerSessionsRoutes(app) {
         return { sessionId, firstUserInput, provider, modelId, cwd };
     }
 
-    // GET /api/sessions/status - Lightweight health check
+    // GET /api/sessions/status - Session status list for client UI
     router.get("/status", (_, res) => {
-        res.json({ ok: true });
+        const sessionsBase = path.join(SESSIONS_ROOT, "sessions");
+        const discovered = [];
+        try {
+            if (!fs.existsSync(sessionsBase)) {
+                return res.json({ ok: true, sessions: discovered, projectRootPath: getWorkspaceCwd() });
+            }
+            const subdirs = fs.readdirSync(sessionsBase, { withFileTypes: true }).filter((e) => e.isDirectory());
+            for (const d of subdirs) {
+                const sessionId = d.name;
+                const filePath = findJsonlInDir(path.join(sessionsBase, sessionId));
+                if (!filePath) continue;
+                const stat = fs.statSync(filePath);
+                const { sessionId: metaId, firstUserInput, modelId, cwd } = parseSessionMetadata(filePath);
+                const id = metaId || sessionId;
+                const activeSession = resolveSession(id);
+                const running = activeSession?.processManager?.processRunning?.() ?? false;
+                discovered.push({
+                    id,
+                    cwd: (typeof cwd === "string" && cwd.trim()) ? cwd : null,
+                    model: modelId || null,
+                    lastAccess: stat.mtimeMs,
+                    status: running ? "running" : "idling",
+                    title: firstUserInput || "(no input)",
+                });
+            }
+            discovered.sort((a, b) => b.lastAccess - a.lastAccess);
+        } catch (e) {
+            console.error("[sessions] Failed to list .pi/agent/sessions for status:", e?.message);
+        }
+        res.json({ ok: true, sessions: discovered, projectRootPath: getWorkspaceCwd() });
     });
 
     /** Session dir = sessions/{sessionId}. Dir name is just the session id. */

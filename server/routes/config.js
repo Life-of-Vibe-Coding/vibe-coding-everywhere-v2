@@ -1,7 +1,18 @@
 /**
  * Config and workspace path routes.
  */
-import { SIDEBAR_REFRESH_INTERVAL_MS, getWorkspaceCwd, setWorkspaceCwd, WORKSPACE_ALLOWED_ROOT } from "../config/index.js";
+import os from "os";
+import {
+  ENABLE_DOCKER_MANAGER,
+  SIDEBAR_REFRESH_INTERVAL_MS,
+  getWorkspaceCwd,
+  setWorkspaceCwd,
+  WORKSPACE_ALLOWED_ROOT,
+} from "../config/index.js";
+
+function toMb(value) {
+  return typeof value === "number" ? Number((value / (1024 * 1024)).toFixed(1)) : 0;
+}
 
 export function registerConfigRoutes(app) {
   app.get("/api/config", (_, res) => {
@@ -23,6 +34,36 @@ export function registerConfigRoutes(app) {
       path: cwd,
       allowedRoot: WORKSPACE_ALLOWED_ROOT,
       workspaceRoot: cwd,
+    });
+  });
+
+  app.get("/api/health", (_, res) => {
+    const memory = process.memoryUsage();
+    const loadAvg = os.loadavg?.() ?? [];
+    res.json({
+      ok: true,
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      system: {
+        nodeVersion: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        pid: process.pid,
+        uptimeSeconds: Math.round(process.uptime()),
+        loadAvg: loadAvg,
+        memory: {
+          rss: toMb(memory.rss),
+          heapTotal: toMb(memory.heapTotal),
+          heapUsed: toMb(memory.heapUsed),
+          external: toMb(memory.external),
+          arrayBuffers: toMb(memory.arrayBuffers),
+        },
+      },
+      workspace: {
+        path: getWorkspaceCwd(),
+        allowedRoot: WORKSPACE_ALLOWED_ROOT,
+      },
+      dockerEnabled: !!ENABLE_DOCKER_MANAGER,
     });
   });
 

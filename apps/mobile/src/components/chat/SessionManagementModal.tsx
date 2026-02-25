@@ -35,20 +35,17 @@ import {
   ChevronRightIcon,
 } from "../icons/ChatActionIcons";
 import { getFileName } from "../../utils/path";
+import { useSessionManagementStore } from "../../state/sessionManagementStore";
 import type { Message } from "../../core/types";
 
-/** Session from GET /api/sessions (disk .pi/agent/sessions) */
+/** Session status entry from /api/sessions/status. */
 export interface ApiSession {
   id: string;
-  fileStem: string;
-  firstUserInput: string;
-  provider: string | null;
+  cwd: string | null;
   model: string | null;
-  mtime: number;
-  sseConnected: boolean;
-  running: boolean;
-  /** Workspace cwd this session was created in. */
-  cwd?: string | null;
+  lastAccess: number;
+  status: "running" | "idling";
+  title: string;
 }
 
 /** Loaded session passed to onSelectSession (id + messages from GET /api/sessions/:id/messages) */
@@ -71,14 +68,14 @@ function formatPathForWrap(path: string): string {
 }
 
 /** Strip provider prefix from model id for display (e.g. claude-sonnet-4-5 → sonnet-4-5). */
-function modelDisplayName(model: string | null | undefined, provider: string | null | undefined): string {
+function modelDisplayName(model: string | null | undefined): string {
   if (!model) return "";
   const m = model.trim();
   if (!m) return "";
   if (m.startsWith("claude-")) return m.slice(7);
   if (m.startsWith("anthropic/")) return m.slice(10);
-  if (provider === "gemini" && m.startsWith("gemini-")) return m.slice(8);
-  if ((provider === "pi" || provider === "codex") && m.startsWith("gpt-")) return m.slice(4);
+  if (m.startsWith("gemini-")) return m.slice(8);
+  if (m.startsWith("gpt-")) return m.slice(4);
   return m;
 }
 
@@ -181,7 +178,7 @@ export function SessionManagementModal({
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const [sessions, setSessions] = useState<ApiSession[]>([]);
+  const sessions = useSessionManagementStore((state) => state.sessionStatuses);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
@@ -235,78 +232,27 @@ export function SessionManagementModal({
   const currentRelativePath =
     allowedRoot && workspacePath ? getRelativePath(workspacePath, allowedRoot) : "";
 
-  const FETCH_TIMEOUT_MS = 15_000;
-
   const refresh = useCallback(async (isPullRefresh = false) => {
-    if (!serverBaseUrl) return;
     if (isPullRefresh) {
       setRefreshing(true);
     } else {
       setLoading(true);
     }
     setListError(null);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const res = await fetch(`${serverBaseUrl}/api/sessions`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      const data = (await res.json()) as { sessions?: ApiSession[] };
-      const list = data.sessions ?? [];
-      setSessions(list);
-      // Clean up empty sessions 3 min after creation unless it's the current page
-      const STALE_MS = 3 * 60 * 1000;
-      const now = Date.now();
-      for (const s of list) {
-        if (
-          s.firstUserInput === "(no input)" &&
-          now - s.mtime >= STALE_MS &&
-          s.id !== currentSessionId
-        ) {
-          fetch(`${serverBaseUrl}/api/sessions/${encodeURIComponent(s.id)}`, { method: "DELETE" }).catch(() => {});
-        }
-      }
-    } catch (err) {
-      const msg = err instanceof Error && err.name === "AbortError"
-        ? "Request timed out. Check that the server is running and reachable."
-        : "Failed to load sessions. Check server connection.";
-      setListError(msg);
-      setSessions([]);
-    } finally {
-      clearTimeout(timeoutId);
+    setTimeout(() => {
+      setLoading(false);
+      setRefreshing(false);
+    }, 120);
+  }, [setLoading, setRefreshing, setListError]);
+
+  useEffect(() => {
+    if (visible) {
+      setLoading(sessions.length === 0);
+    } else {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [serverBaseUrl, currentSessionId]);
-
-  useEffect(() => {
-    if (visible) void refresh();
-  }, [visible, refresh]);
-
-  // Poll sessions while modal is open so running status stays up to date
-  useEffect(() => {
-    if (!visible || !serverBaseUrl) return;
-    const interval = setInterval(() => {
-      fetch(`${serverBaseUrl}/api/sessions`)
-        .then((res) => res.json())
-        .then((data: { sessions?: ApiSession[] }) => {
-          const next = data.sessions ?? [];
-          setSessions((prev) => {
-            if (prev.length !== next.length) return next;
-            const byId = (arr: ApiSession[]) => new Map(arr.map((s) => [s.id, s]));
-            const prevMap = byId(prev);
-            const changed = next.some(
-              (n) => {
-                const p = prevMap.get(n.id);
-                return !p || p.running !== n.running || p.sseConnected !== n.sseConnected;
-              }
-            );
-            return changed ? next : prev;
-          });
-        })
-        .catch(() => { });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [visible, serverBaseUrl]);
+  }, [visible, sessions.length]);
 
   const handleSelect = useCallback(
     (session: ApiSession) => {
@@ -337,10 +283,10 @@ export function SessionManagementModal({
           onSelectSession({
             id,
             messages,
-            provider: data.provider ?? session.provider,
+            provider: data.provider,
             model: data.model ?? session.model,
-            running: data.running ?? session.running,
-            sseConnected: data.sseConnected ?? session.sseConnected,
+            running: data.running ?? session.status === "running",
+            sseConnected: data.sseConnected ?? session.status === "running",
             cwd,
           });
           onClose();
@@ -358,7 +304,7 @@ export function SessionManagementModal({
   const handleDelete = useCallback(
     (session: ApiSession) => {
       triggerHaptic("medium");
-      const title = session.firstUserInput.slice(0, 50) + (session.firstUserInput.length > 50 ? "…" : "");
+      const title = session.title.slice(0, 50) + (session.title.length > 50 ? "…" : "");
       Alert.alert(
         "Delete session",
         `Remove "${title}" from sessions?`,
@@ -639,7 +585,7 @@ export function SessionManagementModal({
                   : getFileName(fullPath) || fullPath;
                 const isExpanded = expandedWorkspaces.has(fullPath);
                 const isHovered = hoveredHeaderCwd === fullPath;
-                const runningCount = section.data.filter((s) => s.running).length;
+                const runningCount = section.data.filter((s) => s.status === "running").length;
                 const idlingCount = section.data.length - runningCount;
 
                 const toggleWorkspace = () => {
@@ -755,7 +701,7 @@ export function SessionManagementModal({
                                 >
                                   <Box style={styles.sessionCardContent}>
                                     <Text size="xs" bold numberOfLines={2} style={{ color: isActive ? theme.colors.accent : undefined }} className={isActive ? "" : "text-typography-900"}>
-                                      {item.firstUserInput || "(No Input)"}
+                                      {item.title || "(No Input)"}
                                     </Text>
 
                                     <Box style={styles.sessionCardMetaRow} className="flex-row items-center flex-wrap gap-1 mt-0.5">
@@ -778,18 +724,18 @@ export function SessionManagementModal({
                                       </Text>
                                       <Divider orientation="vertical" spacing="1" style={{ height: 8, marginHorizontal: 4 }} />
                                       <Text size="xs" style={[styles.sessionCardTime, { alignSelf: "center" }]} className="shrink-0 text-typography-500">
-                                        {formatDate(item.mtime)}
+                                        {formatDate(item.lastAccess)}
                                       </Text>
-                                      {(item.running || item.model) && (
+                                      {(item.status === "running" || item.model) && (
                                         <Box style={styles.sessionCardBadgeWrap} className="flex-row items-center ml-auto">
-                                          {item.running && (
+                                          {item.status === "running" && (
                                             <Badge action="success" variant="solid" size="sm" className="mr-1">
-                                              <BadgeText>{item.sseConnected ? "STREAMING" : "RUNNING"}</BadgeText>
+                                              <BadgeText>RUNNING</BadgeText>
                                             </Badge>
                                           )}
                                           {item.model && (
                                             <Badge action="muted" variant="solid" size="sm">
-                                              <BadgeText style={{ fontSize: 10 }}>{modelDisplayName(item.model, item.provider)}</BadgeText>
+                                              <BadgeText style={{ fontSize: 10 }}>{modelDisplayName(item.model)}</BadgeText>
                                             </Badge>
                                           )}
                                         </Box>

@@ -632,7 +632,7 @@ export function useSocket(options: UseSocketOptions = {}) {
           }
 
           if (parsed.type === "agent_end") {
-            if (__DEV__) console.log("[stream] agent_end event received");
+            console.log("[stream] agent_end event received");
           }
 
           if (isProviderStream(parsed)) {
@@ -647,6 +647,9 @@ export function useSocket(options: UseSocketOptions = {}) {
           if (clean.startsWith("<u") && jsonStart > 0) {
             try {
               const parsed = JSON.parse(clean.slice(jsonStart));
+              if (parsed?.type === "agent_end") {
+                console.log("[stream fallback] agent_end event received");
+              }
               if (isProviderStream(parsed)) {
                 dispatchProviderEvent(parsed as Record<string, unknown>);
                 continue;

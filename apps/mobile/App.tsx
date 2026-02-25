@@ -76,6 +76,7 @@ import { DockerManagerModal } from "./src/components/docker/DockerManagerModal";
 import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDashboardModal";
 import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
 import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
+import { HealthCheckModal } from "./src/components/health/HealthCheckModal";
 import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
 import { ClaudeIcon, GeminiIcon, CodexIcon } from "./src/components/icons/ProviderIcons";
 import {
@@ -89,6 +90,7 @@ import {
   ActionsheetScrollView,
 } from "./components/ui/actionsheet";
 import * as sessionStore from "./src/services/sessionStore";
+import { useSessionManagementStore, type SessionStatus } from "./src/state/sessionManagementStore";
 import { notifyAgentFinished, notifyApprovalNeeded } from "./src/services/agentNotifications";
 import {
   normalizePathSeparators,
@@ -204,10 +206,17 @@ export default function App() {
 
   // UI State
   const [sessionManagementVisible, setSessionManagementVisible] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const currentSessionId = useSessionManagementStore((state) => state.currentSessionId);
+  const setCurrentSessionId = useSessionManagementStore((state) => state.setCurrentSessionId);
+  const setGlobalSessionId = useSessionManagementStore((state) => state.setSessionId);
+  const setGlobalProvider = useSessionManagementStore((state) => state.setProvider);
+  const setGlobalModel = useSessionManagementStore((state) => state.setModel);
+  const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
+  const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
   const [workspacePickerVisible, setWorkspacePickerVisible] = useState(false);
   const [dockerVisible, setDockerVisible] = useState(false);
   const [processesVisible, setProcessesVisible] = useState(false);
+  const [healthCheckVisible, setHealthCheckVisible] = useState(false);
   const [skillsConfigVisible, setSkillsConfigVisible] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -281,6 +290,12 @@ export default function App() {
   } = useSocket({ provider, model });
 
   messagesRef.current = messages;
+
+  useEffect(() => {
+    setGlobalProvider(provider);
+    setGlobalModel(model);
+    setGlobalSessionId(sessionId);
+  }, [provider, model, sessionId, setGlobalProvider, setGlobalModel, setGlobalSessionId]);
 
   /** When user switches provider: start new session, update provider+model. */
   const handleProviderChange = useCallback(
@@ -360,31 +375,24 @@ export default function App() {
     const baseUrl = serverConfig.getBaseUrl();
     const currentPageId = viewingLiveSession ? sessionId : currentSessionId;
     const cleanup = async () => {
-      try {
-        const res = await fetch(`${baseUrl}/api/sessions`);
-        const data = (await res.json()) as { sessions?: Array<{ id: string; firstUserInput: string; mtime: number }> };
-        const list = data.sessions ?? [];
-        const now = Date.now();
-        for (const s of list) {
-          const isNoInput = s.firstUserInput === "(no input)";
-          const isOld = now - s.mtime >= EMPTY_SESSION_CLEANUP_MS;
-          const isCurrentPage = s.id === currentPageId;
-          if (isNoInput && isOld && !isCurrentPage) {
-            try {
-              await fetch(`${baseUrl}/api/sessions/${encodeURIComponent(s.id)}`, { method: "DELETE" });
-            } catch (_) {
-              /* ignore */
-            }
+      const now = Date.now();
+      for (const s of sessionStatuses) {
+        const isNoInput = s.title === "(no input)";
+        const isOld = now - s.lastAccess >= EMPTY_SESSION_CLEANUP_MS;
+        const isCurrentPage = s.id === currentPageId;
+        if (isNoInput && isOld && !isCurrentPage) {
+          try {
+            await fetch(`${baseUrl}/api/sessions/${encodeURIComponent(s.id)}`, { method: "DELETE" });
+          } catch (_) {
+            /* ignore */
           }
         }
-      } catch (_) {
-        /* ignore */
       }
     };
     const interval = setInterval(cleanup, 60_000);
     void cleanup();
     return () => clearInterval(interval);
-  }, [serverConfig, viewingLiveSession, sessionId, currentSessionId]);
+  }, [serverConfig, viewingLiveSession, sessionId, currentSessionId, sessionStatuses]);
 
   // Load last used provider/model on mount (sessions come from server .pi/agent/sessions) (sessions come from server .pi/agent/sessions)
   const hasRestoredProviderModel = useRef(false);
@@ -402,6 +410,26 @@ export default function App() {
       }
     }).catch(() => { });
   }, []);
+
+  // Keep session statuses fresh in the background for shared session management.
+  useEffect(() => {
+    const baseUrl = serverConfig.getBaseUrl();
+    const poll = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/sessions/status`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { sessions?: SessionStatus[] };
+        if (Array.isArray(data?.sessions)) {
+          setSessionStatuses(data.sessions);
+        }
+      } catch {
+        // Keep previous data on failure.
+      }
+    };
+    void poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [serverConfig, setSessionStatuses]);
 
   // Persist provider/model preference when they change (sessions come from server .pi/agent/sessions)
   useEffect(() => {
@@ -896,6 +924,7 @@ export default function App() {
                 onRemoveCodeRef={handleRemoveCodeRef}
                 onTerminateAgent={terminateAgent}
                 onOpenProcesses={() => setProcessesVisible(true)}
+                onOpenHealthCheck={() => setHealthCheckVisible(true)}
                 onOpenWebPreview={() => setPreviewUrl("")}
                 provider={provider}
                 model={model}
@@ -1013,6 +1042,21 @@ export default function App() {
             serverBaseUrl={serverConfig.getBaseUrl()}
           />
 
+          <HealthCheckModal
+            visible={healthCheckVisible}
+            onClose={() => setHealthCheckVisible(false)}
+            serverBaseUrl={serverConfig.getBaseUrl()}
+            connected={connected}
+            provider={provider}
+            model={model}
+            activeSessionId={viewingLiveSession ? sessionId : currentSessionId}
+            isViewingLiveSession={viewingLiveSession}
+            agentRunning={agentRunning}
+            waitingForUserInput={waitingForUserInput}
+            sessionStatuses={sessionStatuses}
+            workspacePath={workspacePath}
+          />
+
           <SessionManagementModal
             visible={sessionManagementVisible}
             onClose={() => setSessionManagementVisible(false)}
@@ -1029,6 +1073,8 @@ export default function App() {
               setWorkspacePickerVisible(true);
             }}
             onSelectSession={async (s) => {
+              const selectedProvider = typeof s.provider === "string" && s.provider.length > 0 ? s.provider : null;
+              const selectedModel = typeof s.model === "string" && s.model.length > 0 ? s.model : null;
               // Switch workspace to session's cwd when different from current
               const sessionCwd = s.cwd ?? null;
               if (sessionCwd && sessionCwd !== workspacePath) {
@@ -1048,13 +1094,13 @@ export default function App() {
               }
               lastSwitchedSessionRef.current = {
                 id: s.id,
-                provider: s.provider ?? undefined,
-                model: s.model ?? undefined,
+                provider: selectedProvider,
+                model: selectedModel,
               };
               setCurrentSessionId(s.id);
-              if (s.provider) setProvider(s.provider as BrandProvider);
-              if (s.model) setModel(s.model);
-              if (s.provider && s.model) sessionStore.setLastUsedProviderModel(s.provider, s.model);
+              if (selectedProvider) setProvider(selectedProvider as BrandProvider);
+              if (selectedModel) setModel(selectedModel);
+              if (selectedProvider && selectedModel) sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
               // Conversation was already loaded from disk (GET /api/sessions/:id/messages).
               // Connect SSE only when session is running; otherwise show persisted messages only (no SSE).
               if (s.running || s.sseConnected) {
