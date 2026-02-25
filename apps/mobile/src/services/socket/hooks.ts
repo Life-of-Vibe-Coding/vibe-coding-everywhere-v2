@@ -34,6 +34,13 @@ import type { CodeRefPayload } from "../../components/file/FileViewerModal";
 // Re-export types for consumers that import from useSocket
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };
 
+type EventSourceLike = {
+  addEventListener: (event: string, handler: (...args: any[]) => void) => void;
+  removeEventListener: (event: string, handler: (...args: any[]) => void) => void;
+  close: () => void;
+};
+type EventSourceCtor = new (url: string) => EventSourceLike;
+
 function toWorkspaceRelativePath(filePath: string, workspaceRoot: string | null): string {
   const normalized = filePath.replace(/\\/g, "/").trim();
   if (!workspaceRoot) return normalized;
@@ -47,15 +54,19 @@ export interface UseSocketOptions {
   serverConfig?: IServerConfig;
   provider?: Provider;
   model?: string;
+  sessionid?: string | null;
+  status?: boolean;
 }
 
 export function useSocket(options: UseSocketOptions = {}) {
   const serverConfig = options.serverConfig ?? getDefaultServerConfig();
   const serverUrl = serverConfig.getBaseUrl();
-  const provider = options.provider ?? "pi";
+  const provider = options.provider ?? "codex";
   const defaultModel =
-    provider === "claude" ? "sonnet4.5" : provider === "pi" || provider === "codex" ? "gpt-5.1-codex-mini" : "gemini-2.5-flash";
+    provider === "claude" ? "sonnet4.5" : provider === "codex" ? "gpt-5.1-codex-mini" : "gemini-2.5-flash";
   const model = options.model ?? defaultModel;
+  const sessionidFromOptions = options.sessionid;
+  const status = options.status ?? true;
 
   const [connected, setConnected] = useState(false);
   const [liveSessionMessages, setLiveSessionMessages] = useState<Message[]>([]);
@@ -85,8 +96,15 @@ export function useSocket(options: UseSocketOptions = {}) {
   const [mockSequences, setMockSequences] = useState<string[]>([]);
   const [selectedSequence, setSelectedSequence] = useState<string | null>(null);
 
-  const eventSourceMapRef = useRef<Map<string, EventSource>>(new Map());
-  const prevSessionIdRef = useRef<string | null>(null);
+  const activeSseRef = useRef<{ id: string; source: EventSourceLike } | null>(null);
+  const activeSseHandlersRef = useRef<{
+    open: (event: unknown) => void;
+    error: (event: unknown) => void;
+    message: (event: any) => void;
+    end: (event: any) => void;
+    done: (event: any) => void;
+  } | null>(null);
+  const suppressActiveSessionSwitchRef = useRef(false);
   const outputBufferRef = useRef("");
   const currentAssistantContentRef = useRef("");
   const hasCompletedFirstRunRef = useRef(false);
@@ -176,6 +194,43 @@ export function useSocket(options: UseSocketOptions = {}) {
       currentAssistantContentRef.current = "";
     }
   }, []);
+
+  const closeActiveSse = useCallback(
+    (reason?: string) => {
+      const active = activeSseRef.current;
+      if (!active) {
+        return;
+      }
+      const { id, source } = active;
+      const handlers = activeSseHandlersRef.current;
+      if (__DEV__) {
+        console.log("[sse] disconnected", { reason: reason ?? "close", sessionId: id });
+      }
+      if (handlers) {
+        source.removeEventListener("open", handlers.open);
+        source.removeEventListener("error", handlers.error);
+        source.removeEventListener("message", handlers.message);
+        source.removeEventListener("end", handlers.end);
+        source.removeEventListener("done", handlers.done);
+      }
+      source.close();
+      if (displayedSessionIdRef.current === id) {
+        setAgentRunning(false);
+        setTypingIndicator(false);
+        setWaitingForUserInput(false);
+        setCurrentActivity(null);
+      }
+      suppressActiveSessionSwitchRef.current = false;
+      activeSseRef.current = null;
+      activeSseHandlersRef.current = null;
+      if (streamFlushTimeoutRef.current) {
+        clearTimeout(streamFlushTimeoutRef.current);
+        streamFlushTimeoutRef.current = null;
+      }
+      setConnected(false);
+    },
+    [setAgentRunning, setCurrentActivity, setTypingIndicator, setWaitingForUserInput]
+  );
 
   /** Deduplicate message IDs; bump nextIdRef for any reassignments. */
   const deduplicateMessageIds = useCallback((msgs: Message[]): Message[] => {
@@ -312,13 +367,6 @@ export function useSocket(options: UseSocketOptions = {}) {
         state.currentAssistantContent = "";
       }
 
-      const existingSse = eventSourceMapRef.current.get(sid);
-      if (existingSse) {
-        if (__DEV__) console.log("[sse] disconnect (resumeLiveSession reconnect)", { sessionId: sid });
-        existingSse.close();
-        eventSourceMapRef.current.delete(sid);
-      }
-
       setSessionId(sid);
       setViewingLiveSession(true); // SSE effect will open connection
       syncSessionToReact(sid);
@@ -438,7 +486,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   getAndClearToolUseRef.current = getAndClearToolUse;
   addPermissionDenialRef.current = addPermissionDenial;
 
-  // ===== Init session (pi new / POST /api/sessions/new) - sessionId must never be null ===== //
+  // ===== Init session (POST /api/sessions/new) - sessionId must never be null ===== //
   useEffect(() => {
     if (sessionId != null) return;
     let cancelled = false;
@@ -465,31 +513,36 @@ export function useSocket(options: UseSocketOptions = {}) {
     return () => { cancelled = true; };
   }, [sessionId, serverUrl, getOrCreateSessionState]);
 
-  // ===== EventSource Connection Setup (multi-SSE: do not close on session switch) ===== //
-  // Only open SSE when viewingLiveSession is true (running session). When user switches to an
-  // idle session via loadSession, viewingLiveSession is false so we do not connect.
+  // ===== EventSource Connection Setup (single active SSE) ===== //
   useEffect(() => {
-    if (!sessionId || !viewingLiveSession) {
-      // Do NOT open SSE for idle/saved sessions; do not close existing connections
-      setConnected(sessionId != null && eventSourceMapRef.current.has(sessionId));
+    const targetSessionId = sessionidFromOptions;
+    if (!targetSessionId || !status) {
+      closeActiveSse("inactive");
       return;
     }
 
-    // Sync displayed session state when switching
-    if (prevSessionIdRef.current != null && prevSessionIdRef.current !== sessionId) {
-      syncSessionToReact(sessionId);
-    }
-    prevSessionIdRef.current = sessionId;
+    syncSessionToReact(targetSessionId);
 
-    // Create SSE only if we don't already have one for this session
-    if (eventSourceMapRef.current.has(sessionId)) {
-      setConnected(true);
+    // If we're switching selected sessions, always close first then open.
+    if (activeSseRef.current && activeSseRef.current.id !== targetSessionId) {
+      if (suppressActiveSessionSwitchRef.current) {
+        // Migration happened (active stream id changed to new backend id); do not spawn a second stream.
+        suppressActiveSessionSwitchRef.current = false;
+      } else {
+        closeActiveSse("session-switch");
+      }
+    }
+
+    if (activeSseRef.current) {
+      if (activeSseRef.current.id === targetSessionId) {
+        setConnected(true);
+      }
       return;
     }
 
-    if (__DEV__) console.log("[sse] effect mount", { serverUrl, sessionId });
+    if (__DEV__) console.log("[sse] effect mount", { serverUrl, sessionId: targetSessionId });
 
-    const sid = sessionId;
+    const sid = targetSessionId;
     // Mutable ref so handlers use current session id after re-key (session-started can migrate sid)
     const connectionSessionIdRef = { current: sid };
 
@@ -502,30 +555,26 @@ export function useSocket(options: UseSocketOptions = {}) {
       streamUrl += "&skipReplay=1";
       skipReplayForSessionRef.current = null;
     }
-    const sse = new EventSource(streamUrl);
-    eventSourceMapRef.current.set(sid, sse);
+    const EventSourceCtor = ((EventSource as unknown as { default?: EventSourceCtor }).default ??
+      (EventSource as EventSourceCtor)) as EventSourceCtor;
+    const sse = new EventSourceCtor(streamUrl);
+    activeSseRef.current = { id: sid, source: sse };
 
     const setSessionIdWithRekey = (newId: string | null) => {
       const currentSid = connectionSessionIdRef.current;
-      const isDisplayedSession = displayedSessionIdRef.current === currentSid;
       if (newId && newId !== currentSid && !newId.startsWith("temp-")) {
-        const existing = eventSourceMapRef.current.get(currentSid);
-        if (existing) {
-          eventSourceMapRef.current.delete(currentSid);
-          eventSourceMapRef.current.set(newId, existing);
-        }
         const s = sessionStatesRef.current.get(currentSid);
         if (s) {
           sessionStatesRef.current.delete(currentSid);
           sessionStatesRef.current.set(newId, s);
         }
         connectionSessionIdRef.current = newId;
+        if (activeSseRef.current && activeSseRef.current.id === currentSid) {
+          activeSseRef.current.id = newId;
+          suppressActiveSessionSwitchRef.current = true;
+        }
       }
-      // Only update global sessionId when this SSE is for the displayed session.
-      // Background sessions' session-started events must not steal the view (would cause "messages gone").
-      if (isDisplayedSession) {
-        setSessionId(newId);
-      }
+      setSessionId(newId);
     };
 
     const dispatchProviderEvent = createEventDispatcher({
@@ -559,13 +608,13 @@ export function useSocket(options: UseSocketOptions = {}) {
       setSessionId: setSessionIdWithRekey,
     });
 
-    sse.addEventListener("open", () => {
+    const openHandler = () => {
       hasStreamEndedRef.current = false;
       if (__DEV__) console.log("[sse] connected", { sessionId: connectionSessionIdRef.current });
-      if (displayedSessionIdRef.current === connectionSessionIdRef.current) setConnected(true);
-    });
+      setConnected(true);
+    };
 
-    sse.addEventListener("error", (err: unknown) => {
+    const errorHandler = (err: unknown) => {
       const e = err as { xhrStatus?: number; xhrState?: number; message?: string };
       const isExpectedServerClose =
         e?.xhrStatus === 200 &&
@@ -578,10 +627,14 @@ export function useSocket(options: UseSocketOptions = {}) {
         if (__DEV__) console.log("[sse] disconnected (error)", { sessionId: connectionSessionIdRef.current });
         console.error("[sse] error:", err);
       }
-      if (displayedSessionIdRef.current === connectionSessionIdRef.current) setConnected(false);
-    });
+      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+        setConnected(false);
+        setAgentRunning(false);
+        setTypingIndicator(false);
+      }
+    };
 
-    sse.addEventListener("message", (event: any) => {
+    const messageHandler = (event: any) => {
       if (!event.data && typeof event.data !== "string") return;
 
       const dataStr = event.data;
@@ -659,8 +712,8 @@ export function useSocket(options: UseSocketOptions = {}) {
           }
           handlers.appendAssistantTextForSession(clean + "\n");
         }
-      }
-    });
+        }
+    };
 
     const handleStreamEnd = (event: { data?: string }, exitCodeDefault = 0) => {
       if (hasStreamEndedRef.current) return;
@@ -688,36 +741,52 @@ export function useSocket(options: UseSocketOptions = {}) {
         setWaitingForUserInput(false);
         if (exitCode !== 0) setLastSessionTerminated(true);
       }
-      queueMicrotask(() => handlers.finalizeAssistantMessageForSession());
+      handlers.finalizeAssistantMessageForSession();
+      closeActiveSse("stream-end");
     };
 
+    const endHandler = (event: any) => handleStreamEnd(event, 0);
+    const doneHandler = (event: any) => handleStreamEnd(event ?? {}, 0);
+
+    activeSseHandlersRef.current = {
+      open: openHandler,
+      error: errorHandler,
+      message: messageHandler,
+      end: endHandler,
+      done: doneHandler,
+    };
+
+    sse.addEventListener("open", openHandler);
+    sse.addEventListener("error", errorHandler);
+    sse.addEventListener("message", messageHandler);
     // @ts-ignore - custom event type sent by our backend on terminate/agent_end
-    sse.addEventListener("end", (event: any) => handleStreamEnd(event, 0));
+    sse.addEventListener("end", endHandler);
     // @ts-ignore - react-native-sse fires "done" when server closes connection
-    sse.addEventListener("done", (event: any) => handleStreamEnd(event ?? {}, 0));
+    sse.addEventListener("done", doneHandler);
 
-    // Do NOT close SSE on effect cleanup (session switch / viewingLiveSession) - keep connections open
     return () => {
-      // No-op: we keep all SSEs open
+      // SSE lifecycle is driven by target session/status; cleanup handled by effect transitions.
     };
-  }, [serverUrl, sessionId, viewingLiveSession, createSessionHandlers, getOrCreateSessionState, syncSessionToReact]);
+  }, [
+    closeActiveSse,
+    createSessionHandlers,
+    getOrCreateSessionState,
+    serverUrl,
+    sessionidFromOptions,
+    sessionId,
+    status,
+    syncSessionToReact,
+  ]);
 
   // Close all SSEs only on unmount
   useEffect(() => {
-    return () => {
-      eventSourceMapRef.current.forEach((sse, id) => {
-        if (__DEV__) console.log("[sse] disconnected (unmount)", { sessionId: id });
-        sse.close();
-      });
-      eventSourceMapRef.current.clear();
-    };
-  }, []);
+    return () => closeActiveSse("unmount");
+  }, [closeActiveSse]);
 
   // Sync displayed session state when sessionId or viewingLiveSession changes
   useEffect(() => {
     if (viewingLiveSession && sessionId) {
       syncSessionToReact(sessionId);
-      setConnected(eventSourceMapRef.current.has(sessionId));
     } else if (!viewingLiveSession) {
       setConnected(false);
     }
@@ -728,7 +797,6 @@ export function useSocket(options: UseSocketOptions = {}) {
     const sub = AppState.addEventListener("change", (nextState: AppStateStatus) => {
       if (nextState === "active" && viewingLiveSession && sessionId) {
         syncSessionToReact(sessionId);
-        setConnected(eventSourceMapRef.current.has(sessionId));
       }
     });
     return () => sub.remove();
@@ -768,7 +836,7 @@ export function useSocket(options: UseSocketOptions = {}) {
         model,
         approvalMode,
         sessionId,
-        ...((provider === "pi" || provider === "codex") && { effort: codexOptions?.effort ?? "medium" }),
+        ...(provider === "codex" && { effort: codexOptions?.effort ?? "medium" }),
         ...(codexOptions && {
           askForApproval: codexOptions.askForApproval,
           fullAuto: codexOptions.fullAuto,
@@ -951,13 +1019,8 @@ export function useSocket(options: UseSocketOptions = {}) {
       } catch (err) {
         console.error("Failed to reset session", err);
       }
-      // Close SSE for this session on reset
-      const sse = eventSourceMapRef.current.get(sessionId);
-      if (sse) {
-        if (__DEV__) console.log("[sse] disconnected (reset)", { sessionId });
-        sse.close();
-        eventSourceMapRef.current.delete(sessionId);
-      }
+      if (__DEV__) console.log("[sse] disconnected (reset)", { sessionId });
+      closeActiveSse("reset");
       sessionStatesRef.current.delete(sessionId);
     }
     setLiveSessionMessages([]);
@@ -968,7 +1031,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
     setViewingLiveSession(true);
-  }, [sessionId, serverUrl]);
+  }, [closeActiveSse, sessionId, serverUrl]);
 
   /** Start new session: clear state; session is created on first prompt (no dummy session). */
   const startNewSession = useCallback(async () => {
@@ -982,12 +1045,8 @@ export function useSocket(options: UseSocketOptions = {}) {
       } catch (err) {
         console.error("Failed to terminate session", err);
       }
-      const sse = eventSourceMapRef.current.get(sessionId);
-      if (sse) {
-        if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
-        sse.close();
-        eventSourceMapRef.current.delete(sessionId);
-      }
+      if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
+      closeActiveSse("new-session");
       sessionStatesRef.current.delete(sessionId);
     }
     setSessionId(null);
@@ -999,7 +1058,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     setLastSessionTerminated(false);
     currentAssistantContentRef.current = "";
     setViewingLiveSession(true);
-  }, [sessionId, serverUrl]);
+  }, [closeActiveSse, sessionId, serverUrl]);
 
   /**
    * Load a session from persisted conversation (disk).
@@ -1034,7 +1093,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   }, [deduplicateMessageIds, getOrCreateSessionState]);
 
   const switchToLiveSession = useCallback(() => {
-    if (__DEV__) console.log("[sse] switchToLiveSession", { sessionId, openCount: eventSourceMapRef.current.size });
+    if (__DEV__) console.log("[sse] switchToLiveSession", { sessionId });
     setViewingLiveSession(true);
   }, [sessionId]);
 

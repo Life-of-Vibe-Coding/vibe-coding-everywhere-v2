@@ -14,15 +14,11 @@ import "./global.css";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import {
-  StyleSheet,
   View,
+  Dimensions,
   FlatList,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  Dimensions,
-  StatusBar,
   InteractionManager,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,24 +28,31 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import {
   ThemeProvider,
   getTheme,
-  useTheme,
   type Provider as BrandProvider,
 } from "./src/theme/index";
 import { GluestackUIProvider } from "./components/ui/gluestack-ui-provider";
-import { HStack } from "./components/ui/hstack";
-import { VStack } from "./components/ui/vstack";
 
 import {
-  AnimatedPressableView,
   triggerHaptic,
-  EntranceAnimation,
-  FlashAnimation,
   usePerformanceMonitor,
-  spacing,
 } from "./src/design-system";
 import { Box } from "./components/ui/box";
-import { Text as GluestackText } from "./components/ui/text";
-import { cn } from "./src/utils/cn";
+import { AppHeaderBar } from "./components/app/AppHeaderBar";
+import { ChatInputDock } from "./components/app/ChatInputDock";
+import { ChatMessageList } from "./components/app/ChatMessageList";
+import { createAppStyles } from "./components/app/appStyles";
+import { FileViewerOverlay } from "./components/app/FileViewerOverlay";
+import { SessionModals } from "./components/app/SessionModals";
+import { WorkspaceSidebarOverlay } from "./components/app/WorkspaceSidebarOverlay";
+import {
+  DEFAULT_CLAUDE_MODEL,
+  DEFAULT_CODEX_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  CLAUDE_MODELS,
+  GEMINI_MODELS,
+  CODEX_MODELS,
+  MODEL_OPTIONS_BY_PROVIDER,
+} from "./src/constants/modelOptions";
 
 // Service Imports
 import { useSocket } from "./src/services/socket/hooks";
@@ -60,34 +63,8 @@ import {
   type Message,
 } from "./src/core";
 
-// Component Imports
-import { MessageBubble, hasFileActivityContent, hasCodeBlockContent } from "./src/components/chat/MessageBubble";
-import { TypingIndicator } from "./src/components/chat/TypingIndicator";
-import { PermissionDenialBanner } from "./src/components/common/PermissionDenialBanner";
-import { AskQuestionModal } from "./src/components/chat/AskQuestionModal";
-import { InputPanel } from "./src/components/chat/InputPanel";
-import { PreviewWebViewModal } from "./src/components/preview/PreviewWebViewModal";
-import { WorkspaceSidebar } from "./src/components/file/WorkspaceSidebar";
-import { FileViewerModal, type CodeRefPayload } from "./src/components/file/FileViewerModal";
+import type { CodeRefPayload } from "./src/components/file/FileViewerModal";
 import type { PermissionModeUI } from "./src/utils/permission";
-import { WorkspacePickerModal } from "./src/components/settings/WorkspacePickerModal";
-import { SkillConfigurationModal } from "./src/components/settings/SkillConfigurationModal";
-import { DockerManagerModal } from "./src/components/docker/DockerManagerModal";
-import { ProcessesDashboardModal } from "./src/components/processes/ProcessesDashboardModal";
-import { SkillDetailSheet } from "./src/components/settings/SkillDetailSheet";
-import { SessionManagementModal } from "./src/components/chat/SessionManagementModal";
-import { MenuIcon, SettingsIcon } from "./src/components/icons/HeaderIcons";
-import { ClaudeIcon, GeminiIcon, CodexIcon } from "./src/components/icons/ProviderIcons";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetItem,
-  ActionsheetItemText,
-  ActionsheetScrollView,
-} from "./components/ui/actionsheet";
 import * as sessionStore from "./src/services/sessionStore";
 import { useSessionManagementStore, type SessionStatus } from "./src/state/sessionManagementStore";
 import { notifyAgentFinished, notifyApprovalNeeded } from "./src/services/agentNotifications";
@@ -104,65 +81,20 @@ import { getBackendPermissionMode } from "./src/utils/permission";
 // Constants
 // ============================================================================
 
-const CLAUDE_MODELS: { value: string; label: string }[] = [
-  { value: "sonnet4.5", label: "Sonnet 4.5" },
-  { value: "opus4.5", label: "Opus 4.5" },
-  { value: "claude-haiku-4-5-20251001", label: "Haiku 4.5" },
-];
-
-const GEMINI_MODELS: { value: string; label: string }[] = [
-  { value: "gemini-2.5-flash", label: "2.5 Flash" },
-  { value: "gemini-2.5-pro", label: "2.5 Pro" },
-];
-
-const PI_MODELS: { value: string; label: string }[] = [
-  { value: "gpt-5.1-codex-mini", label: "GPT-5.1 Codex Mini" },
-  { value: "gpt-5.2-codex", label: "GPT-5.2 Codex" },
-];
-
-const DEFAULT_CLAUDE_MODEL = "sonnet4.5";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-const DEFAULT_PI_MODEL = "gpt-5.1-codex-mini";
-
 /** Theme mode - light only (no dark mode) */
 function getThemeModeForProvider(_provider: BrandProvider): "light" | "dark" {
   return "light";
 }
 
-// ============================================================================
-// Enhanced Header Button Component
-// ============================================================================
-
-interface HeaderButtonProps {
-  icon: React.ReactNode;
-  onPress: () => void;
-  accessibilityLabel: string;
-  delay?: number;
-}
-
-function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderButtonProps) {
-  return (
-    <EntranceAnimation variant="scale" delay={delay}>
-      <AnimatedPressableView
-        onPress={() => {
-          triggerHaptic("light");
-          onPress();
-        }}
-        haptic={undefined}
-        scaleTo={0.92}
-        style={{
-          width: 40,
-          height: 40,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-        accessibilityLabel={accessibilityLabel}
-      >
-        {icon}
-      </AnimatedPressableView>
-    </EntranceAnimation>
-  );
-}
+type ModalSessionItem = {
+  id: string;
+  provider?: string | null;
+  model?: string | null;
+  running?: boolean;
+  sseConnected?: boolean;
+  messages?: Message[];
+  cwd?: string | null;
+};
 
 // ============================================================================
 // Main App Component
@@ -172,8 +104,8 @@ export default function App() {
   const insets = useSafeAreaInsets();
 
   // Theme and Provider State
-  const [provider, setProvider] = useState<BrandProvider>("pi");
-  const [model, setModel] = useState(DEFAULT_PI_MODEL);
+  const [provider, setProvider] = useState<BrandProvider>("codex");
+  const [model, setModel] = useState(DEFAULT_CODEX_MODEL);
   const themeMode = useMemo(() => getThemeModeForProvider(provider), [provider]);
   const theme = useMemo(() => getTheme(provider, themeMode), [provider, themeMode]);
   const styles = useMemo(() => createAppStyles(theme), [theme]);
@@ -183,7 +115,7 @@ export default function App() {
 
   // Model Management
   const modelOptions =
-    provider === "claude" ? CLAUDE_MODELS : provider === "pi" || provider === "codex" ? PI_MODELS : GEMINI_MODELS;
+    provider === "claude" ? CLAUDE_MODELS : provider === "codex" ? CODEX_MODELS : GEMINI_MODELS;
 
   // Server Configuration
   const serverConfig = useMemo(() => getDefaultServerConfig(), []);
@@ -200,22 +132,22 @@ export default function App() {
       ? "always_ask"
       : "yolo";
 
-  const [permissionModeUI, setPermissionModeUI] = useState<PermissionModeUI>(defaultPermissionModeUI);
-
-  // UI State
-  const [sessionManagementVisible, setSessionManagementVisible] = useState(false);
-  const currentSessionId = useSessionManagementStore((state) => state.currentSessionId);
-  const setCurrentSessionId = useSessionManagementStore((state) => state.setCurrentSessionId);
+  const [permissionModeUI] = useState<PermissionModeUI>(defaultPermissionModeUI);
   const setGlobalSessionId = useSessionManagementStore((state) => state.setSessionId);
   const setGlobalProvider = useSessionManagementStore((state) => state.setProvider);
   const setGlobalModel = useSessionManagementStore((state) => state.setModel);
-  const storeCurrentSessionId = useSessionManagementStore((state) => state.currentSessionId);
   const storeSessionId = useSessionManagementStore((state) => state.sessionId);
   const storeProvider = useSessionManagementStore((state) => state.provider);
   const storeModel = useSessionManagementStore((state) => state.model);
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
   const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
+  const [selectedSseSessionId, setSelectedSseSessionId] = useState<string | null>(storeSessionId);
+  const [selectedSseSessionRunning, setSelectedSseSessionRunning] = useState(false);
+
+  // UI State
+  const [sessionManagementVisible, setSessionManagementVisible] = useState(false);
   const sessionStorePayloadRef = useRef("");
+  const sessionStoreUploadedAtRef = useRef(0);
   const [workspacePickerVisible, setWorkspacePickerVisible] = useState(false);
   const [dockerVisible, setDockerVisible] = useState(false);
   const [processesVisible, setProcessesVisible] = useState(false);
@@ -289,24 +221,37 @@ export default function App() {
     viewingLiveSession,
     liveSessionMessages,
     lastSessionTerminated,
-  } = useSocket({ provider, model });
+  } = useSocket({
+    provider,
+    model,
+    sessionid: selectedSseSessionId,
+    status: selectedSseSessionRunning,
+  });
 
   messagesRef.current = messages;
 
   useEffect(() => {
     setGlobalProvider(provider);
     setGlobalModel(model);
-    setGlobalSessionId(sessionId);
-  }, [provider, model, sessionId, setGlobalProvider, setGlobalModel, setGlobalSessionId]);
+    setGlobalSessionId(selectedSseSessionId ?? sessionId);
+  }, [provider, model, sessionId, selectedSseSessionId, setGlobalProvider, setGlobalModel, setGlobalSessionId]);
+
+  useEffect(() => {
+    if (!selectedSseSessionRunning) return;
+    if (sessionId != null && sessionId !== selectedSseSessionId) {
+      setSelectedSseSessionId(sessionId);
+    }
+  }, [selectedSseSessionRunning, sessionId, selectedSseSessionId]);
 
   /** When user switches provider: start new session, update provider+model. */
   const handleProviderChange = useCallback(
     (p: BrandProvider) => {
       const newModel =
-        p === "claude" ? DEFAULT_CLAUDE_MODEL : p === "pi" || p === "codex" ? DEFAULT_PI_MODEL : DEFAULT_GEMINI_MODEL;
+        p === "claude" ? DEFAULT_CLAUDE_MODEL : p === "codex" ? DEFAULT_CODEX_MODEL : DEFAULT_GEMINI_MODEL;
       const isChanging = p !== provider || newModel !== model;
       if (isChanging) {
-        setCurrentSessionId(null);
+        setSelectedSseSessionId(null);
+        setSelectedSseSessionRunning(false);
         resetSession();
       }
       setProvider(p);
@@ -321,7 +266,8 @@ export default function App() {
   const handleModelChange = useCallback(
     (newModel: string) => {
       if (newModel === model) return;
-      setCurrentSessionId(null);
+      setSelectedSseSessionId(null);
+      setSelectedSseSessionRunning(false);
       resetSession();
       setModel(newModel);
       sessionStore.setLastUsedProviderModel(provider, newModel);
@@ -364,10 +310,10 @@ export default function App() {
     prevApprovalNeededRef.current = approvalNeeded;
   }, [pendingAskQuestion, waitingForUserInput, permissionDenials]);
 
-  // Sync currentSessionId from Pi agent session_id when conversation begins (live session only)
+  // Sync selectedSseSessionId from Pi agent session_id when conversation begins (live session only)
   useEffect(() => {
     if (viewingLiveSession && sessionId != null && liveSessionMessages.length > 0) {
-      setCurrentSessionId(sessionId);
+      setSelectedSseSessionId(sessionId);
     }
   }, [viewingLiveSession, sessionId, liveSessionMessages.length]);
 
@@ -375,7 +321,7 @@ export default function App() {
   const EMPTY_SESSION_CLEANUP_MS = 3 * 60 * 1000;
   useEffect(() => {
     const baseUrl = serverConfig.getBaseUrl();
-    const currentPageId = viewingLiveSession ? sessionId : currentSessionId;
+    const currentPageId = viewingLiveSession ? sessionId : selectedSseSessionId;
     const cleanup = async () => {
       const now = Date.now();
       for (const s of sessionStatuses) {
@@ -394,7 +340,7 @@ export default function App() {
     const interval = setInterval(cleanup, 60_000);
     void cleanup();
     return () => clearInterval(interval);
-  }, [serverConfig, viewingLiveSession, sessionId, currentSessionId, sessionStatuses]);
+  }, [serverConfig, viewingLiveSession, sessionId, selectedSseSessionId, sessionStatuses]);
 
   // Load last used provider/model on mount (sessions come from server .pi/agent/sessions) (sessions come from server .pi/agent/sessions)
   const hasRestoredProviderModel = useRef(false);
@@ -404,9 +350,9 @@ export default function App() {
     sessionStore.loadLastUsedProviderModel().then((lastUsed) => {
       if (lastUsed) {
         const validProvider: BrandProvider =
-          lastUsed.provider === "claude" || lastUsed.provider === "gemini" || lastUsed.provider === "pi" || lastUsed.provider === "codex"
+          lastUsed.provider === "claude" || lastUsed.provider === "gemini" || lastUsed.provider === "codex"
             ? lastUsed.provider
-            : "pi";
+            : "codex";
         setProvider(validProvider);
         setModel(lastUsed.model);
       }
@@ -561,15 +507,19 @@ export default function App() {
   const handleSubmit = useCallback(
     (prompt: string) => {
       switchToLiveSession();
-      const backend = getBackendPermissionMode(permissionModeUI, provider);
-      const codexOptions =
-        provider === "pi" || provider === "codex"
-          ? {
-            askForApproval: backend.askForApproval,
-            fullAuto: backend.fullAuto,
-            yolo: backend.yolo,
-          }
-          : undefined;
+      setSelectedSseSessionRunning(true);
+      if (selectedSseSessionId == null && sessionId != null) {
+        setSelectedSseSessionId(sessionId);
+      }
+        const backend = getBackendPermissionMode(permissionModeUI, provider);
+        const codexOptions =
+          provider === "codex"
+            ? {
+              askForApproval: backend.askForApproval,
+              fullAuto: backend.fullAuto,
+              yolo: backend.yolo,
+            }
+            : undefined;
 
       const doSubmit = () => {
         submitPrompt(
@@ -587,7 +537,16 @@ export default function App() {
 
       doSubmit();
     },
-    [submitPrompt, permissionModeUI, provider, pendingCodeRefs, handleCloseFileViewer, switchToLiveSession]
+    [
+      selectedSseSessionId,
+      sessionId,
+      submitPrompt,
+      permissionModeUI,
+      provider,
+      pendingCodeRefs,
+      handleCloseFileViewer,
+      switchToLiveSession,
+    ]
   );
 
   const handleOpenPreviewInApp = useCallback((u: string) => {
@@ -611,6 +570,8 @@ export default function App() {
 
   const handleCommitByAI = useCallback(
     (userRequest: string) => {
+      setSelectedSseSessionRunning(false);
+      setSelectedSseSessionId(null);
       resetSession();
       handleSubmit(userRequest);
       setSidebarVisible(false);
@@ -638,157 +599,118 @@ export default function App() {
   // FlatList performance: compute once to avoid per-item Dimensions.get
   const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
 
-  // Always show full conversation (user input + previous turns), including while streaming.
-  const displayMessages = messages;
+  const handleRetryPermission = useCallback(() => {
+    const backend = getBackendPermissionMode(permissionModeUI, provider);
+    const lastUserMsg = [...messagesRef.current].reverse().find((m) => m.role === "user");
+    retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
+  }, [permissionModeUI, provider, retryAfterPermission]);
 
-  // When streaming, keep list data stable (exclude last message) so VirtualizedList doesn't
-  // re-run on every chunk; render the streaming message in the footer instead.
-  const useStreamingList =
-    !!typingIndicator &&
-    displayMessages.length > 0 &&
-    displayMessages[displayMessages.length - 1]?.role === "assistant";
-  const listIdsKey = useMemo(
-    () => displayMessages.map((m) => m.id).join(","),
-    [displayMessages]
-  );
-  const listDataStable = useMemo(
-    () => displayMessages.slice(0, -1),
-    [displayMessages.length, listIdsKey]
-  );
-  const chatListData = useStreamingList ? listDataStable : displayMessages;
+  const handleChatContentSizeChange = useCallback(() => {
+    const now = Date.now();
+    if (now - lastScrollToEndTimeRef.current < 400) return;
+    lastScrollToEndTimeRef.current = now;
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
-  const flatListExtraData = useMemo(
-    () => `${lastSessionTerminated}-${chatListData.length}`,
-    [lastSessionTerminated, chatListData.length]
-  );
+  const handleSelectSession = useCallback(
+    async (session: ModalSessionItem) => {
+      const selectedProvider = typeof session.provider === "string" && session.provider.length > 0 ? session.provider : null;
+      const selectedModel = typeof session.model === "string" && session.model.length > 0 ? session.model : null;
+      const sessionMessages = Array.isArray(session.messages) ? session.messages : [];
+      // Switch workspace to session's cwd when different from current.
+      const sessionCwd = session.cwd ?? null;
+      if (sessionCwd && sessionCwd !== workspacePath) {
+        try {
+          const res = await fetch(`${serverConfig.getBaseUrl()}/api/workspace-path`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: sessionCwd }),
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { path?: string };
+            if (typeof data?.path === "string") setWorkspacePath(data.path);
+          }
+        } catch {
+          // Proceed with load even if switch fails; session may still be viewable.
+        }
+      }
 
-  const renderMessageItem = useCallback(
-    ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
-      const isLast =
-        !useStreamingList && index === displayMessages.length - 1;
-      const showTerminated =
-        lastSessionTerminated && isLast && item.role === "assistant" && !item.content;
-      const hasCodeOrFileContent =
-        hasFileActivityContent(item.content) || hasCodeBlockContent(item.content);
-      const showTailBox =
-        isLast &&
-        item.role === "assistant" &&
-        !!(item.content && item.content.trim()) &&
-        hasCodeOrFileContent;
-      return (
-        <MessageBubble
-          message={item}
-          isTerminatedLabel={showTerminated}
-          showAsTailBox={showTailBox}
-          tailBoxMaxHeight={tailBoxMaxHeight}
-          provider={provider}
-          onOpenUrl={handleOpenPreviewInApp}
-          onFileSelect={handleFileSelectFromChat}
-          isStreaming={typingIndicator && isLast && item.role === "assistant"}
-        />
-      );
+      lastSwitchedSessionRef.current = {
+        id: session.id,
+        provider: selectedProvider,
+        model: selectedModel,
+      };
+      setSelectedSseSessionId(session.id);
+      setSelectedSseSessionRunning(Boolean(session.running || session.sseConnected));
+      if (selectedProvider) setProvider(selectedProvider as BrandProvider);
+      if (selectedModel) setModel(selectedModel);
+      if (selectedProvider && selectedModel) {
+        sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
+      }
+      // Conversation was already loaded from disk (GET /api/sessions/:id/messages).
+      // Connect SSE only when session is running; otherwise show persisted messages only (no SSE).
+      if (session.running || session.sseConnected) {
+        resumeLiveSession(session.id, sessionMessages);
+      } else {
+        setSelectedSseSessionRunning(false);
+        loadSession(sessionMessages, session.id);
+      }
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }, 100);
+      });
     },
-    [
-      useStreamingList,
-      displayMessages.length,
-      lastSessionTerminated,
-      typingIndicator,
-      provider,
-      handleOpenPreviewInApp,
-      handleFileSelectFromChat,
-      tailBoxMaxHeight,
-    ]
+    [resumeLiveSession, loadSession, serverConfig, workspacePath]
   );
 
-  const chatListFooter = useMemo(
-    () => (
-      <>
-        {typingIndicator && (
-          <EntranceAnimation variant="fade" duration={200}>
-            <TypingIndicator visible provider={provider} activity={currentActivity} />
-          </EntranceAnimation>
-        )}
-        {permissionDenials && permissionDenials.length > 0 && (
-          <PermissionDenialBanner
-            denials={permissionDenials}
-            onDismiss={dismissPermission}
-            onAccept={() => {
-              const backend = getBackendPermissionMode(permissionModeUI, provider);
-              const lastUserMsg = [...messagesRef.current].reverse().find((m) => m.role === "user");
-              retryAfterPermission(backend.permissionMode, backend.approvalMode, lastUserMsg?.content);
-            }}
-          />
-        )}
-      </>
-    ),
-    [
-      typingIndicator,
-      provider,
-      currentActivity,
-      permissionDenials,
-      dismissPermission,
-      permissionModeUI,
-      retryAfterPermission,
-    ]
-  );
-
-  // When streaming, render the last (streaming) message in the footer so the list data stays stable.
-  const streamingFooterContent = useMemo(() => {
-    const last = displayMessages[displayMessages.length - 1];
-    if (!last) return chatListFooter;
-    const hasCodeOrFileContent =
-      hasFileActivityContent(last.content) || hasCodeBlockContent(last.content);
-    const showTailBox =
-      !!(last.content && last.content.trim()) && hasCodeOrFileContent;
-    return (
-      <>
-        <MessageBubble
-          message={last}
-          isTerminatedLabel={false}
-          showAsTailBox={showTailBox}
-          tailBoxMaxHeight={tailBoxMaxHeight}
-          provider={provider}
-          onOpenUrl={handleOpenPreviewInApp}
-          onFileSelect={handleFileSelectFromChat}
-          isStreaming
-        />
-        {chatListFooter}
-      </>
-    );
-  }, [
-    displayMessages,
-    chatListFooter,
-    tailBoxMaxHeight,
-    provider,
-    handleOpenPreviewInApp,
-    handleFileSelectFromChat,
-  ]);
-
-  const flatListFooterComponent =
-    useStreamingList ? streamingFooterContent : chatListFooter;
+  const handleSelectActiveChat = useCallback(() => {
+    switchToLiveSession();
+    if (sessionId == null) {
+      setSelectedSseSessionRunning(false);
+      setSelectedSseSessionId(null);
+    } else {
+      setSelectedSseSessionRunning(true);
+      setSelectedSseSessionId(sessionId);
+    }
+    setSessionManagementVisible(false);
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    });
+  }, [sessionId, switchToLiveSession]);
 
   useEffect(() => {
     const snapshot = {
       provider: storeProvider,
       model: storeModel,
-      currentSessionId: storeCurrentSessionId,
+      currentSessionId: selectedSseSessionId,
       sessionId: storeSessionId,
       count: sessionStatuses.length,
       sessions: sessionStatuses,
       path: workspacePath,
       connected,
+      sseConnected: connected,
       sessionManagement: {
         visible: sessionManagementVisible,
         currentProvider: provider,
         currentModel: model,
-        activeSessionId: viewingLiveSession ? sessionId : currentSessionId,
+        activeSessionId: viewingLiveSession ? sessionId : selectedSseSessionId,
       },
     };
     const signature = JSON.stringify(snapshot);
-    if (sessionStorePayloadRef.current !== signature) {
+    const now = Date.now();
+    const shouldUpload =
+      sessionStorePayloadRef.current !== signature ||
+      now - sessionStoreUploadedAtRef.current >= 30000;
+    if (shouldUpload) {
       sessionStorePayloadRef.current = signature;
+      sessionStoreUploadedAtRef.current = now;
       console.log("[session-management] store snapshot:", snapshot);
-      void fetch(`${serverConfig.getBaseUrl()}/api/session-management-store`, {
+      const endpoint = `${serverConfig.getBaseUrl()}/api/session-management-store`;
+      console.log("[session-management] uploading snapshot to:", endpoint);
+      void fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(snapshot),
@@ -804,16 +726,21 @@ export default function App() {
           }
         })
         .catch((error) => {
-          console.error("[session-management] failed to upload snapshot:", error);
+          console.error(
+            "[session-management] failed to upload snapshot:",
+            String(error),
+            "to",
+            endpoint
+          );
         });
     }
   }, [
     sessionStatuses,
-    storeCurrentSessionId,
+    selectedSseSessionId,
     storeModel,
     storeProvider,
     storeSessionId,
-    currentSessionId,
+    selectedSseSessionId,
     connected,
     provider,
     model,
@@ -837,462 +764,175 @@ export default function App() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <Box style={[styles.page, { paddingTop: insets.top }]}>
-            {/* Provider-themed subtle gradient tint at top */}
-            <Box style={styles.providerTintOverlay} pointerEvents="none" />
-            {/* Group 1: Main content + overlays (flex: 1) */}
-            <Box style={styles.topSection}>
-              {/* Main Content Area */}
-              <Box style={styles.contentArea}>
-                {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
-                {!sidebarVisible && (
-                  <HStack style={styles.menuButtonOverlay} pointerEvents="box-none">
-                    <HeaderButton
-                      icon={<MenuIcon color={theme.colors.textPrimary} />}
-                      onPress={() => setSidebarVisible(true)}
-                      accessibilityLabel="Open Explorer"
-                      delay={100}
-                    />
-                    <Box style={[styles.sessionIdCenter, { flexShrink: 1 }]} className="min-w-0 flex-1">
-                      <VStack style={styles.headerStatusStack} className="gap-0.5 items-center">
-                        <GluestackText
-                          size="xs"
-                          numberOfLines={2}
-                          style={{ color: theme.colors.accent }}
-                          className="font-medium text-center"
-                        >
-                          {workspacePath ? basename(workspacePath) : "—"}
-                        </GluestackText>
-                        {typingIndicator ? (
-                          <FlashAnimation style={styles.headerStatusRow} duration={600}>
-                            <HStack style={styles.headerStatusRow} className="items-center gap-1.5">
-                              <Box
-                                style={[
-                                  styles.runningDot,
-                                  { backgroundColor: theme.colors.success },
-                                ]}
-                              />
-                              <GluestackText size="xs" style={{ color: theme.colors.success }} className="font-medium">
-                                Running
-                              </GluestackText>
-                            </HStack>
-                          </FlashAnimation>
-                        ) : (
-                          <GluestackText
-                            size="xs"
-                            numberOfLines={1}
-                            ellipsizeMode="middle"
-                            style={{
-                              color: agentRunning && waitingForUserInput
-                                ? theme.colors.warning
-                                : theme.colors.textMuted,
-                            }}
-                            className="font-medium"
-                          >
-                            {agentRunning && waitingForUserInput ? "Wait" : "Idle"}
-                            {": "}
-                            {((viewingLiveSession ? sessionId : currentSessionId) ?? "")
-                              .split("-")[0] || "—"}
-                          </GluestackText>
-                        )}
-                      </VStack>
-                    </Box>
-                    <HeaderButton
-                      icon={<SettingsIcon color={theme.colors.textPrimary} />}
-                      onPress={() => setSessionManagementVisible(true)}
-                      accessibilityLabel="Manage sessions"
-                      delay={200}
-                    />
-                  </HStack>
-                )}
-
-                {/* Chat Area */}
-                <Box style={styles.chatShell}>
-                  <FlatList
-                    key="chat"
-                    ref={flatListRef}
-                    style={styles.chatArea}
-                    contentContainerStyle={styles.chatMessages}
-                    showsVerticalScrollIndicator={false}
-                    showsHorizontalScrollIndicator={false}
-                    keyboardDismissMode="on-drag"
-                    keyboardShouldPersistTaps="handled"
-                    data={chatListData}
-                    extraData={flatListExtraData}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderMessageItem}
-                    initialNumToRender={15}
-                    maxToRenderPerBatch={10}
-                    windowSize={10}
-                    removeClippedSubviews={Platform.OS === "android"}
-                    ListFooterComponent={flatListFooterComponent}
-                    onContentSizeChange={() => {
-                      const now = Date.now();
-                      if (now - lastScrollToEndTimeRef.current < 400) return;
-                      lastScrollToEndTimeRef.current = now;
-                      flatListRef.current?.scrollToEnd({ animated: true });
+            <Box style={[styles.page, { paddingTop: insets.top }]}>
+              {/* Provider-themed subtle gradient tint at top */}
+              <Box style={styles.providerTintOverlay} pointerEvents="none" />
+              {/* Group 1: Main content + overlays (flex: 1) */}
+              <Box style={styles.topSection}>
+                {/* Main Content Area */}
+                <Box style={styles.contentArea}>
+                  {/* Header: Menu (left) | Session ID (center) | Settings (right) */}
+                  <AppHeaderBar
+                    visible={!sidebarVisible}
+                    theme={theme}
+                    styles={{
+                      menuButtonOverlay: styles.menuButtonOverlay,
+                      sessionIdCenter: styles.sessionIdCenter,
+                      headerStatusStack: styles.headerStatusStack,
+                      headerStatusRow: styles.headerStatusRow,
+                      runningDot: styles.runningDot,
                     }}
+                    workspaceName={workspacePath ? basename(workspacePath) : "—"}
+                    typingIndicator={typingIndicator}
+                    agentRunning={agentRunning}
+                    waitingForUserInput={waitingForUserInput}
+                    sessionIdLabel={
+                      ((viewingLiveSession ? sessionId : selectedSseSessionId) ?? "").split("-")[0] ||
+                      "—"
+                    }
+                    onOpenExplorer={() => setSidebarVisible(true)}
+                    onOpenSessionManagement={() => setSessionManagementVisible(true)}
                   />
-                </Box>
 
-                {selectedFilePath != null && (
-                  <Box style={styles.fileViewerOverlay} pointerEvents="box-none">
-                    <FileViewerModal
-                      visible
-                      embedded
-                      path={selectedFilePath}
-                      content={fileContent}
-                      isImage={fileIsImage}
-                      loading={fileLoading}
-                      error={fileError}
-                      onClose={handleCloseFileViewer}
-                      onAddCodeReference={handleAddCodeReference}
+                  {/* Chat Area */}
+                  <Box style={styles.chatShell}>
+                    <ChatMessageList
+                      messages={messages}
+                      provider={provider}
+                      typingIndicator={typingIndicator}
+                      currentActivity={currentActivity}
+                      permissionDenials={permissionDenials ?? []}
+                      lastSessionTerminated={lastSessionTerminated}
+                      onOpenUrl={handleOpenPreviewInApp}
+                      onFileSelect={handleFileSelectFromChat}
+                      onRetryPermission={handleRetryPermission}
+                      onDismissPermission={dismissPermission}
+                      tailBoxMaxHeight={tailBoxMaxHeight}
+                      flatListRef={flatListRef}
+                      onContentSizeChange={handleChatContentSizeChange}
+                      style={styles.chatArea}
+                      contentContainerStyle={styles.chatMessages}
                     />
                   </Box>
-                )}
 
-                {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
-                <Box style={styles.sidebarOverlay} pointerEvents={sidebarVisible ? "auto" : "none"}>
-                  <WorkspaceSidebar
+                  <FileViewerOverlay
+                    visible={selectedFilePath != null}
+                    style={styles.fileViewerOverlay}
+                    path={selectedFilePath ?? ""}
+                    content={fileContent}
+                    isImage={fileIsImage}
+                    loading={fileLoading}
+                    error={fileError}
+                    onClose={handleCloseFileViewer}
+                    onAddCodeReference={handleAddCodeReference}
+                  />
+
+                  {/* Sidebar overlay - fills topSection, never overlaps InputPanel */}
+                  <WorkspaceSidebarOverlay
                     visible={sidebarVisible}
-                    embedded
+                    style={styles.sidebarOverlay}
+                    pointerEvents={sidebarVisible ? "auto" : "none"}
                     onClose={() => setSidebarVisible(false)}
                     onFileSelect={handleFileSelect}
                     onCommitByAI={handleCommitByAI}
                     onActiveTabChange={setSidebarActiveTab}
+                    sidebarActiveTab={sidebarActiveTab}
                   />
                 </Box>
               </Box>
-            </Box>
+                {/* Group 2: Input Panel - only show at file explorer, not during staging/commit */}
+                {(!sidebarVisible || sidebarActiveTab === "files") && (
+                  <View style={styles.inputBar}>
+                    <ChatInputDock
+                      connected={connected}
+                      agentRunning={agentRunning}
+                      waitingForUserInput={waitingForUserInput}
+                      permissionModeUI={permissionModeUI}
+                      onSubmit={handleSubmit}
+                      pendingCodeRefs={pendingCodeRefs}
+                      onRemoveCodeRef={handleRemoveCodeRef}
+                      onTerminateAgent={terminateAgent}
+                      onOpenProcesses={() => setProcessesVisible(true)}
+                      onOpenWebPreview={() => setPreviewUrl("")}
+                      provider={provider}
+                      model={model}
+                      modelOptions={modelOptions}
+                      providerModelOptions={MODEL_OPTIONS_BY_PROVIDER}
+                      onProviderChange={handleProviderChange}
+                      onModelChange={handleModelChange}
+                      onOpenModelPicker={() => setModelPickerVisible(true)}
+                      onOpenSkillsConfig={() => setSkillsConfigVisible(true)}
+                      onOpenDocker={() => setDockerVisible(true)}
+                    />
+                  </View>
+                )}
+              </Box>
 
-            {/* Group 2: Input Panel - only show at file explorer, not during staging/commit */}
-            {(!sidebarVisible || sidebarActiveTab === "files") && (
-            <View style={styles.inputBar}>
-              <InputPanel
-                connected={connected}
-                agentRunning={agentRunning}
-                waitingForUserInput={waitingForUserInput}
-                permissionMode={(() => {
-                  const b = getBackendPermissionMode(permissionModeUI, provider);
-                  return b.permissionMode ?? b.approvalMode ?? null;
-                })()}
-                onPermissionModeChange={() => { }}
-                onSubmit={handleSubmit}
-                pendingCodeRefs={pendingCodeRefs}
-                onRemoveCodeRef={handleRemoveCodeRef}
-                onTerminateAgent={terminateAgent}
-                onOpenProcesses={() => setProcessesVisible(true)}
-                onOpenWebPreview={() => setPreviewUrl("")}
+              <SessionModals
+                pendingAskQuestion={pendingAskQuestion}
+                onSubmitAskQuestion={handleAskQuestionSubmit}
+                onCancelAskQuestion={handleAskQuestionCancel}
+                skillsConfigVisible={skillsConfigVisible}
+                onCloseSkillsConfig={() => setSkillsConfigVisible(false)}
+                selectedSkillId={selectedSkillId}
+                onSelectSkill={(id) => setSelectedSkillId(id)}
+                onCloseSkillDetail={() => setSelectedSkillId(null)}
+                serverBaseUrl={serverConfig.getBaseUrl()}
+                workspacePickerVisible={workspacePickerVisible}
+                onCloseWorkspacePicker={() => setWorkspacePickerVisible(false)}
+                workspacePath={workspacePath}
+                onRefreshWorkspace={fetchWorkspacePath}
+                onWorkspaceSelected={() => {
+                  setSelectedSseSessionId(null);
+                  setSelectedSseSessionRunning(false);
+                  resetSession();
+                }}
+                dockerVisible={dockerVisible}
+                onCloseDocker={() => setDockerVisible(false)}
+                modelPickerVisible={modelPickerVisible}
+                onCloseModelPicker={() => setModelPickerVisible(false)}
                 provider={provider}
                 model={model}
-                modelOptions={modelOptions}
-                providerModelOptions={{
-                  claude: CLAUDE_MODELS,
-                  gemini: GEMINI_MODELS,
-                  codex: PI_MODELS,
+                themeMode={themeMode}
+                surfaceColor={theme.colors.surface}
+                providerModelOptions={MODEL_OPTIONS_BY_PROVIDER}
+                onModelProviderChange={handleProviderChange}
+                onModelChange={(nextModel) => {
+                  handleModelChange(nextModel);
+                  setModelPickerVisible(false);
                 }}
-                onProviderChange={handleProviderChange}
-                onModelChange={handleModelChange}
-                onOpenModelPicker={() => setModelPickerVisible(true)}
-                onOpenSkillsConfig={() => setSkillsConfigVisible(true)}
-                onOpenDocker={() => setDockerVisible(true)}
+                processesVisible={processesVisible}
+                onCloseProcesses={() => setProcessesVisible(false)}
+                sessionManagementVisible={sessionManagementVisible}
+                onCloseSessionManagement={() => setSessionManagementVisible(false)}
+                currentMessages={messages}
+                currentSessionId={selectedSseSessionId}
+                workspacePathForSessionManagement={workspacePath}
+                sessionProvider={provider}
+                sessionModel={model}
+                workspaceLoading={workspacePathLoading}
+                onRefreshSessionManagementWorkspace={fetchWorkspacePath}
+                onOpenWorkspacePicker={() => {
+                  setSessionManagementVisible(false);
+                  setWorkspacePickerVisible(true);
+                }}
+                onSelectSession={handleSelectSession}
+                onNewSession={() => {
+                  setSelectedSseSessionId(null);
+                  setSelectedSseSessionRunning(false);
+                  startNewSession();
+                }}
+                showActiveChat={false}
+                sessionRunning={agentRunning || typingIndicator}
+                onSelectActiveChat={handleSelectActiveChat}
+                previewVisible={previewUrl != null}
+                previewUrl={previewUrl ?? ""}
+                onClosePreview={handleClosePreview}
+                resolvePreviewUrl={serverConfig.resolvePreviewUrl}
               />
-            </View>
-            )}
-          </Box>
-
-          {/* Ask Question Modal */}
-          <AskQuestionModal
-            pending={pendingAskQuestion}
-            onSubmit={handleAskQuestionSubmit}
-            onCancel={handleAskQuestionCancel}
-          />
-
-          {/* Skill Configuration Modal */}
-          <SkillConfigurationModal
-            visible={skillsConfigVisible}
-            onClose={() => setSkillsConfigVisible(false)}
-            onSelectSkill={(id) => setSelectedSkillId(id)}
-            selectedSkillId={selectedSkillId}
-            onCloseSkillDetail={() => setSelectedSkillId(null)}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-          />
-
-          <WorkspacePickerModal
-            visible={workspacePickerVisible}
-            onClose={() => setWorkspacePickerVisible(false)}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-            workspacePath={workspacePath}
-            onRefreshWorkspace={fetchWorkspacePath}
-            onWorkspaceSelected={() => {
-              setCurrentSessionId(null);
-              resetSession();
-            }}
-          />
-
-          <DockerManagerModal
-            visible={dockerVisible}
-            onClose={() => setDockerVisible(false)}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-          />
-
-          {/* Model picker - rendered at root to fix overlay stacking above InputPanel */}
-          <Actionsheet
-            isOpen={modelPickerVisible}
-            onClose={() => setModelPickerVisible(false)}
-            snapPoints={[75]}
-          >
-            <ActionsheetBackdrop />
-            <ActionsheetContent
-              style={{ backgroundColor: theme.colors.surface, opacity: 1 }}
-            >
-              <ActionsheetDragIndicatorWrapper>
-                <ActionsheetDragIndicator />
-              </ActionsheetDragIndicatorWrapper>
-              <ActionsheetScrollView
-                contentContainerStyle={{ paddingBottom: 32 }}
-                showsVerticalScrollIndicator={false}
-              >
-                {(["claude", "gemini", "codex"] as const).map((p) => {
-                  const opts =
-                    p === "claude" ? CLAUDE_MODELS : p === "gemini" ? GEMINI_MODELS : PI_MODELS;
-                  if (opts.length === 0) return null;
-                  const currentProvider = provider === "pi" ? "codex" : provider;
-                  const ProviderIcon = p === "claude" ? ClaudeIcon : p === "gemini" ? GeminiIcon : CodexIcon;
-                  const accent = getTheme(p, themeMode).colors.accent;
-                  return (
-                    <Box key={p} className="mb-4">
-                      <Box className="flex-row items-center gap-2 mb-1.5 px-0.5">
-                        <ProviderIcon size={18} color={accent} />
-                        <GluestackText size="xs" bold className="text-typography-600">
-                          {p.charAt(0).toUpperCase() + p.slice(1)}
-                        </GluestackText>
-                      </Box>
-                      {opts.map((opt) => {
-                        const isActive = currentProvider === p && model === opt.value;
-                        return (
-                          <ActionsheetItem
-                            key={opt.value}
-                            onPress={() => {
-                              triggerHaptic("selection");
-                              if (currentProvider !== p) handleProviderChange(p);
-                              handleModelChange(opt.value);
-                              setModelPickerVisible(false);
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            style={{ minHeight: 48 }}
-                          >
-                            <ActionsheetItemText bold={isActive}>{opt.label}</ActionsheetItemText>
-                          </ActionsheetItem>
-                        );
-                      })}
-                    </Box>
-                  );
-                })}
-              </ActionsheetScrollView>
-            </ActionsheetContent>
-          </Actionsheet>
-
-          <ProcessesDashboardModal
-            visible={processesVisible}
-            onClose={() => setProcessesVisible(false)}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-          />
-
-          <SessionManagementModal
-            visible={sessionManagementVisible}
-            onClose={() => setSessionManagementVisible(false)}
-            currentMessages={messages}
-            currentSessionId={currentSessionId}
-            workspacePath={workspacePath}
-            provider={provider}
-            model={model}
-            serverBaseUrl={serverConfig.getBaseUrl()}
-            workspaceLoading={workspacePathLoading}
-            onRefreshWorkspace={fetchWorkspacePath}
-            onOpenWorkspacePicker={() => {
-              setSessionManagementVisible(false);
-              setWorkspacePickerVisible(true);
-            }}
-            onSelectSession={async (s) => {
-              const selectedProvider = typeof s.provider === "string" && s.provider.length > 0 ? s.provider : null;
-              const selectedModel = typeof s.model === "string" && s.model.length > 0 ? s.model : null;
-              // Switch workspace to session's cwd when different from current
-              const sessionCwd = s.cwd ?? null;
-              if (sessionCwd && sessionCwd !== workspacePath) {
-                try {
-                  const res = await fetch(`${serverConfig.getBaseUrl()}/api/workspace-path`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ path: sessionCwd }),
-                  });
-                  if (res.ok) {
-                    const data = (await res.json()) as { path?: string };
-                    if (typeof data?.path === "string") setWorkspacePath(data.path);
-                  }
-                } catch {
-                  // Proceed with load even if switch fails; session may still be viewable
-                }
-              }
-              lastSwitchedSessionRef.current = {
-                id: s.id,
-                provider: selectedProvider,
-                model: selectedModel,
-              };
-              setCurrentSessionId(s.id);
-              if (selectedProvider) setProvider(selectedProvider as BrandProvider);
-              if (selectedModel) setModel(selectedModel);
-              if (selectedProvider && selectedModel) sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
-              // Conversation was already loaded from disk (GET /api/sessions/:id/messages).
-              // Connect SSE only when session is running; otherwise show persisted messages only (no SSE).
-              if (s.running || s.sseConnected) {
-                resumeLiveSession(s.id, s.messages);
-              } else {
-                loadSession(s.messages, s.id);
-              }
-              // Scroll to bottom after modal closes and list has laid out
-              InteractionManager.runAfterInteractions(() => {
-                setTimeout(() => {
-                  flatListRef.current?.scrollToEnd({ animated: false });
-                }, 100);
-              });
-            }}
-            onNewSession={() => {
-              setCurrentSessionId(null);
-              startNewSession();
-            }}
-            showActiveChat={false}
-            sessionRunning={agentRunning || typingIndicator}
-            onSelectActiveChat={() => {
-              switchToLiveSession();
-              setCurrentSessionId(null);
-              setSessionManagementVisible(false);
-              // Scroll to bottom after modal closes and list has laid out
-              InteractionManager.runAfterInteractions(() => {
-                setTimeout(() => {
-                  flatListRef.current?.scrollToEnd({ animated: false });
-                }, 100);
-              });
-            }}
-          />
-
-          {/* Preview WebView Modal */}
-          <PreviewWebViewModal
-            visible={previewUrl != null}
-            url={previewUrl ?? ""}
-            title="Preview"
-            onClose={handleClosePreview}
-            resolvePreviewUrl={serverConfig.resolvePreviewUrl}
-          />
         </KeyboardAvoidingView>
       </SafeAreaView>
       </GluestackUIProvider>
     </ThemeProvider>
   );
-}
-
-// ============================================================================
-// Styles
-// ============================================================================
-
-function createAppStyles(theme: ReturnType<typeof getTheme>) {
-  return StyleSheet.create({
-    providerTintOverlay: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 58,
-      backgroundColor: theme.colors.pageAccentTint,
-    },
-    safeArea: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    keyboardView: {
-      flex: 1,
-    },
-    page: {
-      flex: 1,
-      flexDirection: "column",
-      paddingHorizontal: 24,
-      paddingTop: 8,
-      paddingBottom: 16,
-    },
-    topSection: {
-      flex: 1,
-      minHeight: 0,
-      position: "relative",
-      overflow: Platform.OS === "ios" ? "visible" : "hidden",
-      paddingBottom: 130,
-    },
-    contentArea: {
-      ...StyleSheet.absoluteFillObject,
-      overflow: Platform.OS === "ios" ? "visible" : "hidden",
-    },
-    sidebarOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: 5,
-    },
-    fileViewerOverlay: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 6,
-    },
-    sessionIdCenter: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingHorizontal: spacing[1],
-      minHeight: 40,
-    },
-    headerStatusStack: {
-      maxWidth: "100%",
-    },
-    headerStatusRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    runningDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    menuButtonOverlay: {
-      position: "absolute",
-      top: 8,
-      left: 0,
-      right: 0,
-      height: 44,
-      zIndex: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 8,
-    },
-    chatShell: {
-      flex: 1,
-      marginTop: 58,
-      minHeight: 0,
-    },
-    chatArea: {
-      flex: 1,
-    },
-    inputBar: {
-      flexShrink: 0,
-      flexGrow: 0,
-      paddingTop: 12,
-      paddingBottom: 8,
-    },
-    chatMessages: {
-      paddingVertical: 12,
-      paddingHorizontal: spacing["4"],
-      gap: 16,
-      paddingBottom: 48,
-    },
-  });
 }

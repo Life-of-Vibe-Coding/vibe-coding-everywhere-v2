@@ -1,4 +1,6 @@
 import type { IServerConfig } from "../../core/types";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 /**
  * Connection mode for the mobile app.
@@ -27,6 +29,88 @@ function getTunnelProxyPort(): number {
   return port ? parseInt(port, 10) || 9443 : 9443;
 }
 
+function parseEnvHost(value: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed.startsWith("http") ? trimmed : `http://${trimmed}`);
+    return parsed.hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+function parseHostFromRuntimeMetadata(): string | null {
+  if (typeof process === "undefined") return null;
+  const rawCandidates = [
+    (Constants as { manifest?: unknown })?.manifest && (Constants as { manifest?: Record<string, unknown> }).manifest?.debuggerHost,
+    (Constants as { manifest?: unknown })?.manifest && (Constants as { manifest?: Record<string, unknown> }).manifest?.hostUri,
+    (Constants as { expoConfig?: unknown })?.expoConfig && (Constants as { expoConfig?: Record<string, unknown> }).expoConfig?.hostUri,
+    (Constants as { expoGoConfig?: unknown })?.expoGoConfig && (Constants as { expoGoConfig?: Record<string, unknown> }).expoGoConfig?.hostUri,
+  ];
+
+  for (const candidate of rawCandidates) {
+    const host = parseEnvHost(typeof candidate === "string" ? candidate : "");
+    if (host) return host;
+  }
+  return null;
+}
+
+let localBaseUrlRewriteWarned = false;
+let localBaseUrlWarned = false;
+
+function getServerHostOverride(): string | null {
+  if (typeof process === "undefined") return null;
+  const explicitHost =
+    parseEnvHost(process.env?.EXPO_PUBLIC_SERVER_HOST ?? "") ||
+    parseEnvHost(process.env?.EXPO_PUBLIC_SERVER_IP ?? "") ||
+    parseEnvHost(process.env?.EXPO_PUBLIC_HOST_IP ?? "");
+  if (explicitHost) return explicitHost;
+  const runtimeHost = parseHostFromRuntimeMetadata();
+  if (runtimeHost) return runtimeHost;
+  if (Platform.OS === "android") return "10.0.2.2";
+  return null;
+}
+
+function normalizeBaseUrl(rawUrl: string): string {
+  const base = rawUrl.trim();
+  if (!base) return base;
+  try {
+    const parsed = new URL(base);
+    const host = parsed.hostname.toLowerCase();
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return base.replace(/\/$/, "");
+    }
+
+    const replacementHost = getServerHostOverride();
+    if (!replacementHost) {
+      if (Platform.OS !== "web") {
+        if (!localBaseUrlWarned) {
+          localBaseUrlWarned = true;
+          console.warn(
+            "[ServerConfig] Base URL still points to localhost on mobile. Set EXPO_PUBLIC_SERVER_HOST (or EXPO_PUBLIC_SERVER_IP) to a reachable host."
+          );
+        }
+      }
+      return base.replace(/\/$/, "");
+    }
+
+    if (replacementHost === host) return base.replace(/\/$/, "");
+    parsed.hostname = replacementHost;
+    const normalized = parsed.toString().replace(/\/$/, "");
+    if (!localBaseUrlRewriteWarned) {
+      localBaseUrlRewriteWarned = true;
+      console.log(
+        `[ServerConfig] Rewrote base host from ${host} to ${replacementHost} for ${Platform.OS} runtime.`
+      );
+    }
+    return normalized;
+  } catch {
+    return base.replace(/\/$/, "");
+  }
+}
+
 /**
  * Default server config (env-based). Inject IServerConfig in tests or for different backends.
  */
@@ -35,7 +119,7 @@ function getBaseUrlFromEnv(): string {
     typeof process !== "undefined" && process.env?.EXPO_PUBLIC_SERVER_URL
       ? process.env.EXPO_PUBLIC_SERVER_URL
       : "http://localhost:3456";
-  return url.replace(/\/$/, "");
+  return normalizeBaseUrl(url);
 }
 
 export function createDefaultServerConfig(): IServerConfig {

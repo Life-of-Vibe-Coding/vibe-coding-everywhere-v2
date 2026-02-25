@@ -9,7 +9,7 @@ import { Text } from "../../../components/ui/text";
 interface TypingIndicatorProps {
   visible: boolean;
   /** AI provider; loading is a circular line segment running around the icon. */
-  provider?: "claude" | "gemini" | "codex" | "pi";
+  provider?: "claude" | "gemini" | "codex";
   /** Current tool/skill activity description (e.g. "Reading file", "Running command") */
   activity?: string | null;
 }
@@ -41,7 +41,7 @@ function stripActivityForDisplay(s: string): string {
     .trim();
 }
 
-export function TypingIndicator({ visible, provider = "pi", activity }: TypingIndicatorProps) {
+export function TypingIndicator({ visible, provider = "codex", activity }: TypingIndicatorProps) {
   const theme = useTheme();
   const ringSpin = useRef(new Animated.Value(0)).current;
   const iconSpin = useRef(new Animated.Value(0)).current;
@@ -123,7 +123,7 @@ export function TypingIndicator({ visible, provider = "pi", activity }: TypingIn
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
-  const Icon = provider === "claude" ? ClaudeIcon : provider === "codex" || provider === "pi" ? CodexIcon : GeminiIcon;
+  const Icon = provider === "claude" ? ClaudeIcon : provider === "codex" ? CodexIcon : GeminiIcon;
   const ringColor = theme.colors.accent;
 
   const displayActivity = activity && activity.trim() ? stripActivityForDisplay(activity) : null;

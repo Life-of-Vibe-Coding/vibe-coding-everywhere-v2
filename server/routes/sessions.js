@@ -15,14 +15,21 @@ export function registerSessionsRoutes(app) {
         return idx >= 0 ? stem.slice(idx + 1) : stem;
     }
 
-    /** Map Pi CLI provider string to app provider (claude, gemini, pi). */
+    /** Map Pi CLI provider string to app provider (claude, gemini, codex). */
     function mapProvider(providerStr) {
         if (!providerStr || typeof providerStr !== "string") return null;
         const s = providerStr.toLowerCase();
         if (s.includes("gemini")) return "gemini";
         if (s.includes("claude") || s.includes("anthropic")) return "claude";
-        if (s.includes("codex") || s.includes("openai")) return "pi";
+        if (s.includes("codex") || s.includes("openai")) return "codex";
         return null;
+    }
+
+    function normalizeProvider(providerStr) {
+        if (providerStr === "claude" || providerStr === "gemini" || providerStr === "codex") {
+            return providerStr;
+        }
+        return "codex";
     }
 
     /** Derive cwd from session file path. Returns null when file is in central SESSIONS_ROOT (no workspace in path). */
@@ -150,11 +157,11 @@ export function registerSessionsRoutes(app) {
         return filePath;
     }
 
-    // POST /api/sessions/new - Initialize a new session (like "pi -new"), returns real sessionId.
+    // POST /api/sessions/new - Initialize a new session and return a real sessionId.
     router.post("/new", (req, res) => {
         const sessionId = crypto.randomUUID();
         const filePath = createNewSessionFile(sessionId, getWorkspaceCwd());
-        const session = createSession(sessionId, "pi", "gemini-2.5-flash", {
+        const session = createSession(sessionId, "codex", "gpt-5.1-codex-mini", {
             existingSessionPath: filePath,
             sessionLogTimestamp: formatSessionLogTimestamp(),
         });
@@ -206,7 +213,7 @@ export function registerSessionsRoutes(app) {
     // Submit prompt and create or update session. Requires sessionId (from POST /api/sessions/new).
     router.post("/", (req, res) => {
         const payload = req.body;
-        const provider = payload.provider || "pi";
+        const provider = normalizeProvider(payload?.provider);
         const model = payload.model;
         const prompt = typeof payload?.prompt === "string" ? payload.prompt.trim() : "";
 

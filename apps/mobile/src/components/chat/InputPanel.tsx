@@ -50,11 +50,11 @@ export interface InputPanelProps {
   onTerminateAgent?: () => void;
   onOpenWebPreview?: () => void;
   onOpenProcesses?: () => void;
-  provider?: "claude" | "gemini" | "codex" | "pi";
+  provider?: "claude" | "gemini" | "codex";
   model?: string;
   modelOptions?: { value: string; label: string }[];
   providerModelOptions?: Record<"claude" | "gemini" | "codex", { value: string; label: string }[]>;
-  onProviderChange?: (provider: "claude" | "gemini" | "codex" | "pi") => void;
+  onProviderChange?: (provider: "claude" | "gemini" | "codex") => void;
   onModelChange?: (model: string) => void;
   onOpenModelPicker?: () => void;
   onOpenSkillsConfig?: () => void;
@@ -73,8 +73,8 @@ export function InputPanel({
   onTerminateAgent,
   onOpenWebPreview,
   onOpenProcesses,
-  provider = "pi",
-  model = "gemini-2.5-flash",
+  provider = "codex",
+  model = "gpt-5.1-codex-mini",
   modelOptions = [],
   providerModelOptions,
   onProviderChange,
@@ -426,7 +426,7 @@ export function InputPanel({
                       ? ClaudeSendIcon
                       : provider === "gemini"
                         ? GeminiSendIcon
-                        : provider === "codex" || provider === "pi"
+                        : provider === "codex"
                           ? (p: { size?: number }) => (
                               <CodexEnterIcon {...p} stroke={theme.colors.textInverse} color={theme.colors.textInverse} />
                             )

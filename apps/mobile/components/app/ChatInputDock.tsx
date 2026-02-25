@@ -1,0 +1,86 @@
+import React from "react";
+import type { PermissionModeUI } from "../../src/utils/permission";
+import { getBackendPermissionMode } from "../../src/utils/permission";
+import { InputPanel } from "../../src/components/chat/InputPanel";
+import type { CodeRefPayload } from "../../src/components/file/FileViewerModal";
+import type { BrandProvider } from "../../src/theme/index";
+
+type ModelOption = {
+  value: string;
+  label: string;
+};
+
+type ChatInputDockProps = {
+  connected: boolean;
+  agentRunning: boolean;
+  waitingForUserInput: boolean;
+  permissionModeUI: PermissionModeUI;
+  onSubmit: (prompt: string) => void;
+  pendingCodeRefs: CodeRefPayload[];
+  onRemoveCodeRef: (index: number) => void;
+  onTerminateAgent: () => void;
+  onOpenProcesses: () => void;
+  onOpenWebPreview: () => void;
+  provider: BrandProvider;
+  model: string;
+  modelOptions: ModelOption[];
+  providerModelOptions: {
+    claude: ModelOption[];
+    gemini: ModelOption[];
+    codex: ModelOption[];
+  };
+  onProviderChange: (provider: BrandProvider) => void;
+  onModelChange: (model: string) => void;
+  onOpenModelPicker: () => void;
+  onOpenSkillsConfig: () => void;
+  onOpenDocker: () => void;
+};
+
+export function ChatInputDock({
+  connected,
+  agentRunning,
+  waitingForUserInput,
+  permissionModeUI,
+  onSubmit,
+  pendingCodeRefs,
+  onRemoveCodeRef,
+  onTerminateAgent,
+  onOpenProcesses,
+  onOpenWebPreview,
+  provider,
+  model,
+  modelOptions,
+  providerModelOptions,
+  onProviderChange,
+  onModelChange,
+  onOpenModelPicker,
+  onOpenSkillsConfig,
+  onOpenDocker,
+}: ChatInputDockProps) {
+  const permissionMode = getBackendPermissionMode(permissionModeUI, provider);
+
+  return (
+    <InputPanel
+      connected={connected}
+      agentRunning={agentRunning}
+      waitingForUserInput={waitingForUserInput}
+      permissionMode={permissionMode.permissionMode ?? permissionMode.approvalMode ?? null}
+      onPermissionModeChange={() => {}}
+      onSubmit={onSubmit}
+      pendingCodeRefs={pendingCodeRefs}
+      onRemoveCodeRef={onRemoveCodeRef}
+      onTerminateAgent={onTerminateAgent}
+      onOpenProcesses={onOpenProcesses}
+      onOpenWebPreview={onOpenWebPreview}
+      provider={provider}
+      model={model}
+      modelOptions={modelOptions}
+      providerModelOptions={providerModelOptions}
+      onProviderChange={onProviderChange}
+      onModelChange={onModelChange}
+      onOpenModelPicker={onOpenModelPicker}
+      onOpenSkillsConfig={onOpenSkillsConfig}
+      onOpenDocker={onOpenDocker}
+    />
+  );
+}

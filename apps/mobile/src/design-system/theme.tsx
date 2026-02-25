@@ -114,6 +114,20 @@ export const brandColors = {
       accentOnDark: "#f2b07f",
     },
   },
+  codex: {
+    light: {
+      accent: "#000000",
+      accentSoft: "rgba(0, 0, 0, 0.08)",
+      accentMuted: "rgba(0, 0, 0, 0.05)",
+      accentOnDark: "#FFFFFF",
+    },
+    dark: {
+      accent: "#FFFFFF",
+      accentSoft: "rgba(255, 255, 255, 0.16)",
+      accentMuted: "rgba(255, 255, 255, 0.12)",
+      accentOnDark: "#FFFFFF",
+    },
+  },
 } as const;
 
 // ============================================================================
@@ -332,7 +346,7 @@ export type ShadowToken = keyof ShadowsRecord;
 
 export type ColorMode = "light" | "dark";
 export type ColorModePreference = "system" | ColorMode;
-export type BrandProvider = "gemini" | "claude";
+export type BrandProvider = "gemini" | "claude" | "codex";
 
 export interface ThemeColors {
   // Background colors
@@ -502,7 +516,7 @@ interface ThemeContextValue {
 }
 
 const defaultContextValue: ThemeContextValue = {
-  provider: "gemini",
+  provider: "codex",
   mode: "system",
 };
 
@@ -517,7 +531,7 @@ export interface ModernThemeProviderProps {
 }
 
 export function ModernThemeProvider({
-  provider = "gemini",
+  provider = "codex",
   mode = "system",
   onProviderChange,
   onModeChange,

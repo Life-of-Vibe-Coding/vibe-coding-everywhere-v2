@@ -61,6 +61,12 @@
     return value ? "Yes" : "No";
   }
 
+  function formatSessionStatus(status) {
+    if (status === "running") return "running";
+    if (status === "idling") return "idling";
+    return "n/a";
+  }
+
   function addRow(label, value, className) {
     const row = document.createElement("div");
     row.className = "row";
@@ -117,7 +123,11 @@
 
     const snapshot = data.snapshot || {};
     const sessions = Array.isArray(snapshot.sessions) ? snapshot.sessions : [];
-    const sessionManagement = snapshot.sessionManagement || {};
+    const activeSessionId = snapshot.activeSessionId || snapshot.currentSessionId || snapshot.sessionId;
+    const activeStatus = formatSessionStatus(
+      sessions.find((s) => s.id === activeSessionId)?.status
+    );
+    const displaySessionStatus = activeStatus === "n/a" ? formatSessionStatus(snapshot.sseConnected ? "running" : "idling") : activeStatus;
 
     const wrapper = document.createElement("div");
     [
@@ -126,13 +136,8 @@
       ["Provider", snapshot.provider || "—"],
       ["Model", snapshot.model || "—"],
       ["Path", snapshot.path || snapshot.workspacePath || "—"],
-      ["Connected", fmtBoolean(snapshot.connected)],
-      ["Session statuses", typeof snapshot.count === "number" ? String(snapshot.count) : String(sessions.length)],
-      ["SM modal visible", fmtBoolean(sessionManagement.visible)],
-      ["SM active provider", sessionManagement.currentProvider || "—"],
-      ["SM active model", sessionManagement.currentModel || "—"],
-      ["SM active session id", sessionManagement.activeSessionId || "—"],
-      ["Last received", snapshot.receivedAt ? new Date(snapshot.receivedAt).toLocaleString() : "—"],
+      ["Session status", displaySessionStatus],
+      ["SSE connected", snapshot.sseConnected ? "running" : "idling"],
     ].forEach(([label, value]) => {
       wrapper.appendChild(addRow(label, value));
     });

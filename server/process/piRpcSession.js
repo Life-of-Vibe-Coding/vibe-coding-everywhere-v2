@@ -22,7 +22,6 @@ import { getPreviewHost, getActiveOverlay } from "../utils/index.js";
 const CLIENT_PROVIDER_TO_PI = {
   claude: "anthropic", // OAuth from auth.json
   codex: "openai-codex", // OAuth from auth.json
-  pi: "openai-codex", // fallback; for "pi" we derive from model in ensurePiProcess
   gemini: "google-gemini-cli", // OAuth from auth.json
 };
 
@@ -76,15 +75,13 @@ function getConnectionContext(socket) {
   return "remote";
 }
 
-/** Derive Pi backend provider from model when clientProvider is "pi". */
 function getPiProviderForModel(clientProvider, model) {
-  if (clientProvider !== "pi") {
-    return CLIENT_PROVIDER_TO_PI[clientProvider] ?? "anthropic";
-  }
   if (typeof model === "string" && /^gemini-/.test(model)) return "google-gemini-cli";
   if (typeof model === "string" && /^gpt-/.test(model)) return "openai-codex";
   if (typeof model === "string" && (/^claude-/.test(model) || /^(sonnet4\.5|opus4\.5|claude-haiku)/.test(model))) return "anthropic";
-  return "google-gemini-cli"; // default pi to gemini (OAuth)
+  if (clientProvider === "gemini") return "google-gemini-cli";
+  if (clientProvider === "claude") return "anthropic";
+  return "openai-codex";
 }
 
 function parseAskQuestionAnswersFromInput(raw) {

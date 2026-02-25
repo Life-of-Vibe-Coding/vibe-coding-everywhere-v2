@@ -1,31 +1,70 @@
 /**
- * Smoke test: verify that when the user switches to a different session,
- * the old (live) session continues to receive socket output in the background.
- * When switching back, the accumulated new text should be visible.
- *
- * Covers: longer texts, multiple chunks, and different providers (Pi, Claude, Gemini).
+ * Smoke test: verify selected-session single SSE lifecycle behavior.
  */
-import React from "react";
 import { act } from "react";
 import { renderHook } from "@testing-library/react-native";
 import { useSocket } from "../hooks";
 
-// Mock-prefixed variables are allowed in jest.mock factory
-const mockHandlers: { output?: (payload: string) => void } = {};
-const mockSocketInstance = {
-  on: jest.fn((event: string, handler: (payload: string) => void) => {
-    if (event === "output") mockHandlers.output = handler;
-    return mockSocketInstance;
-  }),
-  emit: jest.fn(),
-  disconnect: jest.fn(),
+interface MockListener {
+  (event: any): void;
+}
+
+type MockEventSource = {
+  url: string;
+  listeners: Map<string, MockListener[]>;
+  closed: boolean;
+  addEventListener: (event: string, handler: MockListener) => void;
+  removeEventListener: (event: string, handler: MockListener) => void;
+  emit: (event: string, data?: any) => void;
+  close: () => void;
 };
+const mockEventSources: MockEventSource[] = [];
+const getAllSources = () => mockEventSources;
+const getLatestSource = () => mockEventSources[mockEventSources.length - 1];
 
-jest.mock("socket.io-client", () => ({
-  io: jest.fn(() => mockSocketInstance),
-}));
+jest.mock("react-native-sse", () => {
+  const MockEventSourceCtor: any = function (this: any, url: string) {
+    this.url = url;
+    this.listeners = new Map<string, MockListener[]>();
+    this.closed = false;
+    mockEventSources.push(this);
+  };
 
-// Mock server config
+  MockEventSourceCtor.prototype.addEventListener = function (
+    this: MockEventSource,
+    event: string,
+    handler: MockListener
+  ) {
+    const current = this.listeners.get(event) ?? [];
+    this.listeners.set(event, [...current, handler]);
+    return this;
+  };
+
+  MockEventSourceCtor.prototype.removeEventListener = function (
+    this: MockEventSource,
+    event: string,
+    handler: MockListener
+  ) {
+    const current = this.listeners.get(event);
+    if (!current) return;
+    const next = current.filter((h) => h !== handler);
+    if (next.length) this.listeners.set(event, next);
+    else this.listeners.delete(event);
+  };
+
+  MockEventSourceCtor.prototype.emit = function (this: MockEventSource, event: string, data?: any) {
+    const handlers = this.listeners.get(event) ?? [];
+    handlers.forEach((h) => h({ data: data ?? "" }));
+  };
+
+  MockEventSourceCtor.prototype.close = function (this: MockEventSource) {
+    this.closed = true;
+  };
+
+  MockEventSourceCtor.default = MockEventSourceCtor;
+  return MockEventSourceCtor as any;
+});
+
 jest.mock("../../server/config", () => ({
   getDefaultServerConfig: () => ({
     getBaseUrl: () => "http://localhost:3456",
@@ -33,149 +72,178 @@ jest.mock("../../server/config", () => ({
   }),
 }));
 
-/** Pi format - message_update with text_delta (recognized by event dispatcher). */
-const piTextDelta = (text: string) =>
-  JSON.stringify({
-    type: "message_update",
-    assistantMessageEvent: { type: "text_delta", delta: text },
-  }) + "\n";
-
-type ProviderConfig = { provider: "pi" | "claude" | "gemini"; model: string };
-const PROVIDERS: ProviderConfig[] = [
-  { provider: "pi", model: "gpt-5.1-codex-mini" },
-  { provider: "claude", model: "sonnet4.5" },
-  { provider: "gemini", model: "gemini-2.5-flash" },
-];
-
 describe("session switch smoke test", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockHandlers.output = undefined;
+    mockEventSources.length = 0;
   });
 
-  it("live session continues receiving output when viewing a different session", () => {
-    const { result } = renderHook(() => useSocket({ provider: "pi", model: "gpt-5.1-codex-mini" }));
+  it("opens a stream only for selected active session", () => {
+    const { result } = renderHook(() =>
+      useSocket({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+        sessionid: "running-session",
+        status: true,
+      })
+    );
+
+    const source = getLatestSource();
+    expect(source).toBeDefined();
+    expect(source.url).toBe("http://localhost:3456/api/sessions/running-session/stream?activeOnly=1");
 
     act(() => {
-      mockHandlers.output?.(piTextDelta("Hello from "));
+      source.emit("open");
     });
+
+    expect(result.current.connected).toBe(true);
+  });
+
+  it("does not open SSE when selected stream is not running", () => {
+      const { rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
+        useSocket({
+          provider: "codex",
+          model: "gpt-5.1-codex-mini",
+          sessionid: props.sessionid,
+          status: props.status,
+      })
+    , {
+      initialProps: {
+        sessionid: "running-session",
+        status: false,
+      },
+    });
+
+    expect(getAllSources()).toHaveLength(0);
+
     act(() => {
-      mockHandlers.output?.(piTextDelta("live session."));
+      rerender({ sessionid: "running-session", status: true });
     });
 
-    expect(result.current.messages).toEqual([
-      expect.objectContaining({ role: "assistant", content: "Hello from live session." }),
-    ]);
-    expect(result.current.viewingLiveSession).toBe(true);
+    expect(getAllSources()).toHaveLength(1);
+  });
 
-    const savedMessages = [
-      { id: "msg-1", role: "user" as const, content: "Old question" },
-      { id: "msg-2", role: "assistant" as const, content: "Old answer" },
+  it("switches sessions with close-before-open semantics", () => {
+    const { rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
+      useSocket({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+        sessionid: props.sessionid,
+        status: props.status,
+      })
+    , {
+      initialProps: {
+        sessionid: "session-a",
+        status: true,
+      },
+    });
+
+    const first = getLatestSource();
+    expect(first).toBeDefined();
+    act(() => {
+      first.emit("open");
+    });
+
+    act(() => {
+      rerender({ sessionid: "session-b", status: true });
+    });
+
+    const second = getLatestSource();
+    expect(first.closed).toBe(true);
+    expect(second).not.toBe(first);
+    expect(second.url).toContain("/api/sessions/session-b/stream?activeOnly=1");
+    expect(getAllSources()).toHaveLength(2);
+    expect(getAllSources()[1]).toBe(second);
+
+    act(() => {
+      second.emit("open");
+    });
+    expect(getAllSources()[1].url).toContain("session-b");
+  });
+
+  it("applies skipReplay=1 when reopening a resumed live session with seeded messages", () => {
+    const seedMessages = [
+      { id: "msg-1", role: "user" as const, content: "Existing" },
+      { id: "msg-2", role: "assistant" as const, content: "Message" },
     ];
 
-    act(() => {
-      result.current.loadSession(savedMessages);
+    const { result, rerender } = renderHook((props: { sessionid: string; status: boolean }) =>
+      useSocket({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+        sessionid: props.sessionid,
+        status: props.status,
+      })
+    , {
+      initialProps: {
+        sessionid: "seed-session",
+        status: false,
+      },
     });
 
-    expect(result.current.viewingLiveSession).toBe(false);
-    expect(result.current.messages[1].content).toBe("Old answer");
-
     act(() => {
-      mockHandlers.output?.(piTextDelta(" This arrived while viewing saved."));
+      result.current.resumeLiveSession("seed-session-active", seedMessages);
     });
 
     act(() => {
-      result.current.switchToLiveSession();
+      rerender({ sessionid: "seed-session-active", status: true });
     });
 
-    const liveContent = result.current.messages.find((m) => m.role === "assistant")?.content ?? "";
-    expect(liveContent).toContain("Hello from live session.");
-    expect(liveContent).toContain("This arrived while viewing saved.");
-    expect(result.current.viewingLiveSession).toBe(true);
+    const source = getLatestSource();
+    expect(source.url).toContain("/api/sessions/seed-session-active/stream?activeOnly=1&skipReplay=1");
   });
 
-  it.each(PROVIDERS)(
-    "accumulates many chunks when viewing saved session ($provider / $model)",
-    ({ provider, model }: ProviderConfig) => {
-      const { result } = renderHook(() => useSocket({ provider, model }));
+  it("finalizes and closes stream on end without auto-reconnecting", () => {
+    const { result } = renderHook(() =>
+      useSocket({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+        sessionid: "ending-session",
+        status: true,
+      })
+    );
 
-      // Pi format is used by the server; all providers receive it over the same socket
-      const prefix = "Here is a long response that arrives in many small chunks. ";
-      const chunks = prefix
-        .split("")
-        .concat(["E", "a", "c", "h", " ", "w", "o", "r", "d", " ", "a", "p", "p", "e", "a", "r", "s", " ", "s", "e", "p", "a", "r", "a", "t", "e", "l", "y", "."]);
-
-      act(() => {
-        chunks.forEach((c) => mockHandlers.output?.(piTextDelta(c)));
-      });
-
-      const expectedFull = chunks.join("");
-      const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-      expect(assistantMsg?.content).toContain(prefix);
-      expect(assistantMsg?.content).toBe(expectedFull);
-
-      // Switch to saved session
-      const savedMessages = [
-        { id: "msg-1", role: "user" as const, content: "Different conversation" },
-        { id: "msg-2", role: "assistant" as const, content: "Different reply" },
-      ];
-      act(() => {
-        result.current.loadSession(savedMessages);
-      });
-      expect(result.current.messages[1].content).toBe("Different reply");
-
-      // More chunks arrive while viewing saved
-      const suffixChunks = [" ", "Background ", "streaming ", "continues."];
-      act(() => {
-        suffixChunks.forEach((c) => mockHandlers.output?.(piTextDelta(c)));
-      });
-
-      act(() => {
-        result.current.switchToLiveSession();
-      });
-
-      const liveContent = result.current.messages.find((m) => m.role === "assistant")?.content ?? "";
-      expect(liveContent).toBe(expectedFull + suffixChunks.join(""));
-      expect(liveContent).toContain("Background streaming continues.");
-    }
-  );
-
-  it("handles longer paragraph with many chunks (Pi)", () => {
-    const { result } = renderHook(() => useSocket({ provider: "pi", model: "gpt-5.1-codex-mini" }));
-
-    const paragraph =
-      "This is a longer paragraph designed to simulate realistic streaming output. " +
-      "The model generates text incrementally, and when the user switches sessions, " +
-      "the background session must continue to accumulate all arriving chunks. " +
-      "We verify that no data is lost during the switch.";
-    const chunks = paragraph.match(/.{1,8}/g) ?? [paragraph]; // ~8 chars per chunk
-
+    const source = getLatestSource();
     act(() => {
-      chunks.forEach((c) => mockHandlers.output?.(piTextDelta(c)));
+      source.emit("open");
+      source.emit("end", JSON.stringify({ exitCode: 0 }));
     });
 
-    const assistantMsg = result.current.messages.find((m) => m.role === "assistant");
-    expect(assistantMsg?.content).toBe(paragraph);
-
-    // Switch away, send more, switch back
-    act(() => {
-      result.current.loadSession([
-        { id: "msg-1", role: "user" as const, content: "Other" },
-        { id: "msg-2", role: "assistant" as const, content: "Other reply" },
-      ]);
-    });
-
-    const extra = " Additional text after the switch. The live session keeps growing.";
-    const extraChunks = extra.match(/.{1,6}/g) ?? [extra];
-    act(() => {
-      extraChunks.forEach((c) => mockHandlers.output?.(piTextDelta(c)));
-    });
+    expect(source.closed).toBe(true);
+    expect(result.current.connected).toBe(false);
+    expect(getAllSources()).toHaveLength(1);
 
     act(() => {
-      result.current.switchToLiveSession();
+      source.emit("open");
     });
 
-    const liveContent = result.current.messages.find((m) => m.role === "assistant")?.content ?? "";
-    expect(liveContent).toBe(paragraph + extra);
+    expect(source.closed).toBe(true);
+    expect(result.current.connected).toBe(false);
+  });
+
+  it("re-keys an in-memory stream when backend migrates session id", () => {
+    const { result } = renderHook(() =>
+      useSocket({
+        provider: "codex",
+        model: "gpt-5.1-codex-mini",
+        sessionid: "legacy-session",
+        status: true,
+      })
+    );
+
+    const source = getLatestSource();
+    act(() => {
+      source.emit("open");
+      source.emit("message", JSON.stringify({
+        type: "session-started",
+        session_id: "migrated-session",
+        permissionMode: null,
+        allowedTools: [],
+        useContinue: false,
+      }));
+    });
+
+    expect(result.current.sessionId).toBe("migrated-session");
+    expect(source.closed).toBe(false);
+    expect(getAllSources()).toHaveLength(1);
   });
 });

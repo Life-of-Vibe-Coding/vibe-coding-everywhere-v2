@@ -17,7 +17,7 @@ export function getBackendPermissionMode(
   ui: PermissionModeUI,
   provider: BrandProvider
 ): BackendPermissionResult {
-  if (provider === "pi" || provider === "codex") {
+  if (provider === "codex") {
     if (ui === "yolo") return { yolo: true };
     if (ui === "always_ask") return { askForApproval: "untrusted" };
     return { askForApproval: "on-request" };

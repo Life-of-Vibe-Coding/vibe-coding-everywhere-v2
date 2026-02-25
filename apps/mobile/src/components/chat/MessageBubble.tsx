@@ -357,7 +357,7 @@ interface MessageBubbleProps {
   /** Max height for the tail box (e.g. half screen). Only used when showAsTailBox is true. */
   tailBoxMaxHeight?: number;
   /** AI provider for assistant messages; shows Gemini, Claude, or Codex icon when set. */
-  provider?: "claude" | "gemini" | "codex" | "pi";
+  provider?: "claude" | "gemini" | "codex";
   /** When provided, links (including bare URLs) open in the app's internal browser instead of external. */
   onOpenUrl?: (url: string) => void;
   /** When provided, file: links (from Writing/Editing/Reading) open the file in explorer. */
@@ -987,7 +987,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   );
   const showProviderIcon = !isUser && !isSystem && provider;
   const ProviderIcon =
-    provider === "claude" ? ClaudeIcon : provider === "codex" || provider === "pi" ? CodexIcon : GeminiIcon;
+    provider === "claude" ? ClaudeIcon : provider === "codex" ? CodexIcon : GeminiIcon;
 
   const isLatestThinkingBlock = useCallback((index: number) => {
     const isThinking = contentSegments[index]?.type === "thinking";
@@ -1085,4 +1085,3 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 }
 
 export const MessageBubble = React.memo(MessageBubbleInner);
-

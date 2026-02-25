@@ -28,7 +28,7 @@ export function shutdown(signal) {
   process.exit(0);
 }
 
-const VALID_PROVIDERS = ["pi", "codex", "gemini", "claude"];
+const VALID_PROVIDERS = ["codex", "gemini", "claude"];
 
 function resolveProvider(fromPayload) {
   if (typeof fromPayload === "string" && VALID_PROVIDERS.includes(fromPayload)) {
@@ -39,7 +39,7 @@ function resolveProvider(fromPayload) {
 
 function getDefaultModelForProvider(provider) {
   if (provider === "claude") return "sonnet4.5";
-  if (provider === "pi" || provider === "codex") return "gpt-5.1-codex-mini";
+  if (provider === "codex") return "gpt-5.1-codex-mini";
   return "gemini-2.5-flash";
 }
 

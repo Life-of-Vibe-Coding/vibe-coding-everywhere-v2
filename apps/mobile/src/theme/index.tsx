@@ -6,7 +6,7 @@
  * 
  * Features:
  * - Light/Dark mode support with system preference detection
- * - Multiple brand providers (Gemini, Claude)
+ * - Multiple brand providers (Gemini, Claude, Codex)
  * - WCAG 2.1 AA compliant color contrast
  * - Responsive typography scale
  * - 8px grid spacing system
@@ -42,14 +42,7 @@ export const codexTheme = {
   accentOnDark: "#FFFFFF", // White accent in dark mode
 } as const;
 
-export const piTheme = {
-  accent: "#7C3AED", // Premium violet/purple
-  accentSoft: "#F5F3FF",
-  accentMuted: "#EDE9FE",
-  accentOnDark: "#A78BFA",
-} as const;
-
-export const themes = { claude: claudeTheme, gemini: geminiTheme, codex: codexTheme, pi: piTheme } as const;
+export const themes = { claude: claudeTheme, gemini: geminiTheme, codex: codexTheme } as const;
 export type Provider = keyof typeof themes;
 export type ColorMode = "light" | "dark";
 export type ColorModePreference = "system" | ColorMode;
@@ -215,7 +208,7 @@ const motion = {
   },
 };
 
-const isCodexDesign = (p: Provider) => p === "codex" || p === "pi";
+const isCodexDesign = (p: Provider) => p === "codex";
 
 function getNeutrals(mode: ColorMode, provider: Provider) {
   // Codex design: black background + white text (dark) or white background + black text (light)
@@ -344,7 +337,7 @@ export function getTheme(provider: Provider, mode: ColorMode = "light"): DesignT
 // Default theme - lazy to avoid Dimensions at module load (runtime not ready on Hermes)
 let _defaultTheme: DesignTheme | null = null;
 export function getDefaultTheme(): DesignTheme {
-  return _defaultTheme ?? (_defaultTheme = getTheme("pi", "light"));
+  return _defaultTheme ?? (_defaultTheme = getTheme("codex", "light"));
 }
 
 // ============================================================================
@@ -359,7 +352,7 @@ type ThemeContextValue = {
 };
 
 const defaultContextValue: ThemeContextValue = {
-  provider: "pi",
+  provider: "codex",
   colorMode: "system"
 };
 
@@ -374,7 +367,7 @@ export interface ThemeProviderProps {
 }
 
 export function ThemeProvider({
-  provider = "pi",
+  provider = "codex",
   colorMode = "system",
   onProviderChange,
   onColorModeChange,
@@ -416,12 +409,12 @@ export function useProvider(): Provider {
     const ctx = React.useContext(ThemeContext);
     if (ctx != null && typeof ctx === "object" && "provider" in ctx) {
       const p = (ctx as { provider: Provider }).provider;
-      if (p === "claude" || p === "gemini" || p === "codex" || p === "pi") return p;
+      if (p === "claude" || p === "gemini" || p === "codex") return p;
     }
   } catch (_) {
     // Fall through to default
   }
-  return "pi";
+  return "codex";
 }
 
 export function useColorMode(): ColorMode {
@@ -438,7 +431,7 @@ export function useColorMode(): ColorMode {
 export function useTheme(): DesignTheme {
   const ctx = React.useContext(ThemeContext);
   const mode = useColorMode();
-  const provider = ctx?.provider ?? "pi";
+  const provider = ctx?.provider ?? "codex";
 
   return useMemo(() => buildTheme(provider, mode), [provider, mode]);
 }

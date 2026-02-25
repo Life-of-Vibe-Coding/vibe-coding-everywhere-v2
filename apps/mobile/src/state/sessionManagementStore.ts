@@ -9,16 +9,14 @@ export type SessionStatus = {
   title: string;
 };
 
-export type ProviderName = "pi" | "claude" | "gemini" | "codex";
+export type ProviderName = "claude" | "gemini" | "codex";
 
 export type SessionManagementStore = {
   sessionStatuses: SessionStatus[];
-  currentSessionId: string | null;
   sessionId: string | null;
   provider: ProviderName;
   model: string;
   setSessionStatuses: (sessions: SessionStatus[]) => void;
-  setCurrentSessionId: (sessionId: string | null) => void;
   setSessionId: (sessionId: string | null) => void;
   setProvider: (provider: ProviderName) => void;
   setModel: (model: string) => void;
@@ -29,12 +27,10 @@ export type SessionManagementStore = {
 
 export const useSessionManagementStore = create<SessionManagementStore>((set) => ({
   sessionStatuses: [],
-  currentSessionId: null,
   sessionId: null,
-  provider: "pi",
+  provider: "codex",
   model: "gpt-5.1-codex-mini",
   setSessionStatuses: (sessions) => set({ sessionStatuses: sessions }),
-  setCurrentSessionId: (sessionId) => set({ currentSessionId: sessionId }),
   setSessionId: (sessionId) => set({ sessionId }),
   setProvider: (provider) => set({ provider }),
   setModel: (model) => set({ model }),

@@ -392,10 +392,10 @@ export function isAskUserQuestionPayload(data: unknown): boolean {
   return Array.isArray(input?.questions) && (input.questions as unknown[]).length > 0;
 }
 
-/** Union of provider stream output types. Pi is the mono provider; legacy types kept for typing only. */
+/** Union of all provider transport stream output types currently in use. */
 export type ProviderStreamOutput = PiStreamOutput | ClaudeStreamOutput | GeminiStreamOutput | CodexStreamOutput;
 
-/** Check if data is a Pi RPC stream event (or permission/AskUserQuestion payload). Pi is the native output format. */
+/** Check for transport stream events and permission payloads from the active provider runtimes. */
 export function isProviderStream(data: unknown): data is ProviderStreamOutput | (Record<string, unknown> & { permission_denials: unknown[] }) {
   if (typeof data !== "object" || data === null) return false;
   const obj = data as Record<string, unknown>;
