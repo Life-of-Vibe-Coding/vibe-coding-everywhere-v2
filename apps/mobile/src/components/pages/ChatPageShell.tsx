@@ -7,7 +7,6 @@ import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageHeader, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import { ChatConversationSection, ChatHeaderSection, ChatInputDockSection } from "@/components/pages/ChatPageSections";
 import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
-import { LinearGradient } from "expo-linear-gradient";
 
 export type ChatPageShellProps = {
   context: ChatPageContext;
@@ -41,23 +40,7 @@ export function ChatPageShell({
   const isDark = context.theme.mode === "dark";
 
   return (
-    <Box className="flex-1 bg-white">
-      {isDark ? (
-        <ImageBackground
-          source={require("../../../assets/chat-bg.png")}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        >
-          <Box style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(5, 0, 20, 0.7)" }]} />
-        </ImageBackground>
-      ) : (
-        <LinearGradient
-          colors={['#5A6978', '#D3B1C2', '#C6B5CD', '#E8E3FA']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
+    <Box className="flex-1" style={{ backgroundColor: "transparent" }}>
       <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
         <StatusBar style="dark" />
         <KeyboardAvoidingView
@@ -65,7 +48,7 @@ export function ChatPageShell({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
-          <Box className="flex-1 flex-col px-6 pt-2" style={{ paddingTop: insets.top }}>
+          <Box className="flex-1 flex-col px-6 pt-0" style={{ paddingTop: insets.top }}>
             <Box className="relative flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
               <Box className="flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
                 <ChatHeaderSection

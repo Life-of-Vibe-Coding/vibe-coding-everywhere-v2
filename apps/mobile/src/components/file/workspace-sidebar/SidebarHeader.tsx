@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/text";
 import { Pressable } from "@/components/ui/pressable";
 import { TabBarPills } from "@/components/reusable/TabBarPills";
 import type { SidebarTab } from "@/components/hooks/useSidebarState";
+import { useTheme } from "@/theme/index";
 
 type SidebarHeaderProps = {
   activeTab: SidebarTab;
@@ -13,8 +14,15 @@ type SidebarHeaderProps = {
 };
 
 export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeaderProps) {
+  const theme = useTheme();
   return (
-    <Box className="flex-row items-center justify-center border-b border-outline-500 bg-background-0">
+    <Box
+      className="flex-row items-center justify-center border-b"
+      style={{
+        borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.3)" : theme.colors.border,
+        backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.9)" : "rgba(255, 255, 255, 0.94)",
+      }}
+    >
       <Box className="w-[48px]" />
       <Box className="flex-1 flex-row items-center">
         <TabBarPills
@@ -31,12 +39,21 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
       </Box>
       <Box className="w-[48px] flex-row items-center justify-end">
         <Pressable
-          className="w-11 h-11 rounded-lg items-center justify-center bg-background-100 active:bg-background-200"
+          className="w-11 h-11 rounded-lg items-center justify-center"
+          style={({ pressed }) => ({
+            backgroundColor: pressed
+              ? theme.mode === "dark"
+                ? "rgba(160, 209, 255, 0.16)"
+                : "rgba(15, 23, 42, 0.08)"
+              : theme.mode === "dark"
+                ? "rgba(255, 255, 255, 0.08)"
+                : "rgba(15, 23, 42, 0.06)",
+          })}
           onPress={onClose}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel="Close file explorer"
         >
-          <Text className="text-[18px] font-semibold text-text-secondary">✕</Text>
+          <Text className="text-[18px] font-semibold" style={{ color: theme.colors.textPrimary }}>✕</Text>
         </Pressable>
       </Box>
     </Box>

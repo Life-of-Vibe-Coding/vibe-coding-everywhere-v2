@@ -3,7 +3,7 @@
  * Menu: three solid bars; Settings: solid gear with center hole.
  */
 import React from "react";
-import Svg, { Path, Rect } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
 const size = 22;
 /** Bar width 16, height 1.5 — no bolding; square ends. */
@@ -52,6 +52,25 @@ export function SettingsIcon({ color = "currentColor" }: { color?: string }) {
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         fill={color}
+        fillRule="evenodd"
+        d={`${gearPath} ${centerHole}`}
+      />
+    </Svg>
+  );
+}
+
+/** Transparent-background SVG settings icon with neon gradient fill. */
+export function SettingsGradientIcon({ size = 30 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="settingsGradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <Stop offset="0" stopColor="#00E5FF" />
+          <Stop offset="1" stopColor="#FF00FF" />
+        </LinearGradient>
+      </Defs>
+      <Path
+        fill="url(#settingsGradient)"
         fillRule="evenodd"
         d={`${gearPath} ${centerHole}`}
       />

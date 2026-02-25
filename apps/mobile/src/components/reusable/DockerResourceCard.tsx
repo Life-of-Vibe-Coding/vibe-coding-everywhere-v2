@@ -3,6 +3,7 @@ import { StyleSheet, type ViewStyle } from "react-native";
 import { Box } from "@/components/ui/box";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
 
 export type DockerResourceRow = {
   label: string;
@@ -36,16 +37,24 @@ function DockerResourceCardInner({
   className,
   actionRowStyle,
 }: DockerResourceCardProps) {
+  const theme = useTheme();
+  const isDarkMode = theme.mode === "dark";
+  const cardStyle: ViewStyle = {
+    backgroundColor: isDarkMode ? "rgba(13, 18, 34, 0.94)" : "rgba(255, 255, 255, 0.98)",
+    borderColor: isDarkMode ? "rgba(138, 148, 170, 0.28)" : theme.colors.border,
+  };
+
   return (
     <ListSectionCard
       title={title}
-      className={["border-outline-200 rounded-2xl bg-background-0", className ?? ""].join(" ")}
+      className={["border-outline-200 rounded-2xl", className ?? ""].join(" ")}
+      style={cardStyle}
       action={action}
     >
       <Box className="gap-2">
         {rows.map((row) => (
           <Box key={row.label} className="flex-row gap-2.5">
-            <Text size="xs" className="text-typography-500 shrink-0 font-medium">
+            <Text size="xs" className="shrink-0 font-medium" style={{ color: theme.colors.textSecondary }}>
               {row.label}
             </Text>
             <Box className="flex-1 min-w-0">{row.value}</Box>

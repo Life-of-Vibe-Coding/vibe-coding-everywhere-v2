@@ -36,6 +36,25 @@ import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
+
+function NeonGlassInputWrapper({ width, height, isDark }: { width: number; height: number; isDark: boolean }) {
+  const cut = 24;
+  const color = "#00E5FF";
+  const bg = isDark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+
+  const points = `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`;
+
+  return (
+    <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
+      <Svg width={width} height={height}>
+        <Polygon points={points} fill="none" stroke={color} strokeWidth={6} opacity={0.3} />
+        <Polygon points={points} fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
+        <Polygon points={points} fill={bg} stroke={color} strokeWidth={1.5} />
+      </Svg>
+    </Box>
+  );
+}
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
 const INPUT_PLACEHOLDER = "Type response for Claude…";
@@ -102,6 +121,7 @@ export function InputPanel({
   const [reduceMotion, setReduceMotion] = useState(false);
   const [plusMenuVisible, setPlusMenuVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
+  const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -142,33 +162,20 @@ export function InputPanel({
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
   const isDark = theme.mode === "dark";
+  const inputTextColor = isDark ? "#D7FFFF" : theme.colors.textPrimary;
+  const placeholderColor = isDark ? "#8BE9FF" : theme.colors.textMuted;
 
   return (
     <Box>
       <VStack
         space="md"
         className="flex-col gap-3 py-3 px-4 mt-6"
-        style={[
-          {
-            borderRadius: 36,
-            overflow: "hidden",
-            backgroundColor: isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(255, 255, 255, 0.3)",
-            borderColor: isDark ? "#00E5FF" : "rgba(255, 255, 255, 0.4)",
-            borderWidth: isDark ? 1.5 : StyleSheet.hairlineWidth,
-          },
-          Platform.select({
-            ios: {
-              shadowColor: isDark ? "#00E5FF" : "#000",
-              shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
-              shadowOpacity: isDark ? 0.4 : 0.1,
-              shadowRadius: isDark ? 8 : 14,
-            },
-            android: { elevation: 6 },
-            default: {},
-          }),
-        ]}
+        onLayout={(e) => setPanelSize(e.nativeEvent.layout)}
+        style={{ backgroundColor: "transparent" }}
       >
-        <BlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+        {panelSize.width > 0 && panelSize.height > 0 && (
+          <NeonGlassInputWrapper width={panelSize.width} height={panelSize.height} isDark={isDark} />
+        )}
         {pendingCodeRefs.length > 0 && (
           <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
             {pendingCodeRefs.map((ref, index) => {
@@ -230,7 +237,7 @@ export function InputPanel({
               scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
               showsVerticalScrollIndicator={false}
               style={{
-                color: theme.colors.textPrimary,
+                color: inputTextColor,
                 maxHeight: MAX_INPUT_HEIGHT,
                 minHeight: DEFAULT_INPUT_HEIGHT,
                 width: "100%",
@@ -250,7 +257,7 @@ export function InputPanel({
                 "w-full min-w-0 text-base py-2 min-h-6 flex-none",
                 Platform.OS === "android" && "text-start"
               )}
-              placeholderTextColor={theme.colors.textMuted}
+              placeholderTextColor={placeholderColor}
             />
           </Textarea>
           <Box
@@ -303,7 +310,7 @@ export function InputPanel({
                       >
                         <HStack space="sm" className="items-center">
                           <SkillIcon size={18} color={theme.colors.accent} />
-                          <ActionsheetItemText>Skills</ActionsheetItemText>
+                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Skills</ActionsheetItemText>
                         </HStack>
                       </ActionsheetItem>
                     )}
@@ -318,7 +325,7 @@ export function InputPanel({
                       >
                         <HStack space="sm" className="items-center">
                           <DockerIcon size={18} color={theme.colors.accent} />
-                          <ActionsheetItemText>Docker</ActionsheetItemText>
+                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Docker</ActionsheetItemText>
                         </HStack>
                       </ActionsheetItem>
                     )}

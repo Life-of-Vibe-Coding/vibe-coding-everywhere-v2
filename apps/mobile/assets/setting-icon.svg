@@ -1,0 +1,14 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="settingsGradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00E5FF"/>
+      <stop offset="1" stop-color="#FF00FF"/>
+    </linearGradient>
+  </defs>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    fill="url(#settingsGradient)"
+    d="M20 12 L17.08 14.11 L17.66 17.66 L14.11 17.08 L12 20 L9.89 17.08 L6.34 17.66 L6.92 14.11 L4 12 L6.92 9.89 L6.34 6.34 L9.89 6.92 L12 4 L14.11 6.92 L17.66 6.34 L17.08 9.89 Z M12 12 m-3 0 a 3 3 0 1 1 6 0 a 3 3 0 1 1 -6 0 Z"
+  />
+</svg>

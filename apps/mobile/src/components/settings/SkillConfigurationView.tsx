@@ -37,6 +37,15 @@ export function SkillConfigurationView({
 }: SkillConfigurationViewProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const isDark = theme.mode === "dark";
+  const pageSurface = isDark ? "rgba(7, 11, 21, 0.94)" : "rgba(255, 255, 255, 0.96)";
+  const headerSurface = isDark ? "rgba(10, 16, 30, 0.94)" : "rgba(248, 250, 252, 0.98)";
+  const panelBorder = isDark ? "rgba(162, 210, 255, 0.28)" : "rgba(15, 23, 42, 0.12)";
+  const titleColor = isDark ? "#EAF4FF" : "#0F172A";
+  const bodyColor = isDark ? "#D9E8F9" : "#1E293B";
+  const mutedColor = isDark ? "rgba(217, 232, 249, 0.82)" : "#475569";
+  const cardSurface = isDark ? "rgba(16, 24, 40, 0.9)" : "rgba(248, 250, 252, 0.96)";
+  const pressedSurface = isDark ? "rgba(173, 222, 255, 0.14)" : "rgba(15, 23, 42, 0.06)";
 
   const [skills, setSkills] = useState<Skill[]>([]);
   const [enabledSkillIds, setEnabledSkillIds] = useState<Set<string>>(new Set());
@@ -117,7 +126,7 @@ export function SkillConfigurationView({
   const showDetailOverlay = Boolean(selectedSkillId);
 
   const content = (
-    <Box className="flex-1 bg-background-0 overflow-hidden">
+    <Box className="flex-1 overflow-hidden" style={{ backgroundColor: pageSurface }}>
       {showDetailOverlay ? (
         <Box className="flex-1" style={detailOverlayStyle}>
           <SkillDetailSheet
@@ -130,8 +139,11 @@ export function SkillConfigurationView({
         </Box>
       ) : (
         <Box className="flex-1" style={safeStyle}>
-          <Box className="flex-row items-center justify-between py-4 px-5 border-b border-outline-500">
-            <Text className="text-lg font-semibold text-text-primary">
+          <Box
+            className="flex-row items-center justify-between py-4 px-5 border-b"
+            style={{ borderBottomColor: panelBorder, backgroundColor: headerSurface }}
+          >
+            <Text className="text-lg font-semibold" style={{ color: titleColor }}>
               Skill Configuration
             </Text>
             <Pressable
@@ -140,7 +152,7 @@ export function SkillConfigurationView({
               accessibilityLabel="Close skill configuration"
               className="p-2 min-w-11 min-h-11 items-center justify-center"
             >
-              <CloseIcon size={20} color={theme.colors.textSecondary} />
+              <CloseIcon size={20} color={mutedColor} />
             </Pressable>
           </Box>
           <ScrollView
@@ -152,7 +164,7 @@ export function SkillConfigurationView({
             }}
             showsVerticalScrollIndicator={false}
           >
-            <Text className="text-sm text-text-muted mb-5 leading-5">
+            <Text className="text-sm mb-5 leading-5" style={{ color: mutedColor }}>
               Enable skills for Pi agent. When enabled, skill content is
               included in the prompt. Tap a skill to view its details.
             </Text>
@@ -165,14 +177,15 @@ export function SkillConfigurationView({
             ) : skillsError ? (
               <Text className="text-sm text-error-500 mt-4">{skillsError}</Text>
             ) : skills.length === 0 ? (
-              <Text className="text-sm text-text-muted mt-4">
+              <Text className="text-sm mt-4" style={{ color: mutedColor }}>
                 No skills found in project skills folder.
               </Text>
             ) : (
               skills.map((skill) => (
                 <Box
                   key={skill.id}
-                  className="flex-row items-center justify-between py-3.5 px-4 rounded-xl bg-secondary-100 border border-outline-500 mb-2.5"
+                  className="flex-row items-center justify-between py-3.5 px-4 rounded-xl border mb-2.5"
+                  style={{ backgroundColor: cardSurface, borderColor: panelBorder }}
                 >
                   <Pressable
                     onPress={() => handleSkillRowPress(skill.id)}
@@ -181,21 +194,23 @@ export function SkillConfigurationView({
                     accessibilityHint="Opens skill details"
                     accessibilityRole="button"
                     className="flex-1 flex-row items-center mr-3"
+                    style={({ pressed }) => (pressed ? { backgroundColor: pressedSurface, borderRadius: 10 } : undefined)}
                   >
                     <Box className="flex-1 mr-2 min-w-0">
-                      <Text className="text-[15px] font-semibold text-text-primary">
+                      <Text className="text-[15px] font-semibold" style={{ color: bodyColor }}>
                         {skill.name}
                       </Text>
                       {skill.description ? (
                         <Text
-                          className="text-xs text-text-muted mt-1 leading-4"
+                          className="text-xs mt-1 leading-4"
+                          style={{ color: mutedColor }}
                           numberOfLines={2}
                         >
                           {skill.description}
                         </Text>
                       ) : null}
                     </Box>
-                    <ChevronRightIcon size={18} color={theme.colors.textSecondary} />
+                    <ChevronRightIcon size={18} color={mutedColor} />
                   </Pressable>
                   <Box className="shrink-0">
                     <Switch
@@ -204,13 +219,15 @@ export function SkillConfigurationView({
                       disabled={skillsSaving}
                       accessibilityLabel={`Enable ${skill.name}`}
                       trackColor={{
-                        false: theme.colors.border,
-                        true: theme.colors.accentSoft,
+                        false: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(15, 23, 42, 0.2)",
+                        true: isDark ? "rgba(139, 117, 255, 0.4)" : "rgba(139, 117, 255, 0.34)",
                       }}
                       thumbColor={
                         enabledSkillIds.has(skill.id)
                           ? theme.colors.accent
-                          : theme.colors.surface
+                          : isDark
+                            ? "rgba(226, 238, 252, 0.9)"
+                            : "#F8FAFC"
                       }
                     />
                   </Box>

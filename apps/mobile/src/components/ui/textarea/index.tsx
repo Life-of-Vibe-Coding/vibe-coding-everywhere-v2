@@ -88,7 +88,7 @@ const TextareaInput = React.forwardRef<React.ComponentRef<typeof TextInput>, Tex
         setFocused(false);
         onBlur?.(e);
       }}
-      className={cn('flex-1 p-2 text-typography-900', sizeClass[size], className)}
+      className={cn('flex-1 p-2', sizeClass[size], className)}
     />
   );
 });

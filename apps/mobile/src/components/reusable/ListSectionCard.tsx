@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { useTheme } from "@/theme/index";
 import type { StyleProp, ViewStyle } from "react-native";
 
 type ListSectionCardProps = {
@@ -25,6 +26,8 @@ export function ListSectionCard({
   className,
   style,
 }: ListSectionCardProps) {
+  const theme = useTheme();
+
   return (
     <Card
       className={["border border-outline-100 rounded-xl", className ?? ""].join(" ")}
@@ -33,11 +36,11 @@ export function ListSectionCard({
       <VStack space="md">
         <HStack className="items-center justify-between gap-3">
           <Box className="flex-1 min-w-0">
-            <Text size="sm" bold className="text-typography-900">
+            <Text size="sm" bold style={{ color: theme.colors.textPrimary }}>
               {title}
             </Text>
             {subtitle ? (
-              <Text size="xs" className="text-typography-500 mt-1">
+              <Text size="xs" className="mt-1" style={{ color: theme.colors.textSecondary }}>
                 {subtitle}
               </Text>
             ) : null}

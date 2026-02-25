@@ -341,7 +341,7 @@ export function PreviewWebViewModal({
       showHeader={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0 flex-1"
-      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flexGrow: 1 } }}
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flexGrow: 1, paddingBottom: 0 } }}
     >
       <Box style={styles.safe}>
         {showTabs ? (
@@ -474,7 +474,10 @@ export function PreviewWebViewModal({
             )}
 
             {!isFullScreen && (
-              <Box className="pb-8 bg-surface border-t border-outline-200">
+              <Box
+                className="bg-surface border-t border-outline-200"
+                style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+              >
                 <PreviewWebViewBottomBar
                   onBack={() => { if (canGoBack && webViewRef.current) webViewRef.current.goBack(); }}
                   onForward={() => { if (canGoForward && webViewRef.current) webViewRef.current.goForward(); }}

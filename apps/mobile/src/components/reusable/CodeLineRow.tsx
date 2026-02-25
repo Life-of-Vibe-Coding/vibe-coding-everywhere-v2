@@ -14,6 +14,7 @@ interface CodeLineRowProps {
   lineContent: string;
   selected: boolean;
   language: string;
+  isDarkMode?: boolean;
   onPress: () => void;
   lineBaseStyle: TextStyle;
   lineNumStyle: TextStyle;
@@ -44,6 +45,7 @@ function CodeLineRow({
   lineContent,
   selected,
   language,
+  isDarkMode = false,
   onPress,
   lineBaseStyle,
   lineNumStyle,
@@ -68,7 +70,7 @@ function CodeLineRow({
       </Box>
       <Box style={codeContainerStyle}>
         <RNText style={lineBaseStyle} selectable>
-          <Highlight theme={themes.vsLight} code={lineContent} language={language}>
+          <Highlight theme={isDarkMode ? themes.vsDark : themes.vsLight} code={lineContent} language={language}>
             {({ tokens, getTokenProps }) => (
               <>
                 {(tokens[0] ?? []).map((token, tokenIndex) => {
@@ -90,4 +92,3 @@ function CodeLineRow({
 }
 
 export default memo(CodeLineRow);
-

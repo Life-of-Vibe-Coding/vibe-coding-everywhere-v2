@@ -86,6 +86,10 @@ function ProcessListItem({
     () => ({ color: theme.colors.textMuted }),
     [theme.colors.textMuted]
   );
+  const commandTextStyle = useMemo(
+    () => ({ color: theme.colors.textPrimary, fontFamily: commandFont }),
+    [commandFont, theme.colors.textPrimary]
+  );
 
   return (
     <EntranceAnimation variant="slideUp" delay={0}>
@@ -106,8 +110,8 @@ function ProcessListItem({
               size="xs"
               numberOfLines={4}
               selectable
-              className="font-semibold text-typography-900 font-mono"
-              style={{ fontFamily: commandFont }}
+              className="font-semibold font-mono"
+              style={commandTextStyle}
             >
               {command}
             </Text>

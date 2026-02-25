@@ -25,6 +25,27 @@ import { ScrollView } from "@/components/ui/scroll-view";
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import Svg, { Polygon } from "react-native-svg";
+
+function NeonGlassBubbleWrapper({ isUser, isDark, width, height }: { isUser: boolean; isDark: boolean; width: number; height: number; }) {
+  const cut = 16;
+  const color = isUser ? "#FF00FF" : "#00E5FF";
+  const bg = isDark ? (isUser ? "rgba(255,0,255,0.1)" : "rgba(0,229,255,0.1)") : "rgba(255,255,255,0.5)";
+
+  const points = isUser
+    ? `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`
+    : `0,0 ${width - cut},0 ${width},${cut} ${width},${height} ${cut},${height} 0,${height - cut}`;
+
+  return (
+    <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
+      <Svg width={width} height={height}>
+        <Polygon points={points} fill="none" stroke={color} strokeWidth={6} opacity={0.3} />
+        <Polygon points={points} fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
+        <Polygon points={points} fill={bg} stroke={color} strokeWidth={1.5} />
+      </Svg>
+    </Box>
+  );
+}
 
 /** Replace span background-color highlights with text color using the provider's theme accent. */
 function replaceHighlightWithTextColor(content: string, highlightColor: string): string {
@@ -397,6 +418,7 @@ const TERMINAL_PROMPT = "rgba(255,255,255,0.5)";
 
 function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBoxMaxHeight = 360, provider, onOpenUrl, onFileSelect, isStreaming }: MessageBubbleProps) {
   const theme = useTheme();
+  const [bubbleSize, setBubbleSize] = useState({ width: 0, height: 0 });
   const codeBlockBg = theme.colors.surfaceMuted;
 
   const bashHeaderBg = theme.colors.surfaceMuted;
@@ -492,37 +514,19 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         bubble: {
           paddingVertical: 16,
           paddingHorizontal: 18,
-          borderRadius: 18,
+          borderRadius: 0, // removed radius to let SVG handle corners
           backgroundColor: "transparent",
         },
         bubbleAssistant: {
           alignSelf: "stretch",
           marginHorizontal: -spacing["4"],
-          backgroundColor: isDark ? "rgba(0, 229, 255, 0.08)" : "rgba(255,255,255,0.7)",
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderRadius: 8,
-          borderWidth: 1.5,
-          borderColor: isDark ? "#00E5FF" : "rgba(255,255,255,0.5)",
-          shadowColor: isDark ? "#00E5FF" : "#000",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: isDark ? 0.6 : 0.05,
-          shadowRadius: isDark ? 12 : 10,
-          elevation: 2,
         },
         bubbleUser: {
           maxWidth: "85%",
-          backgroundColor: isDark ? "rgba(255, 0, 255, 0.08)" : "transparent",
           paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
-          borderRadius: 8,
-          borderWidth: 1.5,
-          borderColor: isDark ? "#FF00FF" : "rgba(255,255,255,0.2)",
-          shadowColor: isDark ? "#FF00FF" : "#6b66f5",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: isDark ? 0.6 : 0.3,
-          shadowRadius: isDark ? 12 : 8,
-          elevation: 4,
         },
         bubbleSystem: {
           alignSelf: "center",
@@ -1088,6 +1092,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           </Box>
         )}
         <Box
+          onLayout={(e) => setBubbleSize(e.nativeEvent.layout)}
           style={[
             styles.bubble,
             isUser && styles.bubbleUser,
@@ -1096,17 +1101,10 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           ]}
           {...bubbleLayoutProps}
         >
-          {isUser && (
-            <LinearGradient
-              colors={['#8B75FF', '#6A5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
+          {!isSystem && bubbleSize.width > 0 && bubbleSize.height > 0 && (
+            <NeonGlassBubbleWrapper isUser={isUser} isDark={isDark} width={bubbleSize.width} height={bubbleSize.height} />
           )}
-          {!isUser && !isSystem && Platform.OS === 'ios' && (
-            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
-          )}
+          {/* Backgrounds handled by SVG wrapper */}
           {bubbleContent}
         </Box>
       </Box>

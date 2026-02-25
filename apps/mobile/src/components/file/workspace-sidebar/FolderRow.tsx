@@ -66,7 +66,8 @@ export function FolderRow({
     >
       {isFolder ? (
         <Text
-          className="w-[14px] mr-1 text-[10px] text-text-secondary"
+          className="w-[14px] mr-1 text-[10px]"
+          style={{ color: rootColorSecondary }}
         >
           {expanded ? "▼" : "▶"}
         </Text>
@@ -97,4 +98,3 @@ export function FolderRow({
     </Pressable>
   );
 }
-

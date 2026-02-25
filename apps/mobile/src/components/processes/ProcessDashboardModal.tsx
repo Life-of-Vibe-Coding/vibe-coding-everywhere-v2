@@ -74,6 +74,8 @@ export function ProcessDashboardModal({
   const [warning, setWarning] = useState<string | null>(null);
   const [killingPid, setKillingPid] = useState<number | null>(null);
   const [logViewer, setLogViewer] = useState<{ name: string; content: string } | null>(null);
+  const [refreshPressed, setRefreshPressed] = useState(false);
+  const [closePressed, setClosePressed] = useState(false);
 
   const terminalFont = useMemo(getTerminalFontFamily, []);
 
@@ -230,8 +232,34 @@ export function ProcessDashboardModal({
     () => ({
       borderColor: `${theme.colors.accent}35`,
       backgroundColor: `${theme.colors.accent}12`,
+      shadowColor: theme.colors.accent,
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 2,
     }),
     [theme.colors.accent]
+  );
+  const pressedActionButtonStyle = useMemo(
+    () => ({
+      borderColor: `${theme.colors.accent}AA`,
+      backgroundColor: `${theme.colors.accent}2C`,
+      shadowColor: theme.colors.accent,
+      shadowOpacity: 0.55,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 5,
+      transform: [{ scale: 0.97 }],
+    }),
+    [theme.colors.accent]
+  );
+  const textPrimaryStyle = useMemo(
+    () => ({ color: theme.colors.textPrimary }),
+    [theme.colors.textPrimary]
+  );
+  const textSecondaryStyle = useMemo(
+    () => ({ color: theme.colors.textSecondary }),
+    [theme.colors.textSecondary]
   );
   const handleRefreshPress = useCallback(() => {
     triggerHaptic("selection");
@@ -264,10 +292,10 @@ export function ProcessDashboardModal({
                 <TerminalIcon color={theme.colors.accent} size={18} />
               </Box>
               <Box className="flex-1 min-w-0">
-                <Text size="xl" bold className="text-typography-900">
+                <Text size="xl" bold style={textPrimaryStyle}>
                   Process Dashboard
                 </Text>
-                <Text size="xs" className="text-typography-500 mt-0.5">
+                <Text size="xs" className="mt-0.5" style={textSecondaryStyle}>
                   Local servers and logs
                 </Text>
               </Box>
@@ -278,21 +306,26 @@ export function ProcessDashboardModal({
                 variant="outline"
                 size="sm"
                 onPress={handleRefreshPress}
+                onPressIn={() => setRefreshPressed(true)}
+                onPressOut={() => setRefreshPressed(false)}
                 accessibilityLabel="Refresh process list"
                 className="min-w-11 min-h-11 rounded-xl border"
-                style={refreshButtonStyle}
+                style={[refreshButtonStyle, refreshPressed && pressedActionButtonStyle]}
               >
-                <ButtonIcon as={RefreshCwIcon} size="md" style={{ color: theme.colors.accent }} />
+                <ButtonIcon as={RefreshCwIcon} size="md" color={theme.colors.accent} />
               </Button>
               <Button
                 action="default"
                 variant="link"
                 size="md"
                 onPress={onClose}
+                onPressIn={() => setClosePressed(true)}
+                onPressOut={() => setClosePressed(false)}
                 accessibilityLabel="Close"
                 className="min-w-11 min-h-11"
+                style={closePressed ? pressedActionButtonStyle : undefined}
               >
-                <ButtonIcon as={CloseIcon} size="lg" style={topActionIconStyle} />
+                <ButtonIcon as={CloseIcon} size="lg" color={topActionIconStyle.color} />
               </Button>
             </HStack>
           </HStack>
@@ -313,7 +346,7 @@ export function ProcessDashboardModal({
 
           {warning && !error ? (
             <Box className="mx-5 mt-2 rounded-xl p-4" style={warningBannerStyle}>
-              <Text size="sm" className="text-typography-900">
+              <Text size="sm" style={textPrimaryStyle}>
                 {warning}
               </Text>
             </Box>
@@ -337,16 +370,16 @@ export function ProcessDashboardModal({
             <Box className="rounded-2xl border p-4 mb-4" style={heroCardStyle}>
               <HStack className="items-center justify-between">
                 <Box className="flex-1 min-w-0 pr-4">
-                  <Text size="sm" bold className="text-typography-900">
+                  <Text size="sm" bold style={textPrimaryStyle}>
                     Active local processes
                   </Text>
-                  <Text size="xs" className="text-typography-500 mt-1">
+                  <Text size="xs" className="mt-1" style={textSecondaryStyle}>
                     Pull to refresh or use the refresh action for live status.
                   </Text>
                 </Box>
                 <HStack className="gap-2">
                   <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
-                    <Text size="xs" className="text-typography-500">
+                    <Text size="xs" style={textSecondaryStyle}>
                       Processes
                     </Text>
                     <Text size="sm" bold style={{ color: theme.colors.accent }}>
@@ -354,7 +387,7 @@ export function ProcessDashboardModal({
                     </Text>
                   </Box>
                   <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
-                    <Text size="xs" className="text-typography-500">
+                    <Text size="xs" style={textSecondaryStyle}>
                       Ports
                     </Text>
                     <Text size="sm" bold style={{ color: theme.colors.accent }}>
@@ -416,7 +449,8 @@ export function ProcessDashboardModal({
                         size="md"
                         bold
                         numberOfLines={1}
-                        className="min-w-0 flex-1 text-typography-900"
+                        className="min-w-0 flex-1"
+                        style={textPrimaryStyle}
                       >
                         {logViewer.name}
                       </Text>
@@ -429,7 +463,7 @@ export function ProcessDashboardModal({
                       accessibilityLabel="Close log viewer"
                       className="min-w-11 min-h-11 -mr-2"
                     >
-                      <ButtonIcon as={CloseIcon} size="md" style={topActionIconStyle} />
+                      <ButtonIcon as={CloseIcon} size="md" color={topActionIconStyle.color} />
                     </Button>
                   </HStack>
                   <ScrollView
@@ -443,8 +477,8 @@ export function ProcessDashboardModal({
                     <Text
                       size="xs"
                       selectable
-                      className="text-typography-900 font-mono"
-                      style={{ fontFamily: terminalFont }}
+                      className="font-mono"
+                      style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
                     >
                       {logViewer.content || "(empty)"}
                     </Text>

@@ -41,6 +41,73 @@ export function SkillDetailSheet({
 }: SkillDetailSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const isDark = theme.mode === "dark";
+  const pageSurface = isDark ? "rgba(7, 11, 21, 0.94)" : "rgba(255, 255, 255, 0.96)";
+  const headerSurface = isDark ? "rgba(10, 16, 30, 0.94)" : "rgba(248, 250, 252, 0.98)";
+  const panelBorder = isDark ? "rgba(162, 210, 255, 0.28)" : "rgba(15, 23, 42, 0.12)";
+  const titleColor = isDark ? "#EAF4FF" : "#0F172A";
+  const bodyColor = isDark ? "#D9E8F9" : "#1E293B";
+  const mutedColor = isDark ? "rgba(217, 232, 249, 0.82)" : "#475569";
+  const cardSurface = isDark ? "rgba(16, 24, 40, 0.9)" : "rgba(248, 250, 252, 0.96)";
+  const markdownThemeStyles = {
+    body: {
+      color: bodyColor,
+      lineHeight: 22,
+      fontSize: 14,
+    },
+    text: {
+      color: bodyColor,
+    },
+    paragraph: {
+      color: bodyColor,
+    },
+    heading1: {
+      color: titleColor,
+    },
+    heading2: {
+      color: titleColor,
+    },
+    heading3: {
+      color: titleColor,
+    },
+    heading4: {
+      color: titleColor,
+    },
+    heading5: {
+      color: titleColor,
+    },
+    heading6: {
+      color: titleColor,
+    },
+    code_inline: {
+      backgroundColor: isDark ? "rgba(148, 163, 184, 0.16)" : "#E2E8F0",
+      color: isDark ? "#E2E8F0" : "#0F172A",
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    code_block: {
+      backgroundColor: isDark ? "rgba(2, 6, 23, 0.9)" : "#0F172A",
+      color: "#F8FAFC",
+      borderRadius: 8,
+      padding: 12,
+    },
+    fence: {
+      backgroundColor: isDark ? "rgba(2, 6, 23, 0.9)" : "#0F172A",
+      color: "#F8FAFC",
+      borderRadius: 8,
+      padding: 12,
+    },
+    link: {
+      color: isDark ? "#93C5FD" : "#2563EB",
+    },
+    bullet_list_icon: {
+      color: bodyColor,
+    },
+    ordered_list_icon: {
+      color: bodyColor,
+    },
+  };
 
   const [detail, setDetail] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -102,11 +169,14 @@ export function SkillDetailSheet({
         return (
           <Box
             key={fullPath}
-            className="mb-1 flex-row items-center rounded-lg border border-outline-500 bg-secondary-100 px-2.5 py-1.5"
-            style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
+            className="mb-1 flex-row items-center rounded-lg border px-2.5 py-1.5"
+            style={[
+              { borderColor: panelBorder, backgroundColor: cardSurface },
+              depth > 0 ? { marginLeft: 16 * depth } : undefined,
+            ]}
           >
-            <Text className="mr-1.5 w-4.5 text-xs text-text-muted">-</Text>
-            <Text className="font-mono text-[13px] text-text-primary">{child.name}</Text>
+            <Text className="mr-1.5 w-4.5 text-xs" style={{ color: mutedColor }}>-</Text>
+            <Text className="font-mono text-[13px]" style={{ color: bodyColor }}>{child.name}</Text>
           </Box>
         );
       }
@@ -116,20 +186,23 @@ export function SkillDetailSheet({
       return (
         <Box key={fullPath}>
           <Pressable
-            className="mb-1 min-h-11 flex-row items-center rounded-lg border border-outline-500 bg-secondary-100 px-2.5 py-1.5"
-            style={depth > 0 ? { marginLeft: 16 * depth } : undefined}
+            className="mb-1 min-h-11 flex-row items-center rounded-lg border px-2.5 py-1.5"
+            style={({ pressed }) => [
+              { borderColor: panelBorder, backgroundColor: pressed ? (isDark ? "rgba(173, 222, 255, 0.12)" : "rgba(15, 23, 42, 0.06)") : cardSurface },
+              depth > 0 ? { marginLeft: 16 * depth } : undefined,
+            ]}
             onPress={() => toggleFolder(fullPath)}
             accessibilityLabel={`${child.name} folder, ${isExpanded ? "expanded" : "collapsed"}`}
             accessibilityRole="button"
           >
             <Box className="mr-1.5">
               {isExpanded ? (
-                <ChevronDownIcon size={12} color={theme.colors.textSecondary} />
+                <ChevronDownIcon size={12} color={mutedColor} />
               ) : (
-                <ChevronRightIcon size={12} color={theme.colors.textSecondary} />
+                <ChevronRightIcon size={12} color={mutedColor} />
               )}
             </Box>
-            <Text className="font-mono text-[13px] font-semibold text-text-primary">{child.name}</Text>
+            <Text className="font-mono text-[13px] font-semibold" style={{ color: bodyColor }}>{child.name}</Text>
             {isLoading ? (
               <Spinner size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
             ) : null}
@@ -242,7 +315,7 @@ export function SkillDetailSheet({
         <>
           {detail.children && detail.children.length > 0 ? (
             <Box className="mb-6">
-              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide" style={{ color: mutedColor }}>
                 Child folders & files
               </Text>
               <Box>
@@ -252,12 +325,16 @@ export function SkillDetailSheet({
           ) : null}
           {detail.content ? (
             <Box className="mb-6">
-              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+              <Text className="mb-2.5 text-xs font-semibold uppercase tracking-wide" style={{ color: mutedColor }}>
                 SKILL.md
               </Text>
-              <Box className="rounded-xl border border-outline-500 bg-secondary-100 px-4 pt-4 pb-3.5">
+              <Box
+                className="rounded-xl border px-4 pt-4 pb-3.5"
+                style={{ borderColor: panelBorder, backgroundColor: cardSurface }}
+              >
                 <MarkdownContent
                   content={wrapBareUrlsInMarkdown(stripFrontmatter(detail.content))}
+                  markdownProps={{ style: markdownThemeStyles, mergeStyle: true }}
                 />
               </Box>
             </Box>
@@ -269,14 +346,17 @@ export function SkillDetailSheet({
 
   if (embedded) {
     const safeStyle = {
-      paddingTop: 0,
+      paddingTop: Math.max(insets.top, 8),
       paddingBottom: Math.max(insets.bottom, 8),
     };
 
     return (
-      <Box className="flex-1 bg-background-0" style={safeStyle}>
-        <Box className="flex-row items-center justify-between border-b border-outline-500 px-5 py-4">
-          <Text className="mr-3 flex-1 text-lg font-semibold text-text-primary" numberOfLines={1}>
+      <Box className="flex-1" style={[safeStyle, { backgroundColor: pageSurface }]}>
+        <Box
+          className="flex-row items-center justify-between border-b px-5 py-4"
+          style={{ borderBottomColor: panelBorder, backgroundColor: headerSurface }}
+        >
+          <Text className="mr-3 flex-1 text-lg font-semibold" style={{ color: titleColor }} numberOfLines={1}>
             {detail?.name ?? skillId ?? "Skill Details"}
           </Text>
           <Pressable
@@ -285,7 +365,7 @@ export function SkillDetailSheet({
             accessibilityLabel="Close skill details"
             className="min-h-11 min-w-11 items-center justify-center p-2"
           >
-            <CloseIcon size={20} color={theme.colors.textSecondary} />
+            <CloseIcon size={20} color={mutedColor} />
           </Pressable>
         </Box>
         {body}
@@ -303,7 +383,7 @@ export function SkillDetailSheet({
       bodyClassName="m-0 p-0"
       bodyProps={{ scrollEnabled: false }}
     >
-      <Box className="flex-1 bg-background-0">{body}</Box>
+      <Box className="flex-1" style={{ backgroundColor: pageSurface }}>{body}</Box>
     </ModalScaffold>
   );
 }

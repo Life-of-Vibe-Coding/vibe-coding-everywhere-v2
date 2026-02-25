@@ -5,6 +5,7 @@ import React, { useMemo } from "react";
 import { getDefaultServerConfig } from "@/core";
 import { ThemeProvider } from "@/theme/index";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
+import { ImageBackground, StyleSheet, View } from "react-native";
 
 import { ChatPage } from "@/components/pages/ChatPage";
 import { ChatActionController } from "@/components/controllers/ChatActionController";
@@ -87,7 +88,23 @@ export default function App() {
                     return (
                       <ThemeProvider provider={themeState.provider} colorMode={themeState.themeMode}>
                         <GluestackUIProvider mode={themeState.themeMode}>
-                          <ChatPage {...chatPageProps} />
+                          <View style={{ flex: 1 }}>
+                            <ImageBackground
+                              source={require("./assets/chat-bg.png")}
+                              style={StyleSheet.absoluteFill}
+                              resizeMode="cover"
+                            >
+                              <View
+                                style={[
+                                  StyleSheet.absoluteFill,
+                                  {
+                                    backgroundColor: "rgba(0, 0, 0, 0)",
+                                  },
+                                ]}
+                              />
+                            </ImageBackground>
+                            <ChatPage {...chatPageProps} />
+                          </View>
                         </GluestackUIProvider>
                       </ThemeProvider>
                     );

@@ -150,6 +150,7 @@ export function DockerManagerModal({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const isDarkMode = theme.mode === "dark";
 
   const [activeTab, setActiveTab] = useState<DockerTab>("containers");
   const [containers, setContainers] = useState<DockerContainer[]>([]);
@@ -458,16 +459,16 @@ export function DockerManagerModal({
                   <Box style={styles.headerIconWrap}>
                     <DockerIcon color={theme.colors.accent} size={18} />
                   </Box>
-                  <Text style={styles.title} size="lg" bold className="text-typography-900">
+                  <Text style={styles.title} size="lg" bold>
                     Docker
                   </Text>
                   <Box style={styles.livePill} className="rounded-full">
-                    <Text size="2xs" bold className="text-primary-700">
+                    <Text size="2xs" bold style={{ color: theme.colors.accent }}>
                       Live
                     </Text>
                   </Box>
                 </Box>
-                <Text size="sm" className="text-typography-600 mt-2">
+                <Text size="sm" className="mt-2" style={{ color: theme.colors.textSecondary }}>
                   Containers, images, and volumes
                 </Text>
               </Box>
@@ -506,7 +507,7 @@ export function DockerManagerModal({
                       <Box style={styles.tabIconBadge}>
                         <ContainerIcon color={theme.colors.accent} size={16} />
                       </Box>
-                      <Text size="sm" bold className="text-typography-700">
+                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
                         Runtime
                       </Text>
                     </HStack>
@@ -517,7 +518,7 @@ export function DockerManagerModal({
                       accessibilityLabel="Show all containers"
                       accessibilityState={{ selected: showAll }}
                     >
-                      <Text size="sm" className={showAll ? "text-primary-700 font-semibold" : "text-typography-600"}>
+                      <Text size="sm" style={{ color: showAll ? theme.colors.accent : theme.colors.textSecondary }} className={showAll ? "font-semibold" : ""}>
                         All
                       </Text>
                     </Pressable>
@@ -527,7 +528,7 @@ export function DockerManagerModal({
                       accessibilityLabel="Show running containers only"
                       accessibilityState={{ selected: !showAll }}
                     >
-                      <Text size="sm" className={!showAll ? "text-primary-700 font-semibold" : "text-typography-600"}>
+                      <Text size="sm" style={{ color: !showAll ? theme.colors.accent : theme.colors.textSecondary }} className={!showAll ? "font-semibold" : ""}>
                         Running
                       </Text>
                     </Pressable>
@@ -535,7 +536,7 @@ export function DockerManagerModal({
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
                       <Button action="primary" variant="solid" size="sm" onPress={() => load(true)} className="mt-3">
                         <ButtonText>Retry</ButtonText>
                       </Button>
@@ -553,7 +554,7 @@ export function DockerManagerModal({
                     </Box>
                   ) : containers.length === 0 ? (
                     <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" className="text-typography-500">No containers found.</Text>
+                      <Text size="sm" style={{ color: theme.colors.textMuted }}>No containers found.</Text>
                     </Box>
                   ) : (
                     <ScrollView
@@ -574,12 +575,20 @@ export function DockerManagerModal({
                         const statusCls = statusClass(c.state);
                         const statusBadgeClass =
                           statusCls === "running"
-                            ? "bg-success-500/15 text-success-600"
+                            ? "bg-success-500/15"
                             : statusCls === "exited"
-                              ? "bg-typography-500/15 text-typography-600"
+                              ? "bg-typography-500/15"
                               : statusCls === "paused"
-                                ? "bg-warning-500/15 text-warning-600"
-                                : "bg-error-500/15 text-error-600";
+                                ? "bg-warning-500/15"
+                                : "bg-error-500/15";
+                        const statusColor =
+                          statusCls === "running"
+                            ? theme.colors.success
+                            : statusCls === "exited"
+                              ? theme.colors.textSecondary
+                              : statusCls === "paused"
+                                ? theme.colors.warning
+                                : theme.colors.danger;
 
                         return (
                           <DockerResourceCard
@@ -596,7 +605,7 @@ export function DockerManagerModal({
                                   <CopyIcon color={theme.colors.textMuted} size={18} />
                                 </Pressable>
                                 <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                                  <Text size="xs">{c.status || "—"}</Text>
+                                  <Text size="xs" style={{ color: statusColor }}>{c.status || "—"}</Text>
                                 </Box>
                               </HStack>
                             }
@@ -604,7 +613,7 @@ export function DockerManagerModal({
                               {
                                 label: "Image",
                                 value: (
-                                  <Text size="xs" numberOfLines={1} className="text-typography-900 flex-1 min-w-0">
+                                  <Text size="xs" numberOfLines={1} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
                                     {c.image || "—"}
                                   </Text>
                                 ),
@@ -612,7 +621,7 @@ export function DockerManagerModal({
                               {
                                 label: "Ports",
                                 value: (
-                                  <Text size="xs" numberOfLines={2} className="text-typography-900 flex-1 min-w-0">
+                                  <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
                                     {c.ports || "—"}
                                   </Text>
                                 ),
@@ -620,7 +629,7 @@ export function DockerManagerModal({
                               {
                                 label: "Created",
                                 value: (
-                                  <Text size="xs" className="text-typography-900">
+                                  <Text size="xs" style={{ color: theme.colors.textPrimary }}>
                                     {formatDate(c.created)}
                                   </Text>
                                 ),
@@ -665,14 +674,14 @@ export function DockerManagerModal({
                       <Box style={styles.tabIconBadge}>
                         <ImageIcon color={theme.colors.accent} size={16} />
                       </Box>
-                      <Text size="sm" bold className="text-typography-700">
+                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
                         Image Cache
                       </Text>
                     </HStack>
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
                       <Button action="primary" variant="solid" size="sm" onPress={() => loadImages(true)} className="mt-3">
                         <ButtonText>Retry</ButtonText>
                       </Button>
@@ -689,7 +698,7 @@ export function DockerManagerModal({
                     </Box>
                   ) : images.length === 0 ? (
                     <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" className="text-typography-500">No images found.</Text>
+                      <Text size="sm" style={{ color: theme.colors.textMuted }}>No images found.</Text>
                     </Box>
                   ) : (
                     <ScrollView
@@ -725,11 +734,11 @@ export function DockerManagerModal({
                             rows={[
                               {
                                 label: "Size",
-                                value: <Text size="xs" className="text-typography-900">{formatBytes(img.size)}</Text>,
+                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatBytes(img.size)}</Text>,
                               },
                               {
                                 label: "Created",
-                                value: <Text size="xs" className="text-typography-900">{formatDate(img.created)}</Text>,
+                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(img.created)}</Text>,
                               },
                             ]}
                             actions={
@@ -752,7 +761,7 @@ export function DockerManagerModal({
                       <Box style={styles.tabIconBadge}>
                         <VolumeIcon color={theme.colors.accent} size={16} />
                       </Box>
-                      <Text size="sm" bold className="text-typography-700">
+                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
                         Persistent Storage
                       </Text>
                     </HStack>
@@ -768,7 +777,7 @@ export function DockerManagerModal({
                   </Box>
                   {error ? (
                     <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" className="text-error-600">{error}</Text>
+                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
                       <Button action="primary" variant="solid" size="sm" onPress={() => loadVolumes(true)} className="mt-3">
                         <ButtonText>Retry</ButtonText>
                       </Button>
@@ -786,7 +795,7 @@ export function DockerManagerModal({
                     </Box>
                   ) : filteredVolumes.length === 0 ? (
                     <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" className="text-typography-500">
+                      <Text size="sm" style={{ color: theme.colors.textMuted }}>
                         {volumeSearch.trim() ? "No matching volumes." : "No volumes found."}
                       </Text>
                     </Box>
@@ -818,13 +827,13 @@ export function DockerManagerModal({
                             rows={[
                               {
                                 label: "Driver",
-                                value: <Text size="xs" className="text-typography-900">{v.driver || "—"}</Text>,
+                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{v.driver || "—"}</Text>,
                               },
                               {
                                 label: "Mount point",
                                 value: (
                                   <Box className="flex-1 flex-row items-start gap-2 min-w-0">
-                                    <Text size="xs" numberOfLines={2} className="flex-1 min-w-0 text-typography-900">
+                                    <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
                                       {v.mountpoint || "—"}
                                     </Text>
                                     <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
@@ -835,7 +844,7 @@ export function DockerManagerModal({
                               },
                               {
                                 label: "Created",
-                                value: <Text size="xs" className="text-typography-900">{formatDate(v.created)}</Text>,
+                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(v.created)}</Text>,
                               },
                             ]}
                             actions={
@@ -866,7 +875,7 @@ export function DockerManagerModal({
               <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
                 <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
                   <Box style={styles.logsHeader} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-200">
-                    <Text size="lg" bold numberOfLines={1} className="flex-1 text-typography-900">
+                    <Text size="lg" bold numberOfLines={1} className="flex-1" style={{ color: theme.colors.textPrimary }}>
                       Logs: {logsFor.name}
                     </Text>
                     <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
@@ -876,14 +885,22 @@ export function DockerManagerModal({
                   {logsLoading ? (
                     <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
                       <Spinner size="large" color={theme.colors.accent} />
-                      <Text size="sm" className="text-typography-500 mt-3">Loading logs…</Text>
+                      <Text size="sm" className="mt-3" style={{ color: theme.colors.textMuted }}>Loading logs…</Text>
                     </Box>
                   ) : (
                     <ScrollView
                       style={styles.scroll}
                       contentContainerStyle={[styles.scrollContent, styles.logsContent]}
                     >
-                      <Text size="xs" selectable className="text-typography-900 font-mono" style={{ fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace" }}>
+                      <Text
+                        size="xs"
+                        selectable
+                        className="font-mono"
+                        style={{
+                          color: isDarkMode ? "#F8FAFC" : theme.colors.textPrimary,
+                          fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
+                        }}
+                      >
                         {logsContent}
                       </Text>
                     </ScrollView>
@@ -899,10 +916,16 @@ export function DockerManagerModal({
 }
 
 function createStyles(theme: ReturnType<typeof useTheme>) {
+  const isDarkMode = theme.mode === "dark";
+  const panelBackground = isDarkMode ? "rgba(7, 12, 26, 0.9)" : "rgba(248, 250, 255, 0.96)";
+  const railBackground = isDarkMode ? "rgba(16, 22, 40, 0.92)" : "rgba(242, 246, 255, 0.98)";
+  const cardBackground = isDarkMode ? "rgba(13, 18, 34, 0.95)" : "rgba(255, 255, 255, 0.99)";
+  const screenOverlay = isDarkMode ? "rgba(3, 7, 18, 0.78)" : "rgba(245, 248, 255, 0.9)";
+
   return StyleSheet.create({
     fullScreen: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: screenOverlay,
     },
     safe: {
       flex: 1,
@@ -911,7 +934,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 16,
       paddingTop: 10,
       paddingBottom: 14,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: panelBackground,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },
@@ -945,13 +968,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: theme.colors.accentSoft,
     },
     tabRail: {
-      backgroundColor: theme.colors.surfaceAlt,
+      backgroundColor: railBackground,
       borderRadius: 14,
       padding: 4,
     },
     contentArea: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: panelBackground,
     },
     toolbar: {
       flexDirection: "row",
@@ -961,7 +984,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       paddingVertical: 10,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: panelBackground,
     },
     tabIconBadge: {
       width: 26,
@@ -1014,7 +1037,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginBottom: 14,
       padding: 16,
       borderRadius: 14,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: cardBackground,
       borderWidth: 1,
       borderColor: theme.colors.border,
       shadowColor: theme.colors.shadow,
@@ -1044,7 +1067,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     logsHeader: {
       paddingVertical: 14,
       paddingHorizontal: 16,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: panelBackground,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
     },

@@ -51,6 +51,7 @@ export type CodeLineRecord = {
 type FileViewerCodeLineProps = {
   item: CodeLineRecord;
   isDiffMode: boolean;
+  isDarkMode: boolean;
   language: string;
   onPress: () => void;
   selectionStart: number | null;
@@ -69,6 +70,7 @@ type FileViewerCodeLineProps = {
 export function FileViewerCodeLine({
   item,
   isDiffMode,
+  isDarkMode,
   language,
   onPress,
   selectionStart,
@@ -116,6 +118,7 @@ export function FileViewerCodeLine({
       lineContent={item.lineContent}
       selected={selected}
       language={language}
+      isDarkMode={isDarkMode}
       onPress={onPress}
       lineBaseStyle={codeBaseStyle}
       lineNumStyle={lineNumStyle}

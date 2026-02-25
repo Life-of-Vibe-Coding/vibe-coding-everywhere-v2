@@ -4,6 +4,7 @@ import { Button, ButtonText } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { useTheme } from "@/theme/index";
 
 type AsyncStateViewProps = {
   isLoading?: boolean;
@@ -30,12 +31,14 @@ export function AsyncStateView({
   children,
   className,
 }: AsyncStateViewProps) {
+  const theme = useTheme();
+
   if (isLoading) {
     return (
       <Box className={className}>
         <VStack space="sm" className="items-center justify-center py-8">
           <Spinner size="small" />
-          <Text size="sm" className="text-typography-500">
+          <Text size="sm" style={{ color: theme.colors.textSecondary }}>
             {loadingText}
           </Text>
         </VStack>
@@ -64,11 +67,11 @@ export function AsyncStateView({
     return (
       <Box className={className}>
         <VStack space="sm" className="items-center justify-center py-8">
-          <Text size="md" bold className="text-typography-700 text-center">
+          <Text size="md" bold className="text-center" style={{ color: theme.colors.textPrimary }}>
             {emptyTitle}
           </Text>
           {emptyDescription ? (
-            <Text size="sm" className="text-typography-500 text-center">
+            <Text size="sm" className="text-center" style={{ color: theme.colors.textSecondary }}>
               {emptyDescription}
             </Text>
           ) : null}
@@ -79,4 +82,3 @@ export function AsyncStateView({
 
   return <Box className={className}>{children}</Box>;
 }
-

@@ -27,6 +27,8 @@ const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;
 const MAX_DISPLAY_LINES = 3000; // Avoid render freeze for very large files that slip through
 
+import { BlurView } from "expo-blur";
+
 /** Map file extension to Prism language (prism-react-renderer built-in set). */
 function getLanguage(path: string | null): string {
   if (!path || !path.includes(".")) return "plaintext";
@@ -123,6 +125,10 @@ export function FileViewerModal({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createFileViewerStyles(theme), [theme]);
+  const codeBaseStyleWithTheme = useMemo<TextStyle>(
+    () => ({ ...codeBaseStyle, color: theme.colors.textPrimary }),
+    [theme.colors.textPrimary]
+  );
   if (!isOpen) return null;
 
   const isDiffMode = path?.startsWith("__diff__:");
@@ -204,6 +210,7 @@ export function FileViewerModal({
       className="flex-1 overflow-hidden rounded-lg"
       style={[{ backgroundColor: theme.colors.surfaceAlt }, embedded ? undefined : { paddingTop: topInset }]}
     >
+      <BlurView intensity={70} tint={theme.mode === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
       {embedded ? (
         <FileViewerHeader
           headerLabel={headerLabel}
@@ -243,7 +250,7 @@ export function FileViewerModal({
             className="flex-1"
             contentContainerStyle={{
               paddingHorizontal: 20,
-              paddingVertical: 16,
+              paddingTop: 28,
               paddingBottom: 32,
               backgroundColor: theme.colors.surfaceAlt,
             }}
@@ -297,10 +304,11 @@ export function FileViewerModal({
             renderItem={({ item }) => (
               <FileViewerCodeLine
                 item={item as CodeLineRecord}
-                isDiffMode={isDiffMode}
+                isDiffMode={!!isDiffMode}
+                isDarkMode={theme.mode === "dark"}
                 language={language}
                 onPress={() => onLinePress(item.index)}
-                lineBaseStyle={codeBaseStyle}
+                codeBaseStyle={codeBaseStyleWithTheme}
                 selectionStart={selectionStart}
                 selectionEnd={selectionEnd}
                 theme={theme}

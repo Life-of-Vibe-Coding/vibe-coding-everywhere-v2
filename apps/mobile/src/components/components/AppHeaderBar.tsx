@@ -9,9 +9,10 @@ import {
   EntranceAnimation,
   triggerHaptic,
 } from "@/design-system";
-import { MenuIcon, SettingsIcon } from "@/components/icons/HeaderIcons";
+import { SettingsGradientIcon } from "@/components/icons/HeaderIcons";
 import { BlurView } from "expo-blur";
 import { useTheme } from "@/theme/index";
+import { Image } from "react-native";
 
 interface AppHeaderBarProps {
   visible: boolean;
@@ -29,9 +30,11 @@ interface HeaderButtonProps {
   onPress: () => void;
   accessibilityLabel: string;
   delay?: number;
+  plain?: boolean;
+  size?: number;
 }
 
-function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderButtonProps) {
+function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = false, size = 44 }: HeaderButtonProps) {
   return (
     <EntranceAnimation variant="scale" delay={delay}>
       <AnimatedPressableView
@@ -42,20 +45,20 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0 }: HeaderBu
         haptic={undefined}
         scaleTo={0.92}
         style={{
-          width: 44,
-          height: 44,
+          width: size,
+          height: size,
           justifyContent: "center",
           alignItems: "center",
-          borderRadius: 22,
-          overflow: "hidden",
-          backgroundColor: "rgba(255, 255, 255, 0.2)",
-          borderColor: "rgba(255, 255, 255, 0.4)",
-          borderWidth: StyleSheet.hairlineWidth,
+          borderRadius: plain ? 0 : 12,
+          overflow: plain ? "visible" : "hidden",
+          backgroundColor: plain ? "transparent" : "rgba(255, 255, 255, 0.2)",
+          borderColor: plain ? "transparent" : "rgba(255, 255, 255, 0.4)",
+          borderWidth: plain ? 0 : StyleSheet.hairlineWidth,
         }}
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
       >
-        <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        {!plain && <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />}
         {icon}
       </AnimatedPressableView>
     </EntranceAnimation>
@@ -78,24 +81,35 @@ export function AppHeaderBar({
   if (!visible) return null;
 
   return (
-    <HStack className="relative h-14 flex-row items-center justify-between px-4 mt-2 mb-2" pointerEvents="box-none">
+    <HStack className="relative h-20 flex-row items-center justify-between -mx-4 px-0 -mt-2" pointerEvents="box-none">
       <HeaderButton
-        icon={<MenuIcon color={isDark ? "#00E5FF" : "#333"} />}
+        icon={
+          <Image
+            source={require("../../../assets/setting-icon-final.png")}
+            style={{ width: 68, height: 68, opacity: 0.6 }}
+            resizeMode="contain"
+          />
+        }
         onPress={onOpenExplorer}
         accessibilityLabel="Open Explorer"
         delay={100}
+        size={72}
+        plain
       />
       <Box className="min-w-0 flex-1 shrink justify-center items-center px-2">
-        <VStack className="max-w-full gap-0.5 items-center">
+        <VStack className="max-w-full gap-0 items-center">
           <GluestackText
             size="xs"
             numberOfLines={1}
+            ellipsizeMode="middle"
             style={{
-              color: isDark ? "rgba(0, 229, 255, 0.7)" : "rgba(0,0,0,0.4)",
+              color: isDark ? "rgba(0, 229, 255, 0.75)" : "rgba(0,0,0,0.5)",
               textTransform: "uppercase",
-              letterSpacing: 2,
-              textShadowColor: isDark ? "rgba(0, 229, 255, 0.5)" : "transparent",
-              textShadowRadius: isDark ? 4 : 0
+              letterSpacing: 1.5,
+              fontSize: 10,
+              textShadowColor: isDark ? "rgba(0, 229, 255, 0.3)" : "transparent",
+              textShadowRadius: isDark ? 4 : 0,
+              marginBottom: -4
             }}
             className="font-bold text-center"
           >
@@ -104,23 +118,28 @@ export function AppHeaderBar({
           <GluestackText
             size="md"
             numberOfLines={1}
-            ellipsizeMode="middle"
+            ellipsizeMode="tail"
             style={{
-              color: isDark ? "#E0E0FF" : "#111",
-              textShadowColor: isDark ? "rgba(255, 255, 255, 0.5)" : "transparent",
-              textShadowRadius: isDark ? 8 : 0
+              color: isDark ? "#FFFFFF" : "#111",
+              fontSize: 22,
+              textShadowColor: isDark ? "rgba(255, 255, 255, 0.4)" : "transparent",
+              textShadowRadius: isDark ? 12 : 0,
             }}
-            className="font-extrabold"
+            className="font-black"
           >
             {statusLabel}
           </GluestackText>
         </VStack>
       </Box>
       <HeaderButton
-        icon={<SettingsIcon color={isDark ? "#FF00FF" : "#333"} />}
+        icon={
+          <SettingsGradientIcon size={36} />
+        }
         onPress={onOpenSessionManagement}
         accessibilityLabel="Manage sessions"
         delay={200}
+        size={56}
+        plain
       />
     </HStack>
   );

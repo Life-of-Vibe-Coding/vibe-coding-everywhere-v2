@@ -187,19 +187,19 @@ const isCodexDesign = (p: Provider) => false;
 function getNeutrals(mode: ColorMode, provider: Provider) {
   if (mode === "dark") {
     return {
-      background: "#0A0A0A",
-      surface: "rgba(20, 20, 20, 0.6)",
-      surfaceAlt: "rgba(30, 30, 30, 0.6)",
-      surfaceMuted: "rgba(40, 40, 40, 0.6)",
-      border: "rgba(255, 255, 255, 0.15)",
+      background: "transparent",
+      surface: "rgba(10, 15, 30, 0.6)",
+      surfaceAlt: "rgba(15, 20, 40, 0.6)",
+      surfaceMuted: "rgba(20, 25, 45, 0.6)",
+      border: "rgba(0, 229, 255, 0.25)",
       textPrimary: "#FFFFFF",
-      textSecondary: "#E5E5E5",
-      textMuted: "#A3A3A3",
+      textSecondary: "#A5F5F5",
+      textMuted: "rgba(0, 229, 255, 0.5)",
       textInverse: "#000000",
-      overlay: "rgba(0,0,0,0.7)",
-      shadow: "rgba(0,0,0,0.6)",
-      skeleton: "#141414",
-      skeletonHighlight: "#1F1F1F",
+      overlay: "rgba(0, 0, 10, 0.7)",
+      shadow: "rgba(0, 229, 255, 0.3)",
+      skeleton: "rgba(0, 229, 255, 0.1)",
+      skeletonHighlight: "rgba(0, 229, 255, 0.3)",
     };
   }
   return {

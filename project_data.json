@@ -1,0 +1,13 @@
+{
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "Request contains an invalid argument.",
+        "type": "text"
+      }
+    ],
+    "isError": true
+  }
+}

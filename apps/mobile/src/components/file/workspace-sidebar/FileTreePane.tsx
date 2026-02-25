@@ -35,34 +35,45 @@ export function FileTreePane({
   filteredTree,
   renderItem,
 }: FileTreePaneProps) {
+  const paneSurface = theme.mode === "dark" ? "rgba(8, 12, 22, 0.88)" : "rgba(255, 255, 255, 0.94)";
+  const paneBorder = theme.mode === "dark" ? "rgba(162, 210, 255, 0.24)" : theme.colors.border;
+
   return (
     <>
-      <Box className="py-1.5 px-3.5 bg-background-0">
+      <Box className="py-1.5 px-3.5" style={{ backgroundColor: paneSurface }}>
         <Text
-          className="text-sm leading-5 font-medium text-text-primary"
+          className="text-sm leading-5 font-medium"
+          style={{ color: theme.colors.textPrimary }}
           numberOfLines={2}
         >
           {root ?? "Workspace"}
         </Text>
       </Box>
-      <Box className="px-3 pt-1 pb-2 bg-background-0">
-        <Input variant="outline" size="md" className="flex-1">
+      <Box className="px-3 pt-1 pb-2" style={{ backgroundColor: paneSurface }}>
+        <Input
+          variant="outline"
+          size="md"
+          className="flex-1"
+          style={{ backgroundColor: paneSurface, borderColor: paneBorder }}
+        >
           <InputField
             placeholder="Search files..."
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={onSearchQueryChange}
             returnKeyType="search"
+            style={{ color: theme.colors.textPrimary }}
           />
         </Input>
       </Box>
       {loading && !hasData ? (
-        <Box className="flex-1 items-center justify-center py-6 bg-background-0">
+        <Box className="flex-1 items-center justify-center py-6" style={{ backgroundColor: paneSurface }}>
           <Spinner size="small" color={theme.colors.accent} />
         </Box>
       ) : (
         <ScrollView
-          className="flex-1 min-h-0 bg-background-0"
+          className="flex-1 min-h-0"
+          style={{ backgroundColor: paneSurface }}
           contentContainerStyle={{ paddingVertical: 8, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}

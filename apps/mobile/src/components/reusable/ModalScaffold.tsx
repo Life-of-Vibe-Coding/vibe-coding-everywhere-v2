@@ -59,11 +59,11 @@ export function ModalScaffold({
             style={{ paddingTop: Math.max(insets.top, 0) }}
           >
             <Box className="flex-1 min-w-0 pr-2">
-              <Text size="lg" bold className="text-typography-900" numberOfLines={1}>
+              <Text size="lg" bold className="text-text-primary" numberOfLines={1}>
                 {title}
               </Text>
               {subtitle ? (
-                <Text size="sm" className="text-typography-600 mt-1" numberOfLines={2}>
+                <Text size="sm" className="text-text-secondary mt-1" numberOfLines={2}>
                   {subtitle}
                 </Text>
               ) : null}
@@ -75,7 +75,7 @@ export function ModalScaffold({
                   className="h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"
                   accessibilityLabel={closeLabel}
                 >
-                  <Text size="lg" className="text-typography-700">
+                  <Text size="lg" className="text-text-primary">
                     ×
                   </Text>
                 </ModalCloseButton>
