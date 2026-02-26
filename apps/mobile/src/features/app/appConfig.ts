@@ -1,6 +1,6 @@
 import { getBackendPermissionMode, type PermissionModeUI, type BackendPermissionResult } from "@/utils/permission";
 import type { Provider as BrandProvider } from "@/constants/modelOptions";
-import { ColorMode, ColorModePreference } from "@/design-system/theme";
+import { ColorMode, ColorModePreference } from "@/theme";
 import {
   DEFAULT_CLAUDE_MODEL,
   DEFAULT_CODEX_MODEL,

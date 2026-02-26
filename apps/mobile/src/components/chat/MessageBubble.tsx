@@ -275,14 +275,8 @@ export function parseContentSegments(content: string): ContentSegment[] {
     }
   }
 
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i].type === "text") {
-      const hasThinkingAfter = segments.slice(i + 1).some(s => s.type === "thinking");
-      if (hasThinkingAfter) {
-        segments[i].type = "thinking";
-      }
-    }
-  }
+  // Note: Text segments should NOT be converted to thinking blocks based on what comes after.
+  // Each segment type is determined by its own content, not its position relative to other segments.
 
   const mergedSegments: ContentSegment[] = [];
   for (const seg of segments) {

@@ -1,18 +1,28 @@
 import { useTheme } from '@/theme';
+import { useMemo } from 'react';
 
-export function useThemeAssets() {
+// Pre-require assets to ensure they exist at bundle time
+const lightAssets = {
+  background: require("../../assets/theme/light/background.png"),
+  leftHeaderIcon: require("../../assets/theme/light/left_header_icon.png"),
+  rightHeaderIcon: require("../../assets/theme/light/right_header_icon.svg"),
+};
+
+const darkAssets = {
+  background: require("../../assets/theme/dark/background.png"),
+  leftHeaderIcon: require("../../assets/theme/dark/left_header_icon.png"),
+  rightHeaderIcon: require("../../assets/theme/dark/right_header_icon.svg"),
+};
+
+export type ThemeAssets = {
+  background: number;
+  leftHeaderIcon: number;
+  rightHeaderIcon: number;
+};
+
+export function useThemeAssets(): ThemeAssets {
   const theme = useTheme();
   const isLight = theme.mode === "light";
 
-  return {
-    background: isLight 
-      ? require("../../assets/theme/light/background.png") 
-      : require("../../assets/theme/dark/background.png"),
-    leftHeaderIcon: isLight 
-      ? require("../../assets/theme/light/left_header_icon.png") 
-      : require("../../assets/theme/dark/left_header_icon.png"),
-    rightHeaderIcon: isLight 
-      ? require("../../assets/theme/light/right_header_icon.svg") 
-      : require("../../assets/theme/dark/right_header_icon.svg"),
-  };
+  return useMemo(() => (isLight ? lightAssets : darkAssets), [isLight]);
 }

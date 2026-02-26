@@ -68,15 +68,16 @@ function InputWrapper({ width, height, isDark, theme }: { width: number; height:
     );
   }
 
-  const color = "#22C55E"; // Cyberpunk green CTA border
-  const bg = "rgba(15, 23, 42, 0.85)"; // Cyan-tinted dark background
+  const color = theme.colors.success; // CTA border using theme token
+  const accentColor = theme.colors.info; // Accent stroke using theme token
+  const bg = "rgba(15, 23, 42, 0.85)"; // Dark background
 
   return (
     <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
       <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
       <Svg width={width} height={height}>
         <Polygon points={points} fill="none" stroke={color} strokeWidth={6} opacity={0.3} />
-        <Polygon points={points} fill="none" stroke="#00E5FF" strokeWidth={3} opacity={0.6} />
+        <Polygon points={points} fill="none" stroke={accentColor} strokeWidth={3} opacity={0.6} />
         <Polygon points={points} fill={bg} stroke={color} strokeWidth={1.5} />
       </Svg>
     </Box>

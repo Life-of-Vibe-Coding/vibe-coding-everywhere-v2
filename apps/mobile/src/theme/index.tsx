@@ -97,6 +97,11 @@ function getNeutrals(mode: ColorMode = "light") {
     shadow: "rgba(0, 229, 255, 0.3)",
     skeleton: "rgba(0, 229, 255, 0.1)",
     skeletonHighlight: "rgba(0, 229, 255, 0.3)",
+    // Dark mode cocoa colors (for consistency with light mode)
+    cocoaCream: "#1a1a2e",
+    cocoaTan: "#16213e",
+    cocoaBrown: "#A5F5F5",
+    cocoaDark: "#FFFFFF",
   };
 }
 
@@ -135,11 +140,12 @@ export function getTheme(): DesignTheme {
 
 type ThemeContextValue = {
   activeMode: ColorMode;
+  activeProvider: Provider;
 };
 
-const ThemeContext = createContext<ThemeContextValue>({ activeMode: "light" });
+const ThemeContext = createContext<ThemeContextValue>({ activeMode: "light", activeProvider: "codex" });
 
-export function ThemeProvider({ children, mode }: { children: React.ReactNode, mode?: ColorMode }) {
+export function ThemeProvider({ children, mode, provider = "codex" }: { children: React.ReactNode, mode?: ColorMode, provider?: Provider }) {
   const systemColorScheme = useColorScheme();
 
   const activeMode = useMemo(() => {
@@ -147,14 +153,14 @@ export function ThemeProvider({ children, mode }: { children: React.ReactNode, m
     return (systemColorScheme === "dark" ? "dark" : "light") as ColorMode;
   }, [systemColorScheme, mode]);
 
-  const value = useMemo(() => ({ activeMode }), [activeMode]);
+  const value = useMemo(() => ({ activeMode, activeProvider: provider }), [activeMode, provider]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): DesignTheme {
   const ctx = useContext(ThemeContext);
-  return useMemo(() => buildTheme("codex", ctx.activeMode), [ctx.activeMode]);
+  return useMemo(() => buildTheme(ctx.activeProvider, ctx.activeMode), [ctx.activeProvider, ctx.activeMode]);
 }
 
 export function useColorMode(): ColorMode {
