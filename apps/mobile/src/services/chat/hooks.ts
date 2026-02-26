@@ -71,7 +71,6 @@ export function useChat(options: UseChatOptions = {}) {
   const connectionIntentBySessionRef = useRef<Map<string, boolean>>(new Map());
   const sawAgentEndRef = useRef(false);
   const outputBufferRef = useRef("");
-  const currentAssistantContentRef = useRef("");
 
   const sessionStatesRef = useRef<Map<string, SessionLiveState>>(new Map());
   const sessionMessagesRef = useRef<Map<string, Message[]>>(new Map());
@@ -156,7 +155,6 @@ export function useChat(options: UseChatOptions = {}) {
         setLiveSessionMessages(messages);
         setSessionState(s.sessionState);
         outputBufferRef.current = "";
-        currentAssistantContentRef.current = getSessionDraft(sid);
         liveMessagesRef.current = messages;
       } else {
         const isDisplayedSession = displayedSessionIdRef.current === sid;
@@ -168,10 +166,9 @@ export function useChat(options: UseChatOptions = {}) {
         outputBufferRef.current = "";
         setSessionState("idle");
         setWaitingForUserInput(false);
-        currentAssistantContentRef.current = "";
       }
     },
-    [getOrCreateSessionMessages, getSessionDraft]
+    [getOrCreateSessionMessages]
   );
 
   const closeActiveSse = useCallback(
@@ -363,7 +360,6 @@ export function useChat(options: UseChatOptions = {}) {
     nextIdRef,
     liveMessagesRef,
     outputBufferRef,
-    currentAssistantContentRef,
     sessionStatesRef,
     sessionMessagesRef,
     sessionDraftRef,
@@ -423,7 +419,6 @@ export function useChat(options: UseChatOptions = {}) {
     lastRunOptionsRef,
     liveMessagesRef,
     pendingMessagesForNewSessionRef,
-    currentAssistantContentRef,
     outputBufferRef,
     displayedSessionIdRef,
     addMessage,

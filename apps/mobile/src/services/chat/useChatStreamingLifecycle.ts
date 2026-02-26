@@ -30,7 +30,6 @@ type UseChatStreamingLifecycleParams = {
   nextIdRef: MutableRefObject<number>;
   liveMessagesRef: MutableRefObject<Message[]>;
   outputBufferRef: MutableRefObject<string>;
-  currentAssistantContentRef: MutableRefObject<string>;
   sessionStatesRef: MutableRefObject<Map<string, SessionLiveState>>;
   sessionMessagesRef: MutableRefObject<Map<string, Message[]>>;
   sessionDraftRef: MutableRefObject<Map<string, string>>;
@@ -101,7 +100,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     nextIdRef,
     liveMessagesRef,
     outputBufferRef,
-    currentAssistantContentRef,
     sessionStatesRef,
     sessionMessagesRef,
     sessionDraftRef,
@@ -189,7 +187,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
           setSessionStateForSession(sid, "idle");
           setWaitingForUserInput(false);
           outputBufferRef.current = "";
-          currentAssistantContentRef.current = "";
         }
       } catch (err) {
         if (__DEV__) {
@@ -213,7 +210,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       nextIdRef,
       displayedSessionIdRef,
       outputBufferRef,
-      currentAssistantContentRef,
     ]
   );
 
@@ -350,9 +346,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         perf.lastFlushAt = now;
         const start = now;
         handlers.appendAssistantTextForSession(chunk);
-        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-          currentAssistantContentRef.current = getSessionDraft(connectionSessionIdRef.current);
-        }
         if (perf.flushCount % 15 === 0) {
           console.debug("[stream] assistant flush", {
             flushCount: perf.flushCount,
@@ -366,9 +359,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       }
 
       handlers.appendAssistantTextForSession(chunk);
-      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-        currentAssistantContentRef.current = getSessionDraft(connectionSessionIdRef.current);
-      }
     };
     const queueAssistantText = (chunk: string) => {
       pendingAssistantText += chunk;
@@ -411,7 +401,13 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       },
       addMessage: (role, content, codeRefs) => handlers.addMessageForSession(role, content, codeRefs),
       appendAssistantText: (chunk) => queueAssistantText(chunk),
-      getCurrentAssistantContent: () => getSessionDraft(connectionSessionIdRef.current),
+      getCurrentAssistantContent: () => {
+        // Include unflushed pendingAssistantText so callers (appendSnapshotTextDelta,
+        // appendOverlapTextDelta, result handler) see the true real-time content,
+        // not a stale snapshot missing text buffered between flush intervals.
+        const draft = getSessionDraft(connectionSessionIdRef.current);
+        return pendingAssistantText ? draft + pendingAssistantText : draft;
+      },
       getLastMessageRole: () => {
         const m = getOrCreateSessionMessages(connectionSessionIdRef.current);
         return m.length ? m[m.length - 1]?.role ?? null : null;
@@ -640,9 +636,6 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       }
       flushAssistantText();
       handlers.finalizeAssistantMessageForSession();
-      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-        currentAssistantContentRef.current = "";
-      }
       closeActiveSse("stream-end");
     };
 

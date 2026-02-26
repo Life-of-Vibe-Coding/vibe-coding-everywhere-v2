@@ -8,7 +8,7 @@ import * as Clipboard from "expo-clipboard";
 import { Skeleton, triggerHaptic } from "@/design-system";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
-import { DockerIcon, CloseIcon, CopyIcon, ContainerIcon, ImageIcon, VolumeIcon } from "@/components/docker/DockerTabIcons";
+import { DockerIcon, CloseIcon, CopyIcon, ContainerIcon, ImageIcon, VolumeIcon, ChevronLeftIcon } from "@/components/docker/DockerTabIcons";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
@@ -21,12 +21,7 @@ import { Text } from "@/components/ui/text";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { DockerResourceCard } from "@/components/reusable/DockerResourceCard";
 import { TabBarPills } from "@/components/reusable/TabBarPills";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
+
 
 export type DockerTab = "containers" | "images" | "volumes";
 
@@ -437,13 +432,14 @@ export function DockerManagerModal({
 
   if (!isOpen) return null;
 
-  return (
-    <>
+  // Log viewer page — replaces docker content inline
+  if (logsFor) {
+    return (
       <ModalScaffold
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={closeLogs}
         size="full"
-        title="Docker"
+        title="Logs"
         showHeader={false}
         showCloseButton={false}
         contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
@@ -452,464 +448,470 @@ export function DockerManagerModal({
       >
         <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
           <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-            <Box style={styles.header} className="border-b border-outline-200">
-              <Box style={styles.headerTopRow} className="flex-row items-start justify-between gap-4">
-                <Box style={styles.headerLeft} className="flex-1 min-w-0">
-                  <Box style={styles.headerTitleRow} className="flex-row items-center gap-2.5 min-w-0">
-                    <Box style={styles.headerIconWrap}>
-                      <DockerIcon color={theme.colors.accent} size={18} />
-                    </Box>
-                    <Text style={styles.title} size="lg" bold>
-                      Docker
-                    </Text>
-                    <Box style={styles.livePill} className="rounded-full">
-                      <Text size="2xs" bold style={{ color: theme.colors.accent }}>
-                        Live
-                      </Text>
-                    </Box>
-                  </Box>
-                </Box>
-                <Button
-                  action="default"
-                  variant="link"
-                  size="md"
-                  onPress={onClose}
-                  accessibilityLabel="Close Docker manager"
-                  className="min-w-11 min-h-11 -mr-2 -mt-1"
-                >
-                  <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+            <Box style={styles.logsHeader} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-200">
+              <HStack className="min-w-0 flex-1 items-center gap-2">
+                <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Back to Docker" className="min-w-11 min-h-11 -ml-2">
+                  <ButtonIcon as={ChevronLeftIcon} size="md" color={theme.colors.accent} />
                 </Button>
-              </Box>
-
-              <Box style={styles.tabRail}>
-                <TabBarPills
-                  tabs={[
-                    { key: "containers", label: "Containers", badge: containers.length },
-                    { key: "images", label: "Images", badge: images.length },
-                    { key: "volumes", label: "Volumes", badge: volumes.length },
-                  ]}
-                  value={activeTab}
-                  onChange={handleTabChange}
-                  variant="segment"
-                  className="w-full"
-                />
-              </Box>
+                <Text size="lg" bold numberOfLines={1} className="flex-1" style={{ color: theme.colors.textPrimary }}>
+                  Logs: {logsFor.name}
+                </Text>
+              </HStack>
+              <Button action="default" variant="link" size="md" onPress={onClose} accessibilityLabel="Close" className="min-w-11 min-h-11">
+                <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+              </Button>
             </Box>
-
-            <Box style={styles.contentArea} className="flex-1 min-w-0">
-              {activeTab === "containers" && (
-                <>
-                  <Box style={styles.toolbar} className="flex-row items-center gap-3 py-3">
-                    <HStack space="sm">
-                      <Box style={styles.tabIconBadge}>
-                        <ContainerIcon color={theme.colors.accent} size={16} />
-                      </Box>
-                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
-                        Runtime
-                      </Text>
-                    </HStack>
-                    <HStack space="sm">
-                      <Pressable
-                        onPress={() => setShowAll(true)}
-                        style={[styles.filterChip, showAll ? styles.filterChipActive : null]}
-                        accessibilityLabel="Show all containers"
-                        accessibilityState={{ selected: showAll }}
-                      >
-                        <Text size="sm" style={{ color: showAll ? theme.colors.accent : theme.colors.textSecondary }} className={showAll ? "font-semibold" : ""}>
-                          All
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => setShowAll(false)}
-                        style={[styles.filterChip, !showAll ? styles.filterChipActive : null]}
-                        accessibilityLabel="Show running containers only"
-                        accessibilityState={{ selected: !showAll }}
-                      >
-                        <Text size="sm" style={{ color: !showAll ? theme.colors.accent : theme.colors.textSecondary }} className={!showAll ? "font-semibold" : ""}>
-                          Running
-                        </Text>
-                      </Pressable>
-                    </HStack>
-                  </Box>
-                  {error ? (
-                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
-                      <Button action="primary" variant="solid" size="sm" onPress={() => load(true)} className="mt-3">
-                        <ButtonText>Retry</ButtonText>
-                      </Button>
-                    </Box>
-                  ) : loading && containers.length === 0 ? (
-                    <Box style={styles.skeletonList} className="flex gap-2">
-                      {[1, 2, 3].map((i) => (
-                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
-                          <Skeleton height={18} width="70%" style={{ marginBottom: 12 }} />
-                          <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
-                          <Skeleton height={14} width="60%" style={{ marginBottom: 8 }} />
-                          <Skeleton height={14} width="40%" />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : containers.length === 0 ? (
-                    <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" style={{ color: theme.colors.textMuted }}>No containers found.</Text>
-                    </Box>
-                  ) : (
-                    <ScrollView
-                      style={styles.scroll}
-                      contentContainerStyle={styles.scrollContent}
-                      refreshControl={
-                        <RefreshControl
-                          refreshing={refreshing}
-                          onRefresh={() => load(true)}
-                          tintColor={theme.colors.accent}
-                        />
-                      }
-                    >
-                      {containers.map((c) => {
-                        const names = (c.names ?? []).join(", ") || c.id?.slice(0, 12) || "—";
-                        const isRunning = (c.state ?? "").toLowerCase().includes("running");
-                        const acting = actingId === c.id;
-                        const statusCls = statusClass(c.state);
-                        const statusBadgeClass =
-                          statusCls === "running"
-                            ? "bg-success-500/15"
-                            : statusCls === "exited"
-                              ? "bg-typography-500/15"
-                              : statusCls === "paused"
-                                ? "bg-warning-500/15"
-                                : "bg-error-500/15";
-                        const statusColor =
-                          statusCls === "running"
-                            ? theme.colors.success
-                            : statusCls === "exited"
-                              ? theme.colors.textSecondary
-                              : statusCls === "paused"
-                                ? theme.colors.warning
-                                : theme.colors.danger;
-
-                        return (
-                          <DockerResourceCard
-                            key={c.id}
-                            title={names}
-                            className="mb-2"
-                            action={
-                              <HStack space="sm" className="items-center">
-                                <Pressable
-                                  onPress={() => copyToClipboard(c.id)}
-                                  style={styles.copyBtn}
-                                  accessibilityLabel="Copy container ID"
-                                >
-                                  <CopyIcon color={theme.colors.textMuted} size={18} />
-                                </Pressable>
-                                <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
-                                  <Text size="xs" style={{ color: statusColor }}>{c.status || "—"}</Text>
-                                </Box>
-                              </HStack>
-                            }
-                            rows={[
-                              {
-                                label: "Image",
-                                value: (
-                                  <Text size="xs" numberOfLines={1} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
-                                    {c.image || "—"}
-                                  </Text>
-                                ),
-                              },
-                              {
-                                label: "Ports",
-                                value: (
-                                  <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
-                                    {c.ports || "—"}
-                                  </Text>
-                                ),
-                              },
-                              {
-                                label: "Created",
-                                value: (
-                                  <Text size="xs" style={{ color: theme.colors.textPrimary }}>
-                                    {formatDate(c.created)}
-                                  </Text>
-                                ),
-                              },
-                            ]}
-                            actions={
-                              <>
-                                <Button action="secondary" variant="outline" size="sm" onPress={() => openLogs(c.id, names)} isDisabled={acting}>
-                                  <ButtonText>Logs</ButtonText>
-                                </Button>
-                                {!isRunning ? (
-                                  <Button action="primary" variant="solid" size="sm" onPress={() => handleAction(c.id, "start")} isDisabled={acting}>
-                                    <ButtonText>Start</ButtonText>
-                                  </Button>
-                                ) : (
-                                  <>
-                                    <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "stop")} isDisabled={acting}>
-                                      <ButtonText>Stop</ButtonText>
-                                    </Button>
-                                    <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "restart")} isDisabled={acting}>
-                                      <ButtonText>Restart</ButtonText>
-                                    </Button>
-                                  </>
-                                )}
-                                <Button action="negative" variant="outline" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
-                                  <ButtonText>Remove</ButtonText>
-                                </Button>
-                              </>
-                            }
-                          />
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </>
-              )}
-
-              {activeTab === "images" && (
-                <>
-                  <Box style={styles.toolbar} className="flex-row items-center justify-between gap-3 py-3">
-                    <HStack space="sm">
-                      <Box style={styles.tabIconBadge}>
-                        <ImageIcon color={theme.colors.accent} size={16} />
-                      </Box>
-                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
-                        Image Cache
-                      </Text>
-                    </HStack>
-                  </Box>
-                  {error ? (
-                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
-                      <Button action="primary" variant="solid" size="sm" onPress={() => loadImages(true)} className="mt-3">
-                        <ButtonText>Retry</ButtonText>
-                      </Button>
-                    </Box>
-                  ) : loading && images.length === 0 ? (
-                    <Box style={styles.skeletonList} className="flex gap-2">
-                      {[1, 2, 3].map((i) => (
-                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
-                          <Skeleton height={18} width="80%" style={{ marginBottom: 12 }} />
-                          <Skeleton height={14} width="50%" style={{ marginBottom: 8 }} />
-                          <Skeleton height={14} width="40%" />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : images.length === 0 ? (
-                    <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" style={{ color: theme.colors.textMuted }}>No images found.</Text>
-                    </Box>
-                  ) : (
-                    <ScrollView
-                      style={styles.scroll}
-                      contentContainerStyle={styles.scrollContent}
-                      refreshControl={
-                        <RefreshControl
-                          refreshing={refreshing}
-                          onRefresh={() => loadImages(true)}
-                          tintColor={theme.colors.accent}
-                        />
-                      }
-                    >
-                      {images.map((img) => {
-                        const tags = (img.repoTags ?? []).filter(Boolean);
-                        const display = tags.length ? tags.join(", ") : img.id?.slice(0, 12) || "—";
-                        const acting = actingImageId === img.id;
-
-                        return (
-                          <DockerResourceCard
-                            key={img.id}
-                            title={display}
-                            className="mb-2"
-                            action={
-                              <Pressable
-                                onPress={() => copyToClipboard(img.id)}
-                                style={styles.copyBtn}
-                                accessibilityLabel="Copy image ID"
-                              >
-                                <CopyIcon color={theme.colors.textMuted} size={18} />
-                              </Pressable>
-                            }
-                            rows={[
-                              {
-                                label: "Size",
-                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatBytes(img.size)}</Text>,
-                              },
-                              {
-                                label: "Created",
-                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(img.created)}</Text>,
-                              },
-                            ]}
-                            actions={
-                              <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
-                                <ButtonText>Remove</ButtonText>
-                              </Button>
-                            }
-                          />
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </>
-              )}
-
-              {activeTab === "volumes" && (
-                <>
-                  <Box style={styles.toolbar} className="flex-row gap-2 py-3 flex-wrap items-center">
-                    <HStack space="sm">
-                      <Box style={styles.tabIconBadge}>
-                        <VolumeIcon color={theme.colors.accent} size={16} />
-                      </Box>
-                      <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
-                        Persistent Storage
-                      </Text>
-                    </HStack>
-                    <Input variant="outline" size="md" className="flex-1 min-w-0">
-                      <InputField
-                        placeholder="Search volumes…"
-                        value={volumeSearch}
-                        onChangeText={setVolumeSearch}
-                        accessibilityLabel="Search volumes by name or mount point"
-                        placeholderTextColor={theme.colors.textMuted}
-                      />
-                    </Input>
-                  </Box>
-                  {error ? (
-                    <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
-                      <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
-                      <Button action="primary" variant="solid" size="sm" onPress={() => loadVolumes(true)} className="mt-3">
-                        <ButtonText>Retry</ButtonText>
-                      </Button>
-                    </Box>
-                  ) : loading && volumes.length === 0 ? (
-                    <Box style={styles.skeletonList} className="flex gap-2">
-                      {[1, 2, 3].map((i) => (
-                        <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
-                          <Skeleton height={18} width="75%" style={{ marginBottom: 12 }} />
-                          <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
-                          <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
-                          <Skeleton height={14} width="50%" />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : filteredVolumes.length === 0 ? (
-                    <Box style={styles.emptyBox} className="py-8 items-center">
-                      <Text size="sm" style={{ color: theme.colors.textMuted }}>
-                        {volumeSearch.trim() ? "No matching volumes." : "No volumes found."}
-                      </Text>
-                    </Box>
-                  ) : (
-                    <ScrollView
-                      style={styles.scroll}
-                      contentContainerStyle={styles.scrollContent}
-                      refreshControl={
-                        <RefreshControl
-                          refreshing={refreshing}
-                          onRefresh={() => loadVolumes(true)}
-                          tintColor={theme.colors.accent}
-                        />
-                      }
-                    >
-                      {filteredVolumes.map((v) => {
-                        const acting = actingVolumeName === v.name;
-
-                        return (
-                          <DockerResourceCard
-                            key={v.name}
-                            title={v.name}
-                            className="mb-2"
-                            action={
-                              <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
-                                <CopyIcon color={theme.colors.textMuted} size={18} />
-                              </Pressable>
-                            }
-                            rows={[
-                              {
-                                label: "Driver",
-                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{v.driver || "—"}</Text>,
-                              },
-                              {
-                                label: "Mount point",
-                                value: (
-                                  <Box className="flex-1 flex-row items-start gap-2 min-w-0">
-                                    <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
-                                      {v.mountpoint || "—"}
-                                    </Text>
-                                    <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
-                                      <CopyIcon color={theme.colors.textMuted} size={18} />
-                                    </Pressable>
-                                  </Box>
-                                ),
-                              },
-                              {
-                                label: "Created",
-                                value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(v.created)}</Text>,
-                              },
-                            ]}
-                            actions={
-                              <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
-                                <ButtonText>Remove</ButtonText>
-                              </Button>
-                            }
-                          />
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </>
-              )}
-            </Box>
+            {logsLoading ? (
+              <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
+                <Spinner size="large" color={theme.colors.accent} />
+                <Text size="sm" className="mt-3" style={{ color: theme.colors.textMuted }}>Loading logs…</Text>
+              </Box>
+            ) : (
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={[styles.scrollContent, styles.logsContent]}
+              >
+                <Text
+                  size="xs"
+                  selectable
+                  className="font-mono"
+                  style={{
+                    color: isDarkMode ? "#F8FAFC" : theme.colors.textPrimary,
+                    fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
+                  }}
+                >
+                  {logsContent}
+                </Text>
+              </ScrollView>
+            )}
           </SafeAreaView>
         </Box>
       </ModalScaffold>
+    );
+  }
 
-      {logsFor && (
-        <Modal
-          isOpen={!!logsFor}
-          onClose={closeLogs}
-          size="full"
-        >
-          <ModalBackdrop onPress={closeLogs} />
-          <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-            <ModalBody className="m-0 p-0">
-              <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
-                <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-                  <Box style={styles.logsHeader} className="flex-row items-center justify-between py-4 px-5 border-b border-outline-200">
-                    <Text size="lg" bold numberOfLines={1} className="flex-1" style={{ color: theme.colors.textPrimary }}>
-                      Logs: {logsFor.name}
+  return (
+    <ModalScaffold
+      isOpen={isOpen}
+      onClose={onClose}
+      size="full"
+      title="Docker"
+      showHeader={false}
+      showCloseButton={false}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0 flex-1"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flex: 1 } }}
+    >
+      <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+          <Box style={styles.header} className="border-b border-outline-200">
+            <Box style={styles.headerTopRow} className="flex-row items-start justify-between gap-4">
+              <Box style={styles.headerLeft} className="flex-1 min-w-0">
+                <Box style={styles.headerTitleRow} className="flex-row items-center gap-2.5 min-w-0">
+                  <Box style={styles.headerIconWrap}>
+                    <DockerIcon color={theme.colors.accent} size={18} />
+                  </Box>
+                  <Text style={styles.title} size="lg" bold>
+                    Docker
+                  </Text>
+                  <Box style={styles.livePill} className="rounded-full">
+                    <Text size="2xs" bold style={{ color: theme.colors.accent }}>
+                      Live
                     </Text>
-                    <Button action="default" variant="link" size="md" onPress={closeLogs} accessibilityLabel="Close logs" className="min-w-11 min-h-11">
-                      <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+                  </Box>
+                </Box>
+              </Box>
+              <Button
+                action="default"
+                variant="link"
+                size="md"
+                onPress={onClose}
+                accessibilityLabel="Close Docker manager"
+                className="min-w-11 min-h-11 -mr-2 -mt-1"
+              >
+                <ButtonIcon as={CloseIcon} size="lg" style={{ color: theme.colors.textMuted }} />
+              </Button>
+            </Box>
+
+            <Box style={styles.tabRail}>
+              <TabBarPills
+                tabs={[
+                  { key: "containers", label: "Containers", badge: containers.length },
+                  { key: "images", label: "Images", badge: images.length },
+                  { key: "volumes", label: "Volumes", badge: volumes.length },
+                ]}
+                value={activeTab}
+                onChange={handleTabChange}
+                variant="segment"
+                className="w-full"
+              />
+            </Box>
+          </Box>
+
+          <Box style={styles.contentArea} className="flex-1 min-w-0">
+            {activeTab === "containers" && (
+              <>
+                <Box style={styles.toolbar} className="flex-row items-center gap-3 py-3">
+                  <HStack space="sm">
+                    <Box style={styles.tabIconBadge}>
+                      <ContainerIcon color={theme.colors.accent} size={16} />
+                    </Box>
+                    <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
+                      Runtime
+                    </Text>
+                  </HStack>
+                  <HStack space="sm">
+                    <Pressable
+                      onPress={() => setShowAll(true)}
+                      style={[styles.filterChip, showAll ? styles.filterChipActive : null]}
+                      accessibilityLabel="Show all containers"
+                      accessibilityState={{ selected: showAll }}
+                    >
+                      <Text size="sm" style={{ color: showAll ? theme.colors.accent : theme.colors.textSecondary }} className={showAll ? "font-semibold" : ""}>
+                        All
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setShowAll(false)}
+                      style={[styles.filterChip, !showAll ? styles.filterChipActive : null]}
+                      accessibilityLabel="Show running containers only"
+                      accessibilityState={{ selected: !showAll }}
+                    >
+                      <Text size="sm" style={{ color: !showAll ? theme.colors.accent : theme.colors.textSecondary }} className={!showAll ? "font-semibold" : ""}>
+                        Running
+                      </Text>
+                    </Pressable>
+                  </HStack>
+                </Box>
+                {error ? (
+                  <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                    <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
+                    <Button action="primary" variant="solid" size="sm" onPress={() => load(true)} className="mt-3">
+                      <ButtonText>Retry</ButtonText>
                     </Button>
                   </Box>
-                  {logsLoading ? (
-                    <Box style={styles.loadingBox} className="flex-1 items-center justify-center p-6">
-                      <Spinner size="large" color={theme.colors.accent} />
-                      <Text size="sm" className="mt-3" style={{ color: theme.colors.textMuted }}>Loading logs…</Text>
+                ) : loading && containers.length === 0 ? (
+                  <Box style={styles.skeletonList} className="flex gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
+                        <Skeleton height={18} width="70%" style={{ marginBottom: 12 }} />
+                        <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
+                        <Skeleton height={14} width="60%" style={{ marginBottom: 8 }} />
+                        <Skeleton height={14} width="40%" />
+                      </Box>
+                    ))}
+                  </Box>
+                ) : containers.length === 0 ? (
+                  <Box style={styles.emptyBox} className="py-8 items-center">
+                    <Text size="sm" style={{ color: theme.colors.textMuted }}>No containers found.</Text>
+                  </Box>
+                ) : (
+                  <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => load(true)}
+                        tintColor={theme.colors.accent}
+                      />
+                    }
+                  >
+                    {containers.map((c) => {
+                      const names = (c.names ?? []).join(", ") || c.id?.slice(0, 12) || "—";
+                      const isRunning = (c.state ?? "").toLowerCase().includes("running");
+                      const acting = actingId === c.id;
+                      const statusCls = statusClass(c.state);
+                      const statusBadgeClass =
+                        statusCls === "running"
+                          ? "bg-success-500/15"
+                          : statusCls === "exited"
+                            ? "bg-typography-500/15"
+                            : statusCls === "paused"
+                              ? "bg-warning-500/15"
+                              : "bg-error-500/15";
+                      const statusColor =
+                        statusCls === "running"
+                          ? theme.colors.success
+                          : statusCls === "exited"
+                            ? theme.colors.textSecondary
+                            : statusCls === "paused"
+                              ? theme.colors.warning
+                              : theme.colors.danger;
+
+                      return (
+                        <DockerResourceCard
+                          key={c.id}
+                          title={names}
+                          className="mb-2"
+                          action={
+                            <HStack space="sm" className="items-center">
+                              <Pressable
+                                onPress={() => copyToClipboard(c.id)}
+                                style={styles.copyBtn}
+                                accessibilityLabel="Copy container ID"
+                              >
+                                <CopyIcon color={theme.colors.textMuted} size={18} />
+                              </Pressable>
+                              <Box className={`px-2 py-0.5 rounded ${statusBadgeClass}`}>
+                                <Text size="xs" style={{ color: statusColor }}>{c.status || "—"}</Text>
+                              </Box>
+                            </HStack>
+                          }
+                          rows={[
+                            {
+                              label: "Image",
+                              value: (
+                                <Text size="xs" numberOfLines={1} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
+                                  {c.image || "—"}
+                                </Text>
+                              ),
+                            },
+                            {
+                              label: "Ports",
+                              value: (
+                                <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
+                                  {c.ports || "—"}
+                                </Text>
+                              ),
+                            },
+                            {
+                              label: "Created",
+                              value: (
+                                <Text size="xs" style={{ color: theme.colors.textPrimary }}>
+                                  {formatDate(c.created)}
+                                </Text>
+                              ),
+                            },
+                          ]}
+                          actions={
+                            <>
+                              <Button action="secondary" variant="outline" size="sm" onPress={() => openLogs(c.id, names)} isDisabled={acting}>
+                                <ButtonText>Logs</ButtonText>
+                              </Button>
+                              {!isRunning ? (
+                                <Button action="primary" variant="solid" size="sm" onPress={() => handleAction(c.id, "start")} isDisabled={acting}>
+                                  <ButtonText>Start</ButtonText>
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "stop")} isDisabled={acting}>
+                                    <ButtonText>Stop</ButtonText>
+                                  </Button>
+                                  <Button action="secondary" variant="outline" size="sm" onPress={() => handleAction(c.id, "restart")} isDisabled={acting}>
+                                    <ButtonText>Restart</ButtonText>
+                                  </Button>
+                                </>
+                              )}
+                              <Button action="negative" variant="outline" size="sm" onPress={() => handleAction(c.id, "remove")} isDisabled={acting}>
+                                <ButtonText>Remove</ButtonText>
+                              </Button>
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </>
+            )}
+
+            {activeTab === "images" && (
+              <>
+                <Box style={styles.toolbar} className="flex-row items-center justify-between gap-3 py-3">
+                  <HStack space="sm">
+                    <Box style={styles.tabIconBadge}>
+                      <ImageIcon color={theme.colors.accent} size={16} />
                     </Box>
-                  ) : (
-                    <ScrollView
-                      style={styles.scroll}
-                      contentContainerStyle={[styles.scrollContent, styles.logsContent]}
-                    >
-                      <Text
-                        size="xs"
-                        selectable
-                        className="font-mono"
-                        style={{
-                          color: isDarkMode ? "#F8FAFC" : theme.colors.textPrimary,
-                          fontFamily: Platform?.OS === "ios" ? "Menlo" : "monospace",
-                        }}
-                      >
-                        {logsContent}
-                      </Text>
-                    </ScrollView>
-                  )}
-                </SafeAreaView>
-              </Box>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
-    </>
+                    <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
+                      Image Cache
+                    </Text>
+                  </HStack>
+                </Box>
+                {error ? (
+                  <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                    <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
+                    <Button action="primary" variant="solid" size="sm" onPress={() => loadImages(true)} className="mt-3">
+                      <ButtonText>Retry</ButtonText>
+                    </Button>
+                  </Box>
+                ) : loading && images.length === 0 ? (
+                  <Box style={styles.skeletonList} className="flex gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
+                        <Skeleton height={18} width="80%" style={{ marginBottom: 12 }} />
+                        <Skeleton height={14} width="50%" style={{ marginBottom: 8 }} />
+                        <Skeleton height={14} width="40%" />
+                      </Box>
+                    ))}
+                  </Box>
+                ) : images.length === 0 ? (
+                  <Box style={styles.emptyBox} className="py-8 items-center">
+                    <Text size="sm" style={{ color: theme.colors.textMuted }}>No images found.</Text>
+                  </Box>
+                ) : (
+                  <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => loadImages(true)}
+                        tintColor={theme.colors.accent}
+                      />
+                    }
+                  >
+                    {images.map((img) => {
+                      const tags = (img.repoTags ?? []).filter(Boolean);
+                      const display = tags.length ? tags.join(", ") : img.id?.slice(0, 12) || "—";
+                      const acting = actingImageId === img.id;
+
+                      return (
+                        <DockerResourceCard
+                          key={img.id}
+                          title={display}
+                          className="mb-2"
+                          action={
+                            <Pressable
+                              onPress={() => copyToClipboard(img.id)}
+                              style={styles.copyBtn}
+                              accessibilityLabel="Copy image ID"
+                            >
+                              <CopyIcon color={theme.colors.textMuted} size={18} />
+                            </Pressable>
+                          }
+                          rows={[
+                            {
+                              label: "Size",
+                              value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatBytes(img.size)}</Text>,
+                            },
+                            {
+                              label: "Created",
+                              value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(img.created)}</Text>,
+                            },
+                          ]}
+                          actions={
+                            <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveImage(img.id)} isDisabled={acting}>
+                              <ButtonText>Remove</ButtonText>
+                            </Button>
+                          }
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </>
+            )}
+
+            {activeTab === "volumes" && (
+              <>
+                <Box style={styles.toolbar} className="flex-row gap-2 py-3 flex-wrap items-center">
+                  <HStack space="sm">
+                    <Box style={styles.tabIconBadge}>
+                      <VolumeIcon color={theme.colors.accent} size={16} />
+                    </Box>
+                    <Text size="sm" bold style={{ color: theme.colors.textSecondary }}>
+                      Persistent Storage
+                    </Text>
+                  </HStack>
+                  <Input variant="outline" size="md" className="flex-1 min-w-0">
+                    <InputField
+                      placeholder="Search volumes…"
+                      value={volumeSearch}
+                      onChangeText={setVolumeSearch}
+                      accessibilityLabel="Search volumes by name or mount point"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
+                  </Input>
+                </Box>
+                {error ? (
+                  <Box style={styles.errorBox} className="p-4 rounded-lg bg-error-500/10 border border-error-500/20">
+                    <Text size="sm" style={{ color: theme.colors.danger }}>{error}</Text>
+                    <Button action="primary" variant="solid" size="sm" onPress={() => loadVolumes(true)} className="mt-3">
+                      <ButtonText>Retry</ButtonText>
+                    </Button>
+                  </Box>
+                ) : loading && volumes.length === 0 ? (
+                  <Box style={styles.skeletonList} className="flex gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <Box key={i} style={styles.card} className="p-3 rounded-lg bg-background-50 border border-outline-400">
+                        <Skeleton height={18} width="75%" style={{ marginBottom: 12 }} />
+                        <Skeleton height={14} width="30%" style={{ marginBottom: 8 }} />
+                        <Skeleton height={14} width="100%" style={{ marginBottom: 8 }} />
+                        <Skeleton height={14} width="50%" />
+                      </Box>
+                    ))}
+                  </Box>
+                ) : filteredVolumes.length === 0 ? (
+                  <Box style={styles.emptyBox} className="py-8 items-center">
+                    <Text size="sm" style={{ color: theme.colors.textMuted }}>
+                      {volumeSearch.trim() ? "No matching volumes." : "No volumes found."}
+                    </Text>
+                  </Box>
+                ) : (
+                  <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => loadVolumes(true)}
+                        tintColor={theme.colors.accent}
+                      />
+                    }
+                  >
+                    {filteredVolumes.map((v) => {
+                      const acting = actingVolumeName === v.name;
+
+                      return (
+                        <DockerResourceCard
+                          key={v.name}
+                          title={v.name}
+                          className="mb-2"
+                          action={
+                            <Pressable onPress={() => copyToClipboard(v.name)} style={styles.copyBtn} accessibilityLabel="Copy volume name">
+                              <CopyIcon color={theme.colors.textMuted} size={18} />
+                            </Pressable>
+                          }
+                          rows={[
+                            {
+                              label: "Driver",
+                              value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{v.driver || "—"}</Text>,
+                            },
+                            {
+                              label: "Mount point",
+                              value: (
+                                <Box className="flex-1 flex-row items-start gap-2 min-w-0">
+                                  <Text size="xs" numberOfLines={2} className="flex-1 min-w-0" style={{ color: theme.colors.textPrimary }}>
+                                    {v.mountpoint || "—"}
+                                  </Text>
+                                  <Pressable onPress={() => copyToClipboard(v.mountpoint ?? "")} style={styles.copyBtn} accessibilityLabel="Copy mount point">
+                                    <CopyIcon color={theme.colors.textMuted} size={18} />
+                                  </Pressable>
+                                </Box>
+                              ),
+                            },
+                            {
+                              label: "Created",
+                              value: <Text size="xs" style={{ color: theme.colors.textPrimary }}>{formatDate(v.created)}</Text>,
+                            },
+                          ]}
+                          actions={
+                            <Button action="negative" variant="outline" size="sm" onPress={() => handleRemoveVolume(v.name)} isDisabled={acting}>
+                              <ButtonText>Remove</ButtonText>
+                            </Button>
+                          }
+                        />
+                      );
+                    })}
+                  </ScrollView>
+                )}
+              </>
+            )}
+          </Box>
+        </SafeAreaView>
+      </Box>
+    </ModalScaffold>
   );
 }
 

@@ -24,7 +24,6 @@ type UseChatActionsParams = {
   lastRunOptionsRef: MutableRefObject<LastRunOptions>;
   liveMessagesRef: MutableRefObject<Message[]>;
   pendingMessagesForNewSessionRef: MutableRefObject<Message[]>;
-  currentAssistantContentRef: MutableRefObject<string>;
   outputBufferRef: MutableRefObject<string>;
   displayedSessionIdRef: MutableRefObject<string | null>;
   addMessage: (role: Message["role"], content: string, codeReferences?: CodeReference[]) => string;
@@ -56,7 +55,6 @@ export function useChatActions(params: UseChatActionsParams) {
     lastRunOptionsRef,
     liveMessagesRef,
     pendingMessagesForNewSessionRef,
-    currentAssistantContentRef,
     outputBufferRef,
     displayedSessionIdRef,
     addMessage,
@@ -180,7 +178,7 @@ export function useChatActions(params: UseChatActionsParams) {
             liveMessagesRef.current = messagesToDisplay;
           }
           outputBufferRef.current = "";
-          currentAssistantContentRef.current = "";
+          setSessionDraft(newSessionId, "");
           setSessionStateForSession(newSessionId, "running");
           setConnectionIntent(newSessionId, true);
           if (!sessionId || sessionId !== newSessionId) {
@@ -242,7 +240,6 @@ export function useChatActions(params: UseChatActionsParams) {
       liveMessagesRef,
       pendingMessagesForNewSessionRef,
       outputBufferRef,
-      currentAssistantContentRef,
       setLiveSessionMessages,
       setSessionId,
       syncRunningStatusToGlobalStore,
@@ -375,7 +372,7 @@ export function useChatActions(params: UseChatActionsParams) {
     lastRunOptionsRef.current = { permissionMode: null, allowedTools: [], useContinue: false };
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
-    currentAssistantContentRef.current = "";
+    if (sessionId) setSessionDraft(sessionId, "");
   }, [
     closeActiveSse,
     sessionId,
@@ -388,7 +385,7 @@ export function useChatActions(params: UseChatActionsParams) {
     lastRunOptionsRef,
     setPendingAskQuestion,
     setLastSessionTerminated,
-    currentAssistantContentRef,
+    setSessionDraft,
   ]);
 
   const startNewSession = useCallback(async () => {
@@ -413,7 +410,7 @@ export function useChatActions(params: UseChatActionsParams) {
     lastRunOptionsRef.current = { permissionMode: null, allowedTools: [], useContinue: false };
     setPendingAskQuestion(null);
     setLastSessionTerminated(false);
-    currentAssistantContentRef.current = "";
+    if (sessionId) setSessionDraft(sessionId, "");
   }, [
     closeActiveSse,
     sessionId,
@@ -426,7 +423,7 @@ export function useChatActions(params: UseChatActionsParams) {
     lastRunOptionsRef,
     setPendingAskQuestion,
     setLastSessionTerminated,
-    currentAssistantContentRef,
+    setSessionDraft,
     setSessionId,
   ]);
 

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { StyleSheet, Platform } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { triggerHaptic, spacing } from "@/design-system";
-import { CloseIcon, RefreshCwIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { CloseIcon, RefreshCwIcon, TerminalIcon, ChevronLeftIcon } from "@/components/icons/ChatActionIcons";
 import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import { Box } from "@/components/ui/box";
@@ -14,12 +14,7 @@ import { AsyncStateView } from "@/components/reusable/AsyncStateView";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import { ProcessListItemCard } from "@/components/reusable/ProcessListItem";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalContent,
-} from "@/components/ui/modal";
+
 import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
 
@@ -268,14 +263,14 @@ export function ProcessDashboardModal({
 
   if (!isOpen) return null;
 
-  return (
-    <>
+  // Log viewer page — replaces process list content inline
+  if (logViewer) {
+    return (
       <ModalScaffold
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={() => setLogViewer(null)}
         size="full"
-        title="Process Dashboard"
-        subtitle="Port-bound process information"
+        title="Log Viewer"
         showHeader={false}
         showCloseButton={false}
         contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
@@ -285,212 +280,228 @@ export function ProcessDashboardModal({
         <Box className="flex-1" style={containerStyle}>
           <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
             <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
-              <HStack className="flex-1 items-center gap-3">
-                <Box
-                  className="h-10 w-10 rounded-xl items-center justify-center border"
-                  style={statPillStyle}
-                >
-                  <TerminalIcon color={theme.colors.accent} size={18} />
-                </Box>
-                <Box className="flex-1 min-w-0">
-                  <Text size="xl" bold style={textPrimaryStyle}>
-                    Process Dashboard
-                  </Text>
-                  <Text size="xs" className="mt-0.5" style={textSecondaryStyle}>
-                    Local servers and logs
-                  </Text>
-                </Box>
-              </HStack>
-              <HStack className="items-center gap-1">
-                <Button
-                  action="default"
-                  variant="outline"
-                  size="sm"
-                  onPress={handleRefreshPress}
-                  onPressIn={() => setRefreshPressed(true)}
-                  onPressOut={() => setRefreshPressed(false)}
-                  accessibilityLabel="Refresh process list"
-                  className="min-w-11 min-h-11 rounded-xl border"
-                  style={[refreshButtonStyle, refreshPressed && pressedActionButtonStyle]}
-                >
-                  <ButtonIcon as={RefreshCwIcon} size="md" color={theme.colors.accent} />
-                </Button>
+              <HStack className="min-w-0 flex-1 items-center gap-2">
                 <Button
                   action="default"
                   variant="link"
                   size="md"
-                  onPress={onClose}
-                  onPressIn={() => setClosePressed(true)}
-                  onPressOut={() => setClosePressed(false)}
-                  accessibilityLabel="Close"
-                  className="min-w-11 min-h-11"
-                  style={closePressed ? pressedActionButtonStyle : undefined}
+                  onPress={() => setLogViewer(null)}
+                  accessibilityLabel="Back to processes"
+                  className="min-w-11 min-h-11 -ml-2"
                 >
-                  <ButtonIcon as={CloseIcon} size="lg" color={topActionIconStyle.color} />
+                  <ButtonIcon as={ChevronLeftIcon} size="md" color={theme.colors.accent} />
                 </Button>
+                <Box className="w-1 h-6 rounded-sm" style={{ backgroundColor: theme.colors.accent }} />
+                <Text
+                  size="md"
+                  bold
+                  numberOfLines={1}
+                  className="min-w-0 flex-1"
+                  style={textPrimaryStyle}
+                >
+                  {logViewer.name}
+                </Text>
               </HStack>
-            </HStack>
-
-            {error ? (
-              <Box
-                className="mx-5 mt-2 gap-2 rounded-xl border p-4"
-                style={errorBannerStyle}
+              <Button
+                action="default"
+                variant="link"
+                size="md"
+                onPress={onClose}
+                accessibilityLabel="Close"
+                className="min-w-11 min-h-11 -mr-2"
               >
-                <Text size="sm" className="text-error-600">
-                  {error}
-                </Text>
-                <Text size="xs" className="text-error-600 leading-4.5 opacity-90">
-                  Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
-                </Text>
-              </Box>
-            ) : null}
-
-            {warning && !error ? (
-              <Box className="mx-5 mt-2 rounded-xl p-4" style={warningBannerStyle}>
-                <Text size="sm" style={textPrimaryStyle}>
-                  {warning}
-                </Text>
-              </Box>
-            ) : null}
-
+                <ButtonIcon as={CloseIcon} size="md" color={topActionIconStyle.color} />
+              </Button>
+            </HStack>
             <ScrollView
               className="flex-1"
               contentContainerStyle={{
-                paddingHorizontal: spacing["5"],
-                paddingTop: spacing["4"],
+                padding: spacing["5"],
                 paddingBottom: spacing["6"],
               }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={() => load(true)}
-                  tintColor={theme.colors.accent}
-                />
-              }
+              horizontal={false}
             >
-              <Box className="rounded-2xl border p-4 mb-4" style={heroCardStyle}>
-                <HStack className="items-center justify-between">
-                  <Box className="flex-1 min-w-0 pr-4">
-                    <Text size="sm" bold style={textPrimaryStyle}>
-                      Active local processes
-                    </Text>
-                    <Text size="xs" className="mt-1" style={textSecondaryStyle}>
-                      Pull to refresh or use the refresh action for live status.
-                    </Text>
-                  </Box>
-                  <HStack className="gap-2">
-                    <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
-                      <Text size="xs" style={textSecondaryStyle}>
-                        Processes
-                      </Text>
-                      <Text size="sm" bold style={{ color: theme.colors.accent }}>
-                        {processCount}
-                      </Text>
-                    </Box>
-                    <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
-                      <Text size="xs" style={textSecondaryStyle}>
-                        Ports
-                      </Text>
-                      <Text size="sm" bold style={{ color: theme.colors.accent }}>
-                        {uniquePortCount}
-                      </Text>
-                    </Box>
-                  </HStack>
-                </HStack>
-              </Box>
-              <AsyncStateView
-                isLoading={loading && !refreshing}
-                isEmpty={isEmpty}
-                loadingText="Loading processes..."
-                emptyTitle="No running processes found"
-                emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
+              <Text
+                size="xs"
+                selectable
+                className="font-mono"
+                style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
               >
-                {hasProcesses ? (
-                  <ListSectionCard
-                    title="Port-bound processes"
-                    subtitle="Active local/dev server processes"
-                    className="mb-4"
-                    style={sectionCardStyle}
-                  >
-                    <VStack className="gap-3">
-                      {[...apiProcesses]
-                        .sort((a, b) => b.pid - a.pid)
-                        .map((proc) => (
-                          <ProcessListItemCard
-                            key={`${proc.pid}-${proc.port}`}
-                            pid={proc.pid}
-                            port={proc.port}
-                            command={proc.command}
-                            logPaths={proc.logPaths}
-                            accentColor={theme.colors.accent}
-                            isKilling={killingPid === proc.pid}
-                            onViewLog={handleViewLog}
-                            onKill={() => handleKillApiProcess(proc)}
-                          />
-                        ))}
-                    </VStack>
-                  </ListSectionCard>
-                ) : null}
-              </AsyncStateView>
+                {logViewer.content || "(empty)"}
+              </Text>
             </ScrollView>
           </SafeAreaView>
         </Box>
       </ModalScaffold>
+    );
+  }
 
-      {
-        logViewer ? (
-          <Modal isOpen onClose={() => setLogViewer(null)} size="full">
-            <ModalBackdrop onPress={() => setLogViewer(null)} />
-            <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0" style={containerStyle}>
-              <ModalBody className="m-0 p-0" style={{ flex: 1 }} contentContainerStyle={{ flex: 1 }}>
-                <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
-                  <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
-                    <HStack className="min-w-0 flex-1 items-center gap-2">
-                      <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
-                      <Text
-                        size="md"
-                        bold
-                        numberOfLines={1}
-                        className="min-w-0 flex-1"
-                        style={textPrimaryStyle}
-                      >
-                        {logViewer?.name}
-                      </Text>
-                    </HStack>
-                    <Button
-                      action="default"
-                      variant="link"
-                      size="md"
-                      onPress={() => setLogViewer(null)}
-                      accessibilityLabel="Close log viewer"
-                      className="min-w-11 min-h-11 -mr-2"
-                    >
-                      <ButtonIcon as={CloseIcon} size="md" color={topActionIconStyle.color} />
-                    </Button>
-                  </HStack>
-                  <ScrollView
-                    className="flex-1"
-                    contentContainerStyle={{
-                      padding: spacing["5"],
-                      paddingBottom: spacing["6"],
-                    }}
-                    horizontal={false}
-                  >
-                    <Text
-                      size="xs"
-                      selectable
-                      className="font-mono"
-                      style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
-                    >
-                      {logViewer?.content || "(empty)"}
+  return (
+    <ModalScaffold
+      isOpen={isOpen}
+      onClose={onClose}
+      size="full"
+      title="Process Dashboard"
+      subtitle="Port-bound process information"
+      showHeader={false}
+      showCloseButton={false}
+      contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
+      bodyClassName="m-0 p-0 flex-1"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flex: 1 } }}
+    >
+      <Box className="flex-1" style={containerStyle}>
+        <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
+          <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
+            <HStack className="flex-1 items-center gap-3">
+              <Box
+                className="h-10 w-10 rounded-xl items-center justify-center border"
+                style={statPillStyle}
+              >
+                <TerminalIcon color={theme.colors.accent} size={18} />
+              </Box>
+              <Box className="flex-1 min-w-0">
+                <Text size="xl" bold style={textPrimaryStyle}>
+                  Process Dashboard
+                </Text>
+                <Text size="xs" className="mt-0.5" style={textSecondaryStyle}>
+                  Local servers and logs
+                </Text>
+              </Box>
+            </HStack>
+            <HStack className="items-center gap-1">
+              <Button
+                action="default"
+                variant="outline"
+                size="sm"
+                onPress={handleRefreshPress}
+                onPressIn={() => setRefreshPressed(true)}
+                onPressOut={() => setRefreshPressed(false)}
+                accessibilityLabel="Refresh process list"
+                className="min-w-11 min-h-11 rounded-xl border"
+                style={[refreshButtonStyle, refreshPressed && pressedActionButtonStyle]}
+              >
+                <ButtonIcon as={RefreshCwIcon} size="md" color={theme.colors.accent} />
+              </Button>
+              <Button
+                action="default"
+                variant="link"
+                size="md"
+                onPress={onClose}
+                onPressIn={() => setClosePressed(true)}
+                onPressOut={() => setClosePressed(false)}
+                accessibilityLabel="Close"
+                className="min-w-11 min-h-11"
+                style={closePressed ? pressedActionButtonStyle : undefined}
+              >
+                <ButtonIcon as={CloseIcon} size="lg" color={topActionIconStyle.color} />
+              </Button>
+            </HStack>
+          </HStack>
+
+          {error ? (
+            <Box
+              className="mx-5 mt-2 gap-2 rounded-xl border p-4"
+              style={errorBannerStyle}
+            >
+              <Text size="sm" className="text-error-600">
+                {error}
+              </Text>
+              <Text size="xs" className="text-error-600 leading-4.5 opacity-90">
+                Ensure the app can reach the server. On a physical device, use the machine&apos;s IP or EXPO_PUBLIC_SERVER_URL.
+              </Text>
+            </Box>
+          ) : null}
+
+          {warning && !error ? (
+            <Box className="mx-5 mt-2 rounded-xl p-4" style={warningBannerStyle}>
+              <Text size="sm" style={textPrimaryStyle}>
+                {warning}
+              </Text>
+            </Box>
+          ) : null}
+
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{
+              paddingHorizontal: spacing["5"],
+              paddingTop: spacing["4"],
+              paddingBottom: spacing["6"],
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => load(true)}
+                tintColor={theme.colors.accent}
+              />
+            }
+          >
+            <Box className="rounded-2xl border p-4 mb-4" style={heroCardStyle}>
+              <HStack className="items-center justify-between">
+                <Box className="flex-1 min-w-0 pr-4">
+                  <Text size="sm" bold style={textPrimaryStyle}>
+                    Active local processes
+                  </Text>
+                  <Text size="xs" className="mt-1" style={textSecondaryStyle}>
+                    Pull to refresh or use the refresh action for live status.
+                  </Text>
+                </Box>
+                <HStack className="gap-2">
+                  <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
+                    <Text size="xs" style={textSecondaryStyle}>
+                      Processes
                     </Text>
-                  </ScrollView>
-                </SafeAreaView>
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-        ) : null
-      }
-    </>
+                    <Text size="sm" bold style={{ color: theme.colors.accent }}>
+                      {processCount}
+                    </Text>
+                  </Box>
+                  <Box className="rounded-lg border px-3 py-2" style={statPillStyle}>
+                    <Text size="xs" style={textSecondaryStyle}>
+                      Ports
+                    </Text>
+                    <Text size="sm" bold style={{ color: theme.colors.accent }}>
+                      {uniquePortCount}
+                    </Text>
+                  </Box>
+                </HStack>
+              </HStack>
+            </Box>
+            <AsyncStateView
+              isLoading={loading && !refreshing}
+              isEmpty={isEmpty}
+              loadingText="Loading processes..."
+              emptyTitle="No running processes found"
+              emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
+            >
+              {hasProcesses ? (
+                <ListSectionCard
+                  title="Port-bound processes"
+                  subtitle="Active local/dev server processes"
+                  className="mb-4"
+                  style={sectionCardStyle}
+                >
+                  <VStack className="gap-3">
+                    {[...apiProcesses]
+                      .sort((a, b) => b.pid - a.pid)
+                      .map((proc) => (
+                        <ProcessListItemCard
+                          key={`${proc.pid}-${proc.port}`}
+                          pid={proc.pid}
+                          port={proc.port}
+                          command={proc.command}
+                          logPaths={proc.logPaths}
+                          accentColor={theme.colors.accent}
+                          isKilling={killingPid === proc.pid}
+                          onViewLog={handleViewLog}
+                          onKill={() => handleKillApiProcess(proc)}
+                        />
+                      ))}
+                  </VStack>
+                </ListSectionCard>
+              ) : null}
+            </AsyncStateView>
+          </ScrollView>
+        </SafeAreaView>
+      </Box>
+    </ModalScaffold>
   );
 }

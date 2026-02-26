@@ -8,15 +8,16 @@ import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { ImageBackground, StyleSheet, View } from "react-native";
 
 import { ChatPage } from "@/components/pages/ChatPage";
-import { ChatActionController } from "@/components/controllers/ChatActionController";
-import { SseSessionController } from "@/components/controllers/SseSessionController";
+import { ChatActionController, type ChatActionControllerState } from "@/components/controllers/ChatActionController";
+import { SseSessionController, type SseSessionControllerState } from "@/components/controllers/SseSessionController";
 import { useSessionSideEffects } from "@/components/controllers/SessionSideEffectManager";
-import { ThemeSessionState } from "@/components/controllers/ThemeSessionState";
-import { WorkspaceFileController } from "@/components/controllers/WorkspaceFileController";
+import { ThemeSessionState, type ThemeSessionStateState } from "@/components/controllers/ThemeSessionState";
+import { WorkspaceFileController, type WorkspaceFileControllerState } from "@/components/controllers/WorkspaceFileController";
 import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
-import { useSidebarState } from "@/components/hooks/useSidebarState";
+import { useSidebarState, type SidebarState } from "@/components/hooks/useSidebarState";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
 import { useThemeAssets } from "@/hooks/useThemeAssets";
+import type { IServerConfig } from "@/core/types";
 
 function AppBackground() {
   const assets = useThemeAssets();
@@ -26,6 +27,91 @@ function AppBackground() {
       style={StyleSheet.absoluteFill}
       resizeMode="stretch"
     />
+  );
+}
+
+/**
+ * Extracted from the ChatActionController render-prop so that hooks
+ * (useCallback, useMemo, useSessionSideEffects) are called at the
+ * top level of a React component rather than inside a callback.
+ */
+function AppInner({
+  themeState,
+  sseState,
+  workspaceState,
+  chatActionState,
+  sidebarState,
+  sessionRunningFromStore,
+  serverConfig,
+}: {
+  themeState: ThemeSessionStateState;
+  sseState: SseSessionControllerState;
+  workspaceState: WorkspaceFileControllerState;
+  chatActionState: ChatActionControllerState;
+  sidebarState: SidebarState;
+  sessionRunningFromStore: boolean;
+  serverConfig: Pick<IServerConfig, "getBaseUrl" | "resolvePreviewUrl">;
+}) {
+  const onChatFileSelect = useCallback((path: string) => {
+    sidebarState.openSidebar();
+    workspaceState.onFileSelectFromChat(path);
+  }, [sidebarState.openSidebar, workspaceState.onFileSelectFromChat]);
+
+  const onWorkspaceSelected = useCallback((path?: string) => {
+    sseState.resetSession();
+    workspaceState.onWorkspaceSelectedFromPicker(path);
+  }, [sseState.resetSession, workspaceState.onWorkspaceSelectedFromPicker]);
+
+  const chatPageProps = useMemo(
+    () =>
+      buildChatPageProps({
+        themeState,
+        sseState,
+        sessionRunningFromStore,
+        workspaceState,
+        chatActionState,
+        sidebarVisible: sidebarState.sidebarVisible,
+        sidebarActiveTab: sidebarState.sidebarActiveTab,
+        setSidebarActiveTab: sidebarState.setSidebarActiveTab,
+        openSidebar: sidebarState.openSidebar,
+        closeSidebar: sidebarState.closeSidebar,
+        onChatFileSelect,
+        onWorkspaceSelectedFromPicker: onWorkspaceSelected,
+        serverConfig,
+      }),
+    [
+      themeState,
+      sseState,
+      sessionRunningFromStore,
+      workspaceState,
+      chatActionState,
+      sidebarState.sidebarVisible,
+      sidebarState.sidebarActiveTab,
+      sidebarState.setSidebarActiveTab,
+      sidebarState.openSidebar,
+      sidebarState.closeSidebar,
+      onChatFileSelect,
+      onWorkspaceSelected,
+      serverConfig,
+    ]
+  );
+
+  useSessionSideEffects({
+    serverConfig,
+    sseState,
+    themeState,
+    workspacePath: workspaceState.workspacePath,
+  });
+
+  return (
+    <ThemeProvider mode={themeState.themeMode}>
+      <GluestackUIProvider mode={themeState.themeMode}>
+        <View style={{ flex: 1 }}>
+          <AppBackground />
+          <ChatPage {...chatPageProps} />
+        </View>
+      </GluestackUIProvider>
+    </ThemeProvider>
   );
 }
 
@@ -71,69 +157,17 @@ export default function App() {
                     workspaceState.onCloseFileViewer();
                   }}
                 >
-                  {(chatActionState) => {
-                    const onChatFileSelect = useCallback((path: string) => {
-                      sidebarState.openSidebar();
-                      workspaceState.onFileSelectFromChat(path);
-                    }, [sidebarState.openSidebar, workspaceState.onFileSelectFromChat]);
-
-                    const onWorkspaceSelected = useCallback((path?: string) => {
-                      sseState.resetSession();
-                      workspaceState.onWorkspaceSelectedFromPicker(path);
-                    }, [sseState.resetSession, workspaceState.onWorkspaceSelectedFromPicker]);
-
-                    const chatPageProps = useMemo(
-                      () =>
-                        buildChatPageProps({
-                          themeState,
-                          sseState,
-                          sessionRunningFromStore,
-                          workspaceState,
-                          chatActionState,
-                          sidebarVisible: sidebarState.sidebarVisible,
-                          sidebarActiveTab: sidebarState.sidebarActiveTab,
-                          setSidebarActiveTab: sidebarState.setSidebarActiveTab,
-                          openSidebar: sidebarState.openSidebar,
-                          closeSidebar: sidebarState.closeSidebar,
-                          onChatFileSelect,
-                          onWorkspaceSelectedFromPicker: onWorkspaceSelected,
-                          serverConfig,
-                        }),
-                      [
-                        themeState,
-                        sseState,
-                        sessionRunningFromStore,
-                        workspaceState,
-                        chatActionState,
-                        sidebarState.sidebarVisible,
-                        sidebarState.sidebarActiveTab,
-                        sidebarState.setSidebarActiveTab,
-                        sidebarState.openSidebar,
-                        sidebarState.closeSidebar,
-                        onChatFileSelect,
-                        onWorkspaceSelected,
-                        serverConfig,
-                      ]
-                    );
-
-                    useSessionSideEffects({
-                      serverConfig,
-                      sseState,
-                      themeState,
-                      workspacePath: workspaceState.workspacePath,
-                    });
-
-                    return (
-                      <ThemeProvider mode={themeState.themeMode}>
-                        <GluestackUIProvider mode={themeState.themeMode}>
-                          <View style={{ flex: 1 }}>
-                            <AppBackground />
-                            <ChatPage {...chatPageProps} />
-                          </View>
-                        </GluestackUIProvider>
-                      </ThemeProvider>
-                    );
-                  }}
+                  {(chatActionState) => (
+                    <AppInner
+                      themeState={themeState}
+                      sseState={sseState}
+                      workspaceState={workspaceState}
+                      chatActionState={chatActionState}
+                      sidebarState={sidebarState}
+                      sessionRunningFromStore={sessionRunningFromStore}
+                      serverConfig={serverConfig}
+                    />
+                  )}
                 </ChatActionController>
               )}
             </SseSessionController>
