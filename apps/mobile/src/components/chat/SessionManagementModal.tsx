@@ -599,27 +599,29 @@ export function SessionManagementModal({
         </VStack>
       </EntranceAnimation>
 
-      <HStack style={styles.recentHeaderRow}>
-        <VStack style={styles.recentHeaderText}>
-          <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
-          <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
-        </VStack>
-        {showViewAllToggle && (
-          <Pressable
-            onPress={() => setShowAllSessions((prev) => !prev)}
-            style={({ pressed }) => [
-              styles.viewAllButton,
-              pressed && styles.viewAllButtonPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
-          >
-            <Text size="sm" style={styles.viewAllText}>
-              {showAllSessions ? "View Less" : "View All"}
-            </Text>
-          </Pressable>
-        )}
-      </HStack>
+      <EntranceAnimation variant="fade" duration={400} delay={100}>
+        <HStack style={styles.recentHeaderRow}>
+          <VStack style={styles.recentHeaderText}>
+            <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
+            <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
+          </VStack>
+          {showViewAllToggle && (
+            <Pressable
+              onPress={() => setShowAllSessions((prev) => !prev)}
+              style={({ pressed }) => [
+                styles.viewAllButton,
+                pressed && styles.viewAllButtonPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
+            >
+              <Text size="sm" style={styles.viewAllText}>
+                {showAllSessions ? "View Less" : "View All"}
+              </Text>
+            </Pressable>
+          )}
+        </HStack>
+      </EntranceAnimation>
 
       <AsyncStateView
         isLoading={loading && !listError}
