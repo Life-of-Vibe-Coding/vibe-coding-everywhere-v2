@@ -152,6 +152,8 @@ export interface SessionManagementModalProps {
   onSelectActiveChat?: () => void;
   /** Whether a session is currently running (for display). */
   sessionRunning?: boolean;
+  /** When true, render as embedded full-screen page (no ModalScaffold). */
+  embedded?: boolean;
 }
 
 export function SessionManagementModal({
@@ -167,6 +169,7 @@ export function SessionManagementModal({
   showActiveChat = false,
   onSelectActiveChat,
   sessionRunning = false,
+  embedded = false,
 }: SessionManagementModalProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -460,6 +463,341 @@ export function SessionManagementModal({
 
   if (!isOpen) return null;
 
+  const headerContent = (
+    <HStack style={styles.embeddedHeader}>
+      <VStack style={styles.embeddedHeaderTitleGroup}>
+        <Text style={styles.mainTitle}>Session Management</Text>
+        <Text size="xs" style={styles.headerSubtitle}>
+          DATASET // INTERFACE // V0.4.2
+        </Text>
+      </VStack>
+      <HStack style={styles.headerActions}>
+        <Button
+          action="default"
+          variant="outline"
+          size="sm"
+          onPress={() => void refresh(false)}
+          onPressIn={() => setRefreshPressed(true)}
+          onPressOut={() => setRefreshPressed(false)}
+          accessibilityLabel="Refresh sessions"
+          style={[styles.headerIconButton, refreshPressed && styles.headerIconButtonPressed]}
+          className=""
+        >
+          <ButtonIcon as={RefreshCwIcon} size="sm" color={styles.headerIconColor.color} />
+        </Button>
+        <Button
+          action="default"
+          variant="outline"
+          size="sm"
+          onPress={onClose}
+          onPressIn={() => setClosePressed(true)}
+          onPressOut={() => setClosePressed(false)}
+          accessibilityLabel="Close sessions"
+          style={[styles.headerIconButton, closePressed && styles.headerIconButtonPressed]}
+          className=""
+        >
+          <ButtonIcon as={CloseIcon} size="sm" color={styles.headerIconColor.color} />
+        </Button>
+      </HStack>
+    </HStack>
+  );
+
+  const contentBody = (
+    <>
+      {(selectError || listError) && (
+        <EntranceAnimation variant="fade" duration={140}>
+          <HStack style={styles.errorBanner}>
+            <Text size="sm" className="text-error-600 flex-1">{selectError ?? listError}</Text>
+            {listError && (
+              <AnimatedPressableView
+                onPress={() => void refresh(false)}
+                haptic="light"
+                style={styles.retryButton}
+                accessibilityLabel="Retry loading sessions"
+              >
+                <RefreshCwIcon size={16} color={uiColors.accent} strokeWidth={1.8} />
+                <Text size="sm" bold style={{ color: uiColors.accent }}>
+                  Retry
+                </Text>
+              </AnimatedPressableView>
+            )}
+          </HStack>
+        </EntranceAnimation>
+      )}
+      <VStack style={styles.workspaceSection}>
+        <Box style={styles.workspaceBox}>
+          <VStack style={styles.workspacePathContainer}>
+            <Text size="xs" style={styles.workspaceLabel}>
+              Current Workspace
+            </Text>
+            {workspaceLoading ? (
+              <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
+            ) : (
+              <Box style={styles.cwdPathBox}>
+                <HStack style={styles.cwdPathTopRow}>
+                  <Text size="xs" style={styles.cwdPreviewPrefix}>
+                    {workspacePreviewPrefix}
+                  </Text>
+                  <HStack style={styles.cwdDots}>
+                    <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
+                    <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
+                    <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
+                  </HStack>
+                </HStack>
+                <Text
+                  size="xs"
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                  style={styles.cwdPathText}
+                >
+                  {formatPathForWrap(workspaceDisplayPath)}
+                </Text>
+              </Box>
+            )}
+          </VStack>
+          <HStack style={styles.workspaceActions}>
+            {onOpenWorkspacePicker && (
+              <Box style={styles.workspaceActionWrap}>
+                <Button
+                  action="secondary"
+                  variant="outline"
+                  size="sm"
+                  onPress={onOpenWorkspacePicker}
+                  style={styles.workspaceActionButtonSecondary}
+                  className=""
+                >
+                  <ButtonText style={styles.secondaryActionText}>
+                    Change Workspace
+                  </ButtonText>
+                </Button>
+              </Box>
+            )}
+            <Box style={styles.workspaceActionWrap}>
+              <Button
+                action="primary"
+                variant="solid"
+                size="sm"
+                onPress={handleNewSession}
+                style={styles.workspaceActionButtonPrimary}
+                className=""
+              >
+                <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
+                <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
+              </Button>
+            </Box>
+          </HStack>
+        </Box>
+      </VStack>
+
+      <HStack style={styles.recentHeaderRow}>
+        <VStack style={styles.recentHeaderText}>
+          <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
+          <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
+        </VStack>
+        {showViewAllToggle && (
+          <Pressable
+            onPress={() => setShowAllSessions((prev) => !prev)}
+            style={({ pressed }) => [
+              styles.viewAllButton,
+              pressed && styles.viewAllButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
+          >
+            <Text size="sm" style={styles.viewAllText}>
+              {showAllSessions ? "View Less" : "View All"}
+            </Text>
+          </Pressable>
+        )}
+      </HStack>
+
+      <AsyncStateView
+        isLoading={loading && !listError}
+        error={totalSessionCount === 0 && !showActiveChat ? listError : null}
+        isEmpty={totalSessionCount === 0 && !showActiveChat && !listError}
+        loadingText="Loading sessions..."
+        emptyTitle="No Sessions Yet"
+        emptyDescription="Start a conversation and it will appear here."
+        onRetry={listError ? () => void refresh(false) : undefined}
+        className="flex-1 bg-transparent"
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.list}
+          refreshControl={undefined}
+          showsVerticalScrollIndicator={false}
+        >
+          {showActiveChat && onSelectActiveChat && (
+            <EntranceAnimation variant="fade" delay={60} duration={150}>
+              <Pressable
+                onPress={onSelectActiveChat}
+                style={({ pressed }) => [
+                  styles.activeChatCard,
+                  pressed && styles.pressState,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Open active chat"
+                accessibilityHint="Switches back to the currently active live chat"
+              >
+                <Box style={[styles.sessionStatusDot, styles.sessionStatusDotActive]} />
+                <VStack style={styles.activeChatCardContent}>
+                  <Text size="sm" style={styles.activeChatTitle}>
+                    Active Chat
+                  </Text>
+                  <Text size="xs" style={styles.activeChatSubtitle}>
+                    {sessionRunning ? "Receiving updates now" : "Tap to resume"}
+                  </Text>
+                </VStack>
+                <ChevronRightIcon size={18} color={theme.colors.textSecondary} strokeWidth={1.8} />
+              </Pressable>
+            </EntranceAnimation>
+          )}
+
+          {visibleGroups.map((group, groupIndex) => {
+            const fullGroup = groupedSessionsByKey.get(group.key) ?? group;
+            const isCollapsed = Boolean(collapsedGroups[group.key]);
+            const groupCount = fullGroup.sessions.length;
+
+            return (
+              <VStack key={group.key} style={styles.workspaceGroupSection}>
+                <Pressable
+                  onPress={() => handleToggleGroup(group.key)}
+                  style={({ pressed }) => [
+                    styles.workspaceGroupCard,
+                    pressed && styles.pressState,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${isCollapsed ? "Expand" : "Collapse"} workspace ${displayWorkspace(group.key, workspacePath)}`}
+                >
+                  <HStack style={styles.workspaceGroupCardLeft}>
+                    {isCollapsed ? (
+                      <ChevronRightIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
+                    ) : (
+                      <ChevronDownIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
+                    )}
+                    <Text size="sm" numberOfLines={1} ellipsizeMode="tail" style={styles.workspaceGroupLabel}>
+                      {displayWorkspace(group.key, workspacePath)}
+                    </Text>
+                  </HStack>
+                  <HStack style={styles.workspaceGroupCardRight}>
+                    <Box style={styles.workspaceGroupMetaBadge}>
+                      <Text size="xs" style={styles.workspaceGroupMetaText}>
+                        {groupCount}
+                      </Text>
+                    </Box>
+                    <Button
+                      action="default"
+                      variant="link"
+                      size="sm"
+                      onPress={(event) => {
+                        event.stopPropagation?.();
+                        handleDeleteWorkspaceSessions(fullGroup);
+                      }}
+                      accessibilityLabel="Delete workspace sessions"
+                      className=""
+                      style={styles.workspaceDeleteButton}
+                    >
+                      <ButtonIcon as={TrashIcon} size={17} style={styles.workspaceDeleteIcon} />
+                    </Button>
+                  </HStack>
+                </Pressable>
+
+                {!isCollapsed && group.sessions.map((item, index) => {
+                  const isLoading = loadingSessionId === item.id;
+                  const isActive = item.id === currentSessionId;
+                  const workspaceInfo = displayWorkspace(item.cwd, workspacePath);
+
+                  return (
+                    <EntranceAnimation
+                      key={item.id}
+                      variant="slideUp"
+                      delay={24 * ((groupIndex + index) % 8)}
+                      duration={150}
+                    >
+                      <Pressable
+                        onPress={() => handleSelect(item)}
+                        onLongPress={() => handleDelete(item)}
+                        delayLongPress={280}
+                        disabled={isLoading}
+                        style={({ pressed }) => [
+                          styles.sessionCard,
+                          isActive && styles.sessionCardActive,
+                          isLoading && styles.sessionCardLoading,
+                          pressed && styles.pressState,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
+                        accessibilityHint="Loads this session. Long press to delete."
+                      >
+                        <HStack style={styles.sessionCardInner}>
+                          <VStack style={styles.sessionContent}>
+                            <Text size="sm" numberOfLines={2} ellipsizeMode="tail" style={styles.sessionTitle}>
+                              {item.title || "(No Input)"}
+                            </Text>
+                            <HStack style={styles.sessionWorkspaceRow}>
+                              <Text size="xs" numberOfLines={1} ellipsizeMode="tail" style={styles.sessionWorkspaceText}>
+                                {workspaceInfo}
+                              </Text>
+                              <Box style={styles.sessionInfoSeparator} />
+                              <Text size="xs" numberOfLines={1} style={styles.sessionIdText}>
+                                {item.id.length > 8 ? item.id.slice(0, 8) : item.id}
+                              </Text>
+                            </HStack>
+                            <HStack style={styles.sessionFooterRow}>
+                              <Text size="xs" style={styles.sessionTimeText}>
+                                {formatSessionTime(item.lastAccess)}
+                              </Text>
+                              {Boolean((item.model ?? "").trim()) && (
+                                <Box style={styles.sessionModelBadge}>
+                                  <Text size="xs" numberOfLines={1} ellipsizeMode="tail" style={styles.sessionModelBadgeText}>
+                                    {formatModelLabel(item.model)}
+                                  </Text>
+                                </Box>
+                              )}
+                            </HStack>
+                          </VStack>
+                          <Box style={styles.sessionDeleteCol}>
+                            <Button
+                              action="default"
+                              variant="link"
+                              size="sm"
+                              onPress={(event) => {
+                                event.stopPropagation?.();
+                                handleDelete(item);
+                              }}
+                              accessibilityLabel="Delete session"
+                              className=""
+                              style={styles.sessionDeleteButton}
+                            >
+                              <ButtonIcon as={TrashIcon} size={17} style={styles.sessionDeleteIcon} />
+                            </Button>
+                          </Box>
+                        </HStack>
+                      </Pressable>
+                    </EntranceAnimation>
+                  );
+                })}
+              </VStack>
+            );
+          })}
+        </ScrollView>
+      </AsyncStateView>
+    </>
+  );
+
+  // Embedded mode: render directly with SafeAreaView and header (no ModalScaffold)
+  if (embedded) {
+    return (
+      <Box style={styles.container}>
+        <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
+          {headerContent}
+          {contentBody}
+        </SafeAreaView>
+      </Box>
+    );
+  }
+
+  // Non-embedded mode: wrap with ModalScaffold
   return (
     <ModalScaffold
       isOpen={isOpen}
@@ -511,284 +849,7 @@ export function SessionManagementModal({
     >
       <Box style={styles.container}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
-          {(selectError || listError) && (
-            <EntranceAnimation variant="fade" duration={140}>
-              <HStack style={styles.errorBanner}>
-                <Text size="sm" className="text-error-600 flex-1">{selectError ?? listError}</Text>
-                {listError && (
-                  <AnimatedPressableView
-                    onPress={() => void refresh(false)}
-                    haptic="light"
-                    style={styles.retryButton}
-                    accessibilityLabel="Retry loading sessions"
-                  >
-                    <RefreshCwIcon size={16} color={uiColors.accent} strokeWidth={1.8} />
-                    <Text size="sm" bold style={{ color: uiColors.accent }}>
-                      Retry
-                    </Text>
-                  </AnimatedPressableView>
-                )}
-              </HStack>
-            </EntranceAnimation>
-          )}
-          <VStack style={styles.workspaceSection}>
-            <Box style={styles.workspaceBox}>
-              <VStack style={styles.workspacePathContainer}>
-                <Text size="xs" style={styles.workspaceLabel}>
-                  Current Workspace
-                </Text>
-                {workspaceLoading ? (
-                  <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
-                ) : (
-                  <Box style={styles.cwdPathBox}>
-                    <HStack style={styles.cwdPathTopRow}>
-                      <Text size="xs" style={styles.cwdPreviewPrefix}>
-                        {workspacePreviewPrefix}
-                      </Text>
-                      <HStack style={styles.cwdDots}>
-                        <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
-                        <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
-                        <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
-                      </HStack>
-                    </HStack>
-                    <Text
-                      size="xs"
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                      style={styles.cwdPathText}
-                    >
-                      {formatPathForWrap(workspaceDisplayPath)}
-                    </Text>
-                  </Box>
-                )}
-              </VStack>
-              <HStack style={styles.workspaceActions}>
-                {onOpenWorkspacePicker && (
-                  <Box style={styles.workspaceActionWrap}>
-                    <Button
-                      action="secondary"
-                      variant="outline"
-                      size="sm"
-                      onPress={onOpenWorkspacePicker}
-                      style={styles.workspaceActionButtonSecondary}
-                      className=""
-                    >
-                      <ButtonText style={styles.secondaryActionText}>
-                        Change Workspace
-                      </ButtonText>
-                    </Button>
-                  </Box>
-                )}
-                <Box style={styles.workspaceActionWrap}>
-                  <Button
-                    action="primary"
-                    variant="solid"
-                    size="sm"
-                    onPress={handleNewSession}
-                    style={styles.workspaceActionButtonPrimary}
-                    className=""
-                  >
-                    <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
-                    <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
-                  </Button>
-                </Box>
-              </HStack>
-            </Box>
-          </VStack>
-
-          <HStack style={styles.recentHeaderRow}>
-            <VStack style={styles.recentHeaderText}>
-              <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
-              <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
-            </VStack>
-            {showViewAllToggle && (
-              <Pressable
-                onPress={() => setShowAllSessions((prev) => !prev)}
-                style={({ pressed }) => [
-                  styles.viewAllButton,
-                  pressed && styles.viewAllButtonPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
-              >
-                <Text size="sm" style={styles.viewAllText}>
-                  {showAllSessions ? "View Less" : "View All"}
-                </Text>
-              </Pressable>
-            )}
-          </HStack>
-
-          <AsyncStateView
-            isLoading={loading && !listError}
-            error={totalSessionCount === 0 && !showActiveChat ? listError : null}
-            isEmpty={totalSessionCount === 0 && !showActiveChat && !listError}
-            loadingText="Loading sessions..."
-            emptyTitle="No Sessions Yet"
-            emptyDescription="Start a conversation and it will appear here."
-            onRetry={listError ? () => void refresh(false) : undefined}
-            className="flex-1 bg-transparent"
-          >
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.list}
-              refreshControl={undefined}
-              showsVerticalScrollIndicator={false}
-            >
-              {showActiveChat && onSelectActiveChat && (
-                <EntranceAnimation variant="fade" delay={60} duration={150}>
-                  <Pressable
-                    onPress={onSelectActiveChat}
-                    style={({ pressed }) => [
-                      styles.activeChatCard,
-                      pressed && styles.pressState,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open active chat"
-                    accessibilityHint="Switches back to the currently active live chat"
-                  >
-                    <Box style={[styles.sessionStatusDot, styles.sessionStatusDotActive]} />
-                    <VStack style={styles.activeChatCardContent}>
-                      <Text size="sm" style={styles.activeChatTitle}>
-                        Active Chat
-                      </Text>
-                      <Text size="xs" style={styles.activeChatSubtitle}>
-                        {sessionRunning ? "Receiving updates now" : "Tap to resume"}
-                      </Text>
-                    </VStack>
-                    <ChevronRightIcon size={18} color={theme.colors.textSecondary} strokeWidth={1.8} />
-                  </Pressable>
-                </EntranceAnimation>
-              )}
-
-              {visibleGroups.map((group, groupIndex) => {
-                const fullGroup = groupedSessionsByKey.get(group.key) ?? group;
-                const isCollapsed = Boolean(collapsedGroups[group.key]);
-                const groupCount = fullGroup.sessions.length;
-
-                return (
-                  <VStack key={group.key} style={styles.workspaceGroupSection}>
-                    <Pressable
-                      onPress={() => handleToggleGroup(group.key)}
-                      style={({ pressed }) => [
-                        styles.workspaceGroupCard,
-                        pressed && styles.pressState,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${isCollapsed ? "Expand" : "Collapse"} workspace ${displayWorkspace(group.key, workspacePath)}`}
-                    >
-                      <HStack style={styles.workspaceGroupCardLeft}>
-                        {isCollapsed ? (
-                          <ChevronRightIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
-                        ) : (
-                          <ChevronDownIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
-                        )}
-                        <Text size="sm" numberOfLines={1} ellipsizeMode="tail" style={styles.workspaceGroupLabel}>
-                          {displayWorkspace(group.key, workspacePath)}
-                        </Text>
-                      </HStack>
-                      <HStack style={styles.workspaceGroupCardRight}>
-                        <Box style={styles.workspaceGroupMetaBadge}>
-                          <Text size="xs" style={styles.workspaceGroupMetaText}>
-                            {groupCount}
-                          </Text>
-                        </Box>
-                        <Button
-                          action="default"
-                          variant="link"
-                          size="sm"
-                          onPress={(event) => {
-                            event.stopPropagation?.();
-                            handleDeleteWorkspaceSessions(fullGroup);
-                          }}
-                          accessibilityLabel="Delete workspace sessions"
-                          className=""
-                          style={styles.workspaceDeleteButton}
-                        >
-                          <ButtonIcon as={TrashIcon} size={17} style={styles.workspaceDeleteIcon} />
-                        </Button>
-                      </HStack>
-                    </Pressable>
-
-                    {!isCollapsed && group.sessions.map((item, index) => {
-                      const isLoading = loadingSessionId === item.id;
-                      const isActive = item.id === currentSessionId;
-                      const workspaceInfo = displayWorkspace(item.cwd, workspacePath);
-
-                      return (
-                        <EntranceAnimation
-                          key={item.id}
-                          variant="slideUp"
-                          delay={24 * ((groupIndex + index) % 8)}
-                          duration={150}
-                        >
-                          <Pressable
-                            onPress={() => handleSelect(item)}
-                            onLongPress={() => handleDelete(item)}
-                            delayLongPress={280}
-                            disabled={isLoading}
-                            style={({ pressed }) => [
-                              styles.sessionCard,
-                              isActive && styles.sessionCardActive,
-                              isLoading && styles.sessionCardLoading,
-                              pressed && styles.pressState,
-                            ]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
-                            accessibilityHint="Loads this session. Long press to delete."
-                          >
-                            <HStack style={styles.sessionCardInner}>
-                              <VStack style={styles.sessionContent}>
-                                <Text size="sm" numberOfLines={2} ellipsizeMode="tail" style={styles.sessionTitle}>
-                                  {item.title || "(No Input)"}
-                                </Text>
-                                <HStack style={styles.sessionWorkspaceRow}>
-                                  <Text size="xs" numberOfLines={1} ellipsizeMode="tail" style={styles.sessionWorkspaceText}>
-                                    {workspaceInfo}
-                                  </Text>
-                                  <Box style={styles.sessionInfoSeparator} />
-                                  <Text size="xs" numberOfLines={1} style={styles.sessionIdText}>
-                                    {item.id.length > 8 ? item.id.slice(0, 8) : item.id}
-                                  </Text>
-                                </HStack>
-                                <HStack style={styles.sessionFooterRow}>
-                                  <Text size="xs" style={styles.sessionTimeText}>
-                                    {formatSessionTime(item.lastAccess)}
-                                  </Text>
-                                  {Boolean((item.model ?? "").trim()) && (
-                                    <Box style={styles.sessionModelBadge}>
-                                      <Text size="xs" numberOfLines={1} ellipsizeMode="tail" style={styles.sessionModelBadgeText}>
-                                        {formatModelLabel(item.model)}
-                                      </Text>
-                                    </Box>
-                                  )}
-                                </HStack>
-                              </VStack>
-                              <Box style={styles.sessionDeleteCol}>
-                                <Button
-                                  action="default"
-                                  variant="link"
-                                  size="sm"
-                                  onPress={(event) => {
-                                    event.stopPropagation?.();
-                                    handleDelete(item);
-                                  }}
-                                  accessibilityLabel="Delete session"
-                                  className=""
-                                  style={styles.sessionDeleteButton}
-                                >
-                                  <ButtonIcon as={TrashIcon} size={17} style={styles.sessionDeleteIcon} />
-                                </Button>
-                              </Box>
-                            </HStack>
-                          </Pressable>
-                        </EntranceAnimation>
-                      );
-                    })}
-                  </VStack>
-                );
-              })}
-            </ScrollView>
-          </AsyncStateView>
+          {contentBody}
         </SafeAreaView>
       </Box>
     </ModalScaffold>
@@ -818,8 +879,19 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginTop: 2,
       letterSpacing: 1,
     },
+    embeddedHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing["5"],
+      paddingVertical: spacing["4"],
+      backgroundColor: "transparent",
+    },
+    embeddedHeaderTitleGroup: {
+      flex: 1,
+    },
     safe: { flex: 1 },
-    headerActions: { gap: spacing["2"], alignItems: "center", marginRight: spacing["5"] },
+    headerActions: { gap: spacing["2"], alignItems: "center", marginRight: 0 },
     headerIconButton: {
       width: 40, height: 40, minWidth: 40, minHeight: 40, borderRadius: theme.mode === "dark" ? 12 : 12, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.4)" : "#DCC3B0", // clay-300
@@ -967,7 +1039,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: theme.mode === "dark" ? 14 : 24, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.3)" : "#EADBCF", // clay-200
       backgroundColor: theme.mode === "dark" ? "rgba(10, 15, 30, 0.6)" : "rgba(255, 255, 255, 0.6)", // bg-white/60
-      marginBottom: spacing["4"],
+      marginBottom: spacing["3"],
       borderLeftWidth: 1,
       shadowColor: theme.mode === "dark" ? "#00e5ff" : "transparent", shadowOffset: { width: 0, height: 5 }, shadowOpacity: theme.mode === "dark" ? 0.1 : 0, shadowRadius: 8,
     },
@@ -980,7 +1052,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       flexDirection: "row",
       paddingHorizontal: spacing["5"],
-      paddingVertical: spacing["4"],
+      paddingVertical: spacing["3"],
       alignItems: 'flex-start',
     },
     sessionCardLoading: { opacity: 0.5 },

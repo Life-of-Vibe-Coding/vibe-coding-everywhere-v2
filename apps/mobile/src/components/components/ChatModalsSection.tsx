@@ -5,7 +5,7 @@ import { SkillConfigurationView } from "@/components/settings/SkillConfiguration
 import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
 import { DockerManagerModal } from "@/components/docker/DockerManagerModal";
 import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardModal";
-import { SessionManagementModal } from "@/components/chat/SessionManagementModal";
+import { SessionManagementPage } from "@/components/pages/SessionManagementPage";
 import { PreviewWebViewModal } from "@/components/preview/PreviewWebViewModal";
 import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
 import { Box } from "@/components/ui/box";
@@ -60,22 +60,20 @@ export function ChatModalsSection({
   return (
     <>
       {isSessionManagementOpen ? (
-        <Box className="flex-1">
-          <SessionManagementModal
-            isOpen
-            onClose={modalStates.sessionManagement.close}
-            currentSessionId={modals.sessionManagement.currentSessionId}
-            workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
-            serverBaseUrl={modals.sessionManagement.serverBaseUrl}
-            workspaceLoading={modals.sessionManagement.workspaceLoading}
-            onOpenWorkspacePicker={handleWorkspacePickerFromSession}
-            onSelectSession={handleSessionSelect}
-            onNewSession={handleNewSession}
-            showActiveChat={modals.sessionManagement.showActiveChat}
-            sessionRunning={modals.sessionManagement.sessionRunning}
-            onSelectActiveChat={handleSelectActiveChat}
-          />
-        </Box>
+        <SessionManagementPage
+          isOpen
+          onClose={modalStates.sessionManagement.close}
+          currentSessionId={modals.sessionManagement.currentSessionId}
+          workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
+          serverBaseUrl={modals.sessionManagement.serverBaseUrl}
+          workspaceLoading={modals.sessionManagement.workspaceLoading}
+          onOpenWorkspacePicker={handleWorkspacePickerFromSession}
+          onSelectSession={handleSessionSelect}
+          onNewSession={handleNewSession}
+          showActiveChat={modals.sessionManagement.showActiveChat}
+          sessionRunning={modals.sessionManagement.sessionRunning}
+          onSelectActiveChat={handleSelectActiveChat}
+        />
       ) : isSkillsConfigOpen ? (
         <Box className="flex-1">
           <SkillConfigurationView
