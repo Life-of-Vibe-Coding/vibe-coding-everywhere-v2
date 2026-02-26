@@ -631,14 +631,7 @@ export function SessionManagementModal({
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.list}
-              refreshControl={
-                {/* <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={() => void refresh(true)}
-                  tintColor={uiColors.accent}
-                  colors={[uiColors.accent]}
-                /> */}
-              }
+              refreshControl={undefined}
               showsVerticalScrollIndicator={false}
             >
               {showActiveChat && onSelectActiveChat && (
@@ -948,7 +941,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     workspaceGroupLabel: {
       color: theme.mode === "dark" ? theme.colors.textPrimary : "#523724", // clay-800
       fontSize: 15, lineHeight: 22, fontWeight: "700", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, letterSpacing: 0.5,
-      flex: 1,
+      flex: 1, flexShrink: 1, // Allows text to truncate elegantly before hitting the badge
     },
     workspaceGroupMetaBadge: {
       minWidth: 24, height: 24, borderRadius: 12, borderWidth: 0,
