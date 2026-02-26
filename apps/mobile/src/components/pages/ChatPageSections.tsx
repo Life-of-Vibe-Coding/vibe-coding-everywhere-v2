@@ -7,6 +7,7 @@ import { FileViewerPage } from "@/components/pages/FileViewerPage";
 import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { getTheme } from "@/theme/index";
+import { SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
@@ -43,9 +44,9 @@ const overlayStyles = {
   fileViewer: {
     position: "absolute" as const,
     top: 0,
-    // Cancel ChatPageShell horizontal padding (`px-6`) so open file is edge-to-edge.
-    left: -24,
-    right: -24,
+    // Cancel ChatPageShell horizontal padding so open file is edge-to-edge.
+    left: -SHELL_HORIZONTAL_PADDING,
+    right: -SHELL_HORIZONTAL_PADDING,
     bottom: 0,
     zIndex: 6,
   },

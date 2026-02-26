@@ -7,7 +7,10 @@ import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageHeader, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import { ChatConversationSection, ChatHeaderSection, ChatInputDockSection } from "@/components/pages/ChatPageSections";
 import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
-import { layoutOuterStyle } from "@/components/styles/appStyles";
+import { layoutOuterStyle, SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
+
+// Re-export for backward compatibility
+export { SHELL_HORIZONTAL_PADDING };
 
 export type ChatPageShellProps = {
   context: ChatPageContext;
@@ -43,16 +46,16 @@ export function ChatPageShell({
 
   return (
     <Box className="flex-1" style={layoutOuterStyle}>
-      <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right", "bottom"]}>
         <StatusBar style={isDark ? "light" : "dark"} />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
         >
-          <Box className="flex-1 flex-col px-6 pt-0" style={{ paddingTop: insets.top }}>
-            <Box className="relative flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
-              <Box className="flex-1 min-h-0" style={{ overflow: Platform.OS === "ios" ? "visible" : "hidden" }}>
+          <Box className="flex-1 flex-col px-6 pt-0">
+            <Box className="relative flex-1 min-h-0" style={{ overflow: "hidden" }}>
+              <Box className="flex-1 min-h-0" style={{ overflow: "hidden" }}>
                 {!isAnyOverlayOpen && (
                   <ChatHeaderSection
                     theme={context.theme}

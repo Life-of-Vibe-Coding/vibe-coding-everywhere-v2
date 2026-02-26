@@ -14,6 +14,13 @@ export const layoutOuterStyle = {
   backgroundColor: "transparent", // Allow global background
 };
 
+/**
+ * Shared horizontal padding (in px) applied by the ChatPageShell container.
+ * Referenced by child components (e.g. FileViewerPage, AppHeaderBar) to
+ * counteract it for edge-to-edge layouts, avoiding hardcoded magic numbers.
+ */
+export const SHELL_HORIZONTAL_PADDING = 24;
+
 export const layoutGlassHeaderStyleDark = {
   backgroundColor: "rgba(15, 23, 42, 0.6)",
   borderBottomWidth: 1.5,

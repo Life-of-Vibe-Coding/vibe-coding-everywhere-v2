@@ -13,7 +13,7 @@ import { SettingsGradientIcon } from "@/components/icons/HeaderIcons";
 import { BlurView } from "expo-blur";
 import { useTheme } from "@/theme/index";
 import { Image } from "react-native";
-import { layoutGlassHeaderStyleDark, layoutGlassHeaderStyleLight } from "@/components/styles/appStyles";
+import { layoutGlassHeaderStyleDark, layoutGlassHeaderStyleLight, SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
 import { useThemeAssets } from "@/hooks/useThemeAssets";
 
 interface AppHeaderBarProps {
@@ -129,8 +129,14 @@ export function AppHeaderBar({
 
   return (
     <Box
-      style={isDark ? layoutGlassHeaderStyleDark : { backgroundColor: "transparent" }}
-      className="relative z-10 -mx-6 px-6 pb-2 overflow-hidden"
+      style={[
+        isDark ? layoutGlassHeaderStyleDark : { backgroundColor: "transparent" },
+        {
+          marginHorizontal: -SHELL_HORIZONTAL_PADDING,
+          paddingHorizontal: SHELL_HORIZONTAL_PADDING,
+        },
+      ]}
+      className="relative z-10 pb-2 overflow-hidden"
     >
       {isDark && <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />}
       <HStack className="relative h-20 flex-row items-center justify-between px-0 -mt-2" pointerEvents="box-none">

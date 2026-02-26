@@ -5,12 +5,15 @@ import {
   LayoutAnimation,
   UIManager,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   triggerHaptic,
   SkeletonText,
   EntranceAnimation,
   AnimatedPressableView,
+  FlashAnimation,
+  PulseAnimation,
   spacing,
 } from "@/design-system";
 import { Box } from "@/components/ui/box";
@@ -464,42 +467,41 @@ export function SessionManagementModal({
   if (!isOpen) return null;
 
   const headerContent = (
-    <HStack style={styles.embeddedHeader}>
-      <VStack style={styles.embeddedHeaderTitleGroup}>
-        <Text style={styles.mainTitle}>Session Management</Text>
-        <Text size="xs" style={styles.headerSubtitle}>
-          DATASET // INTERFACE // V0.4.2
-        </Text>
-      </VStack>
-      <HStack style={styles.headerActions}>
-        <Button
-          action="default"
-          variant="outline"
-          size="sm"
-          onPress={() => void refresh(false)}
-          onPressIn={() => setRefreshPressed(true)}
-          onPressOut={() => setRefreshPressed(false)}
-          accessibilityLabel="Refresh sessions"
-          style={[styles.headerIconButton, refreshPressed && styles.headerIconButtonPressed]}
-          className=""
-        >
-          <ButtonIcon as={RefreshCwIcon} size="sm" color={styles.headerIconColor.color} />
-        </Button>
-        <Button
-          action="default"
-          variant="outline"
-          size="sm"
-          onPress={onClose}
-          onPressIn={() => setClosePressed(true)}
-          onPressOut={() => setClosePressed(false)}
-          accessibilityLabel="Close sessions"
-          style={[styles.headerIconButton, closePressed && styles.headerIconButtonPressed]}
-          className=""
-        >
-          <ButtonIcon as={CloseIcon} size="sm" color={styles.headerIconColor.color} />
-        </Button>
+    <EntranceAnimation variant="slideDown" duration={350} delay={0}>
+      <HStack style={styles.embeddedHeader}>
+        <VStack style={styles.embeddedHeaderTitleGroup}>
+          <Text style={styles.mainTitle}>Session Management</Text>
+        </VStack>
+        <HStack style={styles.headerActions}>
+          <Button
+            action="default"
+            variant="outline"
+            size="sm"
+            onPress={() => void refresh(false)}
+            onPressIn={() => setRefreshPressed(true)}
+            onPressOut={() => setRefreshPressed(false)}
+            accessibilityLabel="Refresh sessions"
+            style={[styles.headerIconButton, refreshPressed && styles.headerIconButtonPressed]}
+            className=""
+          >
+            <ButtonIcon as={RefreshCwIcon} size="sm" color={styles.headerIconColor.color} />
+          </Button>
+          <Button
+            action="default"
+            variant="outline"
+            size="sm"
+            onPress={onClose}
+            onPressIn={() => setClosePressed(true)}
+            onPressOut={() => setClosePressed(false)}
+            accessibilityLabel="Close sessions"
+            style={[styles.headerIconButton, closePressed && styles.headerIconButtonPressed]}
+            className=""
+          >
+            <ButtonIcon as={CloseIcon} size="sm" color={styles.headerIconColor.color} />
+          </Button>
+        </HStack>
       </HStack>
-    </HStack>
+    </EntranceAnimation>
   );
 
   const contentBody = (
@@ -524,70 +526,78 @@ export function SessionManagementModal({
           </HStack>
         </EntranceAnimation>
       )}
-      <VStack style={styles.workspaceSection}>
-        <Box style={styles.workspaceBox}>
-          <VStack style={styles.workspacePathContainer}>
-            <Text size="xs" style={styles.workspaceLabel}>
-              Current Workspace
-            </Text>
-            {workspaceLoading ? (
-              <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
-            ) : (
-              <Box style={styles.cwdPathBox}>
-                <HStack style={styles.cwdPathTopRow}>
-                  <Text size="xs" style={styles.cwdPreviewPrefix}>
-                    {workspacePreviewPrefix}
-                  </Text>
-                  <HStack style={styles.cwdDots}>
-                    <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
-                    <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
-                    <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
+      <EntranceAnimation variant="slideDown" duration={300} delay={40}>
+        <VStack style={styles.workspaceSection}>
+          <Box style={[styles.workspaceBox, { overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={theme.mode === "dark" ? ["rgba(0, 229, 255, 0.08)", "rgba(10, 15, 30, 0.2)"] : ["rgba(255, 255, 255, 0.8)", "rgba(247, 241, 235, 0.4)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <VStack style={styles.workspacePathContainer}>
+              <Text size="xs" style={styles.workspaceLabel}>
+                Current Workspace
+              </Text>
+              {workspaceLoading ? (
+                <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
+              ) : (
+                <Box style={styles.cwdPathBox}>
+                  <HStack style={styles.cwdPathTopRow}>
+                    <Text size="xs" style={styles.cwdPreviewPrefix}>
+                      {workspacePreviewPrefix}
+                    </Text>
+                    <HStack style={styles.cwdDots}>
+                      <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
+                      <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
+                      <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
+                    </HStack>
                   </HStack>
-                </HStack>
-                <Text
-                  size="xs"
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                  style={styles.cwdPathText}
-                >
-                  {formatPathForWrap(workspaceDisplayPath)}
-                </Text>
-              </Box>
-            )}
-          </VStack>
-          <HStack style={styles.workspaceActions}>
-            {onOpenWorkspacePicker && (
+                  <Text
+                    size="xs"
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                    style={styles.cwdPathText}
+                  >
+                    {formatPathForWrap(workspaceDisplayPath)}
+                  </Text>
+                </Box>
+              )}
+            </VStack>
+            <HStack style={styles.workspaceActions}>
+              {onOpenWorkspacePicker && (
+                <Box style={styles.workspaceActionWrap}>
+                  <Button
+                    action="secondary"
+                    variant="outline"
+                    size="sm"
+                    onPress={onOpenWorkspacePicker}
+                    style={styles.workspaceActionButtonSecondary}
+                    className=""
+                  >
+                    <ButtonText style={styles.secondaryActionText}>
+                      Change Workspace
+                    </ButtonText>
+                  </Button>
+                </Box>
+              )}
               <Box style={styles.workspaceActionWrap}>
                 <Button
-                  action="secondary"
-                  variant="outline"
+                  action="primary"
+                  variant="solid"
                   size="sm"
-                  onPress={onOpenWorkspacePicker}
-                  style={styles.workspaceActionButtonSecondary}
+                  onPress={handleNewSession}
+                  style={styles.workspaceActionButtonPrimary}
                   className=""
                 >
-                  <ButtonText style={styles.secondaryActionText}>
-                    Change Workspace
-                  </ButtonText>
+                  <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
+                  <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
                 </Button>
               </Box>
-            )}
-            <Box style={styles.workspaceActionWrap}>
-              <Button
-                action="primary"
-                variant="solid"
-                size="sm"
-                onPress={handleNewSession}
-                style={styles.workspaceActionButtonPrimary}
-                className=""
-              >
-                <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
-                <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
-              </Button>
-            </Box>
-          </HStack>
-        </Box>
-      </VStack>
+            </HStack>
+          </Box>
+        </VStack>
+      </EntranceAnimation>
 
       <HStack style={styles.recentHeaderRow}>
         <VStack style={styles.recentHeaderText}>
@@ -634,12 +644,21 @@ export function SessionManagementModal({
                 style={({ pressed }) => [
                   styles.activeChatCard,
                   pressed && styles.pressState,
+                  { overflow: "hidden" }
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="Open active chat"
                 accessibilityHint="Switches back to the currently active live chat"
               >
-                <Box style={[styles.sessionStatusDot, styles.sessionStatusDotActive]} />
+                <LinearGradient
+                  colors={theme.mode === "dark" ? ["rgba(0, 229, 255, 0.15)", "rgba(0, 24, 46, 0.6)"] : ["rgba(215, 175, 142, 0.25)", "rgba(255, 255, 255, 0.8)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <PulseAnimation intensity={0.15} duration={2500}>
+                  <Box style={[styles.sessionStatusDot, styles.sessionStatusDotActive]} />
+                </PulseAnimation>
                 <VStack style={styles.activeChatCardContent}>
                   <Text size="sm" style={styles.activeChatTitle}>
                     Active Chat
@@ -731,9 +750,16 @@ export function SessionManagementModal({
                       >
                         <HStack style={styles.sessionCardInner}>
                           <VStack style={styles.sessionContent}>
-                            <Text size="sm" numberOfLines={2} ellipsizeMode="tail" style={styles.sessionTitle}>
-                              {item.title || "(No Input)"}
-                            </Text>
+                            <HStack style={{ alignItems: "center", gap: 8, marginBottom: 2 }}>
+                              {item.status === "running" && (
+                                <FlashAnimation duration={1500} minOpacity={0.3}>
+                                  <Box style={styles.runningIndicatorDot} />
+                                </FlashAnimation>
+                              )}
+                              <Text size="sm" numberOfLines={2} ellipsizeMode="tail" style={[styles.sessionTitle, { flex: 1 }]}>
+                                {item.title || "(No Input)"}
+                              </Text>
+                            </HStack>
                             <HStack style={styles.sessionWorkspaceRow}>
                               <Text size="xs" numberOfLines={1} ellipsizeMode="tail" style={styles.sessionWorkspaceText}>
                                 {workspaceInfo}
@@ -806,9 +832,6 @@ export function SessionManagementModal({
       title={
         <VStack>
           <Text style={styles.mainTitle}>Session Management</Text>
-          <Text size="xs" style={styles.headerSubtitle}>
-            DATASET // INTERFACE // V0.4.2
-          </Text>
         </VStack>
       }
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
@@ -870,14 +893,6 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.8)" : "transparent",
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: theme.mode === "dark" ? 10 : 0,
-    },
-    headerSubtitle: {
-      color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", // clay-500
-      fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined,
-      fontSize: 9,
-      fontWeight: "700",
-      marginTop: 2,
-      letterSpacing: 1,
     },
     embeddedHeader: {
       flexDirection: "row",
@@ -1045,6 +1060,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     sessionCardActive: {
       borderColor: theme.colors.accent,
+      borderLeftWidth: 4,
       backgroundColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.15)" : "#F7F1EB",
       shadowColor: theme.colors.accent, shadowOpacity: theme.mode === "dark" ? 0.3 : 0.1, shadowRadius: 12
     },
@@ -1068,6 +1084,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sessionIdText: { color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", fontSize: 12, lineHeight: 16, fontFamily: uiMonoFontFamily, flexShrink: 0, fontWeight: "500" },
     sessionStatusDot: { width: 10, height: 10, borderRadius: 999, flexShrink: 0 },
     sessionStatusDotActive: { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent, shadowOpacity: 1, shadowRadius: 6 },
+    runningIndicatorDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981", shadowColor: "#10B981", shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 }, elevation: 2 },
     sessionFooterRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing["3"], minWidth: 0, marginTop: 6 },
     sessionTimeText: {
       color: theme.mode === "dark" ? theme.colors.textMuted : "#C9A68D", // clay-400
