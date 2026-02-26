@@ -605,11 +605,10 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         }
       } catch (e) {}
 
-      setLastSessionTerminated(exitCode !== 0);
       if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+        setLastSessionTerminated(exitCode !== 0);
         setSessionStateForSession(connectionSessionIdRef.current, "idle");
         setWaitingForUserInput(false);
-        if (exitCode !== 0) setLastSessionTerminated(true);
       }
 
       // Flush any remaining partial line left in the output buffer.
@@ -679,6 +678,10 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         streamFlushTimeoutRef.current = null;
       }
       flushAssistantText();
+      // Finalize the assistant message so the session draft is cleared
+      // (unblocks disk refresh), stripTrailingIncompleteTag runs, and
+      // session state transitions from "running" to "idle".
+      handlers.finalizeAssistantMessageForSession();
     };
   }, [
     closeActiveSse,

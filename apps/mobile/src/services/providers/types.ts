@@ -141,13 +141,15 @@ export function appendSnapshotTextDelta(ctx: EventContext, fullText: string): vo
       if (delta) ctx.appendAssistantText(delta);
       return;
     }
-    // Visible text is empty but draft has content (all thinking) — append full text
-    if (visibleCurrent.length === 0) {
-      ctx.appendAssistantText(fullText);
-      return;
+    // Partial overlap or unrelated — fall through to append full text
+    // rather than silently dropping content. Minor duplication is
+    // preferable to losing the entire snapshot.
+    if (__DEV__) {
+      console.warn("[appendSnapshotTextDelta] partial overlap fallback", {
+        visibleLen: visibleCurrent.length,
+        fullTextLen: fullText.length,
+      });
     }
-    // Partial overlap or unrelated — don't append to avoid corruption
-    return;
   }
   // current is empty → fresh message, append everything
   ctx.appendAssistantText(fullText);

@@ -368,7 +368,6 @@ export function useChatActions(params: UseChatActionsParams) {
       if (__DEV__) console.log("[sse] disconnected (reset)", { sessionId });
       closeActiveSse("reset");
       clearConnectionIntent(sessionId);
-      setConnectionIntent(sessionId, false);
     }
     setLiveSessionMessages([]);
     setSessionId(null);
@@ -406,7 +405,6 @@ export function useChatActions(params: UseChatActionsParams) {
       if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
       closeActiveSse("new-session");
       clearConnectionIntent(sessionId);
-      setConnectionIntent(sessionId, false);
     }
     setSessionId(null);
     pendingMessagesForNewSessionRef.current = [];

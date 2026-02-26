@@ -566,7 +566,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         alignItems: "flex-start" as const,
       },
     }),
-    [theme, codeBlockBg, textColor, linkColor, isDark, isUser]
+    [theme, textColor, linkColor, isDark, isUser]
   );
   const styles = useMemo(
     () =>

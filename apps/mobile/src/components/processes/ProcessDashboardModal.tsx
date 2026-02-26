@@ -441,53 +441,51 @@ export function ProcessDashboardModal({
         logViewer ? (
           <Modal isOpen onClose={() => setLogViewer(null)} size="full">
             <ModalBackdrop onPress={() => setLogViewer(null)} />
-            <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0">
-              <ModalBody className="m-0 p-0">
-                <Box className="flex-1" style={containerStyle}>
-                  <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
-                    <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
-                      <HStack className="min-w-0 flex-1 items-center gap-2">
-                        <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
-                        <Text
-                          size="md"
-                          bold
-                          numberOfLines={1}
-                          className="min-w-0 flex-1"
-                          style={textPrimaryStyle}
-                        >
-                          {logViewer?.name}
-                        </Text>
-                      </HStack>
-                      <Button
-                        action="default"
-                        variant="link"
-                        size="md"
-                        onPress={() => setLogViewer(null)}
-                        accessibilityLabel="Close log viewer"
-                        className="min-w-11 min-h-11 -mr-2"
-                      >
-                        <ButtonIcon as={CloseIcon} size="md" color={topActionIconStyle.color} />
-                      </Button>
-                    </HStack>
-                    <ScrollView
-                      className="flex-1"
-                      contentContainerStyle={{
-                        padding: spacing["5"],
-                        paddingBottom: spacing["6"],
-                      }}
-                      horizontal={false}
-                    >
+            <ModalContent className="w-full h-full max-w-none rounded-none border-0 p-0" style={containerStyle}>
+              <ModalBody className="m-0 p-0" style={{ flex: 1 }} contentContainerStyle={{ flex: 1 }}>
+                <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>
+                  <HStack className="items-center justify-between px-5 py-3 border-b" style={headerDividerStyle}>
+                    <HStack className="min-w-0 flex-1 items-center gap-2">
+                      <Box className="w-1 h-6 rounded-sm bg-primary-500" style={{ backgroundColor: theme.colors.accent }} />
                       <Text
-                        size="xs"
-                        selectable
-                        className="font-mono"
-                        style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
+                        size="md"
+                        bold
+                        numberOfLines={1}
+                        className="min-w-0 flex-1"
+                        style={textPrimaryStyle}
                       >
-                        {logViewer?.content || "(empty)"}
+                        {logViewer?.name}
                       </Text>
-                    </ScrollView>
-                  </SafeAreaView>
-                </Box>
+                    </HStack>
+                    <Button
+                      action="default"
+                      variant="link"
+                      size="md"
+                      onPress={() => setLogViewer(null)}
+                      accessibilityLabel="Close log viewer"
+                      className="min-w-11 min-h-11 -mr-2"
+                    >
+                      <ButtonIcon as={CloseIcon} size="md" color={topActionIconStyle.color} />
+                    </Button>
+                  </HStack>
+                  <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{
+                      padding: spacing["5"],
+                      paddingBottom: spacing["6"],
+                    }}
+                    horizontal={false}
+                  >
+                    <Text
+                      size="xs"
+                      selectable
+                      className="font-mono"
+                      style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
+                    >
+                      {logViewer?.content || "(empty)"}
+                    </Text>
+                  </ScrollView>
+                </SafeAreaView>
               </ModalBody>
             </ModalContent>
           </Modal>
