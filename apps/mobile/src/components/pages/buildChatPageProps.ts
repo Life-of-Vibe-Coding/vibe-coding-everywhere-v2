@@ -72,7 +72,7 @@ export function buildChatPageProps({
       lastSessionTerminated: sseState.lastSessionTerminated,
       sessionId: sseState.sessionId,
       tailBoxMaxHeight: sseState.tailBoxMaxHeight,
-      flatListRef: sseState.flatListRef,
+      scrollViewRef: sseState.scrollViewRef,
       onContentSizeChange: sseState.onContentSizeChange,
       onOpenUrl: chatActionState.onOpenPreviewInApp,
       onFileSelect: onChatFileSelect,

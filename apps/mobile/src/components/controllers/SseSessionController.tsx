@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, InteractionManager, type FlatList as RNFlatList } from "react-native";
-import { FlatList } from "@/components/ui/flat-list";
+import { Dimensions, InteractionManager, ScrollView } from "react-native";
 
 import { getModel, ModalSessionItem } from "@/features/app/appConfig";
 import { triggerHaptic } from "@/design-system";
@@ -40,7 +39,7 @@ export type SseSessionControllerState = {
   loadSession: ReturnType<typeof useChat>["loadSession"];
   startNewSession: ReturnType<typeof useChat>["startNewSession"];
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<RNFlatList<Message> | null>;
+  scrollViewRef: React.RefObject<ScrollView | null>;
   onContentSizeChange: () => void;
   sessionStatuses: SessionStatus[];
   setSessionStatuses: (sessions: SessionStatus[]) => void;
@@ -128,17 +127,17 @@ export function SseSessionController({
   }, [provider, model]);
 
   const tailBoxMaxHeight = useMemo(() => Dimensions.get("window").height * 0.5, []);
-  const flatListRef = useRef<RNFlatList<Message> | null>(null);
+  const scrollViewRef = useRef<ScrollView | null>(null);
   const lastScrollToEndTimeRef = useRef(0);
 
   useEffect(() => {
     if (messages.length > 0) {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      scrollViewRef.current?.scrollToEnd({ animated: true });
     }
   }, [messages.length]);
 
   const scrollToEnd = useCallback((animated = true) => {
-    flatListRef.current?.scrollToEnd({ animated });
+    scrollViewRef.current?.scrollToEnd({ animated });
   }, []);
 
   const onContentSizeChange = useCallback(() => {
@@ -153,7 +152,7 @@ export function SseSessionController({
   const runAfterInteractionScroll = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
+        scrollViewRef.current?.scrollToEnd({ animated: false });
       }, 100);
     });
   }, []);
@@ -245,7 +244,7 @@ export function SseSessionController({
     loadSession,
     startNewSession,
     tailBoxMaxHeight,
-    flatListRef,
+    scrollViewRef,
     onContentSizeChange,
     sessionStatuses,
     setSessionStatuses,

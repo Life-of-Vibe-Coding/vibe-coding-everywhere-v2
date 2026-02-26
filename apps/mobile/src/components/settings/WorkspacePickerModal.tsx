@@ -377,19 +377,8 @@ export function WorkspacePickerModal({
                     <GText
                       size="sm"
                       numberOfLines={1}
-                      ellipsizeMode="head"
-                      style={[
-                        styles.childName,
-                        isCurrentWorkspace && styles.childNameActive,
-                      ]}
-                    >
-                      {child.name}
-                    </GText>
-                    <GText
-                      size="xs"
-                      numberOfLines={1}
                       ellipsizeMode="middle"
-                      style={styles.childPath}
+                      style={[styles.childPath, isCurrentWorkspace && styles.childNameActive]}
                     >
                       {relativeChildPath || child.name}
                     </GText>
@@ -438,12 +427,7 @@ export function WorkspacePickerModal({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        <VStack>
-          <GText size="lg" style={styles.titleText}>Workspace Picker</GText>
-          <GText size="xs" style={styles.subtitleText}>
-            NAVIGATE // SELECT // CONFIRM
-          </GText>
-        </VStack>
+        <GText size="lg" style={styles.titleText}>Workspace Picker</GText>
       }
       size="full"
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
@@ -489,9 +473,6 @@ export function WorkspacePickerModal({
                   </GText>
                 </VStack>
               </Box>
-              <GText size="xs" style={styles.instructionText}>
-                Choose a folder, then tap Use Folder.
-              </GText>
             </VStack>
           </EntranceAnimation>
 
@@ -542,14 +523,11 @@ export function WorkspacePickerModal({
                               size="sm"
                               numberOfLines={1}
                               ellipsizeMode="head"
-                              style={[
-                                styles.childName,
-                                !currentPath && !currentRelativePath && styles.childNameActive,
-                              ]}
+                              style={[styles.childPath, !currentPath && !currentRelativePath && styles.childNameActive]}
                             >
                               {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
                             </GText>
-                            <GText size="xs" style={styles.childPath}>
+                            <GText size="xs" style={[styles.childPath, { fontSize: 12, color: isDark ? CYAN_50 : CLAY_400, fontWeight: "400" }]}>
                               Current folder
                             </GText>
                           </VStack>
@@ -793,20 +771,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flex: 1,
       minWidth: 0,
     },
-    childName: {
-      color: isDark ? TEXT_TINT : CLAY_800,
-      fontFamily: isDark ? MONO_FONT : undefined,
-      fontWeight: "700",
-      fontSize: 14,
-    },
     childNameActive: {
       color: isDark ? CYAN : CLAY_600,
       fontWeight: "800",
     },
     childPath: {
-      color: isDark ? CYAN_50 : CLAY_400,
-      fontFamily: MONO_FONT,
-      fontSize: 12,
+      color: isDark ? CYAN_50 : CLAY_800,
+      fontFamily: isDark ? MONO_FONT : undefined,
+      fontWeight: "500",
+      fontSize: 14,
     },
 
     // Select button

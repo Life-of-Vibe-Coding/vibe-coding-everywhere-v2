@@ -34,7 +34,7 @@ function getLogFilesFromProcess(pid) {
       if (!name || name === "/dev/null" || name.startsWith("/dev/tty")) continue;
       if (name.includes("/") && name.length > 1) paths.add(name);
     }
-  } catch (_) {}
+  } catch (_) { }
   if (paths.size > 0) return [...paths];
   try {
     for (let depth = 0; depth < 3; depth++) {
@@ -48,7 +48,7 @@ function getLogFilesFromProcess(pid) {
           stdio: ["pipe", "pipe", "pipe"],
           maxBuffer: 32 * 1024,
         }).trim();
-      } catch (_) {}
+      } catch (_) { }
       const fromCmd = extractLogPathsFromCommand(pcmd);
       if (fromCmd.length > 0) return fromCmd;
       const fromLsof = (() => {
@@ -69,7 +69,7 @@ function getLogFilesFromProcess(pid) {
       if (fromLsof.length > 0) return fromLsof;
       pid = ppid;
     }
-  } catch (_) {}
+  } catch (_) { }
   return [];
 }
 
@@ -145,11 +145,10 @@ export function listProcessesOnPorts(workspacePath) {
               if (resolved.startsWith(workspaceNorm)) {
                 return path.relative(workspaceNorm.slice(0, -1), resolved);
               }
-              return path.basename(p);
+              return p;
             })
             .filter(Boolean);
-        } else if (logPaths.length > 0) {
-          logPaths = logPaths.map((p) => (p.startsWith("/") ? path.basename(p) : p));
+
         }
         results.push({ pid, port, command: cmd, logPaths });
       }
@@ -220,7 +219,7 @@ function findLogFile(workspacePath, name) {
       return null;
     }
     return search(workspacePath, FIND_LOG_MAX_DEPTH);
-  } catch (_) {}
+  } catch (_) { }
   return null;
 }
 
@@ -232,11 +231,13 @@ function findLogFile(workspacePath, name) {
  * @param {number} lines - Number of lines
  * @returns {{ ok: boolean; content?: string; path?: string; error?: string }}
  */
-export function getLogTail(absPath, workspacePath, lines = TAIL_LINES) {
+export function getLogTail(absPath, workspacePath, lines = TAIL_LINES, allowOutside = false) {
   const resolved = path.resolve(absPath);
-  const workspaceNorm = path.resolve(workspacePath).replace(/\/$/, "") + path.sep;
-  if (!resolved.startsWith(workspaceNorm)) {
-    return { ok: false, error: "Path outside workspace" };
+  if (!allowOutside) {
+    const workspaceNorm = path.resolve(workspacePath).replace(/\/$/, "") + path.sep;
+    if (!resolved.startsWith(workspaceNorm)) {
+      return { ok: false, error: "Path outside workspace" };
+    }
   }
   try {
     const content = execSync(`tail -n ${lines} "${resolved}" 2>/dev/null || true`, {

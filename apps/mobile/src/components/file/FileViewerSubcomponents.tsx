@@ -1,5 +1,6 @@
 import { Dimensions, type TextStyle, type ViewStyle } from "react-native";
 import React, { memo } from "react";
+import { EntranceAnimation } from "@/design-system";
 
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
@@ -176,34 +177,36 @@ export function FileViewerSelectionFooter({
   if (!hasSelection) return null;
 
   return (
-    <Box
-      className="flex-row items-center gap-2.5 px-4 py-2 border-b border-outline-500"
-      style={{ backgroundColor: theme.colors.accentSoft }}
-    >
-      <Text className="text-xs" style={{ color: theme.colors.textPrimary }}>
-        {selectionStart === selectionEnd
-          ? `Line ${selectionStart}`
-          : `Lines ${selectionStart}-${selectionEnd}`}
-      </Text>
-      <Pressable
-        className="min-h-11 justify-center px-3 py-1.5 rounded-lg bg-text-primary"
-        onPress={onAddToPrompt}
-        accessibilityLabel="Add selected lines to prompt"
-        accessibilityRole="button"
+    <EntranceAnimation variant="fade" duration={300}>
+      <Box
+        className="flex-row items-center gap-2.5 px-4 py-2 border-b border-outline-500"
+        style={{ backgroundColor: theme.colors.accentSoft }}
       >
-        <Text className="text-sm text-text-inverse font-semibold">Add to prompt</Text>
-      </Pressable>
-      <Pressable
-        className="min-h-11 justify-center px-2 py-1.5"
-        onPress={onClearSelection}
-        accessibilityLabel="Clear selected lines"
-        accessibilityRole="button"
-      >
-        <Text className="text-sm" style={{ color: theme.colors.textSecondary }}>
-          Cancel
+        <Text className="text-xs" style={{ color: theme.colors.textPrimary }}>
+          {selectionStart === selectionEnd
+            ? `Line ${selectionStart}`
+            : `Lines ${selectionStart}-${selectionEnd}`}
         </Text>
-      </Pressable>
-    </Box>
+        <Pressable
+          className="min-h-11 justify-center px-3 py-1.5 rounded-lg bg-text-primary"
+          onPress={onAddToPrompt}
+          accessibilityLabel="Add selected lines to prompt"
+          accessibilityRole="button"
+        >
+          <Text className="text-sm text-text-inverse font-semibold">Add to prompt</Text>
+        </Pressable>
+        <Pressable
+          className="min-h-11 justify-center px-2 py-1.5"
+          onPress={onClearSelection}
+          accessibilityLabel="Clear selected lines"
+          accessibilityRole="button"
+        >
+          <Text className="text-sm" style={{ color: theme.colors.textSecondary }}>
+            Cancel
+          </Text>
+        </Pressable>
+      </Box>
+    </EntranceAnimation>
   );
 }
 

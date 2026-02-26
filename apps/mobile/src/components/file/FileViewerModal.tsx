@@ -28,6 +28,7 @@ const FONT_SIZE = 13;
 const MAX_DISPLAY_LINES = 3000; // Avoid render freeze for very large files that slip through
 
 import { BlurView } from "expo-blur";
+import clsx from "clsx";
 
 /** Map file extension to Prism language (prism-react-renderer built-in set). */
 function getLanguage(path: string | null): string {
@@ -228,10 +229,10 @@ export function FileViewerModal({
   const topInset = embedded ? 0 : insets.top;
   const contentBody = (
     <Box
-      className="flex-1 overflow-hidden rounded-lg"
+      className={clsx("flex-1 overflow-hidden", !embedded && "rounded-lg")}
       style={[{ backgroundColor: theme.colors.surfaceAlt }, embedded ? undefined : { paddingTop: topInset }]}
     >
-      <BlurView intensity={70} tint={theme.mode === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      {!embedded && <BlurView intensity={70} tint={theme.mode === "dark" ? "dark" : "light"} style={StyleSheet.absoluteFill} />}
       {embedded ? (
         <FileViewerHeader
           headerLabel={headerLabel}

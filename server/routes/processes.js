@@ -39,11 +39,15 @@ function handleLogTail(req, res) {
     const cwd = getWorkspaceCwd();
     let result;
     if (relPath) {
-      const { ok, fullPath, error } = resolveWithinRoot(cwd, relPath);
-      if (!ok || !fullPath) {
-        return res.status(403).json({ error: error || "Path outside workspace" });
+      if (path.isAbsolute(relPath)) {
+        result = getLogTail(relPath, cwd, lines, true);
+      } else {
+        const { ok, fullPath, error } = resolveWithinRoot(cwd, relPath);
+        if (!ok || !fullPath) {
+          return res.status(403).json({ error: error || "Path outside workspace" });
+        }
+        result = getLogTail(fullPath, cwd, lines);
       }
-      result = getLogTail(fullPath, cwd, lines);
     } else if (name) {
       result = getLogTailByName(cwd, name, lines);
     } else {

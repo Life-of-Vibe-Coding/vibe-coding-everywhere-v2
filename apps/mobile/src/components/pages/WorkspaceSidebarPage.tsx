@@ -18,8 +18,6 @@ export function WorkspaceSidebarPage({
   onCommitByAI,
   onActiveTabChange,
 }: WorkspaceSidebarPageProps) {
-  if (!isOpen) return null;
-
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom", "left", "right"]}>
       <Box className="flex-1 bg-surface-base">

@@ -3,6 +3,7 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  TextInput
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/index";
@@ -12,7 +13,6 @@ import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
@@ -124,7 +124,7 @@ const SIDE_MARGIN = 12;
 const IGNORED_FILES = new Set([".gitignore", ".env", ".env.example", ".env.local"]);
 const PATH_MAX_CHARS = 42;
 
-/** Truncate long path: show start.../filename so both beginning and filename are visible. */
+/** Deprecated: using ellipsizeMode="middle" instead */
 function truncatePathMiddle(path: string, maxChars: number = PATH_MAX_CHARS): string {
   if (path.length <= maxChars) return path;
   const file = basename(path);
@@ -502,8 +502,8 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
               )}
             </Box>
             <Box style={styles.changeRowContent}>
-              <Text style={styles.changeRowPath} numberOfLines={1}>
-                {truncatePathMiddle(item.file)}
+              <Text style={styles.changeRowPath} numberOfLines={1} ellipsizeMode="middle">
+                {item.file}
               </Text>
             </Box>
             {variant === "staged" && item.status != null && (
@@ -543,13 +543,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
             title="Staged"
             className="border-0"
             style={[styles.sectionCard, isDark && styles.sectionCardDark]}
-            action={
-              hasStaged ? (
-                <Badge action="success" variant="outline" size="sm">
-                  <BadgeText>{stagedFiles.length}</BadgeText>
-                </Badge>
-              ) : undefined
-            }
+            action={undefined}
           >
             {hasStaged ? (
               <Box style={styles.changeList}>
@@ -575,11 +569,6 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
             style={[styles.sectionCard, isDark && styles.sectionCardDark]}
             action={
               <Box style={styles.unstagedHeaderActions}>
-                {totalUnstaged > 0 ? (
-                  <Badge action="muted" variant="outline" size="sm">
-                    <BadgeText>{totalUnstaged}</BadgeText>
-                  </Badge>
-                ) : null}
                 {totalUnstaged > 0 ? (
                   <Pressable
                     style={({ pressed }) => [styles.stageAllBtn, pressed && styles.stageAllBtnPressed]}
@@ -627,22 +616,19 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
         </ScrollView>
 
         {/* Commit form */}
-        <Box style={[styles.commitForm, isDark && styles.commitFormDark]}>
+        <Box style={[styles.commitForm, isDark && styles.commitFormDark, { paddingBottom: Math.max(18, insets.bottom + 12) }]}>
           {onCommitByAI ? (
-            <>
-              <Box style={styles.commitInputRow}>
-                <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
-                  <Textarea variant="default" size="md" className="min-h-18 max-h-28">
-                    <TextareaInput
-                      style={[styles.commitInput, styles.commitInputWithButton]}
-                      placeholder="Describe what to commit (e.g. fix typo, add feature). AI will use the git skill."
-                      placeholderTextColor={theme.colors.textSecondary}
-                      value={aiCommitQuery}
-                      onChangeText={setAiCommitQuery}
-                      editable={!actionLoading}
-                    />
-                  </Textarea>
-                </Box>
+            <Box style={styles.commitInputRow}>
+              <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
+                <TextInput
+                  multiline
+                  style={[styles.commitInput, styles.commitInputWithButton]}
+                  placeholder="Describe what to commit (e.g. add feature)..."
+                  placeholderTextColor={theme.mode === "dark" ? "rgba(255,255,255,0.5)" : "rgba(82, 55, 36, 0.4)"}
+                  value={aiCommitQuery}
+                  onChangeText={setAiCommitQuery}
+                  editable={!actionLoading}
+                />
               </Box>
               <Pressable
                 style={[
@@ -662,22 +648,19 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
               >
                 <Text style={styles.commitBtnText}>Commit by AI</Text>
               </Pressable>
-            </>
+            </Box>
           ) : (
-            <>
-              <Box style={styles.commitInputRow}>
-                <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
-                  <Textarea variant="default" size="md" className="min-h-18 max-h-28">
-                    <TextareaInput
-                      style={[styles.commitInput, styles.commitInputWithButton]}
-                      placeholder="Commit message..."
-                      placeholderTextColor={theme.colors.textSecondary}
-                      value={commitMessage}
-                      onChangeText={setCommitMessage}
-                      editable={!actionLoading}
-                    />
-                  </Textarea>
-                </Box>
+            <Box style={styles.commitInputRow}>
+              <Box style={[styles.commitInputWrap, isDark && styles.commitInputWrapDark]}>
+                <TextInput
+                  multiline
+                  style={[styles.commitInput, styles.commitInputWithButton]}
+                  placeholder="Commit message..."
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={commitMessage}
+                  onChangeText={setCommitMessage}
+                  editable={!actionLoading}
+                />
               </Box>
               <Pressable
                 style={[
@@ -688,9 +671,9 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
                 onPress={handleCommit}
                 disabled={!hasStaged || !commitMessage.trim() || actionLoading}
               >
-                <Text style={styles.commitBtnText}>{actionLoading ? "Committing…" : "Commit"}</Text>
+                <Text style={styles.commitBtnText}>{actionLoading ? "…" : "Commit"}</Text>
               </Pressable>
-            </>
+            </Box>
           )}
         </Box>
       </Box>
@@ -805,6 +788,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       size="full"
       title="Workspace"
       subtitle="Files, changes, and commits"
+      showHeader={false}
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
       bodyClassName="m-0 p-0"
@@ -959,59 +943,61 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     stageAllBtnText: { fontSize: 12, fontWeight: "600" },
 
     commitForm: {
-      padding: 12,
+      padding: 18,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.mode === "dark" ? "rgba(255,255,255,0.1)" : theme.colors.border,
-      backgroundColor: "transparent",
+      borderTopColor: theme.mode === "dark" ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+      backgroundColor: theme.mode === "dark" ? "rgba(0, 5, 12, 0.3)" : "rgba(255,255,255,0.3)",
       flexShrink: 0,
     },
     commitFormDark: {
-      backgroundColor: "transparent",
       borderTopColor: "rgba(162, 210, 255, 0.15)",
     },
     commitInputRow: {
       flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 10,
-      marginBottom: 8,
+      alignItems: "flex-end",
+      gap: 12,
     },
     commitInputWrap: {
       flex: 1,
       minWidth: 0,
     },
-    commitInputWrapDark: {
-      backgroundColor: "rgba(255,255,255,0.06)",
-      borderColor: "rgba(255,255,255,0.12)",
-    },
+    commitInputWrapDark: {},
     commitInput: {
-      minHeight: 64,
-      maxHeight: 100,
-      backgroundColor: theme.mode === "dark" ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.8)",
-      borderRadius: theme.mode === "dark" ? 12 : 16,
-      padding: 12,
-      paddingTop: 10,
-      fontSize: 13,
+      minHeight: 44,
+      maxHeight: 120,
+      backgroundColor: theme.mode === "dark" ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.9)",
+      borderRadius: theme.mode === "dark" ? 14 : 20,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 14,
       color: theme.colors.textPrimary,
       textAlignVertical: "top",
       borderWidth: 1,
-      borderColor: theme.mode === "dark" ? "rgba(0,0,0,0.08)" : "rgba(0,0,0,0.06)",
+      borderColor: theme.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(139, 94, 60, 0.15)",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: theme.mode === "dark" ? 0 : 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     commitInputWithButton: {
-      marginBottom: 0,
       flex: 1,
     },
     commitBtn: {
       backgroundColor: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C",
       paddingVertical: 12,
-      borderRadius: theme.mode === "dark" ? 12 : 14,
+      paddingHorizontal: 16,
+      borderRadius: theme.mode === "dark" ? 14 : 20,
       alignItems: "center",
+      justifyContent: "center",
       shadowColor: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C",
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.2,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.25,
+      shadowRadius: 10,
+      elevation: 4,
+      flexShrink: 0,
     },
-    commitBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
+    commitBtnText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
 
     commitItem: {
       padding: 16,

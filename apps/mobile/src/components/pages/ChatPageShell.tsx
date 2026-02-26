@@ -35,7 +35,7 @@ export function ChatPageShell({
 }: ChatPageShellProps) {
   const insets = useSafeAreaInsets();
   const [inputDockHeight, setInputDockHeight] = useState(0);
-  const isAnyOverlayOpen = modalHandlers.isAnyModalOpen || sidebar.visible || fileViewer.selectedFilePath != null;
+  const isAnyOverlayOpen = modalHandlers.isAnyModalOpen || sidebar.visible;
   const shouldShowInputDock = inputDock.visible && !isAnyOverlayOpen;
 
   const handleInputDockLayout = useCallback((height: number) => {
@@ -66,8 +66,6 @@ export function ChatPageShell({
                 )}
                 <ChatConversationSection
                   conversation={conversation}
-                  fileViewer={fileViewer}
-                  sidebar={sidebar}
                   inputDockHeight={shouldShowInputDock ? inputDockHeight : 0}
                   isHidden={isAnyOverlayOpen}
                 />

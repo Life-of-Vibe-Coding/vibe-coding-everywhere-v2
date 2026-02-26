@@ -1,8 +1,11 @@
 import React from "react";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { Pressable } from "@/components/ui/pressable";
+import Svg, { Path } from "react-native-svg";
 import { TabBarPills } from "@/components/reusable/TabBarPills";
 import type { SidebarTab } from "@/components/hooks/useSidebarState";
 import { useTheme } from "@/theme/index";
@@ -15,10 +18,15 @@ type SidebarHeaderProps = {
 
 export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeaderProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
   return (
     <Box
       className="flex-row items-center justify-center border-b"
       style={{
+        paddingTop: Math.max(4, 12),
+        paddingBottom: 12,
+        paddingHorizontal: 8,
         borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.15)" : theme.colors.border,
         backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "transparent",
       }}
@@ -60,7 +68,10 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel="Close file explorer"
         >
-          <Text className="text-[16px] font-semibold" style={{ color: theme.mode === "dark" ? theme.colors.textPrimary : "#523724" }}>✕</Text>
+          <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.mode === "dark" ? theme.colors.textPrimary : "#523724"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M18 6L6 18" />
+            <Path d="M6 6l12 12" />
+          </Svg>
         </Pressable>
       </Box>
     </Box>

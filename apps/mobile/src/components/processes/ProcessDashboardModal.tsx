@@ -278,8 +278,8 @@ export function ProcessDashboardModal({
       showHeader={false}
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
-      bodyClassName="m-0 p-0"
-      bodyProps={{ scrollEnabled: false }}
+      bodyClassName="m-0 p-0 flex-1"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flex: 1 } }}
     >
       <Box className="flex-1" style={containerStyle}>
         <SafeAreaView style={{ flex: 1 }} edges={["left", "right", "bottom"]}>

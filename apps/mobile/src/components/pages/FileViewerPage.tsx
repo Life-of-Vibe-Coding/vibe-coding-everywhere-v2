@@ -1,12 +1,11 @@
 import React from "react";
-import type { StyleProp, ViewStyle } from "react-native";
 import { Box } from "@/components/ui/box";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import { FileViewerModal } from "@/components/file/FileViewerModal";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type FileViewerPageProps = {
   isOpen: boolean;
-  style?: StyleProp<ViewStyle>;
   path: string;
   content: string | null;
   isImage: boolean;
@@ -18,7 +17,6 @@ type FileViewerPageProps = {
 
 export function FileViewerPage({
   isOpen,
-  style,
   path,
   content,
   isImage,
@@ -27,23 +25,21 @@ export function FileViewerPage({
   onClose,
   onAddCodeReference,
 }: FileViewerPageProps) {
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <Box style={style} pointerEvents="box-none">
-      <FileViewerModal
-        isOpen
-        embedded
-        path={path}
-        content={content}
-        isImage={isImage}
-        loading={loading}
-        error={error}
-        onClose={onClose}
-        onAddCodeReference={onAddCodeReference}
-      />
-    </Box>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom", "left", "right"]}>
+      <Box className="flex-1">
+        <FileViewerModal
+          isOpen
+          embedded
+          path={path}
+          content={content}
+          isImage={isImage}
+          loading={loading}
+          error={error}
+          onClose={onClose}
+          onAddCodeReference={onAddCodeReference}
+        />
+      </Box>
+    </SafeAreaView>
   );
 }

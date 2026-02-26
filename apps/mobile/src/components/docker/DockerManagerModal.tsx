@@ -446,8 +446,8 @@ export function DockerManagerModal({
       showHeader={false}
       showCloseButton={false}
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0"
-      bodyClassName="m-0 p-0"
-      bodyProps={{ scrollEnabled: false }}
+      bodyClassName="m-0 p-0 flex-1"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flex: 1 } }}
     >
       <Box style={[styles.fullScreen, { paddingTop: insets.top }]}>
         <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>

@@ -1,6 +1,5 @@
-import React, { memo, useCallback, useMemo } from "react";
-import { Platform, type StyleProp, type ViewStyle, type FlatList as RNFlatList } from "react-native";
-import { FlatList } from "@/components/ui/flat-list";
+import React, { memo, useMemo } from "react";
+import { ScrollView, type StyleProp, type ViewStyle } from "react-native";
 import type { PermissionDenial, Message } from "@/services/chat/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
@@ -18,7 +17,7 @@ type ChatMessageListProps = {
   onRetryPermission: () => void;
   onDismissPermission: () => void;
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<RNFlatList<Message> | null>;
+  scrollViewRef: React.RefObject<ScrollView | null>;
   onContentSizeChange: () => void;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -65,15 +64,17 @@ const ChatMessageRow = memo(function ChatMessageRow({
     hasCodeOrFileContent;
 
   return (
-    <MessageBubble
-      message={item}
-      isTerminatedLabel={showTerminated}
-      showAsTailBox={showTailBox}
-      tailBoxMaxHeight={tailBoxMaxHeight}
-      provider={provider}
-      onOpenUrl={onOpenUrl}
-      onFileSelect={onFileSelect}
-    />
+    <EntranceAnimation variant="slideUp" duration={400}>
+      <MessageBubble
+        message={item}
+        isTerminatedLabel={showTerminated}
+        showAsTailBox={showTailBox}
+        tailBoxMaxHeight={tailBoxMaxHeight}
+        provider={provider}
+        onOpenUrl={onOpenUrl}
+        onFileSelect={onFileSelect}
+      />
+    </EntranceAnimation>
   );
 }, (prev, next) => {
   if (prev.item.id !== next.item.id) return false;
@@ -86,9 +87,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   if (prev.provider !== next.provider) return false;
   if (prev.onOpenUrl !== next.onOpenUrl) return false;
   if (prev.onFileSelect !== next.onFileSelect) return false;
-  return (
-    true
-  );
+  return true;
 });
 
 export const ChatMessageList = memo(function ChatMessageList({
@@ -102,40 +101,29 @@ export const ChatMessageList = memo(function ChatMessageList({
   onRetryPermission,
   onDismissPermission,
   tailBoxMaxHeight,
-  flatListRef,
+  scrollViewRef,
   onContentSizeChange,
   style,
   contentContainerStyle,
 }: ChatMessageListProps) {
-  const displayMessages = messages;
-
-  const sessionScopedKey = useMemo(() => `chat-${sessionId ?? "none"}`, [sessionId]);
-  const lastMessageId = displayMessages[displayMessages.length - 1]?.id ?? null;
-  const flatListExtraData = useMemo(
-    () => ({
-      lastMessageId: lastMessageId ?? "none",
-      permissionDenials: permissionDenials.length,
-      lastSessionTerminated,
-      tailBoxMaxHeight,
-    }),
-    [lastMessageId, permissionDenials.length, lastSessionTerminated, tailBoxMaxHeight]
-  );
-  const renderMessageItem = useCallback(
-    ({ item, index }: { item: Message; index: number }) => {
-      const isLast = index === displayMessages.length - 1;
-      return (
-        <ChatMessageRow
-          item={item}
-          isLast={isLast}
-          lastSessionTerminated={lastSessionTerminated}
-          tailBoxMaxHeight={tailBoxMaxHeight}
-          provider={provider}
-          onOpenUrl={onOpenUrl}
-          onFileSelect={onFileSelect}
-        />
-      );
-    },
-    [displayMessages.length, lastSessionTerminated, provider, tailBoxMaxHeight, onOpenUrl, onFileSelect]
+  const renderedMessages = useMemo(
+    () =>
+      messages.map((item, index) => {
+        const isLast = index === messages.length - 1;
+        return (
+          <ChatMessageRow
+            key={item.id}
+            item={item}
+            isLast={isLast}
+            lastSessionTerminated={lastSessionTerminated}
+            tailBoxMaxHeight={tailBoxMaxHeight}
+            provider={provider}
+            onOpenUrl={onOpenUrl}
+            onFileSelect={onFileSelect}
+          />
+        );
+      }),
+    [messages, lastSessionTerminated, tailBoxMaxHeight, provider, onOpenUrl, onFileSelect]
   );
 
   const chatListFooter = useMemo(
@@ -154,29 +142,21 @@ export const ChatMessageList = memo(function ChatMessageList({
   );
 
   return (
-    <FlatList
-      key={sessionScopedKey}
-      ref={flatListRef}
+    <ScrollView
+      key={`chat-${sessionId ?? "none"}`}
+      ref={scrollViewRef}
       style={style}
       contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
-      data={displayMessages}
-      extraData={flatListExtraData}
-      keyExtractor={(item) => item.id}
-      renderItem={renderMessageItem}
-      initialNumToRender={15}
-      maxToRenderPerBatch={10}
-      windowSize={10}
-      removeClippedSubviews={Platform.OS === "android"}
-      ListFooterComponent={
-        <EntranceAnimation variant="fade" duration={200}>
-          {chatListFooter}
-        </EntranceAnimation>
-      }
       onContentSizeChange={onContentSizeChange}
-    />
+    >
+      {renderedMessages}
+      <EntranceAnimation variant="fade" duration={200}>
+        {chatListFooter}
+      </EntranceAnimation>
+    </ScrollView>
   );
 });

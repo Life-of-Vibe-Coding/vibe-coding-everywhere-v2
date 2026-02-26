@@ -26,6 +26,11 @@
       "sourceType": "github",
       "computedHash": "ac3d77d31fc4349e567e860868dc55759eb50cd3315a1dacfb490a275c4bf476"
     },
+    "nanobanana": {
+      "source": "resciencelab/opc-skills",
+      "sourceType": "github",
+      "computedHash": "b3ef6022c2d2b1be94fa2d52ae0da749495eef1fe4ea2becd413f052c03a13e6"
+    },
     "refactor": {
       "source": "github/awesome-copilot",
       "sourceType": "github",

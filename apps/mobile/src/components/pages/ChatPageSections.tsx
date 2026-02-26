@@ -3,11 +3,9 @@ import { type LayoutChangeEvent } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
-import { FileViewerPage } from "@/components/pages/FileViewerPage";
 import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { getTheme } from "@/theme/index";
-import { SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
@@ -34,51 +32,15 @@ export function ChatHeaderSection({
 
 export type ChatConversationSectionProps = {
   conversation: ChatPageConversation;
-  fileViewer: ChatPageFileViewer;
-  sidebar: ChatPageSidebar;
   inputDockHeight: number;
   isHidden?: boolean;
 };
-
-const overlayStyles = {
-  fileViewer: {
-    position: "absolute" as const,
-    top: 0,
-    // Cancel ChatPageShell horizontal padding so open file is edge-to-edge.
-    left: -SHELL_HORIZONTAL_PADDING,
-    right: -SHELL_HORIZONTAL_PADDING,
-    bottom: 0,
-    zIndex: 6,
-  },
-} as const;
 
 function ChatSectionFrame({ children }: { children: React.ReactNode }) {
   return <Box className="flex-1 mt-0">{children}</Box>;
 }
 
-function OverlayLayer({
-  fileViewer,
-}: {
-  fileViewer: ChatPageFileViewer;
-}) {
-  return (
-    <>
-      <FileViewerPage
-        isOpen={fileViewer.selectedFilePath != null}
-        style={overlayStyles.fileViewer}
-        path={fileViewer.selectedFilePath ?? ""}
-        content={fileViewer.fileContent}
-        isImage={fileViewer.fileIsImage}
-        loading={fileViewer.fileLoading}
-        error={fileViewer.fileError}
-        onClose={fileViewer.onCloseFileViewer}
-        onAddCodeReference={fileViewer.onAddCodeReference}
-      />
-    </>
-  );
-}
-
-export function ChatConversationSection({ conversation, fileViewer, inputDockHeight, isHidden }: ChatConversationSectionProps) {
+export function ChatConversationSection({ conversation, inputDockHeight, isHidden }: ChatConversationSectionProps) {
   return (
     <ChatSectionFrame>
       {!isHidden && (
@@ -93,13 +55,12 @@ export function ChatConversationSection({ conversation, fileViewer, inputDockHei
           onRetryPermission={conversation.onRetryPermission}
           onDismissPermission={conversation.onDismissPermission}
           tailBoxMaxHeight={conversation.tailBoxMaxHeight}
-          flatListRef={conversation.flatListRef}
+          scrollViewRef={conversation.scrollViewRef}
           onContentSizeChange={conversation.onContentSizeChange}
           style={{ flex: 1, minHeight: 0 }}
           contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 36 }]}
         />
       )}
-      <OverlayLayer fileViewer={fileViewer} />
     </ChatSectionFrame>
   );
 }

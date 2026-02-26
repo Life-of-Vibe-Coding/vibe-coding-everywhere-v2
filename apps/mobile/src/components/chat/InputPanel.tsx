@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { Platform, Keyboard, AccessibilityInfo } from "react-native";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { Platform, Keyboard, AccessibilityInfo, Animated } from "react-native";
 import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
   AttachPlusIcon,
@@ -151,6 +151,16 @@ export function InputPanel({
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
   const { bottom } = useSafeAreaInsets();
+
+  const sendScale = useRef(new Animated.Value(1)).current;
+  const sendStyle = { transform: [{ scale: sendScale }] };
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(sendScale, { toValue: 0.92, useNativeDriver: true }).start();
+  }, [sendScale]);
+  const handlePressOut = useCallback(() => {
+    Animated.spring(sendScale, { toValue: 1, useNativeDriver: true }).start();
+  }, [sendScale]);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -442,45 +452,49 @@ export function InputPanel({
               />
             )}
             {!(sessionRunning && !waitingForUserInput) && (
-              <Button
-                action="primary"
-                variant="solid"
-                size="md"
-                onPress={handleSubmit}
-                isDisabled={disabled}
-                accessibilityLabel="Send message"
-                className="w-12 h-12 rounded-full active:opacity-80"
-                style={
-                  disabled
-                    ? undefined
-                    : {
-                      backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.textPrimary,
-                      borderColor: isDark ? theme.colors.accent : "transparent",
-                      borderWidth: isDark ? 1.5 : 0,
-                      ...Platform.select({
-                        ios: {
-                          shadowColor: isDark ? theme.colors.accent : theme.colors.textPrimary,
-                          shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
-                          shadowOpacity: isDark ? 0.5 : 0.3,
-                          shadowRadius: isDark ? 8 : 8,
-                        },
-                        android: { elevation: 8 },
-                        default: {},
-                      }),
-                    }
-                }
-              >
-                <ButtonIcon
-                  as={
-                    (p: { size?: number }) => (
-                      <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : theme.colors.textInverse} color={isDark ? theme.colors.accent : theme.colors.textInverse} />
-                    )
-                  }
+              <Animated.View style={sendStyle}>
+                <Button
+                  action="primary"
+                  variant="solid"
                   size="md"
-                  color={isDark ? theme.colors.accent : theme.colors.textInverse}
-                  style={{ color: isDark ? theme.colors.accent : theme.colors.textInverse }}
-                />
-              </Button>
+                  onPress={handleSubmit}
+                  onPressIn={handlePressIn}
+                  onPressOut={handlePressOut}
+                  isDisabled={disabled}
+                  accessibilityLabel="Send message"
+                  className="w-12 h-12 rounded-full active:opacity-80"
+                  style={
+                    disabled
+                      ? undefined
+                      : {
+                        backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.textPrimary,
+                        borderColor: isDark ? theme.colors.accent : "transparent",
+                        borderWidth: isDark ? 1.5 : 0,
+                        ...Platform.select({
+                          ios: {
+                            shadowColor: isDark ? theme.colors.accent : theme.colors.textPrimary,
+                            shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
+                            shadowOpacity: isDark ? 0.5 : 0.3,
+                            shadowRadius: isDark ? 8 : 8,
+                          },
+                          android: { elevation: 8 },
+                          default: {},
+                        }),
+                      }
+                  }
+                >
+                  <ButtonIcon
+                    as={
+                      (p: { size?: number }) => (
+                        <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : theme.colors.textInverse} color={isDark ? theme.colors.accent : theme.colors.textInverse} />
+                      )
+                    }
+                    size="md"
+                    color={isDark ? theme.colors.accent : theme.colors.textInverse}
+                    style={{ color: isDark ? theme.colors.accent : theme.colors.textInverse }}
+                  />
+                </Button>
+              </Animated.View>
             )}
           </HStack>
         </HStack>

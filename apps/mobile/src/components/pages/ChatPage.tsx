@@ -1,5 +1,5 @@
 import React from "react";
-import type { FlatList } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import type { PermissionModeUI } from "@/utils/permission";
 import type { Provider as BrandProvider } from "@/constants/modelOptions";
 import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/chat/hooks";
@@ -9,12 +9,15 @@ import type { getTheme } from "@/theme/index";
 import { ChatModalsSection } from "@/components/components/ChatModalsSection";
 import { ChatPageShell } from "@/components/pages/ChatPageShell";
 import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
+import { FileViewerPage } from "@/components/pages/FileViewerPage";
 import { Box } from "@/components/ui/box";
+import { EntranceAnimation } from "@/design-system";
 
 type ModelOption = {
   value: string;
   label: string;
 };
+// ... (omitting types for brevity in thought, but I must include them in actual tool call if they are between the match lines)
 
 type ModalSessionItem = {
   id: string;
@@ -60,7 +63,7 @@ export type ChatPageConversation = {
   permissionDenials: PermissionDenial[];
   lastSessionTerminated: boolean;
   tailBoxMaxHeight: number;
-  flatListRef: React.RefObject<FlatList<Message> | null>;
+  scrollViewRef: React.RefObject<ScrollView | null>;
   onContentSizeChange: () => void;
   onOpenUrl: (url: string) => void;
   onFileSelect: (path: string) => void;
@@ -188,31 +191,54 @@ export function ChatPage({
       onSelectActiveChat={modals.sessionManagement.onSelectActiveChat}
     >
       {(modalHandlers) => {
-        if (sidebar.visible) {
-          return (
-            <Box className="flex-1 bg-surface-base">
-              <WorkspaceSidebarPage
-                isOpen={sidebar.visible}
-                onClose={sidebar.onCloseSidebar}
-                onFileSelect={sidebar.onFileSelectFromSidebar}
-                onCommitByAI={sidebar.onCommitByAI}
-                onActiveTabChange={sidebar.onSidebarTabChange}
-              />
-            </Box>
-          );
-        }
-
         return (
-          <ChatPageShell
-            context={context}
-            runtime={runtime}
-            header={header}
-            conversation={conversation}
-            fileViewer={fileViewer}
-            sidebar={sidebar}
-            inputDock={inputDock}
-            modalHandlers={modalHandlers}
-          />
+          <Box className="flex-1 bg-surface-base">
+            <ChatPageShell
+              context={context}
+              runtime={runtime}
+              header={header}
+              conversation={conversation}
+              fileViewer={fileViewer}
+              sidebar={sidebar}
+              inputDock={inputDock}
+              modalHandlers={modalHandlers}
+            />
+
+            {sidebar.visible && (
+              <EntranceAnimation
+                variant="slideLeft"
+                duration={250}
+                style={{ ...StyleSheet.absoluteFillObject }}
+              >
+                <WorkspaceSidebarPage
+                  isOpen={sidebar.visible}
+                  onClose={sidebar.onCloseSidebar}
+                  onFileSelect={sidebar.onFileSelectFromSidebar}
+                  onCommitByAI={sidebar.onCommitByAI}
+                  onActiveTabChange={sidebar.onSidebarTabChange}
+                />
+              </EntranceAnimation>
+            )}
+
+            {fileViewer.selectedFilePath != null && (
+              <EntranceAnimation
+                variant="slideRight"
+                duration={250}
+                style={{ ...StyleSheet.absoluteFillObject }}
+              >
+                <FileViewerPage
+                  isOpen
+                  path={fileViewer.selectedFilePath}
+                  content={fileViewer.fileContent}
+                  isImage={fileViewer.fileIsImage}
+                  loading={fileViewer.fileLoading}
+                  error={fileViewer.fileError}
+                  onClose={fileViewer.onCloseFileViewer}
+                  onAddCodeReference={fileViewer.onAddCodeReference}
+                />
+              </EntranceAnimation>
+            )}
+          </Box>
         );
       }}
     </ChatModalsSection>
