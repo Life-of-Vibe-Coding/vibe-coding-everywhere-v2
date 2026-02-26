@@ -4,7 +4,6 @@ import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
 import { FileViewerPage } from "@/components/pages/FileViewerPage";
-import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
 import { Box } from "@/components/ui/box";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { getTheme } from "@/theme/index";
@@ -50,15 +49,6 @@ const overlayStyles = {
     bottom: 0,
     zIndex: 6,
   },
-  sidebar: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "100%" as const,
-    zIndex: 5,
-  },
 } as const;
 
 function ChatSectionFrame({ children }: { children: React.ReactNode }) {
@@ -67,10 +57,8 @@ function ChatSectionFrame({ children }: { children: React.ReactNode }) {
 
 function OverlayLayer({
   fileViewer,
-  sidebar,
 }: {
   fileViewer: ChatPageFileViewer;
-  sidebar: ChatPageSidebar;
 }) {
   return (
     <>
@@ -85,20 +73,11 @@ function OverlayLayer({
         onClose={fileViewer.onCloseFileViewer}
         onAddCodeReference={fileViewer.onAddCodeReference}
       />
-      <WorkspaceSidebarPage
-        isOpen={sidebar.visible}
-        style={overlayStyles.sidebar}
-        pointerEvents={sidebar.visible ? "auto" : "none"}
-        onClose={sidebar.onCloseSidebar}
-        onFileSelect={sidebar.onFileSelectFromSidebar}
-        onCommitByAI={sidebar.onCommitByAI}
-        onActiveTabChange={sidebar.onSidebarTabChange}
-      />
     </>
   );
 }
 
-export function ChatConversationSection({ conversation, fileViewer, sidebar, inputDockHeight, isHidden }: ChatConversationSectionProps) {
+export function ChatConversationSection({ conversation, fileViewer, inputDockHeight, isHidden }: ChatConversationSectionProps) {
   return (
     <ChatSectionFrame>
       {!isHidden && (
@@ -119,7 +98,7 @@ export function ChatConversationSection({ conversation, fileViewer, sidebar, inp
           contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 36 }]}
         />
       )}
-      <OverlayLayer fileViewer={fileViewer} sidebar={sidebar} />
+      <OverlayLayer fileViewer={fileViewer} />
     </ChatSectionFrame>
   );
 }
