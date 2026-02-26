@@ -228,6 +228,7 @@ interface AnimatedPressableViewProps {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   onLongPress?: () => void;
+  longPressDelay?: number;
   disabled?: boolean;
   haptic?: HapticConfig["type"];
   scaleTo?: number;
@@ -235,6 +236,7 @@ interface AnimatedPressableViewProps {
   activeScale?: number;
   springConfig?: object;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   accessibilityRole?: "button" | "link" | "none";
   testID?: string;
 }
@@ -244,12 +246,14 @@ export function AnimatedPressableView({
   style,
   onPress,
   onLongPress,
+  longPressDelay,
   disabled = false,
   haptic = "selection",
   scaleTo = 0.96,
   opacityTo = 0.9,
   springConfig,
   accessibilityLabel,
+  accessibilityHint,
   accessibilityRole = "button",
   testID,
 }: AnimatedPressableViewProps) {
@@ -260,6 +264,7 @@ export function AnimatedPressableView({
     springConfig,
     onPress,
     onLongPress,
+    longPressDelay,
   });
 
   return (
@@ -269,6 +274,7 @@ export function AnimatedPressableView({
         onPressOut={disabled ? undefined : handlers.onPressOut}
         onPress={disabled ? undefined : handlers.onPress}
         accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         accessibilityRole={accessibilityRole}
         accessibilityState={{ disabled }}
         testID={testID}

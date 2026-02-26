@@ -6,7 +6,7 @@ import {
   UIManager,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   triggerHaptic,
   SkeletonText,
@@ -176,6 +176,7 @@ export function SessionManagementModal({
 }: SessionManagementModalProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
   const uiColors = useMemo(
     () => ({
       accent: theme.colors.accent,
@@ -606,19 +607,16 @@ export function SessionManagementModal({
             <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
           </VStack>
           {showViewAllToggle && (
-            <Pressable
+            <AnimatedPressableView
               onPress={() => setShowAllSessions((prev) => !prev)}
-              style={({ pressed }) => [
-                styles.viewAllButton,
-                pressed && styles.viewAllButtonPressed,
-              ]}
+              style={styles.viewAllButton}
               accessibilityRole="button"
               accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
             >
               <Text size="sm" style={styles.viewAllText}>
                 {showAllSessions ? "View Less" : "View All"}
               </Text>
-            </Pressable>
+            </AnimatedPressableView>
           )}
         </HStack>
       </EntranceAnimation>
@@ -635,17 +633,16 @@ export function SessionManagementModal({
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 32 + insets.bottom }]}
           refreshControl={undefined}
           showsVerticalScrollIndicator={false}
         >
           {showActiveChat && onSelectActiveChat && (
-            <EntranceAnimation variant="fade" delay={60} duration={150}>
-              <Pressable
+            <EntranceAnimation variant="slideUp" delay={60} duration={300}>
+              <AnimatedPressableView
                 onPress={onSelectActiveChat}
-                style={({ pressed }) => [
+                style={[
                   styles.activeChatCard,
-                  pressed && styles.pressState,
                   { overflow: "hidden" }
                 ]}
                 accessibilityRole="button"
@@ -670,7 +667,7 @@ export function SessionManagementModal({
                   </Text>
                 </VStack>
                 <ChevronRightIcon size={18} color={theme.colors.textSecondary} strokeWidth={1.8} />
-              </Pressable>
+              </AnimatedPressableView>
             </EntranceAnimation>
           )}
 
@@ -681,47 +678,46 @@ export function SessionManagementModal({
 
             return (
               <VStack key={group.key} style={styles.workspaceGroupSection}>
-                <Pressable
-                  onPress={() => handleToggleGroup(group.key)}
-                  style={({ pressed }) => [
-                    styles.workspaceGroupCard,
-                    pressed && styles.pressState,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${isCollapsed ? "Expand" : "Collapse"} workspace ${displayWorkspace(group.key, workspacePath)}`}
-                >
-                  <HStack style={styles.workspaceGroupCardLeft}>
-                    {isCollapsed ? (
-                      <ChevronRightIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
-                    ) : (
-                      <ChevronDownIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
-                    )}
-                    <Text size="sm" numberOfLines={1} ellipsizeMode="tail" style={styles.workspaceGroupLabel}>
-                      {displayWorkspace(group.key, workspacePath)}
-                    </Text>
-                  </HStack>
-                  <HStack style={styles.workspaceGroupCardRight}>
-                    <Box style={styles.workspaceGroupMetaBadge}>
-                      <Text size="xs" style={styles.workspaceGroupMetaText}>
-                        {groupCount}
+                <EntranceAnimation variant="slideUp" duration={250} delay={groupIndex * 40}>
+                  <AnimatedPressableView
+                    onPress={() => handleToggleGroup(group.key)}
+                    style={styles.workspaceGroupCard}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isCollapsed ? "Expand" : "Collapse"} workspace ${displayWorkspace(group.key, workspacePath)}`}
+                  >
+                    <HStack style={styles.workspaceGroupCardLeft}>
+                      {isCollapsed ? (
+                        <ChevronRightIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
+                      ) : (
+                        <ChevronDownIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
+                      )}
+                      <Text size="sm" numberOfLines={1} ellipsizeMode="tail" style={styles.workspaceGroupLabel}>
+                        {displayWorkspace(group.key, workspacePath)}
                       </Text>
-                    </Box>
-                    <Button
-                      action="default"
-                      variant="link"
-                      size="sm"
-                      onPress={(event) => {
-                        event.stopPropagation?.();
-                        handleDeleteWorkspaceSessions(fullGroup);
-                      }}
-                      accessibilityLabel="Delete workspace sessions"
-                      className=""
-                      style={styles.workspaceDeleteButton}
-                    >
-                      <ButtonIcon as={TrashIcon} size={17} style={styles.workspaceDeleteIcon} />
-                    </Button>
-                  </HStack>
-                </Pressable>
+                    </HStack>
+                    <HStack style={styles.workspaceGroupCardRight}>
+                      <Box style={styles.workspaceGroupMetaBadge}>
+                        <Text size="xs" style={styles.workspaceGroupMetaText}>
+                          {groupCount}
+                        </Text>
+                      </Box>
+                      <Button
+                        action="default"
+                        variant="link"
+                        size="sm"
+                        onPress={(event) => {
+                          event.stopPropagation?.();
+                          handleDeleteWorkspaceSessions(fullGroup);
+                        }}
+                        accessibilityLabel="Delete workspace sessions"
+                        className=""
+                        style={styles.workspaceDeleteButton}
+                      >
+                        <ButtonIcon as={TrashIcon} size={17} style={styles.workspaceDeleteIcon} />
+                      </Button>
+                    </HStack>
+                  </AnimatedPressableView>
+                </EntranceAnimation>
 
                 {!isCollapsed && group.sessions.map((item, index) => {
                   const isLoading = loadingSessionId === item.id;
@@ -735,16 +731,15 @@ export function SessionManagementModal({
                       delay={24 * ((groupIndex + index) % 8)}
                       duration={150}
                     >
-                      <Pressable
+                      <AnimatedPressableView
                         onPress={() => handleSelect(item)}
                         onLongPress={() => handleDelete(item)}
-                        delayLongPress={280}
+                        longPressDelay={280}
                         disabled={isLoading}
-                        style={({ pressed }) => [
+                        style={[
                           styles.sessionCard,
                           isActive && styles.sessionCardActive,
                           isLoading && styles.sessionCardLoading,
-                          pressed && styles.pressState,
                         ]}
                         accessibilityRole="button"
                         accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
@@ -801,7 +796,7 @@ export function SessionManagementModal({
                             </Button>
                           </Box>
                         </HStack>
-                      </Pressable>
+                      </AnimatedPressableView>
                     </EntranceAnimation>
                   );
                 })}
@@ -817,10 +812,10 @@ export function SessionManagementModal({
   if (embedded) {
     return (
       <Box style={styles.container}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+        <Box style={{ flex: 1 }}>
           {headerContent}
           {contentBody}
-        </SafeAreaView>
+        </Box>
       </Box>
     );
   }
@@ -873,9 +868,9 @@ export function SessionManagementModal({
       }
     >
       <Box style={styles.container}>
-        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
+        <Box style={{ flex: 1 }}>
           {contentBody}
-        </SafeAreaView>
+        </Box>
       </Box>
     </ModalScaffold>
   );
@@ -1042,7 +1037,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", // clay-500
       fontSize: 10, fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "800"
     },
-    workspaceDeleteButton: { width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "transparent", paddingRight: 0 },
+    workspaceDeleteButton: { width: 36, height: 36, minWidth: 36, minHeight: 36, borderRadius: 12, justifyContent: "center", alignItems: "center", backgroundColor: "transparent", paddingRight: 0 },
     workspaceDeleteIcon: { color: theme.mode === "dark" ? theme.colors.textSecondary : "#C9A68D" }, // clay-400
     activeChatCard: {
       borderRadius: theme.mode === "dark" ? 14 : 24, borderWidth: 1.5, borderColor: theme.mode === "dark" ? theme.colors.accent : "rgba(255,255,255,0.6)",

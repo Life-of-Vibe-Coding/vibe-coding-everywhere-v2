@@ -125,7 +125,7 @@ export function ModalScaffold({
           {...bodyProps}
           className={bodyClassName}
           contentContainerStyle={[
-            { paddingBottom: Math.max(insets.bottom, 8) },
+            { flexGrow: 1, paddingBottom: Math.max(insets.bottom, 8) },
             bodyProps?.contentContainerStyle,
           ]}
         >

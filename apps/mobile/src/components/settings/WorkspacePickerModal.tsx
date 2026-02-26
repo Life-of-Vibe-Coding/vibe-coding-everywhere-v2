@@ -447,8 +447,8 @@ export function WorkspacePickerModal({
       }
       size="full"
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
-      bodyClassName="m-0 p-0"
-      bodyProps={{ scrollEnabled: false }}
+      bodyClassName="flex-1 m-0 p-0"
+      bodyProps={{ scrollEnabled: false, contentContainerStyle: { flex: 1 } }}
       showCloseButton={true}
     >
       <Box style={styles.container}>
@@ -496,17 +496,17 @@ export function WorkspacePickerModal({
           </EntranceAnimation>
 
           {!pickerRoot ? (
-            <EntranceAnimation variant="fade" duration={220} delay={80}>
+            <EntranceAnimation variant="fade" duration={220} delay={80} style={{ flex: 1 }}>
               <VStack style={styles.spinnerCenter}>
                 <Spinner size="large" color={spinnerColor} />
               </VStack>
             </EntranceAnimation>
           ) : (
-            <EntranceAnimation variant="fade" duration={200} delay={60}>
+            <EntranceAnimation variant="fade" duration={200} delay={60} style={{ flex: 1 }}>
               <ScrollView
                 ref={scrollRef}
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 28 + insets.bottom }}
+                contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
                 showsVerticalScrollIndicator
                 nestedScrollEnabled
               >
