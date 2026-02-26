@@ -39,16 +39,18 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
       </Box>
       <Box className="w-[48px] flex-row items-center justify-end">
         <Pressable
-          className="w-11 h-11 rounded-lg items-center justify-center border"
+          className="w-10 h-10 rounded-xl items-center justify-center border"
           style={({ pressed }) => ({
-            borderColor: pressed ? theme.colors.accent : "transparent",
+            borderColor: pressed
+              ? theme.colors.accent
+              : theme.mode === "dark" ? "transparent" : "#DCC3B0",
             backgroundColor: pressed
               ? theme.mode === "dark"
                 ? "rgba(160, 209, 255, 0.16)"
-                : theme.colors.surfaceAlt
+                : "rgba(234, 219, 207, 0.8)"
               : theme.mode === "dark"
                 ? "rgba(255, 255, 255, 0.05)"
-                : theme.colors.surfaceMuted,
+                : "rgba(234, 219, 207, 0.5)",
             shadowColor: pressed ? theme.colors.accent : "transparent",
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: pressed ? 0.6 : 0,
@@ -58,7 +60,7 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel="Close file explorer"
         >
-          <Text className="text-[18px] font-semibold" style={{ color: theme.colors.textPrimary }}>✕</Text>
+          <Text className="text-[16px] font-semibold" style={{ color: theme.mode === "dark" ? theme.colors.textPrimary : "#523724" }}>✕</Text>
         </Pressable>
       </Box>
     </Box>

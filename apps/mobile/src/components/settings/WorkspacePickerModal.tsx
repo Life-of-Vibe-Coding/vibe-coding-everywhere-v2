@@ -20,7 +20,7 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 
-// ── Cyberpunk color palette ──────────────────────────────────────────
+// ── Cyberpunk color palette (dark mode) ──────────────────────────────
 const CYAN = "#00e5ff";
 const CYAN_75 = "rgba(0, 229, 255, 0.75)";
 const CYAN_50 = "rgba(0, 229, 255, 0.5)";
@@ -34,6 +34,18 @@ const BG_SURFACE = "rgba(10, 15, 30, 0.6)";
 const BG_SURFACE_ALT = "rgba(0, 20, 35, 0.4)";
 const ORANGE = "#ff5e00";
 const MONO_FONT = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
+
+// ── Clay / Chocolate palette (light mode) ────────────────────────────
+const CLAY_900 = "#3D2A1C";
+const CLAY_800 = "#523724";
+const CLAY_700 = "#6F4B30";
+const CLAY_600 = "#8B5E3C";
+const CLAY_500 = "#B08264";
+const CLAY_400 = "#C9A68D";
+const CLAY_300 = "#DCC3B0";
+const CLAY_200 = "#EADBCF";
+const CLAY_100 = "#F7F1EB";
+const CLAY_BG = "#F2E8DF";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -56,9 +68,17 @@ export function WorkspacePickerModal({
   onWorkspaceSelected,
 }: WorkspacePickerModalProps) {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(), []);
+  const isDark = theme.mode === "dark";
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const scrollRef = useRef<ScrollView>(null);
   const currentWorkspaceRowY = useRef<number | null>(null);
+
+  // Theme-aware accent colors for inline use
+  const accentColor = isDark ? CYAN : CLAY_600;
+  const folderColor = isDark ? CYAN_75 : CLAY_500;
+  const chevronColor = isDark ? CYAN : CLAY_600;
+  const spinnerColor = isDark ? CYAN : CLAY_600;
+  const secondaryTextColor = isDark ? CYAN_50 : CLAY_400;
 
   const [workspaceRoot, setWorkspaceRoot] = useState<string | null>(null);
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
@@ -350,8 +370,8 @@ export function WorkspacePickerModal({
                 accessibilityLabel={`Open ${child.name}`}
               >
                 <HStack style={styles.childInnerRow}>
-                  <FolderIcon color={CYAN_75} />
-                  <ChevronRightIcon size={14} color={CYAN} strokeWidth={2.5} />
+                  <FolderIcon color={folderColor} />
+                  <ChevronRightIcon size={14} color={chevronColor} strokeWidth={2.5} />
                   <VStack style={styles.childTextCol}>
                     <GText
                       size="sm"
@@ -374,7 +394,7 @@ export function WorkspacePickerModal({
                     </GText>
                   </VStack>
                   {isLoading ? (
-                    <Spinner size="small" color={CYAN} />
+                    <Spinner size="small" color={spinnerColor} />
                   ) : null}
                 </HStack>
               </Pressable>
@@ -404,6 +424,9 @@ export function WorkspacePickerModal({
       handleCurrentWorkspaceLayout,
       pickerLoading,
       styles,
+      folderColor,
+      chevronColor,
+      spinnerColor,
     ]
   );
 
@@ -443,7 +466,7 @@ export function WorkspacePickerModal({
                     accessibilityLabel="Go back to parent folder"
                     accessibilityRole="button"
                   >
-                    <ChevronLeftIcon size={18} color={CYAN} strokeWidth={2} />
+                    <ChevronLeftIcon size={18} color={accentColor} strokeWidth={2} />
                     <GText size="xs" style={styles.backButtonText}>Parent</GText>
                   </Pressable>
                 ) : (
@@ -475,7 +498,7 @@ export function WorkspacePickerModal({
           {!pickerRoot ? (
             <EntranceAnimation variant="fade" duration={220} delay={80}>
               <VStack style={styles.spinnerCenter}>
-                <Spinner size="large" color={CYAN} />
+                <Spinner size="large" color={spinnerColor} />
               </VStack>
             </EntranceAnimation>
           ) : (
@@ -513,7 +536,7 @@ export function WorkspacePickerModal({
                         accessibilityLabel={`Current location ${truncatePathForDisplay(currentPath || pickerRoot)}`}
                       >
                         <HStack style={styles.childInnerRow}>
-                          <FolderIcon color={CYAN_75} />
+                          <FolderIcon color={folderColor} />
                           <VStack style={styles.childTextCol}>
                             <GText
                               size="sm"
@@ -531,7 +554,7 @@ export function WorkspacePickerModal({
                             </GText>
                           </VStack>
                           {!currentPath && viewLoading ? (
-                            <Spinner size="small" color={CYAN} />
+                            <Spinner size="small" color={spinnerColor} />
                           ) : null}
                         </HStack>
                       </Pressable>
@@ -558,7 +581,7 @@ export function WorkspacePickerModal({
                     </Box>
                   ) : (pickerLoading || viewLoading) && viewChildren.length === 0 ? (
                     <VStack style={styles.loadingBox}>
-                      <Spinner size="large" color={CYAN} />
+                      <Spinner size="large" color={spinnerColor} />
                     </VStack>
                   ) : (
                     <VStack>
@@ -585,40 +608,42 @@ export function WorkspacePickerModal({
   );
 }
 
-// ── Cyberpunk Styles ─────────────────────────────────────────────────
-function createStyles() {
+// ── Theme-aware Styles ───────────────────────────────────────────────
+function createStyles(theme: ReturnType<typeof useTheme>) {
+  const isDark = theme.mode === "dark";
+
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: "rgba(5, 10, 20, 0.45)",
+      backgroundColor: isDark ? "rgba(5, 10, 20, 0.45)" : CLAY_BG,
     },
 
     // Title
     titleText: {
-      color: TEXT_WHITE,
+      color: isDark ? TEXT_WHITE : CLAY_900,
       fontSize: 18,
-      fontWeight: "900",
-      letterSpacing: 1.5,
-      textTransform: "uppercase",
-      fontFamily: MONO_FONT,
-      textShadowColor: "rgba(0, 229, 255, 0.9)",
+      fontWeight: "800",
+      letterSpacing: isDark ? 1.5 : 0,
+      textTransform: isDark ? "uppercase" : "none",
+      fontFamily: isDark ? MONO_FONT : undefined,
+      textShadowColor: isDark ? "rgba(0, 229, 255, 0.9)" : "transparent",
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 12,
+      textShadowRadius: isDark ? 12 : 0,
     },
     subtitleText: {
-      color: CYAN_50,
-      fontFamily: MONO_FONT,
-      fontSize: 10,
-      fontWeight: "600",
-      marginTop: -2,
+      color: isDark ? CYAN_50 : CLAY_500,
+      fontFamily: isDark ? MONO_FONT : undefined,
+      fontSize: 9,
+      fontWeight: "700",
+      marginTop: 2,
       letterSpacing: 1,
     },
 
     // Header section
     headerSection: {
       borderBottomWidth: 1,
-      borderBottomColor: CYAN_25,
-      backgroundColor: BG_SURFACE,
+      borderBottomColor: isDark ? CYAN_25 : CLAY_300,
+      backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.4)",
       paddingHorizontal: 16,
       paddingBottom: 16,
       paddingTop: 12,
@@ -632,59 +657,59 @@ function createStyles() {
     backButton: {
       minHeight: 44,
       minWidth: 98,
-      borderRadius: 12,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: CYAN,
-      backgroundColor: "rgba(0, 24, 46, 0.9)",
+      borderColor: isDark ? CYAN : CLAY_300,
+      backgroundColor: isDark ? "rgba(0, 24, 46, 0.9)" : CLAY_100,
       paddingHorizontal: 14,
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      shadowColor: CYAN,
+      shadowColor: isDark ? CYAN : "transparent",
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
+      shadowOpacity: isDark ? 0.3 : 0,
+      shadowRadius: isDark ? 6 : 0,
       elevation: 2,
     },
     backButtonPressed: {
-      backgroundColor: CYAN_15,
-      shadowOpacity: 0.75,
-      shadowRadius: 12,
+      backgroundColor: isDark ? CYAN_15 : CLAY_200,
+      shadowOpacity: isDark ? 0.75 : 0,
+      shadowRadius: isDark ? 12 : 0,
       transform: [{ scale: 0.97 }],
     },
     backButtonText: {
-      color: CYAN,
-      fontFamily: MONO_FONT,
+      color: isDark ? CYAN : CLAY_600,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 13,
     },
 
     // Browser card
     browserCard: {
-      borderRadius: 16,
+      borderRadius: isDark ? 16 : 20,
       borderWidth: 1,
-      borderColor: CYAN_25,
-      backgroundColor: BG_SURFACE_ALT,
+      borderColor: isDark ? CYAN_25 : CLAY_200,
+      backgroundColor: isDark ? BG_SURFACE_ALT : CLAY_100,
       paddingHorizontal: 14,
       paddingVertical: 12,
     },
     browserLabel: {
-      color: CYAN_50,
-      fontFamily: MONO_FONT,
+      color: isDark ? CYAN_50 : CLAY_500,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 10,
-      letterSpacing: 2,
+      letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
     },
     browserPath: {
-      color: TEXT_TINT,
+      color: isDark ? TEXT_TINT : CLAY_700,
       fontFamily: MONO_FONT,
       fontWeight: "700",
       fontSize: 14,
     },
     instructionText: {
-      color: CYAN_50,
-      fontFamily: MONO_FONT,
+      color: isDark ? CYAN_50 : CLAY_400,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontSize: 12,
     },
 
@@ -704,22 +729,22 @@ function createStyles() {
     // Current folder card
     currentFolderCard: {
       marginHorizontal: 16,
-      borderRadius: 16,
+      borderRadius: isDark ? 16 : 24,
       borderWidth: 1.5,
-      borderColor: CYAN,
-      backgroundColor: BG_SURFACE,
+      borderColor: isDark ? CYAN : "rgba(255, 255, 255, 0.6)",
+      backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
       paddingHorizontal: 14,
       paddingVertical: 12,
-      shadowColor: CYAN,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
+      shadowColor: isDark ? CYAN : CLAY_900,
+      shadowOffset: { width: 0, height: isDark ? 0 : 4 },
+      shadowOpacity: isDark ? 0.25 : 0.06,
+      shadowRadius: isDark ? 8 : 12,
       elevation: 3,
     },
     currentFolderCardActive: {
-      borderColor: CYAN,
-      backgroundColor: "rgba(0, 25, 45, 0.7)",
-      shadowOpacity: 0.5,
+      borderColor: isDark ? CYAN : CLAY_600,
+      backgroundColor: isDark ? "rgba(0, 25, 45, 0.7)" : "rgba(255, 255, 255, 0.7)",
+      shadowOpacity: isDark ? 0.5 : 0.1,
       shadowRadius: 12,
     },
 
@@ -727,23 +752,23 @@ function createStyles() {
     childCard: {
       marginHorizontal: 16,
       marginBottom: 8,
-      borderRadius: 16,
+      borderRadius: isDark ? 16 : 24,
       borderWidth: 1,
-      borderColor: PINK_25,
-      backgroundColor: BG_SURFACE,
+      borderColor: isDark ? PINK_25 : CLAY_200,
+      backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
       paddingHorizontal: 14,
       paddingVertical: 10,
-      shadowColor: PINK,
+      shadowColor: isDark ? PINK : "transparent",
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
+      shadowOpacity: isDark ? 0.15 : 0,
+      shadowRadius: isDark ? 6 : 0,
       elevation: 2,
     },
     childCardActive: {
-      borderColor: CYAN,
-      backgroundColor: "rgba(0, 25, 45, 0.7)",
-      shadowColor: CYAN,
-      shadowOpacity: 0.4,
+      borderColor: isDark ? CYAN : CLAY_600,
+      backgroundColor: isDark ? "rgba(0, 25, 45, 0.7)" : CLAY_100,
+      shadowColor: isDark ? CYAN : CLAY_600,
+      shadowOpacity: isDark ? 0.4 : 0.1,
       shadowRadius: 10,
     },
     childCardRow: {
@@ -769,17 +794,17 @@ function createStyles() {
       minWidth: 0,
     },
     childName: {
-      color: TEXT_TINT,
-      fontFamily: MONO_FONT,
+      color: isDark ? TEXT_TINT : CLAY_800,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "700",
       fontSize: 14,
     },
     childNameActive: {
-      color: CYAN,
+      color: isDark ? CYAN : CLAY_600,
       fontWeight: "800",
     },
     childPath: {
-      color: CYAN_50,
+      color: isDark ? CYAN_50 : CLAY_400,
       fontFamily: MONO_FONT,
       fontSize: 12,
     },
@@ -787,27 +812,27 @@ function createStyles() {
     // Select button
     selectButton: {
       minHeight: 44,
-      borderRadius: 12,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: PINK,
-      backgroundColor: "rgba(255, 0, 229, 0.15)",
+      borderColor: isDark ? PINK : CLAY_600,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : CLAY_600,
       paddingHorizontal: 16,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: PINK,
+      shadowColor: isDark ? PINK : "transparent",
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
+      shadowOpacity: isDark ? 0.3 : 0,
+      shadowRadius: isDark ? 6 : 0,
       elevation: 2,
     },
     selectButtonPressed: {
-      backgroundColor: "rgba(255, 0, 229, 0.3)",
-      shadowOpacity: 0.6,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : CLAY_700,
+      shadowOpacity: isDark ? 0.6 : 0,
       transform: [{ scale: 0.97 }],
     },
     selectButtonText: {
       color: TEXT_WHITE,
-      fontFamily: MONO_FONT,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 13,
     },
@@ -815,45 +840,45 @@ function createStyles() {
     // Use Folder button (primary)
     useFolderButton: {
       minHeight: 44,
-      borderRadius: 12,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: PINK,
-      backgroundColor: "rgba(255, 0, 229, 0.15)",
+      borderColor: isDark ? PINK : CLAY_600,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : CLAY_600,
       paddingHorizontal: 16,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: PINK,
+      shadowColor: isDark ? PINK : "transparent",
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
+      shadowOpacity: isDark ? 0.3 : 0,
+      shadowRadius: isDark ? 6 : 0,
       elevation: 2,
     },
     useFolderButtonPressed: {
-      backgroundColor: "rgba(255, 0, 229, 0.3)",
-      shadowOpacity: 0.6,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : CLAY_700,
+      shadowOpacity: isDark ? 0.6 : 0,
       transform: [{ scale: 0.97 }],
     },
     useFolderButtonText: {
       color: TEXT_WHITE,
-      fontFamily: MONO_FONT,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 14,
     },
 
     // Section label
     sectionLabel: {
-      color: CYAN,
-      fontFamily: MONO_FONT,
+      color: isDark ? CYAN : CLAY_500,
+      fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 11,
-      letterSpacing: 2,
+      letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
       marginHorizontal: 16,
       marginBottom: 4,
       marginTop: 8,
-      textShadowColor: "rgba(0, 229, 255, 0.6)",
+      textShadowColor: isDark ? "rgba(0, 229, 255, 0.6)" : "transparent",
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 6,
+      textShadowRadius: isDark ? 6 : 0,
     },
 
     // Error
@@ -862,12 +887,12 @@ function createStyles() {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: "rgba(255, 60, 60, 0.6)",
-      backgroundColor: "rgba(255, 0, 0, 0.1)",
+      backgroundColor: isDark ? "rgba(255, 0, 0, 0.1)" : "rgba(255, 220, 220, 0.6)",
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
     errorText: {
-      color: "#ff6b6b",
+      color: isDark ? "#ff6b6b" : "#c0392b",
       fontFamily: MONO_FONT,
       fontSize: 12,
     },
@@ -879,25 +904,25 @@ function createStyles() {
       minHeight: 160,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 16,
+      borderRadius: isDark ? 16 : 24,
       borderWidth: 1,
-      borderColor: CYAN_25,
-      backgroundColor: BG_SURFACE,
+      borderColor: isDark ? CYAN_25 : CLAY_200,
+      backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.4)",
     },
 
     // Empty
     emptyCard: {
       marginHorizontal: 16,
       marginTop: 8,
-      borderRadius: 12,
+      borderRadius: isDark ? 12 : 20,
       borderWidth: 1,
-      borderColor: CYAN_25,
-      backgroundColor: BG_SURFACE_ALT,
+      borderColor: isDark ? CYAN_25 : CLAY_200,
+      backgroundColor: isDark ? BG_SURFACE_ALT : CLAY_100,
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
     emptyText: {
-      color: CYAN_50,
+      color: isDark ? CYAN_50 : CLAY_400,
       fontFamily: MONO_FONT,
       fontSize: 12,
     },

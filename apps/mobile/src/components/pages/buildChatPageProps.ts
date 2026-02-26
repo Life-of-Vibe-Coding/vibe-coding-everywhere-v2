@@ -92,7 +92,10 @@ export function buildChatPageProps({
       visible: sidebarVisible,
       activeTab: sidebarActiveTab,
       onCloseSidebar: closeSidebar,
-      onFileSelectFromSidebar: workspaceState.onFileSelectFromSidebar,
+      onFileSelectFromSidebar: (path: string) => {
+        workspaceState.onFileSelectFromSidebar(path);
+        closeSidebar();
+      },
       onCommitByAI: chatActionState.onCommitByAI,
       onSidebarTabChange: setSidebarActiveTab,
     },
