@@ -789,7 +789,7 @@ export function SessionManagementModal({
   if (embedded) {
     return (
       <Box style={styles.container}>
-        <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
+        <SafeAreaView style={styles.safe} edges={["left", "right", "bottom"]}>
           {headerContent}
           {contentBody}
         </SafeAreaView>
@@ -858,7 +858,7 @@ export function SessionManagementModal({
 
 function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.mode === "dark" ? "rgba(5, 10, 20, 0.45)" : "#F2E8DF" },
+    container: { flex: 1, backgroundColor: theme.mode === "dark" ? "rgba(5, 10, 20, 0.45)" : "transparent" },
     mainTitle: {
       color: theme.mode === "dark" ? theme.colors.textPrimary : "#3D2A1C", // clay-900
       fontSize: 18,
@@ -884,7 +884,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing["5"],
-      paddingVertical: spacing["4"],
+      paddingTop: spacing["2"],
+      paddingBottom: spacing["2"],
       backgroundColor: "transparent",
     },
     embeddedHeaderTitleGroup: {
@@ -925,17 +926,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: theme.mode === "dark" ? 8 : 9999,
       borderWidth: 1, borderColor: theme.colors.accent,
     },
-    workspaceSection: { paddingBottom: spacing["6"] },
+    workspaceSection: { paddingBottom: spacing["4"] },
     workspaceBox: {
       marginHorizontal: spacing["5"], borderRadius: theme.mode === "dark" ? 16 : 32, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.5)" : "rgba(255, 255, 255, 0.6)", // border-white/60
       backgroundColor: theme.mode === "dark" ? "rgba(10, 15, 30, 0.3)" : "rgba(255, 255, 255, 0.4)", // bg-white/40
       shadowColor: theme.mode === "dark" ? "#00e5ff" : "#3D2A1C", // clay-900
       shadowOffset: { width: 0, height: 6 }, shadowOpacity: theme.mode === "dark" ? 0.2 : 0.05, shadowRadius: 16,
-      padding: spacing["5"], // reduced from p-6
+      padding: spacing["4"],
     },
     workspacePathContainer: {
-      justifyContent: "center", paddingBottom: spacing["4"], gap: spacing["3"],
+      justifyContent: "center", paddingBottom: spacing["3"], gap: spacing["2"],
     },
     workspaceLabel: {
       color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", // clay-500
@@ -945,7 +946,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       width: "100%", borderRadius: theme.mode === "dark" ? 12 : 16, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.3)" : "#EADBCF", // clay-200
       backgroundColor: theme.mode === "dark" ? "rgba(5, 10, 20, 0.3)" : "#F7F1EB", // clay-100
-      paddingHorizontal: spacing["5"], paddingVertical: spacing["4"], minHeight: 64, justifyContent: "center", gap: spacing["3"], marginBottom: 4,
+      paddingHorizontal: spacing["4"], paddingVertical: spacing["3"], justifyContent: "center", gap: spacing["2"],
     },
     cwdPathTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
     cwdPreviewPrefix: {
@@ -962,27 +963,27 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       flexShrink: 1, minWidth: 0,
     },
     workspaceActions: {
-      flexDirection: "column", gap: spacing["3"], paddingTop: spacing["2"]
+      flexDirection: "row", gap: spacing["3"], paddingTop: spacing["2"]
     },
-    workspaceActionWrap: { width: "100%" },
+    workspaceActionWrap: { flex: 1 },
     workspaceActionButtonPrimary: {
-      width: "100%", height: 48, borderRadius: theme.mode === "dark" ? 12 : 16, backgroundColor: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C", // primary
-      shadowColor: theme.mode === "dark" ? theme.colors.accent : "transparent", shadowOffset: { width: 0, height: 4 }, shadowOpacity: theme.mode === "dark" ? 0.5 : 0, shadowRadius: 8, gap: 10,
+      width: "100%", height: 42, borderRadius: theme.mode === "dark" ? 12 : 14, backgroundColor: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C", // primary
+      shadowColor: theme.mode === "dark" ? theme.colors.accent : "transparent", shadowOffset: { width: 0, height: 4 }, shadowOpacity: theme.mode === "dark" ? 0.5 : 0, shadowRadius: 8, gap: 8,
       borderWidth: 1, borderColor: theme.mode === "dark" ? "#ff33f0" : "transparent",
     },
     workspaceActionButtonSecondary: {
-      width: "100%", height: 48, borderRadius: theme.mode === "dark" ? 12 : 16, borderWidth: 1,
+      width: "100%", height: 42, borderRadius: theme.mode === "dark" ? 12 : 14, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.6)" : "#EADBCF", // clay-200
       backgroundColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.05)" : "#F7F1EB", // clay-100
       shadowColor: theme.mode === "dark" ? "#00e5ff" : "transparent", shadowOpacity: theme.mode === "dark" ? 0.1 : 0, shadowRadius: 5, shadowOffset: { width: 0, height: 2 },
     },
     secondaryActionText: {
       color: theme.mode === "dark" ? theme.colors.textPrimary : "#6F4B30", // clay-700
-      fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "700", fontSize: 14, textAlign: "center", textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.5)" : "transparent", textShadowRadius: theme.mode === "dark" ? 4 : 0
+      fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "700", fontSize: 13, textAlign: "center", textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.5)" : "transparent", textShadowRadius: theme.mode === "dark" ? 4 : 0
     },
-    primaryActionText: { color: "#ffffff", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "800", fontSize: 15, textShadowColor: theme.mode === "dark" ? "rgba(255, 255, 255, 0.4)" : "transparent", textShadowRadius: theme.mode === "dark" ? 4 : 0 },
+    primaryActionText: { color: "#ffffff", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "800", fontSize: 13, textShadowColor: theme.mode === "dark" ? "rgba(255, 255, 255, 0.4)" : "transparent", textShadowRadius: theme.mode === "dark" ? 4 : 0 },
     recentHeaderRow: {
-      marginHorizontal: spacing["5"], marginBottom: spacing["6"],
+      marginHorizontal: spacing["5"], marginBottom: spacing["3"],
       flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["3"],
     },
     recentHeaderText: { gap: spacing["0.5"] },
@@ -1000,13 +1001,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     },
     scrollView: { flex: 1, backgroundColor: "transparent" },
     list: { paddingHorizontal: spacing["5"], paddingBottom: spacing["8"], gap: spacing["4"] },
-    workspaceGroupSection: { gap: spacing["4"] },
+    workspaceGroupSection: { gap: spacing["3"] },
     workspaceGroupCard: {
       borderRadius: theme.mode === "dark" ? 12 : 24, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.4)" : "#DCC3B0", // clay-300
       backgroundColor: theme.mode === "dark" ? "rgba(5, 15, 25, 0.4)" : "rgba(234, 219, 207, 0.4)", // clay-200/40
-      minHeight: 64, paddingHorizontal: spacing["5"], paddingVertical: spacing["4"],
-      flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["4"],
+      paddingHorizontal: spacing["4"], paddingVertical: spacing["3"],
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["3"],
     },
     workspaceGroupCardLeft: { flexDirection: "row", alignItems: "center", gap: spacing["4"], flex: 1, minWidth: 0 },
     workspaceGroupCardRight: { flexDirection: "row", alignItems: "center", gap: spacing["3"], flexShrink: 0 },
@@ -1036,10 +1037,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     activeChatTitle: { color: theme.mode === "dark" ? theme.colors.textPrimary : "#3D2A1C", fontWeight: "800", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontSize: 16, textShadowColor: theme.mode === "dark" ? "rgba(255, 0, 229, 0.8)" : "transparent", textShadowRadius: theme.mode === "dark" ? 6 : 0 },
     activeChatSubtitle: { color: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontSize: 13, fontWeight: "700" },
     sessionCard: {
-      borderRadius: theme.mode === "dark" ? 14 : 24, borderWidth: 1,
+      borderRadius: theme.mode === "dark" ? 14 : 20, borderWidth: 1,
       borderColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.3)" : "#EADBCF", // clay-200
       backgroundColor: theme.mode === "dark" ? "rgba(10, 15, 30, 0.6)" : "rgba(255, 255, 255, 0.6)", // bg-white/60
-      marginBottom: spacing["3"],
       borderLeftWidth: 1,
       shadowColor: theme.mode === "dark" ? "#00e5ff" : "transparent", shadowOffset: { width: 0, height: 5 }, shadowOpacity: theme.mode === "dark" ? 0.1 : 0, shadowRadius: 8,
     },
@@ -1051,15 +1051,15 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sessionCardInner: {
       flex: 1,
       flexDirection: "row",
-      paddingHorizontal: spacing["5"],
+      paddingHorizontal: spacing["4"],
       paddingVertical: spacing["3"],
       alignItems: 'flex-start',
     },
     sessionCardLoading: { opacity: 0.5 },
     pressState: { opacity: 0.8, transform: [{ scale: 0.98 }] },
-    sessionContent: { flex: 1, gap: 6, justifyContent: "center" },
-    sessionTitle: { color: theme.mode === "dark" ? theme.colors.textPrimary : "#3D2A1C", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "700", fontSize: 16, lineHeight: 22, letterSpacing: -0.2, textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.6)" : "transparent", textShadowRadius: theme.mode === "dark" ? 6 : 0 },
-    sessionWorkspaceRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 0, marginTop: 4 },
+    sessionContent: { flex: 1, gap: 4, justifyContent: "center" },
+    sessionTitle: { color: theme.mode === "dark" ? theme.colors.textPrimary : "#3D2A1C", fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined, fontWeight: "700", fontSize: 14, lineHeight: 20, letterSpacing: -0.2, textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.6)" : "transparent", textShadowRadius: theme.mode === "dark" ? 6 : 0 },
+    sessionWorkspaceRow: { flexDirection: "row", alignItems: "center", gap: 6, minWidth: 0, marginTop: 2 },
     sessionWorkspaceText: {
       color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", // clay-500
       fontFamily: uiMonoFontFamily, fontSize: 12, lineHeight: 16, fontWeight: "500", flex: 1, minWidth: 0
@@ -1068,7 +1068,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     sessionIdText: { color: theme.mode === "dark" ? theme.colors.textSecondary : "#B08264", fontSize: 12, lineHeight: 16, fontFamily: uiMonoFontFamily, flexShrink: 0, fontWeight: "500" },
     sessionStatusDot: { width: 10, height: 10, borderRadius: 999, flexShrink: 0 },
     sessionStatusDotActive: { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent, shadowOpacity: 1, shadowRadius: 6 },
-    sessionFooterRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing["3"], minWidth: 0, marginTop: 12 },
+    sessionFooterRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing["3"], minWidth: 0, marginTop: 6 },
     sessionTimeText: {
       color: theme.mode === "dark" ? theme.colors.textMuted : "#C9A68D", // clay-400
       fontFamily: uiMonoFontFamily, fontSize: 12, lineHeight: 16, fontWeight: "600", textTransform: "uppercase"
@@ -1084,11 +1084,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.mode === "dark" ? theme.colors.textSecondary : "#8B5E3C", // clay-600
       fontSize: 9, lineHeight: 12, fontWeight: "800", letterSpacing: 0, fontFamily: uiMonoFontFamily, textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.5)" : "transparent", textShadowRadius: theme.mode === "dark" ? 4 : 0, textTransform: "uppercase"
     },
-    sessionDeleteCol: { justifyContent: "center", alignItems: "flex-end", paddingLeft: spacing["3"], alignSelf: "center" },
+    sessionDeleteCol: { justifyContent: "center", alignItems: "flex-end", paddingLeft: spacing["2"], alignSelf: "center" },
     sessionDeleteButton: {
-      width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 16,
-      justifyContent: "center", alignItems: "center", backgroundColor: theme.mode === "dark" ? "transparent" : "#F7F1EB"
-    }, // bg-clay-100
+      width: 36, height: 36, minWidth: 36, minHeight: 36, borderRadius: 12,
+      justifyContent: "center", alignItems: "center", backgroundColor: "transparent"
+    },
     sessionDeleteIcon: { color: theme.mode === "dark" ? theme.colors.textSecondary : "#C9A68D" }, // text-clay-400
   });
 }
