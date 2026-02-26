@@ -1,5 +1,5 @@
 import React from "react";
-import type { StyleProp, ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Box } from "@/components/ui/box";
 import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
 
@@ -21,15 +21,17 @@ export function WorkspaceSidebarPage({
   if (!isOpen) return null;
 
   return (
-    <Box className="flex-1 bg-surface-base">
-      <WorkspaceSidebar
-        isOpen={isOpen}
-        embedded
-        onClose={onClose}
-        onFileSelect={onFileSelect}
-        onCommitByAI={onCommitByAI}
-        onActiveTabChange={onActiveTabChange}
-      />
-    </Box>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom", "left", "right"]}>
+      <Box className="flex-1 bg-surface-base">
+        <WorkspaceSidebar
+          isOpen={isOpen}
+          embedded
+          onClose={onClose}
+          onFileSelect={onFileSelect}
+          onCommitByAI={onCommitByAI}
+          onActiveTabChange={onActiveTabChange}
+        />
+      </Box>
+    </SafeAreaView>
   );
 }

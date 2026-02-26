@@ -715,7 +715,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
   };
 
   const overlayPadding = embedded
-    ? { paddingTop: 0, paddingBottom: 0, paddingLeft: insets.left, paddingRight: insets.right }
+    ? { paddingTop: 0, paddingBottom: 0, paddingLeft: 0, paddingRight: 0 }
     : {
       paddingTop: 0,
       paddingBottom: insets.bottom,
@@ -723,8 +723,8 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       paddingRight: insets.right,
     };
   const drawerCenterStyle = embedded
-    ? [styles.drawerCenter, styles.drawerCenterEmbedded]
-    : [styles.drawerCenter, { paddingHorizontal: SIDE_MARGIN }];
+    ? [styles.drawerCenter, styles.drawerCenterEmbedded, { flex: 1 }]
+    : [styles.drawerCenter, styles.drawerCenterAbsolute, { paddingHorizontal: SIDE_MARGIN }];
   const overlayContent = (
     <Box style={[styles.overlay, embedded && styles.overlayEmbedded, overlayPadding]}>
       <Pressable
@@ -820,7 +820,8 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     overlay: { flex: 1 },
     overlayEmbedded: { minHeight: 0 },
     mask: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
-    drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-start", alignItems: "center" },
+    drawerCenter: { justifyContent: "flex-start", alignItems: "center" },
+    drawerCenterAbsolute: { ...StyleSheet.absoluteFillObject },
     drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
       backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.5)",
