@@ -26,7 +26,7 @@ type ModalSessionItem = {
 
 export type ChatPageContext = {
   theme: ReturnType<typeof getTheme>;
-  themeMode: "dark";
+  themeMode: "light" | "dark";
   styles: ReturnType<typeof createAppStyles>;
   provider: BrandProvider;
   model: string;

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useColorScheme } from "react-native";
 
-import { getTheme } from "@/theme/index";
+import { getTheme, buildTheme } from "@/theme/index";
 import { type Provider as BrandProvider } from "@/constants/modelOptions";
 import { createAppStyles } from "@/components/styles/appStyles";
 import {
@@ -36,8 +36,8 @@ export function ThemeSessionState({ children }: ThemeSessionStateProps) {
 
   const systemColorScheme = useColorScheme();
   const resolvedSystemMode = systemColorScheme === "dark" ? "dark" : "light";
-  const themeMode = useMemo(() => getThemeMode("system", resolvedSystemMode), [resolvedSystemMode]);
-  const theme = useMemo(() => getTheme(), []);
+  const themeMode = useMemo(() => getThemeMode("light", resolvedSystemMode), [resolvedSystemMode]);
+  const theme = useMemo(() => buildTheme(provider, themeMode), [provider, themeMode]);
   const styles = useMemo(() => createAppStyles(theme), [theme]);
   const modelOptions = useMemo(() => getModelOptions(provider), [provider]);
 

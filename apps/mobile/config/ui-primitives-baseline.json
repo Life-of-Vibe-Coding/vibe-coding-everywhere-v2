@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-26T15:53:43.990Z",
+  "generatedAt": "2026-02-26T16:38:09.159Z",
   "policy": "No net-new direct react-native trivial primitive imports in src/components feature layer",
   "restrictedPrimitives": [
     "View",

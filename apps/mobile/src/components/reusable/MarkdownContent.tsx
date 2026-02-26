@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Linking, Platform } from "react-native";
 import Markdown, { MarkdownProps } from "react-native-markdown-display";
+import { useTheme } from "@/theme/index";
 
 type MarkdownContentProps = {
   content: string;
@@ -13,39 +14,41 @@ export function MarkdownContent({
   markdownProps,
   onLinkPress,
 }: MarkdownContentProps) {
+  const theme = useTheme();
+
   const markdownStyle = useMemo(
     () => ({
       body: {
-        color: "#1f2937",
+        color: theme.colors.textPrimary,
         lineHeight: 22,
         fontSize: 14,
       },
       code_inline: {
-        backgroundColor: "#f3f4f6",
-        color: "#111827",
+        backgroundColor: theme.colors.surfaceMuted,
+        color: theme.colors.textPrimary,
         borderRadius: 6,
         paddingHorizontal: 6,
         paddingVertical: 2,
       },
       code_block: {
-        backgroundColor: "#111827",
-        color: "#f9fafb",
+        backgroundColor: theme.colors.surfaceAlt,
+        color: theme.colors.textPrimary,
         borderRadius: 8,
         padding: 12,
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       },
       fence: {
-        backgroundColor: "#111827",
-        color: "#f9fafb",
+        backgroundColor: theme.colors.surfaceAlt,
+        color: theme.colors.textPrimary,
         borderRadius: 8,
         padding: 12,
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       },
       link: {
-        color: "#2563eb",
+        color: theme.colors.accent,
       },
     }),
-    []
+    [theme.colors]
   );
 
   return (

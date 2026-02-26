@@ -16,6 +16,18 @@ import { WorkspaceFileController } from "@/components/controllers/WorkspaceFileC
 import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
 import { useSidebarState } from "@/components/hooks/useSidebarState";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import { useThemeAssets } from "@/hooks/useThemeAssets";
+
+function AppBackground() {
+  const assets = useThemeAssets();
+  return (
+    <ImageBackground
+      source={assets.background}
+      style={StyleSheet.absoluteFill}
+      resizeMode="cover"
+    />
+  );
+}
 
 export default function App() {
   const serverConfig = useMemo(() => getDefaultServerConfig(), []);
@@ -112,14 +124,10 @@ export default function App() {
                     });
 
                     return (
-                      <ThemeProvider>
+                      <ThemeProvider mode={themeState.themeMode}>
                         <GluestackUIProvider mode={themeState.themeMode}>
                           <View style={{ flex: 1 }}>
-                            <ImageBackground
-                              source={themeState.themeMode === "light" ? require("./assets/theme/light/background.png") : require("./assets/theme/dark/background.png")}
-                              style={StyleSheet.absoluteFill}
-                              resizeMode="cover"
-                            />
+                            <AppBackground />
                             <ChatPage {...chatPageProps} />
                           </View>
                         </GluestackUIProvider>

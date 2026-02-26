@@ -385,50 +385,92 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function buildColors(_mode: ColorMode = "light"): ThemeColors {
+function buildColors(mode: ColorMode = "light"): ThemeColors {
   const brand = brandColors;
+  const isDark = mode === "dark";
 
-  // Neutral palette selection (Dark Only)
-  const neutrals = {
-    background: neutralColors.black,
-    surface: "#151821",
-    surfaceElevated: "#1d202a",
-    surfaceAlt: "#1d202a",
-    surfaceMuted: "#262b36",
-    border: "#2e3340",
-    borderSubtle: "#1e222d",
-    borderStrong: "#3d4352",
-    textPrimary: "#f5f7fb",
-    textSecondary: "#d1d7e3",
-    textTertiary: "#9aa3b2",
-    textMuted: "#6b7280",
-    textInverse: neutralColors.black,
-    textPlaceholder: "#6b7280",
-    overlay: "rgba(0, 0, 0, 0.7)",
-    shadow: "rgba(0, 0, 0, 0.5)",
-    skeleton: "#1e222d",
-    skeletonHighlight: "#2a3140",
-  };
+  // Neutral palette selection
+  const neutrals = isDark
+    ? {
+      background: neutralColors.black,
+      surface: "#151821",
+      surfaceElevated: "#1d202a",
+      surfaceAlt: "#1d202a",
+      surfaceMuted: "#262b36",
+      border: "#2e3340",
+      borderSubtle: "#1e222d",
+      borderStrong: "#3d4352",
+      textPrimary: "#f5f7fb",
+      textSecondary: "#d1d7e3",
+      textTertiary: "#9aa3b2",
+      textMuted: "#6b7280",
+      textInverse: neutralColors.black,
+      textPlaceholder: "#6b7280",
+      overlay: "rgba(0, 0, 0, 0.7)",
+      shadow: "rgba(0, 0, 0, 0.5)",
+      skeleton: "#1e222d",
+      skeletonHighlight: "#2a3140",
+    }
+    : {
+      background: "#F9F3EA", // Soft cream from the image background
+      surface: "#F1E5D1", // Light tan for surfaces/cards
+      surfaceElevated: "#EBE0CC",
+      surfaceAlt: "#EBE0CC",
+      surfaceMuted: "#E2CDBA", // Deeper tan for secondary backgrounds
+      border: "#D1BCA3", // Subdued tan border
+      borderSubtle: "rgba(209, 188, 163, 0.4)",
+      borderStrong: "#C2A789",
+      textPrimary: "#4A2E1B", // Deep chocolate brown
+      textSecondary: "#63432B",
+      textTertiary: "#87664B", // Medium warm brown
+      textMuted: "rgba(135, 102, 75, 0.7)",
+      textInverse: "#F9F3EA",
+      textPlaceholder: "#A78F7B",
+      overlay: "rgba(249, 243, 234, 0.7)",
+      shadow: "rgba(135, 102, 75, 0.15)",
+      skeleton: "#E2CDBA",
+      skeletonHighlight: "#D1BCA3",
+    };
 
-  // Semantic colors (Dark Only)
-  const semantic = {
-    success: semanticColors.success.dark,
-    successSoft: withAlpha(semanticColors.success.dark, 0.2),
-    danger: semanticColors.danger.dark,
-    dangerSoft: withAlpha(semanticColors.danger.dark, 0.2),
-    warning: semanticColors.warning.dark,
-    warningSoft: withAlpha(semanticColors.warning.dark, 0.2),
-    info: semanticColors.info.dark,
-    infoSoft: withAlpha(semanticColors.info.dark, 0.2),
+  // Semantic colors
+  const semantic = isDark
+    ? {
+      success: semanticColors.success.dark,
+      successSoft: withAlpha(semanticColors.success.dark, 0.2),
+      danger: semanticColors.danger.dark,
+      dangerSoft: withAlpha(semanticColors.danger.dark, 0.2),
+      warning: semanticColors.warning.dark,
+      warningSoft: withAlpha(semanticColors.warning.dark, 0.2),
+      info: semanticColors.info.dark,
+      infoSoft: withAlpha(semanticColors.info.dark, 0.2),
+    }
+    : {
+      success: semanticColors.success.light,
+      successSoft: withAlpha(semanticColors.success.light, 0.2),
+      danger: semanticColors.danger.light,
+      dangerSoft: withAlpha(semanticColors.danger.light, 0.2),
+      warning: semanticColors.warning.light,
+      warningSoft: withAlpha(semanticColors.warning.light, 0.2),
+      info: semanticColors.info.light,
+      infoSoft: withAlpha(semanticColors.info.light, 0.2),
+    };
+
+  const lightBrandColors = {
+    accent: "#87664B", // Warm brown
+    accentSoft: "rgba(135, 102, 75, 0.15)",
+    accentMuted: "rgba(135, 102, 75, 0.25)",
+    accentOnDaily: "#87664B",
+    accentOnDark: "#A594FF",
   };
+  const activeBrand = isDark ? brand : lightBrandColors;
 
   return {
     ...neutrals,
-    ...brand,
+    ...activeBrand,
     ...semantic,
-    accentSubtle: withAlpha(brand.accent, 0.2),
+    accentSubtle: withAlpha(activeBrand.accent, 0.2),
     assistantBg: neutrals.surfaceAlt,
-    userBg: "#1e2a3a",
+    userBg: isDark ? "#1e2a3a" : "#E2CDBA",
   };
 }
 

@@ -40,14 +40,20 @@ function DockerResourceCardInner({
   const theme = useTheme();
   const isDarkMode = theme.mode === "dark";
   const cardStyle: ViewStyle = {
-    backgroundColor: isDarkMode ? "rgba(13, 18, 34, 0.94)" : "rgba(255, 255, 255, 0.98)",
+    backgroundColor: isDarkMode ? "rgba(13, 18, 34, 0.94)" : theme.colors.surface,
     borderColor: isDarkMode ? "rgba(138, 148, 170, 0.28)" : theme.colors.border,
+    borderRadius: isDarkMode ? 16 : 28,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDarkMode ? 0 : 0.04,
+    shadowRadius: 12,
   };
 
   return (
     <ListSectionCard
       title={title}
-      className={["border-outline-200 rounded-2xl", className ?? ""].join(" ")}
+      className={[className ?? ""].join(" ")}
       style={cardStyle}
       action={action}
     >
@@ -61,7 +67,7 @@ function DockerResourceCardInner({
           </Box>
         ))}
         {actions ? (
-          <Box className="flex-row flex-wrap gap-2.5 border-t border-outline-200" style={actionRowStyle ?? styles.actions}>
+          <Box className="flex-row flex-wrap gap-2.5 border-t" style={[{ borderColor: theme.colors.border }, actionRowStyle ?? styles.actions]}>
             {actions}
           </Box>
         ) : null}

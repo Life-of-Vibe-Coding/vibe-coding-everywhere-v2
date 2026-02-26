@@ -536,7 +536,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
     };
 
     return (
-      <Box style={[styles.changesLayout, { backgroundColor: theme.colors.background }]}>
+      <Box style={[styles.changesLayout, { backgroundColor: "transparent" }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.changesScrollContent} showsVerticalScrollIndicator={false}>
           {/* Staged section card */}
           <ListSectionCard
@@ -734,7 +734,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       <Box style={drawerCenterStyle} pointerEvents="box-none">
         <EntranceAnimation variant="slideRight" duration={280}>
           <Box style={[styles.drawer, drawerSize, embedded && styles.drawerEmbedded]}>
-            <BlurView intensity={85} tint="dark" style={StyleSheet.absoluteFill} />
+            {theme.mode === "dark" ? <BlurView intensity={85} tint="dark" style={StyleSheet.absoluteFill} /> : <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />}
             <SidebarHeader
               activeTab={activeTab}
               onClose={onClose}
@@ -823,16 +823,16 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-start", alignItems: "center" },
     drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
-      backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.7)",
-      borderRadius: 24,
+      backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.5)",
+      borderRadius: theme.mode === "dark" ? 24 : 36,
       borderWidth: 1,
-      borderColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.3)" : theme.colors.border,
+      borderColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.3)" : "rgba(0, 0, 0, 0.05)",
       overflow: "hidden",
-      shadowColor: theme.mode === "dark" ? theme.colors.accent : "#000",
-      shadowOffset: { width: 4, height: 0 },
-      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.12,
-      shadowRadius: theme.mode === "dark" ? 16 : 12,
-      elevation: 8,
+      shadowColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.08,
+      shadowRadius: theme.mode === "dark" ? 16 : 32,
+      elevation: theme.mode === "dark" ? 8 : 4,
     },
     drawerEmbedded: {
       borderRadius: 0,
@@ -841,8 +841,8 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       shadowRadius: 0,
       elevation: 0,
     },
-    loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: theme.colors.background },
-    scroll: { flex: 1, minHeight: 0, backgroundColor: theme.colors.background },
+    loading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 24, backgroundColor: "transparent" },
+    scroll: { flex: 1, minHeight: 0, backgroundColor: "transparent" },
     scrollContent: { paddingVertical: 8, paddingBottom: 24 },
 
     // Git specific
@@ -865,12 +865,16 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     changesLayout: { flex: 1 },
     changesScrollContent: { paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 20 },
     sectionCard: {
-      backgroundColor: theme.colors?.surface ?? theme.colors.background,
-      borderRadius: 14,
+      backgroundColor: theme.mode === "dark" ? (theme.colors?.surface ?? theme.colors.background) : "rgba(255,255,255,0.7)",
+      borderRadius: theme.mode === "dark" ? 14 : 24,
       borderWidth: 1,
-      borderColor: theme.colors?.border ?? "rgba(0,0,0,0.08)",
+      borderColor: theme.mode === "dark" ? (theme.colors?.border ?? "rgba(0,0,0,0.08)") : "rgba(0,0,0,0.05)",
       marginBottom: 12,
       overflow: "hidden",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.mode === "dark" ? 0 : 0.03,
+      shadowRadius: 10,
     },
     sectionCardDark: {
       backgroundColor: theme.colors?.surfaceAlt ?? "rgba(255,255,255,0.04)",
@@ -883,7 +887,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors?.border ?? "rgba(0,0,0,0.06)",
+      borderBottomColor: theme.colors.border,
       gap: 8,
     },
     changeList: { paddingVertical: 4 },
@@ -895,7 +899,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 44,
     },
     changeRowStaged: {},
-    changeRowPressed: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" },
+    changeRowPressed: { backgroundColor: theme.mode === "dark" ? "rgba(255,255,255,0.08)" : theme.colors.surfaceMuted },
     changeRowIconWrap: {
       width: 28,
       height: 28,
@@ -941,7 +945,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: "rgba(0,0,0,0.05)",
+      borderBottomColor: theme.colors.border,
     },
     changeItemStaged: { paddingLeft: 24 },
     stagedPathWrap: { flex: 1, minWidth: 0, flexShrink: 1 },
@@ -981,7 +985,7 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     commitInput: {
       minHeight: 80,
       maxHeight: 120,
-      backgroundColor: "rgba(0,0,0,0.04)",
+      backgroundColor: theme.mode === "dark" ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.8)",
       borderRadius: 12,
       padding: 12,
       paddingTop: 12,
@@ -989,21 +993,21 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
       color: theme.colors.textPrimary,
       textAlignVertical: "top",
       borderWidth: 1,
-      borderColor: "rgba(0,0,0,0.08)",
+      borderColor: theme.mode === "dark" ? "rgba(0,0,0,0.08)" : "rgba(0,0,0,0.06)",
     },
     commitInputWithButton: {
       marginBottom: 0,
       flex: 1,
     },
     commitBtn: {
-      backgroundColor: theme.colors.accent,
-      paddingVertical: 12,
-      borderRadius: 12,
+      backgroundColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.accent,
+      paddingVertical: 14,
+      borderRadius: theme.mode === "dark" ? 12 : 9999,
       alignItems: "center",
       shadowColor: theme.colors.accent,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.25,
+      shadowRadius: 8,
       elevation: 3,
     },
     commitBtnText: { color: "#FFF", fontSize: 15, fontWeight: "600" },

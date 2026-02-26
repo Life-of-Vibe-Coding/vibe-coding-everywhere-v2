@@ -14,14 +14,11 @@ import { BlurView } from "expo-blur";
 import { useTheme } from "@/theme/index";
 import { Image } from "react-native";
 import { layoutGlassHeaderStyleDark, layoutGlassHeaderStyleLight } from "@/components/styles/appStyles";
+import { useThemeAssets } from "@/hooks/useThemeAssets";
 
 interface AppHeaderBarProps {
   visible: boolean;
-  workspaceName: string;
   iconColor: string;
-  workspaceColor: string;
-  statusColor: string;
-  statusLabel: string;
   onOpenExplorer: () => void;
   onOpenSessionManagement: () => void;
 }
@@ -52,14 +49,14 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = fa
           alignItems: "center",
           borderRadius: plain ? 0 : 12,
           overflow: plain ? "visible" : "hidden",
-          backgroundColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)"),
-          borderColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.4)"),
+          backgroundColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.05)" : "#E2CDBA"), // surfaceMuted for light
+          borderColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.1)" : "#D1BCA3"), // border for light
           borderWidth: plain ? 0 : StyleSheet.hairlineWidth,
         }}
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="button"
       >
-        {!plain && <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />}
+        {!plain && isDark && <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />}
         {icon}
       </AnimatedPressableView>
     </EntranceAnimation>
@@ -68,6 +65,7 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = fa
 
 function FlickerLogo({ isDark }: { isDark: boolean }) {
   const opacity = useRef(new Animated.Value(1)).current;
+  const assets = useThemeAssets();
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -110,7 +108,7 @@ function FlickerLogo({ isDark }: { isDark: boolean }) {
   return (
     <Animated.View style={{ opacity }}>
       <Image
-        source={isDark ? require("../../../assets/theme/dark/left_header_icon.png") : require("../../../assets/theme/light/left_header_icon.png")}
+        source={assets.leftHeaderIcon}
         style={{ width: 80, height: 80 }}
         resizeMode="contain"
       />
@@ -120,11 +118,7 @@ function FlickerLogo({ isDark }: { isDark: boolean }) {
 
 export function AppHeaderBar({
   visible,
-  workspaceName,
   iconColor,
-  workspaceColor,
-  statusColor,
-  statusLabel,
   onOpenExplorer,
   onOpenSessionManagement,
 }: AppHeaderBarProps) {
@@ -135,10 +129,10 @@ export function AppHeaderBar({
 
   return (
     <Box
-      style={isDark ? layoutGlassHeaderStyleDark : layoutGlassHeaderStyleLight}
+      style={isDark ? layoutGlassHeaderStyleDark : { backgroundColor: "rgba(255, 255, 255, 0.6)", borderBottomWidth: 0, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 1 }}
       className="relative z-10 -mx-6 px-6 pb-2 overflow-hidden"
     >
-      <BlurView intensity={isDark ? 40 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      {isDark ? <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} /> : <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />}
       <HStack className="relative h-20 flex-row items-center justify-between px-0 -mt-2" pointerEvents="box-none">
         <HeaderButton
           icon={<Box style={{ marginLeft: -10 }}><FlickerLogo isDark={isDark} /></Box>}
@@ -149,41 +143,7 @@ export function AppHeaderBar({
           plain
           isDark={isDark}
         />
-        <Box className="min-w-0 flex-1 shrink justify-center items-center px-2">
-          <VStack className="max-w-full gap-0 items-center">
-            <GluestackText
-              size="xs"
-              numberOfLines={1}
-              ellipsizeMode="middle"
-              style={{
-                color: isDark ? theme.colors.textMuted : "rgba(0,0,0,0.5)",
-                textTransform: "uppercase",
-                letterSpacing: 1.5,
-                fontSize: 10,
-                textShadowColor: isDark ? "rgba(0, 229, 255, 0.3)" : "transparent",
-                textShadowRadius: isDark ? 4 : 0,
-                marginBottom: 2
-              }}
-              className="font-bold text-center"
-            >
-              {workspaceName}
-            </GluestackText>
-            <GluestackText
-              size="md"
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={{
-                color: theme.colors.textPrimary,
-                fontSize: 22,
-                textShadowColor: isDark ? "rgba(255, 255, 255, 0.4)" : "transparent",
-                textShadowRadius: isDark ? 12 : 0,
-              }}
-              className="font-black"
-            >
-              {statusLabel}
-            </GluestackText>
-          </VStack>
-        </Box>
+        <Box className="min-w-0 flex-1 shrink justify-center items-center px-2" />
         <HeaderButton
           icon={
             <SettingsGradientIcon size={36} />

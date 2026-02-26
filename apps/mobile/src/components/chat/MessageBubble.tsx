@@ -28,10 +28,56 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Svg, { Polygon } from "react-native-svg";
 
-function NeonGlassBubbleWrapper({ isUser, isDark, width, height }: { isUser: boolean; isDark: boolean; width: number; height: number; }) {
+function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUser: boolean; isDark: boolean; width: number; height: number; theme: any }) {
+  if (!isDark) {
+    if (isUser) {
+      return (
+        <Box style={{
+          width,
+          height,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: theme.colors.textPrimary, // deep chocolate brown
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 6, // organic chat tail
+          shadowColor: theme.colors.shadow,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+        }} />
+      );
+    }
+    return (
+      <Box style={{
+        width,
+        height,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        backgroundColor: `${theme.colors.surfaceMuted}B3`, // light tan soft glass
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        borderBottomLeftRadius: 6, // organic chat tail
+        borderBottomRightRadius: 28,
+        borderWidth: 1,
+        borderColor: `${theme.colors.surface}B3`, // frosted edge highlight
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        overflow: "hidden"
+      }}>
+        <BlurView intensity={50} tint="light" style={StyleSheet.absoluteFill} />
+      </Box>
+    );
+  }
+
   const cut = 16;
   const color = isUser ? "#FF00FF" : "#00E5FF";
-  const bg = isDark ? (isUser ? "rgba(255,0,255,0.1)" : "rgba(0,229,255,0.1)") : "rgba(255,255,255,0.5)";
+  const bg = isUser ? "rgba(255,0,255,0.1)" : "rgba(0,229,255,0.1)";
 
   const points = isUser
     ? `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`
@@ -534,8 +580,8 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           paddingVertical: spacing["2"],
           marginVertical: spacing["2"],
         },
-        bubbleText: { fontSize: 16, lineHeight: 26, color: "#111" },
-        bubbleTextUser: { fontSize: 16, lineHeight: 26, color: "#fff" },
+        bubbleText: { fontSize: 16, lineHeight: 26, color: theme.colors.textPrimary },
+        bubbleTextUser: { fontSize: 16, lineHeight: 26, color: theme.colors.textInverse },
         bubbleTextSystem: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center" },
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },
@@ -1102,7 +1148,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           {...bubbleLayoutProps}
         >
           {!isSystem && bubbleSize.width > 0 && bubbleSize.height > 0 && (
-            <NeonGlassBubbleWrapper isUser={isUser} isDark={isDark} width={bubbleSize.width} height={bubbleSize.height} />
+            <NeonGlassBubbleWrapper isUser={isUser} isDark={isDark} width={bubbleSize.width} height={bubbleSize.height} theme={theme} />
           )}
           {/* Backgrounds handled by SVG wrapper */}
           {bubbleContent}

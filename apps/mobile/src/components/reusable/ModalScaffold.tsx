@@ -12,7 +12,7 @@ import {
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { HStack } from "@/components/ui/hstack";
-import { useColorMode } from "@/theme/index";
+import { useTheme } from "@/theme/index";
 type ModalBodyProps = React.ComponentProps<typeof ModalBody>;
 
 type ModalScaffoldProps = {
@@ -26,6 +26,8 @@ type ModalScaffoldProps = {
   size?: "xs" | "sm" | "md" | "lg" | "full";
   contentClassName?: string;
   bodyClassName?: string;
+  headerClassName?: string;
+  headerStyle?: any;
   showHeader?: boolean;
   showCloseButton?: boolean;
   closeLabel?: string;
@@ -43,13 +45,15 @@ export function ModalScaffold({
   size = "md",
   contentClassName,
   bodyClassName,
+  headerClassName,
+  headerStyle,
   showHeader = true,
   showCloseButton = true,
   closeLabel = "Close",
   bodyProps,
 }: ModalScaffoldProps) {
   const insets = useSafeAreaInsets();
-  const isDark = useColorMode() === "dark";
+  const theme = useTheme();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={size}>
@@ -57,11 +61,14 @@ export function ModalScaffold({
       <ModalContent className={contentClassName}>
         {showHeader ? (
           <ModalHeader
-            className="gap-3"
-            style={{
-              paddingTop: Math.max(insets.top, 0),
-              backgroundColor: isDark ? "rgba(10, 15, 30, 0.8)" : undefined,
-            }}
+            className={`gap-3 ${headerClassName || ""}`}
+            style={[
+              {
+                paddingTop: Math.max(insets.top, 0),
+                backgroundColor: theme.mode === "dark" ? "rgba(10, 15, 30, 0.8)" : theme.colors.surfaceMuted,
+              },
+              headerStyle,
+            ]}
           >
             <Box className="flex-1 min-w-0 pr-2">
               {typeof title === "string" ? (
@@ -69,8 +76,7 @@ export function ModalScaffold({
                   size="lg"
                   bold
                   numberOfLines={1}
-                  style={isDark ? { color: "#ffffff" } : undefined}
-                  className={isDark ? undefined : "text-text-primary"}
+                  style={{ color: theme.colors.textPrimary }}
                 >
                   {title}
                 </Text>
@@ -81,8 +87,7 @@ export function ModalScaffold({
                 <Text
                   size="sm"
                   numberOfLines={2}
-                  style={isDark ? { color: "rgba(0, 229, 255, 0.6)", marginTop: 4 } : { marginTop: 4 }}
-                  className={isDark ? undefined : "text-text-secondary"}
+                  style={{ color: theme.mode === "dark" ? "rgba(0, 229, 255, 0.6)" : theme.colors.textSecondary, marginTop: 4 }}
                 >
                   {subtitle}
                 </Text>
@@ -93,22 +98,21 @@ export function ModalScaffold({
               {showCloseButton ? (
                 <ModalCloseButton
                   accessibilityLabel={closeLabel}
-                  style={isDark ? {
+                  style={{
                     height: 44,
                     width: 44,
                     alignItems: "center",
                     justifyContent: "center",
-                    borderRadius: 12,
+                    borderRadius: theme.mode === "dark" ? 12 : 9999,
                     borderWidth: 1,
-                    borderColor: "rgba(0, 229, 255, 0.85)",
-                    backgroundColor: "rgba(0, 24, 46, 0.9)",
-                  } : undefined}
-                  className={isDark ? undefined : "h-11 w-11 items-center justify-center rounded-md bg-background-100 active:bg-background-200"}
+                    borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surfaceAlt,
+                  }}
+                  className="active:opacity-80"
                 >
                   <Text
                     size="lg"
-                    style={isDark ? { color: "#00e5ff" } : undefined}
-                    className={isDark ? undefined : "text-text-primary"}
+                    style={{ color: theme.colors.textPrimary }}
                   >
                     ×
                   </Text>

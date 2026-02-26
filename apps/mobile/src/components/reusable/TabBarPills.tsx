@@ -31,9 +31,9 @@ export function TabBarPills<T extends string>({
   const isSegment = variant === "segment";
   const segmentRailStyle = isSegment
     ? {
-      backgroundColor:
-        theme.mode === "dark" ? "rgba(6, 10, 20, 0.84)" : "rgba(255, 255, 255, 0.94)",
-      borderColor: theme.mode === "dark" ? "rgba(150, 199, 242, 0.38)" : "rgba(15, 23, 42, 0.12)",
+      backgroundColor: theme.mode === "dark" ? "rgba(6, 10, 20, 0.84)" : theme.colors.surfaceMuted,
+      borderColor: theme.mode === "dark" ? "rgba(150, 199, 242, 0.38)" : theme.colors.border,
+      borderRadius: theme.mode === "dark" ? 12 : 9999, // Pill shaped in light mode
     }
     : undefined;
 
@@ -56,32 +56,47 @@ export function TabBarPills<T extends string>({
             disabled={tab.disabled}
             onPress={() => onChange(tab.key)}
             style={({ pressed }) => {
-              if (!isSegment) return undefined;
+              if (isSegment) {
+                return [
+                  {
+                    borderColor: "transparent",
+                    backgroundColor: "transparent",
+                  },
+                  active && {
+                    backgroundColor: theme.mode === "dark" ? "rgba(160, 209, 255, 0.16)" : theme.colors.surface,
+                    borderColor: theme.mode === "dark" ? "rgba(179, 223, 255, 0.36)" : theme.colors.border,
+                    shadowColor: theme.mode === "dark" ? "transparent" : theme.colors.shadow,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: theme.mode === "dark" ? 0 : 0.05,
+                    shadowRadius: theme.mode === "dark" ? 0 : 4,
+                  },
+                  pressed && !active && {
+                    backgroundColor: theme.mode === "dark" ? "rgba(160, 209, 255, 0.12)" : theme.colors.surfaceAlt,
+                  },
+                ];
+              }
               return [
                 {
-                  borderColor: "transparent",
-                  backgroundColor: "transparent",
+                  backgroundColor: theme.mode === "dark" ? theme.colors.surfaceMuted : theme.colors.surfaceMuted,
+                  borderColor: theme.mode === "dark" ? theme.colors.border : theme.colors.border,
                 },
                 active && {
-                  backgroundColor: theme.mode === "dark" ? "rgba(160, 209, 255, 0.16)" : "rgba(15, 23, 42, 0.08)",
-                  borderColor: theme.mode === "dark" ? "rgba(179, 223, 255, 0.36)" : "rgba(15, 23, 42, 0.12)",
+                  backgroundColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.accent,
+                  borderColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.accent,
+                  shadowColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.shadow,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: theme.mode === "dark" ? 0.4 : 0.1,
+                  shadowRadius: theme.mode === "dark" ? 8 : 4,
                 },
                 pressed && !active && {
-                  backgroundColor: theme.mode === "dark" ? "rgba(160, 209, 255, 0.12)" : "rgba(15, 23, 42, 0.06)",
+                  backgroundColor: theme.mode === "dark" ? theme.colors.surfaceAlt : theme.colors.surface,
                 },
               ];
             }}
             className={[
               isSegment
-                ? "min-h-11 px-4 rounded-lg border flex-1 flex-row items-center justify-center gap-1.5"
-                : "min-h-11 px-4 rounded-full border flex-row items-center justify-center gap-1.5",
-              isSegment
-                ? active
-                  ? "bg-background-0 border-outline-300"
-                  : "bg-transparent border-transparent active:bg-background-200"
-                : active
-                  ? "bg-primary-500 border-primary-500"
-                  : "bg-background-0 border-outline-200 active:bg-background-100",
+                ? `min-h-[44px] px-4 border flex-1 flex-row items-center justify-center gap-1.5 ${theme.mode === 'dark' ? 'rounded-lg' : 'rounded-full'}`
+                : "min-h-[44px] px-4 rounded-full border flex-row items-center justify-center gap-1.5",
               tab.disabled ? "opacity-40" : "",
             ].join(" ")}
             accessibilityRole="tab"
@@ -110,23 +125,22 @@ export function TabBarPills<T extends string>({
                       backgroundColor: active
                         ? theme.mode === "dark"
                           ? "rgba(173, 222, 255, 0.2)"
-                          : "rgba(15, 23, 42, 0.1)"
+                          : theme.colors.surfaceMuted
                         : theme.mode === "dark"
                           ? "rgba(255, 255, 255, 0.12)"
-                          : "rgba(15, 23, 42, 0.08)",
+                          : theme.colors.surfaceAlt,
                     }
-                    : undefined
+                    : {
+                      backgroundColor: active
+                        ? theme.mode === "dark"
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : theme.colors.textSecondary
+                        : theme.mode === "dark"
+                          ? "rgba(255, 255, 255, 0.12)"
+                          : theme.colors.surfaceAlt,
+                    }
                 }
-                className={[
-                  "min-w-5 h-5 rounded-full px-1.5 items-center justify-center",
-                  isSegment
-                    ? active
-                      ? "bg-primary-100"
-                      : "bg-background-200"
-                    : active
-                      ? "bg-primary-700"
-                      : "bg-background-200",
-                ].join(" ")}
+                className="min-w-5 h-5 rounded-full px-1.5 items-center justify-center"
               >
                 <Text
                   size="2xs"

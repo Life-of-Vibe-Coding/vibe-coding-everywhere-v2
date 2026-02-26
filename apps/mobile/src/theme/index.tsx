@@ -44,6 +44,10 @@ export type DesignTheme = {
     shadow: string;
     skeleton: string;
     skeletonHighlight: string;
+    cocoaCream?: string;
+    cocoaTan?: string;
+    cocoaBrown?: string;
+    cocoaDark?: string;
   };
   typography: TypographyScaleRecord;
   spacing: any;
@@ -56,7 +60,29 @@ const spacing = { xs: 8, sm: 16, md: 24, lg: 32, xl: 40, xxl: 48, xxxl: 64 };
 const radii = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 };
 const motion = { fast: 140, normal: 220, slow: 360, spring: { damping: 18, stiffness: 240, mass: 0.8 } };
 
-function getNeutrals(_mode: ColorMode = "light") {
+function getNeutrals(mode: ColorMode = "light") {
+  if (mode === "light") {
+    return {
+      background: "#F9F3EA", // Soft cream from the image background
+      surface: "#F1E5D1", // Light tan for surfaces/cards
+      surfaceAlt: "#E8D8C2", // Mid tan
+      surfaceMuted: "#E2CDBA", // Deeper tan for secondary backgrounds
+      border: "#D1BCA3", // Subdued tan border
+      textPrimary: "#4A2E1B", // Deep chocolate brown
+      textSecondary: "#87664B",
+      textMuted: "#A38268", // Solid medium warm brown
+      textInverse: "#F9F3EA",
+      overlay: "rgba(74, 46, 27, 0.4)",
+      shadow: "rgba(74, 46, 27, 0.1)",
+      skeleton: "#E2CDBA",
+      skeletonHighlight: "#F1E5D1",
+      cocoaCream: "#F9F3EA",
+      cocoaTan: "#F1E5D1",
+      cocoaBrown: "#87664B",
+      cocoaDark: "#4A2E1B",
+    };
+  }
+
   return {
     background: "transparent",
     surface: "rgba(10, 15, 30, 0.6)",
@@ -74,10 +100,12 @@ function getNeutrals(_mode: ColorMode = "light") {
   };
 }
 
-function buildTheme(provider: Provider = "codex", mode: ColorMode = "light"): DesignTheme {
+export function buildTheme(provider: Provider = "codex", mode: ColorMode = "light"): DesignTheme {
   const brand = darkUniversalGlassTheme;
   const neutral = getNeutrals(mode);
-  const accent = provider === "cocoa" ? "#D2B48C" : brand.accentOnDark;
+  const isLight = mode === "light";
+  const defaultAccent = isLight ? "#87664B" : brand.accentOnDark;
+  const accent = provider === "cocoa" ? "#D2B48C" : defaultAccent;
 
   return {
     provider,
@@ -85,8 +113,8 @@ function buildTheme(provider: Provider = "codex", mode: ColorMode = "light"): De
     colors: {
       ...neutral,
       accent,
-      accentSoft: "rgba(139, 117, 255, 0.18)",
-      accentSubtle: "rgba(139, 117, 255, 0.2)",
+      accentSoft: isLight ? "rgba(135, 102, 75, 0.18)" : "rgba(139, 117, 255, 0.18)",
+      accentSubtle: isLight ? "rgba(135, 102, 75, 0.2)" : "rgba(139, 117, 255, 0.2)",
       success: "#22c55e",
       danger: "#f87171",
       warning: "#fbbf24",
@@ -111,12 +139,13 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue>({ activeMode: "light" });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children, mode }: { children: React.ReactNode, mode?: ColorMode }) {
   const systemColorScheme = useColorScheme();
 
   const activeMode = useMemo(() => {
+    if (mode) return mode;
     return (systemColorScheme === "dark" ? "dark" : "light") as ColorMode;
-  }, [systemColorScheme]);
+  }, [systemColorScheme, mode]);
 
   const value = useMemo(() => ({ activeMode }), [activeMode]);
 

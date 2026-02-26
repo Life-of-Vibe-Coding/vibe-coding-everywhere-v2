@@ -40,12 +40,36 @@ import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polygon } from "react-native-svg";
 
-function NeonGlassInputWrapper({ width, height }: { width: number; height: number }) {
+function InputWrapper({ width, height, isDark, theme }: { width: number; height: number; isDark: boolean; theme: any }) {
   const cut = 24;
+  const points = `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`;
+
+  if (!isDark) {
+    return (
+      <Box style={{
+        width,
+        height,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        backgroundColor: theme.colors.surfaceAlt,
+        borderRadius: 32,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+        overflow: "hidden"
+      }}>
+        <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+      </Box>
+    );
+  }
+
   const color = "#22C55E"; // Cyberpunk green CTA border
   const bg = "rgba(15, 23, 42, 0.85)"; // Cyan-tinted dark background
-
-  const points = `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`;
 
   return (
     <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
@@ -165,7 +189,7 @@ export function InputPanel({
     setInputHeight(DEFAULT_INPUT_HEIGHT);
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
-  const isDark = true; // Dark mode only
+  const isDark = theme.mode === "dark";
   const inputTextColor = theme.colors.textPrimary;
   const placeholderColor = theme.colors.textMuted;
 
@@ -178,7 +202,7 @@ export function InputPanel({
         style={{ backgroundColor: "transparent" }}
       >
         {panelSize.width > 0 && panelSize.height > 0 && (
-          <NeonGlassInputWrapper width={panelSize.width} height={panelSize.height} />
+          <InputWrapper width={panelSize.width} height={panelSize.height} isDark={isDark} theme={theme} />
         )}
         {pendingCodeRefs.length > 0 && (
           <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
@@ -285,16 +309,16 @@ export function InputPanel({
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
                   style={{
-                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
-                    borderColor: isDark ? theme.colors.accent : "transparent",
-                    borderWidth: isDark ? 1.5 : 0,
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
+                    borderColor: isDark ? theme.colors.accent : theme.colors.border,
+                    borderWidth: isDark ? 1.5 : 1,
                   }}
                 >
-                  <AttachPlusIcon size={18} color={theme.colors.accent} />
+                  <AttachPlusIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
                   {plusMenuVisible ? (
-                    <ChevronUpIcon size={12} color={theme.colors.accent} />
+                    <ChevronUpIcon size={12} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
                   ) : (
-                    <ChevronDownIcon size={12} color={theme.colors.accent} />
+                    <ChevronDownIcon size={12} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
                   )}
                 </Pressable>
                 <Actionsheet isOpen={plusMenuVisible} onClose={() => setPlusMenuVisible(false)} snapPoints={[25]}>
@@ -347,9 +371,9 @@ export function InputPanel({
               accessibilityLabel="Select model"
               className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
               style={{
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
-                borderColor: isDark ? theme.colors.info : "transparent",
-                borderWidth: isDark ? 1.5 : 0,
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
+                borderColor: isDark ? theme.colors.info : theme.colors.border,
+                borderWidth: isDark ? 1.5 : 1,
               }}
             >
               <Text
@@ -358,12 +382,12 @@ export function InputPanel({
                 numberOfLines={2}
                 ellipsizeMode="tail"
                 className="flex-1 min-w-0"
-                style={{ color: isDark ? theme.colors.info : theme.colors.accent }}
+                style={{ color: isDark ? theme.colors.info : theme.colors.textPrimary }}
               >
                 {currentModelLabel}
               </Text>
               <Box className="shrink-0 self-center pl-1">
-                <ChevronDownIcon size={12} color={isDark ? theme.colors.info : theme.colors.accent} />
+                <ChevronDownIcon size={12} color={isDark ? theme.colors.info : theme.colors.textPrimary} />
               </Box>
             </Pressable>
           </HStack>
@@ -377,7 +401,11 @@ export function InputPanel({
                   backgroundColor: "rgba(255, 0, 255, 0.1)",
                   borderColor: "#FF00FF",
                   borderWidth: 1.5
-                } : { backgroundColor: "rgba(255, 255, 255, 0.4)" }}
+                } : {
+                  backgroundColor: theme.colors.surfaceMuted,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1
+                }}
               >
                 <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
               </Pressable>
@@ -391,7 +419,11 @@ export function InputPanel({
                   backgroundColor: "rgba(0, 229, 255, 0.1)",
                   borderColor: "#00E5FF",
                   borderWidth: 1.5
-                } : { backgroundColor: "rgba(255, 255, 255, 0.4)" }}
+                } : {
+                  backgroundColor: theme.colors.surfaceMuted,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1
+                }}
               >
                 <GlobeIcon size={18} color={isDark ? "#00E5FF" : theme.colors.textPrimary} />
               </Pressable>
@@ -421,12 +453,12 @@ export function InputPanel({
                   disabled
                     ? undefined
                     : {
-                      backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.accent,
+                      backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.textPrimary,
                       borderColor: isDark ? theme.colors.accent : "transparent",
                       borderWidth: isDark ? 1.5 : 0,
                       ...Platform.select({
                         ios: {
-                          shadowColor: isDark ? theme.colors.accent : theme.colors.accentSoft,
+                          shadowColor: isDark ? theme.colors.accent : theme.colors.textPrimary,
                           shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
                           shadowOpacity: isDark ? 0.5 : 0.3,
                           shadowRadius: isDark ? 8 : 8,
@@ -440,12 +472,12 @@ export function InputPanel({
                 <ButtonIcon
                   as={
                     (p: { size?: number }) => (
-                      <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : "#FFFFFF"} color={isDark ? theme.colors.accent : "#FFFFFF"} />
+                      <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : theme.colors.textInverse} color={isDark ? theme.colors.accent : theme.colors.textInverse} />
                     )
                   }
                   size="md"
-                  color={isDark ? theme.colors.accent : "#FFFFFF"}
-                  style={{ color: isDark ? theme.colors.accent : "#FFFFFF" }}
+                  color={isDark ? theme.colors.accent : theme.colors.textInverse}
+                  style={{ color: isDark ? theme.colors.accent : theme.colors.textInverse }}
                 />
               </Button>
             )}

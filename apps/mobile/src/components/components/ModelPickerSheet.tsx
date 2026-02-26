@@ -62,25 +62,27 @@ export function ModelPickerSheet({
 
   return (
     <Actionsheet isOpen={isOpen} onClose={onClose} snapPoints={[75, 100]}>
-      <ActionsheetBackdrop className="bg-background-dark/75" />
+      <ActionsheetBackdrop style={{ backgroundColor: theme.colors.overlay }} />
       <ActionsheetContent
         style={{
-          backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
+          backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : theme.colors.surface,
           opacity: 1,
           borderColor: sectionBorder,
           borderTopWidth: 1,
           borderLeftWidth: 1,
           borderRightWidth: 1,
+          borderTopLeftRadius: isDark ? 24 : 32,
+          borderTopRightRadius: isDark ? 24 : 32,
           overflow: "hidden"
         }}
       >
-        <BlurView intensity={isDark ? 40 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+        {isDark ? <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} /> : <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />}
         <ActionsheetDragIndicatorWrapper>
           <ActionsheetDragIndicator
             style={{
               backgroundColor: isDark
                 ? "rgba(216, 235, 255, 0.48)"
-                : "rgba(51, 65, 85, 0.36)",
+                : theme.colors.border,
             }}
           />
         </ActionsheetDragIndicatorWrapper>
@@ -145,7 +147,7 @@ export function ModelPickerSheet({
                           : pressed
                             ? isDark
                               ? theme.colors.skeleton
-                              : "rgba(15, 23, 42, 0.06)"
+                              : theme.colors.surfaceMuted
                             : "transparent",
                       })}
                       labelStyle={{
