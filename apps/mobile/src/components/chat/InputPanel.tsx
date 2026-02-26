@@ -36,20 +36,24 @@ import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polygon } from "react-native-svg";
 
 function NeonGlassInputWrapper({ width, height, isDark }: { width: number; height: number; isDark: boolean }) {
   const cut = 24;
-  const color = "#00E5FF";
-  const bg = isDark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.7)";
+  const color = isDark ? "#22C55E" : "#059669"; // Cyberpunk green CTA border
+  const bg = isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255,255,255,0.7)"; // Cyan-tinted dark background
 
   const points = `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`;
 
   return (
     <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
+      {isDark && (
+        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+      )}
       <Svg width={width} height={height}>
         <Polygon points={points} fill="none" stroke={color} strokeWidth={6} opacity={0.3} />
-        <Polygon points={points} fill="none" stroke={color} strokeWidth={3} opacity={0.6} />
+        <Polygon points={points} fill="none" stroke="#00E5FF" strokeWidth={3} opacity={0.6} />
         <Polygon points={points} fill={bg} stroke={color} strokeWidth={1.5} />
       </Svg>
     </Box>
@@ -122,6 +126,7 @@ export function InputPanel({
   const [plusMenuVisible, setPlusMenuVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
+  const { bottom } = useSafeAreaInsets();
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
@@ -162,8 +167,8 @@ export function InputPanel({
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
   const isDark = theme.mode === "dark";
-  const inputTextColor = isDark ? "#D7FFFF" : theme.colors.textPrimary;
-  const placeholderColor = isDark ? "#8BE9FF" : theme.colors.textMuted;
+  const inputTextColor = theme.colors.textPrimary;
+  const placeholderColor = theme.colors.textMuted;
 
   return (
     <Box>
@@ -282,20 +287,20 @@ export function InputPanel({
                   className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
                   style={{
                     backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
-                    borderColor: isDark ? "#FFD600" : "transparent",
+                    borderColor: isDark ? theme.colors.accent : "transparent",
                     borderWidth: isDark ? 1.5 : 0,
                   }}
                 >
-                  <AttachPlusIcon size={18} color={isDark ? "#FFD600" : theme.colors.accent} />
+                  <AttachPlusIcon size={18} color={theme.colors.accent} />
                   {plusMenuVisible ? (
-                    <ChevronUpIcon size={12} color={isDark ? "#FFD600" : theme.colors.accent} />
+                    <ChevronUpIcon size={12} color={theme.colors.accent} />
                   ) : (
-                    <ChevronDownIcon size={12} color={isDark ? "#FFD600" : theme.colors.accent} />
+                    <ChevronDownIcon size={12} color={theme.colors.accent} />
                   )}
                 </Pressable>
                 <Actionsheet isOpen={plusMenuVisible} onClose={() => setPlusMenuVisible(false)} snapPoints={[25]}>
                   <ActionsheetBackdrop />
-                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface }}>
+                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface, paddingBottom: Math.max(bottom, 24) }}>
                     <ActionsheetDragIndicatorWrapper>
                       <ActionsheetDragIndicator />
                     </ActionsheetDragIndicatorWrapper>
@@ -344,7 +349,7 @@ export function InputPanel({
               className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
               style={{
                 backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)",
-                borderColor: isDark ? "#00E5FF" : "transparent",
+                borderColor: isDark ? theme.colors.info : "transparent",
                 borderWidth: isDark ? 1.5 : 0,
               }}
             >
@@ -354,12 +359,12 @@ export function InputPanel({
                 numberOfLines={2}
                 ellipsizeMode="tail"
                 className="flex-1 min-w-0"
-                style={{ color: isDark ? "#00E5FF" : theme.colors.accent }}
+                style={{ color: isDark ? theme.colors.info : theme.colors.accent }}
               >
                 {currentModelLabel}
               </Text>
               <Box className="shrink-0 self-center pl-1">
-                <ChevronDownIcon size={12} color={isDark ? "#00E5FF" : theme.colors.accent} />
+                <ChevronDownIcon size={12} color={isDark ? theme.colors.info : theme.colors.accent} />
               </Box>
             </Pressable>
           </HStack>
@@ -417,17 +422,17 @@ export function InputPanel({
                   disabled
                     ? undefined
                     : {
-                      backgroundColor: isDark ? "rgba(255, 214, 0, 0.1)" : "#111",
-                      borderColor: isDark ? "#FFD600" : "transparent",
+                      backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.accent,
+                      borderColor: isDark ? theme.colors.accent : "transparent",
                       borderWidth: isDark ? 1.5 : 0,
                       ...Platform.select({
                         ios: {
-                          shadowColor: isDark ? "#FFD600" : "#000",
-                          shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 2 },
-                          shadowOpacity: isDark ? 0.5 : 0.1,
-                          shadowRadius: isDark ? 8 : 4,
+                          shadowColor: isDark ? theme.colors.accent : theme.colors.accentSoft,
+                          shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
+                          shadowOpacity: isDark ? 0.5 : 0.3,
+                          shadowRadius: isDark ? 8 : 8,
                         },
-                        android: { elevation: 4 },
+                        android: { elevation: 8 },
                         default: {},
                       }),
                     }
@@ -441,13 +446,13 @@ export function InputPanel({
                         ? GeminiSendIcon
                         : provider === "codex"
                           ? (p: { size?: number }) => (
-                            <CodexEnterIcon {...p} stroke={isDark ? "#FFD600" : theme.colors.textInverse} color={isDark ? "#FFD600" : theme.colors.textInverse} />
+                            <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : "#FFFFFF"} color={isDark ? theme.colors.accent : "#FFFFFF"} />
                           )
                           : CodexSendIcon
                   }
                   size="md"
-                  color={isDark ? "#FFD600" : theme.colors.textInverse}
-                  style={{ color: isDark ? "#FFD600" : theme.colors.textInverse }}
+                  color={isDark ? theme.colors.accent : "#FFFFFF"}
+                  style={{ color: isDark ? theme.colors.accent : "#FFFFFF" }}
                 />
               </Button>
             )}

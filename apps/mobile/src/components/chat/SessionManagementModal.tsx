@@ -241,10 +241,8 @@ export function SessionManagementModal({
   );
 
   const workspacePreviewPrefix = useMemo(() => {
-    const normalized = workspaceDisplayPath.replace(/^\/*/, "");
-    const first = normalized.split("/").filter(Boolean)[0];
-    return first ? `~/${first}/` : "~/";
-  }, [workspaceDisplayPath]);
+    return `system@vibe:~/`;
+  }, []);
 
   const groupedSessions = useMemo(() => {
     const byWorkspace = new Map<string, ApiSession[]>();
@@ -751,21 +749,34 @@ export function SessionManagementModal({
                             accessibilityLabel={`Open session ${item.title || "(No Input)"}`}
                             accessibilityHint="Loads this session. Long press to delete."
                           >
-                            <VStack style={styles.sessionContent}>
-                              <Text size="sm" numberOfLines={1} style={styles.sessionTitle}>
-                                {item.title || "(No Input)"}
-                              </Text>
-                              <HStack style={styles.sessionWorkspaceRow}>
-                                <Text size="xs" numberOfLines={1} style={styles.sessionWorkspaceText}>
-                                  {workspaceInfo}
+                            <HStack style={styles.sessionCardInner}>
+                              <VStack style={styles.sessionContent}>
+                                <Text size="sm" numberOfLines={2} style={styles.sessionTitle}>
+                                  {item.title || "(No Input)"}
                                 </Text>
-                                <Text size="xs" style={styles.sessionInfoSeparator}>|</Text>
-                              </HStack>
-                              <HStack style={styles.sessionIdRow}>
-                                <Text size="xs" numberOfLines={1} style={styles.sessionIdText}>
-                                  {item.id}
-                                </Text>
-                                <Text size="xs" style={styles.sessionInfoSeparator}>|</Text>
+                                <HStack style={styles.sessionWorkspaceRow}>
+                                  <Text size="xs" numberOfLines={1} style={styles.sessionWorkspaceText}>
+                                    {workspaceInfo}
+                                  </Text>
+                                  <Text size="xs" style={styles.sessionInfoSeparator}>•</Text>
+                                  <Text size="xs" numberOfLines={1} style={styles.sessionIdText}>
+                                    {item.id.length > 8 ? item.id.slice(0, 8) : item.id}
+                                  </Text>
+                                </HStack>
+                                <HStack style={styles.sessionFooterRow}>
+                                  <Text size="xs" style={styles.sessionTimeText}>
+                                    {formatSessionTime(item.lastAccess)}
+                                  </Text>
+                                  {Boolean((item.model ?? "").trim()) && (
+                                    <Box style={styles.sessionModelBadge}>
+                                      <Text size="xs" numberOfLines={1} style={styles.sessionModelBadgeText}>
+                                        {formatModelLabel(item.model)}
+                                      </Text>
+                                    </Box>
+                                  )}
+                                </HStack>
+                              </VStack>
+                              <Box style={styles.sessionDeleteCol}>
                                 <Button
                                   action="default"
                                   variant="link"
@@ -780,16 +791,8 @@ export function SessionManagementModal({
                                 >
                                   <ButtonIcon as={TrashIcon} size={17} style={styles.sessionDeleteIcon} />
                                 </Button>
-                              </HStack>
-                              <HStack style={styles.sessionFooterRow}>
-                                <Text size="xs" style={styles.sessionTimeText}>
-                                  {formatSessionTime(item.lastAccess)}
-                                </Text>
-                                <Text size="xs" numberOfLines={1} style={styles.sessionModelText}>
-                                  {formatModelLabel(item.model)}
-                                </Text>
-                              </HStack>
-                            </VStack>
+                              </Box>
+                            </HStack>
                           </Pressable>
                         </EntranceAnimation>
                       );
@@ -810,93 +813,96 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     container: { flex: 1, backgroundColor: "rgba(5, 10, 20, 0.45)" },
     mainTitle: {
       color: "#ffffff",
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: "900",
-      letterSpacing: 1.5,
+      letterSpacing: 2.5,
       textTransform: "uppercase",
       fontFamily: uiMonoFontFamily,
-      textShadowColor: "rgba(0, 229, 255, 0.9)",
+      textShadowColor: "rgba(0, 229, 255, 0.8)",
       textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: 12,
+      textShadowRadius: 10,
     },
     headerSubtitle: {
-      color: "rgba(0, 229, 255, 0.6)",
+      color: "rgba(0, 229, 255, 0.7)",
       fontFamily: uiMonoFontFamily,
       fontSize: 10,
-      fontWeight: "600",
+      fontWeight: "700",
       marginTop: -2,
-      letterSpacing: 1,
+      letterSpacing: 1.5,
     },
     safe: { flex: 1 },
     headerActions: { gap: spacing["3"], alignItems: "center", marginRight: spacing["5"] },
     headerIconButton: {
       minWidth: 44, minHeight: 44, borderRadius: 12, borderWidth: 1,
-      borderColor: "rgba(0, 229, 255, 0.85)", backgroundColor: "rgba(0, 24, 46, 0.9)",
+      borderColor: "rgba(0, 229, 255, 0.4)", backgroundColor: "rgba(0, 24, 46, 0.6)",
       shadowColor: "#00e5ff",
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      elevation: 2,
+      shadowOpacity: 0.2,
+      shadowRadius: 5,
     },
     headerIconButtonPressed: {
       borderColor: "#00e5ff",
-      backgroundColor: "rgba(0, 229, 255, 0.2)",
-      shadowOpacity: 0.75,
-      shadowRadius: 12,
-      elevation: 5,
-      transform: [{ scale: 0.97 }],
+      backgroundColor: "rgba(0, 229, 255, 0.25)",
+      shadowOpacity: 0.6,
+      shadowRadius: 10,
+      transform: [{ scale: 0.96 }],
     },
     headerIconColor: { color: "#00e5ff" },
     errorBanner: {
-      padding: spacing["3"], marginHorizontal: spacing["5"], marginTop: spacing["2"],
-      backgroundColor: "rgba(255, 0, 0, 0.1)", borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 0, 0, 0.3)",
+      padding: spacing["4"], marginHorizontal: spacing["5"], marginTop: spacing["2"],
+      backgroundColor: "rgba(255, 0, 0, 0.15)", borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 0, 0, 0.4)",
+      flexDirection: "row", alignItems: "center",
+      shadowColor: "#ff0000", shadowOpacity: 0.3, shadowRadius: 8,
     },
     retryButton: {
       flexDirection: "row", alignItems: "center", gap: spacing["2"], marginTop: spacing["3"],
-      paddingVertical: spacing["2"], paddingHorizontal: spacing["2"], alignSelf: "flex-start", minHeight: 44,
+      paddingVertical: spacing["2"], paddingHorizontal: spacing["3"], alignSelf: "flex-start", minHeight: 44,
+      backgroundColor: "rgba(255, 0, 229, 0.1)", borderRadius: 8, borderWidth: 1, borderColor: "#ff00e5",
     },
     workspaceSection: { paddingBottom: spacing["6"] },
     workspaceBox: {
-      marginHorizontal: spacing["5"], borderRadius: 16, borderWidth: 1.5, borderColor: "#00e5ff",
-      backgroundColor: "rgba(10, 15, 40, 0.3)",
-      shadowColor: "#ff00e5", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.35, shadowRadius: 15, elevation: 5,
+      marginHorizontal: spacing["5"], borderRadius: 16, borderWidth: 1, borderColor: "rgba(0, 229, 255, 0.5)",
+      backgroundColor: "rgba(10, 15, 30, 0.3)",
+      shadowColor: "#00e5ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 10,
     },
     workspacePathContainer: {
       justifyContent: "center", paddingHorizontal: spacing["4"], paddingTop: spacing["4"], paddingBottom: spacing["3"], gap: spacing["2"],
     },
     workspaceLabel: {
-      color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 13, letterSpacing: 2, textTransform: "uppercase",
+      color: "rgba(0, 229, 255, 0.8)", fontFamily: uiMonoFontFamily, fontWeight: "700", fontSize: 12, letterSpacing: 2, textTransform: "uppercase",
     },
     cwdPathBox: {
-      width: "100%", borderRadius: 12, borderWidth: 1, borderColor: "#00e5ff", backgroundColor: "rgba(20, 30, 55, 0.3)",
-      paddingHorizontal: spacing["3"], paddingVertical: spacing["3"], minHeight: 60, justifyContent: "center", gap: spacing["1"],
+      width: "100%", borderRadius: 12, borderWidth: 1, borderColor: "rgba(0, 229, 255, 0.3)", backgroundColor: "rgba(5, 10, 20, 0.3)",
+      paddingHorizontal: spacing["3"], paddingVertical: spacing["3"], minHeight: 60, justifyContent: "center", gap: spacing["2"],
     },
     cwdPathTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    cwdPreviewPrefix: { color: "#00e5ff", fontFamily: uiMonoFontFamily, fontSize: 13, lineHeight: 18, fontWeight: "500" },
+    cwdPreviewPrefix: { color: "#00e5ff", fontFamily: uiMonoFontFamily, fontSize: 13, lineHeight: 18, fontWeight: "500", opacity: 0.8 },
     cwdDots: { gap: spacing["1"], alignItems: "center", flexDirection: "row" },
-    cwdDot: { width: 10, height: 10, borderRadius: 999 },
-    cwdDotAmber: { backgroundColor: "#ff00ff", shadowColor: "#ff00ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6 },
-    cwdDotYellow: { backgroundColor: "#ffcc00", shadowColor: "#ffcc00", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6 },
-    cwdDotGreen: { backgroundColor: "#00ff66", shadowColor: "#00ff66", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6 },
+    cwdDot: { width: 8, height: 8, borderRadius: 999 },
+    cwdDotAmber: { backgroundColor: "#ff00e5", shadowColor: "#ff00e5", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4 },
+    cwdDotYellow: { backgroundColor: "#00e5ff", shadowColor: "#00e5ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4 },
+    cwdDotGreen: { backgroundColor: "#00ff66", shadowColor: "#00ff66", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4 },
     cwdPathText: {
-      fontFamily: uiMonoFontFamily, fontSize: 14, lineHeight: 20, fontWeight: "600", color: "#a5f5f5", flexShrink: 1, minWidth: 0,
+      fontFamily: uiMonoFontFamily, fontSize: 14, lineHeight: 20, fontWeight: "600", color: "#e0ffff", flexShrink: 1, minWidth: 0,
     },
     workspaceActions: {
       flexDirection: "row", alignItems: "center", gap: spacing["3"], paddingHorizontal: spacing["4"], paddingBottom: spacing["4"],
     },
     workspaceActionWrap: { flex: 1, minWidth: 0 },
     workspaceActionButtonPrimary: {
-      width: "100%", height: 50, borderRadius: 12, backgroundColor: "#ff5e00",
-      shadowColor: "#ff5e00", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 4, gap: spacing["2"],
+      width: "100%", height: 50, borderRadius: 12, backgroundColor: "#ff00e5",
+      shadowColor: "#ff00e5", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 8, gap: spacing["2"],
+      borderWidth: 1, borderColor: "#ff33f0",
     },
     workspaceActionButtonSecondary: {
-      width: "100%", height: 50, borderRadius: 12, borderWidth: 1, borderColor: "#00e5ff", backgroundColor: "rgba(20, 30, 60, 0.6)",
+      width: "100%", height: 50, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0, 229, 255, 0.6)", backgroundColor: "rgba(0, 229, 255, 0.05)",
+      shadowColor: "#00e5ff", shadowOpacity: 0.1, shadowRadius: 4,
     },
-    secondaryActionText: { color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 14, textAlign: "center" },
-    primaryActionText: { color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 15 },
+    secondaryActionText: { color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "700", fontSize: 14, textAlign: "center", textShadowColor: "rgba(0, 229, 255, 0.5)", textShadowRadius: 4 },
+    primaryActionText: { color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 15, textShadowColor: "rgba(255, 255, 255, 0.4)", textShadowRadius: 4 },
     recentHeaderRow: {
-      marginHorizontal: spacing["5"], marginTop: spacing["2"], marginBottom: spacing["3"],
-      flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: spacing["3"],
+      marginHorizontal: spacing["5"], marginTop: spacing["4"], marginBottom: spacing["3"],
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["3"],
     },
     recentHeaderText: { gap: spacing["0.5"] },
     recentHeaderTitle: {
@@ -904,56 +910,75 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textShadowColor: "rgba(0, 229, 255, 0.6)", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
     },
     recentHeaderHint: { display: "none" },
-    viewAllButton: { paddingVertical: spacing["1"], paddingHorizontal: spacing["2"], borderRadius: 8 },
-    viewAllButtonPressed: { opacity: 0.75 },
-    viewAllText: { color: "#ff00e5", fontWeight: "800", fontSize: 14, fontFamily: uiMonoFontFamily, letterSpacing: 0.5 },
+    viewAllButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: "rgba(255, 0, 229, 0.1)", borderWidth: 1, borderColor: "rgba(255, 0, 229, 0.3)" },
+    viewAllButtonPressed: { opacity: 0.6, backgroundColor: "rgba(255, 0, 229, 0.2)" },
+    viewAllText: { color: "#ff00e5", fontWeight: "800", fontSize: 13, fontFamily: uiMonoFontFamily, letterSpacing: 0.5, textTransform: "uppercase" },
     scrollView: { flex: 1, backgroundColor: "transparent" },
     list: { paddingHorizontal: spacing["5"], paddingBottom: spacing["8"], gap: spacing["3"] },
     workspaceGroupSection: { gap: spacing["2"] },
     workspaceGroupCard: {
-      borderRadius: 16, borderWidth: 1, borderColor: "#00e5ff", backgroundColor: "rgba(0, 20, 35, 0.4)",
-      minHeight: 64, paddingHorizontal: spacing["4"], paddingVertical: spacing["3"],
+      borderRadius: 12, borderWidth: 1, borderColor: "rgba(0, 229, 255, 0.4)", backgroundColor: "rgba(5, 15, 25, 0.4)",
+      minHeight: 56, paddingHorizontal: spacing["4"], paddingVertical: spacing["3"],
       flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["3"],
-      shadowColor: "#00e5ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 8,
+      shadowColor: "#00e5ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 6,
     },
     workspaceGroupCardLeft: { flexDirection: "row", alignItems: "center", gap: spacing["3"], flex: 1, minWidth: 0 },
     workspaceGroupCardRight: { flexDirection: "row", alignItems: "center", gap: spacing["2"] },
-    workspaceGroupLabel: { color: "#a5f5f5", fontSize: 15, lineHeight: 20, fontWeight: "800", fontFamily: uiMonoFontFamily },
+    workspaceGroupLabel: { color: "#a5f5f5", fontSize: 14, lineHeight: 20, fontWeight: "700", fontFamily: uiMonoFontFamily, letterSpacing: 0.5 },
     workspaceGroupMetaBadge: {
-      minWidth: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "#ff00e5",
-      backgroundColor: "rgba(255, 0, 229, 0.15)", alignItems: "center", justifyContent: "center", paddingHorizontal: spacing["2"],
+      minWidth: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255, 0, 229, 0.6)",
+      backgroundColor: "rgba(255, 0, 229, 0.1)", alignItems: "center", justifyContent: "center", paddingHorizontal: spacing["2"],
     },
-    workspaceGroupMetaText: { color: "#ffffff", fontSize: 14, fontFamily: uiMonoFontFamily, fontWeight: "800" },
-    workspaceDeleteButton: { width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 999 },
-    workspaceDeleteIcon: { color: "rgba(0, 229, 255, 0.5)" },
+    workspaceGroupMetaText: { color: "#ff00e5", fontSize: 12, fontFamily: uiMonoFontFamily, fontWeight: "800", textShadowColor: "rgba(255, 0, 229, 0.4)", textShadowRadius: 4 },
+    workspaceDeleteButton: { width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 999, justifyContent: "center", alignItems: "center" },
+    workspaceDeleteIcon: { color: "rgba(0, 229, 255, 0.4)" },
     activeChatCard: {
-      borderRadius: 16, borderWidth: 1, borderColor: "#00e5ff", backgroundColor: "rgba(0, 20, 35, 0.4)",
+      borderRadius: 14, borderWidth: 1.5, borderColor: "#ff00e5", backgroundColor: "rgba(255, 0, 229, 0.05)",
       paddingHorizontal: spacing["4"], paddingVertical: spacing["3"], flexDirection: "row", alignItems: "center", gap: spacing["3"],
+      shadowColor: "#ff00e5", shadowOpacity: 0.3, shadowRadius: 10,
     },
-    activeChatCardContent: { flex: 1, gap: spacing["0.5"] },
-    activeChatTitle: { color: "#ffffff", fontWeight: "700", fontFamily: uiMonoFontFamily },
-    activeChatSubtitle: { color: "#00e5ff", fontFamily: uiMonoFontFamily },
+    activeChatCardContent: { flex: 1, gap: spacing["1"] },
+    activeChatTitle: { color: "#ffffff", fontWeight: "800", fontFamily: uiMonoFontFamily, fontSize: 15, textShadowColor: "rgba(255, 0, 229, 0.8)", textShadowRadius: 6 },
+    activeChatSubtitle: { color: "#ff00e5", fontFamily: uiMonoFontFamily, fontSize: 12, fontWeight: "600" },
     sessionCard: {
-      borderRadius: 16, borderWidth: 1, borderColor: "#ff00e5", backgroundColor: "rgba(10, 15, 30, 0.4)",
-      paddingHorizontal: spacing["4"], paddingVertical: spacing["3"], minHeight: 100, justifyContent: "center", marginHorizontal: spacing["1"],
-      shadowColor: "#ff00e5", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 6,
+      borderRadius: 14, borderWidth: 1, borderColor: "rgba(0, 229, 255, 0.3)", backgroundColor: "rgba(10, 15, 30, 0.6)",
+      minHeight: 90, marginHorizontal: spacing["1"],
+      borderLeftWidth: 3, borderLeftColor: "rgba(0, 229, 255, 0.6)",
+      shadowColor: "#00e5ff", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.1, shadowRadius: 6,
     },
-    sessionCardActive: { borderColor: "#00e5ff", backgroundColor: "rgba(10, 25, 45, 0.5)", shadowColor: "#00e5ff", shadowOpacity: 0.4, shadowRadius: 8 },
-    sessionCardLoading: { opacity: 0.65 },
-    pressState: { opacity: 0.92, transform: [{ scale: 0.995 }] },
-    sessionContent: { flex: 1, gap: spacing["1"] },
-    sessionTitle: { color: "#00e5ff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 16, lineHeight: 22 },
+    sessionCardActive: {
+      borderColor: "#ff00e5", borderLeftColor: "#ff00e5", backgroundColor: "rgba(0, 229, 255, 0.15)",
+      shadowColor: "#ff00e5", shadowOpacity: 0.3, shadowRadius: 10
+    },
+    sessionCardInner: {
+      flex: 1,
+      flexDirection: "row",
+      paddingHorizontal: spacing["4"],
+      paddingVertical: spacing["4"],
+    },
+    sessionCardLoading: { opacity: 0.5 },
+    pressState: { opacity: 0.8, transform: [{ scale: 0.98 }] },
+    sessionContent: { flex: 1, gap: 8, justifyContent: "center" },
+    sessionTitle: { color: "#ffffff", fontFamily: uiMonoFontFamily, fontWeight: "800", fontSize: 16, lineHeight: 22, textShadowColor: "rgba(0, 229, 255, 0.6)", textShadowRadius: 6 },
     sessionWorkspaceRow: { flexDirection: "row", alignItems: "center", gap: spacing["2"], minWidth: 0 },
-    sessionWorkspaceText: { color: "#a5f5f5", fontFamily: uiMonoFontFamily, fontSize: 14, lineHeight: 20, fontWeight: "600", flexShrink: 1, minWidth: 0 },
-    sessionInfoSeparator: { color: "rgba(0, 229, 255, 0.5)", fontSize: 16, lineHeight: 20 },
-    sessionIdRow: { flexDirection: "row", alignItems: "center", gap: spacing["2"], minWidth: 0 },
-    sessionIdText: { color: "rgba(0, 229, 255, 0.6)", fontSize: 14, lineHeight: 20, fontFamily: uiMonoFontFamily, flexShrink: 1, minWidth: 0, flex: 1 },
+    sessionWorkspaceText: { color: "rgba(255, 255, 255, 0.9)", fontFamily: uiMonoFontFamily, fontSize: 13, lineHeight: 18, fontWeight: "600", flexShrink: 1, minWidth: 0 },
+    sessionInfoSeparator: { color: "rgba(0, 229, 255, 0.5)", fontSize: 14, lineHeight: 18, fontWeight: "800" },
+    sessionIdText: { color: "rgba(0, 229, 255, 0.8)", fontSize: 12, lineHeight: 18, fontFamily: uiMonoFontFamily, flexShrink: 0 },
     sessionStatusDot: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
-    sessionStatusDotActive: { backgroundColor: "#ff00e5", shadowColor: "#ff00e5", shadowOpacity: 1, shadowRadius: 5 },
-    sessionFooterRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["2"], minWidth: 0 },
-    sessionTimeText: { color: "#00e5ff", fontFamily: uiMonoFontFamily, fontSize: 13, lineHeight: 20, fontWeight: "600" },
-    sessionModelText: { color: "#00e5ff", fontSize: 13, lineHeight: 20, fontWeight: "800", letterSpacing: 0.5, flexShrink: 1, textAlign: "right", fontFamily: uiMonoFontFamily },
-    sessionDeleteButton: { width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 999 },
-    sessionDeleteIcon: { color: "rgba(0, 229, 255, 0.5)" },
+    sessionStatusDotActive: { backgroundColor: "#ff00e5", shadowColor: "#ff00e5", shadowOpacity: 1, shadowRadius: 6 },
+    sessionFooterRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing["2"], minWidth: 0, marginTop: spacing["1"] },
+    sessionTimeText: { color: "rgba(255, 255, 255, 0.7)", fontFamily: uiMonoFontFamily, fontSize: 12, lineHeight: 16, fontWeight: "600", opacity: 0.8 },
+    sessionModelBadge: {
+      backgroundColor: "rgba(0, 229, 255, 0.1)",
+      borderWidth: 1,
+      borderColor: "rgba(0, 229, 255, 0.4)",
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    sessionModelBadgeText: { color: "#00e5ff", fontSize: 10, lineHeight: 14, fontWeight: "800", letterSpacing: 0.5, fontFamily: uiMonoFontFamily, textShadowColor: "rgba(0, 229, 255, 0.5)", textShadowRadius: 4 },
+    sessionDeleteCol: { justifyContent: "flex-start", alignItems: "flex-end", paddingLeft: spacing["2"] },
+    sessionDeleteButton: { width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 999, justifyContent: "center", alignItems: "center" },
+    sessionDeleteIcon: { color: "rgba(0, 229, 255, 0.6)" },
   });
 }

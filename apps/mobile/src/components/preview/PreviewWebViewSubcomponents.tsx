@@ -138,14 +138,20 @@ export function PreviewWebViewAddressBar({
 
   return (
     <Box
-      className="bg-surface border-b border-outline-200 px-4 pb-3"
-      style={{ paddingTop: insetsTop > 0 ? insetsTop : 16 }}
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border,
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        paddingTop: insetsTop > 0 ? insetsTop : 16,
+      }}
     >
-      <Box className="flex-row items-center bg-surface-alt rounded-xl h-12 px-3">
-        <Box className="mr-2">
+      <Box style={{ flexDirection: "row", alignItems: "center", backgroundColor: theme.colors.surfaceAlt, borderRadius: 12, height: 48, paddingHorizontal: 12 }}>
+        <Box style={{ marginRight: 8 }}>
           <Icons.Lock color={theme.colors.textSecondary} size={16} />
         </Box>
-        <Input variant="outline" size="md" className="flex-1 min-w-0 border-0 bg-transparent h-full px-0">
+        <Input variant="outline" size="md" style={{ flex: 1, minWidth: 0, borderWidth: 0, backgroundColor: "transparent", height: "100%", paddingHorizontal: 0 }}>
           <InputField
             value={value}
             onChangeText={onChangeText}
@@ -157,10 +163,11 @@ export function PreviewWebViewAddressBar({
             returnKeyType="go"
             onSubmitEditing={onSubmit}
             selectTextOnFocus
-            className="text-[15px] font-medium text-text-primary text-center p-0"
             style={{
               fontSize: 15,
+              fontWeight: "500",
               color: theme.colors.textPrimary,
+              textAlign: "center",
               paddingVertical: 0,
               paddingHorizontal: 0,
               ...inputStyle,
@@ -168,7 +175,7 @@ export function PreviewWebViewAddressBar({
           />
         </Input>
         <Pressable
-          className="ml-2 h-8 w-8 items-center justify-center rounded-full active:bg-outline-200"
+          style={{ marginLeft: 8, height: 32, width: 32, alignItems: "center", justifyContent: "center", borderRadius: 16 }}
           onPress={onReload}
           disabled={loading && !!resolvedUrl}
           accessibilityLabel="Reload"
@@ -187,43 +194,43 @@ export function PreviewWebViewAddressBar({
 
 export function PreviewWebViewPlaceholder({ onStartBrowsing, theme }: { onStartBrowsing: () => void; theme: DesignTheme }) {
   return (
-    <Box className="flex-1 items-center justify-start pt-16 px-6 bg-surface">
-      <Box className="w-64 h-64 rounded-full bg-[#EAF2FF] items-center justify-center mb-8">
-        <Box className="w-16 h-16 rounded-full bg-[#1A65FF] items-center justify-center">
-          <Icons.Globe color="#fff" size={32} />
+    <Box style={{ flex: 1, alignItems: "center", paddingTop: 64, paddingHorizontal: 24, backgroundColor: theme.colors.surface }}>
+      <Box style={{ width: 256, height: 256, borderRadius: 128, backgroundColor: theme.mode === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)', alignItems: "center", justifyContent: "center", marginBottom: 32 }}>
+        <Box style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.accent, alignItems: "center", justifyContent: "center" }}>
+          <Icons.Globe color="#000" size={32} />
         </Box>
       </Box>
-      <Text className="text-[26px] font-bold text-[#0D1526] mb-4 text-center">Vibe Coding Everywhere</Text>
-      <Text className="text-[17px] text-[#556275] text-center mb-8 px-2 leading-6">
+      <Text style={{ fontSize: 26, fontWeight: "bold", color: theme.colors.textPrimary, marginBottom: 16, textAlign: "center" }}>Vibe Coding Everywhere</Text>
+      <Text style={{ fontSize: 17, color: theme.colors.textSecondary, textAlign: "center", marginBottom: 32, paddingHorizontal: 8, lineHeight: 24 }}>
         Browse the web securely with a modern, lightweight interface designed for speed.
       </Text>
 
       <Pressable
-        className="w-full h-14 bg-[#1A65FF] rounded-xl flex-row items-center justify-center mb-10"
+        style={{ width: "100%", height: 56, backgroundColor: theme.colors.accent, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 40 }}
         onPress={onStartBrowsing}
       >
-        <Icons.Search color="#fff" size={20} />
-        <Text className="text-white font-semibold text-[17px] ml-2">Start Browsing</Text>
+        <Icons.Search color="#000" size={20} />
+        <Text style={{ color: "#000", fontWeight: "600", fontSize: 17, marginLeft: 8 }}>Start Browsing</Text>
       </Pressable>
 
-      <Box className="flex-row items-center justify-between w-full px-4">
-        <Box className="items-center">
-          <Box className="w-14 h-14 rounded-full bg-[#F3F6FA] items-center justify-center mb-2">
-            <Icons.Bookmark color="#1A65FF" size={24} />
+      <Box style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingHorizontal: 16 }}>
+        <Box style={{ alignItems: "center" }}>
+          <Box style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <Icons.Bookmark color={theme.colors.accent} size={24} />
           </Box>
-          <Text className="text-[13px] text-[#556275]">Bookmarks</Text>
+          <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>Bookmarks</Text>
         </Box>
-        <Box className="items-center">
-          <Box className="w-14 h-14 rounded-full bg-[#F3F6FA] items-center justify-center mb-2">
-            <Icons.History color="#1A65FF" size={24} />
+        <Box style={{ alignItems: "center" }}>
+          <Box style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <Icons.History color={theme.colors.accent} size={24} />
           </Box>
-          <Text className="text-[13px] text-[#556275]">History</Text>
+          <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>History</Text>
         </Box>
-        <Box className="items-center">
-          <Box className="w-14 h-14 rounded-full bg-[#F3F6FA] items-center justify-center mb-2">
-            <Icons.Download color="#1A65FF" size={24} />
+        <Box style={{ alignItems: "center" }}>
+          <Box style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <Icons.Download color={theme.colors.accent} size={24} />
           </Box>
-          <Text className="text-[13px] text-[#556275]">Downloads</Text>
+          <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>Downloads</Text>
         </Box>
       </Box>
     </Box>
@@ -271,12 +278,13 @@ export function PreviewWebViewBottomBar({
       borderRadius: 28,
       alignItems: "center",
       justifyContent: "center",
-      marginTop: -20,
-      backgroundColor: "#1A65FF",
-      shadowColor: "#1A65FF",
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 4,
+      backgroundColor: theme.colors.surfaceAlt,
+      borderWidth: 2,
+      borderColor: theme.colors.accent,
+      shadowColor: theme.colors.accent,
+      shadowOpacity: theme.mode === 'dark' ? 0.3 : 0.2,
+      shadowRadius: 10,
+      elevation: 6,
     },
     tabsButton: {
       padding: 8,
@@ -289,7 +297,7 @@ export function PreviewWebViewBottomBar({
       width: 16,
       height: 16,
       borderRadius: 8,
-      backgroundColor: "#1A65FF",
+      backgroundColor: theme.colors.accent,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -304,14 +312,14 @@ export function PreviewWebViewBottomBar({
         <Icons.ChevronRight color={canGoForward ? theme.colors.textSecondary : theme.colors.border} size={24} />
       </Pressable>
       <Box style={bottomBarStyles.centerButtonShell}>
-        <Pressable onPress={onHome} className="w-full h-full items-center justify-center rounded-full">
-          <Icons.Home color="#fff" size={24} />
+        <Pressable onPress={onHome} style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", borderRadius: 28 }}>
+          <Icons.Home color={theme.colors.accent} size={24} />
         </Pressable>
       </Box>
       <Pressable style={bottomBarStyles.tabsButton} onPress={onShowTabs}>
         <Icons.Layers color={theme.colors.textSecondary} size={24} />
         <Box style={bottomBarStyles.tabsBadge}>
-          <Text className="text-[10px] text-white font-bold">{tabCount}</Text>
+          <Text style={{ fontSize: 10, color: '#000', fontWeight: 'bold' }}>{tabCount}</Text>
         </Box>
       </Pressable>
       <Pressable style={bottomBarStyles.iconButton} onPress={onMenu}>
@@ -341,80 +349,88 @@ export function PreviewWebViewTabsPage({
   theme: DesignTheme;
 }) {
   return (
-    <Box className="flex-1 bg-[#F5F7FA]">
+    <Box style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <Box
-        className="flex-row items-center justify-between px-4 pb-3 bg-surface border-b border-outline-200"
-        style={{ paddingTop: insetsTop > 0 ? insetsTop : 16 }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: theme.colors.surface, paddingTop: insetsTop > 0 ? insetsTop : 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}
       >
-        <Pressable onPress={onDone} className="p-2 -ml-2">
-          <Text className="text-[17px] text-[#1A65FF] font-semibold">Tabs</Text>
+        <Pressable onPress={onDone} style={{ padding: 8, marginLeft: -8 }}>
+          <Text style={{ fontSize: 17, color: theme.colors.accent, fontWeight: '600' }}>Tabs</Text>
         </Pressable>
-        <Text className="text-[17px] text-text-primary font-bold">Vibe Coding Everywhere</Text>
-        <Pressable onPress={onDone} className="p-2 -mr-2">
-          <Text className="text-[17px] text-[#1A65FF] font-semibold">Done</Text>
+        <Text style={{ fontSize: 17, color: theme.colors.textPrimary, fontWeight: 'bold' }}>Vibe Coding Everywhere</Text>
+        <Pressable onPress={onDone} style={{ padding: 8, marginRight: -8 }}>
+          <Text style={{ fontSize: 17, color: theme.colors.accent, fontWeight: '600' }}>Done</Text>
         </Pressable>
       </Box>
 
       {/* Grid */}
-      <ScrollView className="flex-1 px-4 pt-4">
-        <Box className="flex-row flex-wrap justify-between">
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+        <Box style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
           {tabs.map((tab, i) => {
             const domain = tab.url ? tab.url.replace(/^https?:\/\//, '').split('/')[0] : 'New Tab';
             const isActive = i === activeIndex;
             return (
               <Box
                 key={tab.id}
-                className={`w-[48%] bg-surface rounded-2xl overflow-hidden mb-4 border ${isActive ? 'border-[#1A65FF] border-2' : 'border-outline-200'}`}
+                style={{
+                  width: '48%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  marginBottom: 16,
+                  borderWidth: isActive ? 2 : 1,
+                  borderColor: isActive ? theme.colors.accent : theme.colors.border,
+                }}
               >
-                <Pressable onPress={() => onSelectTab(i)} className="flex-1">
-                  <Box className="h-32 bg-background-200 w-full relative">
+                <Pressable onPress={() => onSelectTab(i)} style={{ flex: 1 }}>
+                  <Box style={{ height: 128, backgroundColor: theme.colors.surfaceAlt, width: '100%', position: 'relative' }}>
                     {/* Placeholder image for tab content based on URL */}
-                    <Box className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 items-center justify-center z-10">
+                    <Box style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                       <Pressable onPress={(e) => { e.stopPropagation(); onCloseTab(i); }}>
                         <Icons.X color="#fff" size={14} />
                       </Pressable>
                     </Box>
                   </Box>
-                  <Box className="h-12 flex-row items-center px-3 bg-surface">
-                    <Box className="w-5 h-5 rounded-full bg-[#F3F6FA] mr-2 items-center justify-center">
-                      <Icons.Globe color="#556275" size={12} />
+                  <Box style={{ height: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, backgroundColor: theme.colors.surface }}>
+                    <Box style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.colors.surfaceAlt, marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <Icons.Globe color={theme.colors.textSecondary} size={12} />
                     </Box>
-                    <Text className="text-[14px] font-medium text-text-primary flex-1" numberOfLines={1}>{domain}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.textPrimary, flex: 1 }} numberOfLines={1}>{domain}</Text>
                   </Box>
                 </Pressable>
               </Box>
             );
           })}
         </Box>
-        <Box className="h-24" /> {/* Bottom padding */}
+        <Box style={{ height: 96 }} /> {/* Bottom padding */}
       </ScrollView>
 
       {/* Floating Action Button */}
       <Pressable
-        className="absolute bottom-20 right-6 w-14 h-14 rounded-full bg-[#1A65FF] items-center justify-center shadow-md"
-        style={{ shadowColor: '#1A65FF', shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 }}
+        style={{
+          position: 'absolute', bottom: 80, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: theme.colors.accent, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6
+        }}
         onPress={onAddTab}
       >
-        <Icons.Plus color="#fff" size={28} />
+        <Icons.Plus color="#000" size={28} />
       </Pressable>
 
       {/* Tab Nav */}
-      <Box className="flex-row items-center justify-around px-2 h-16 bg-surface border-t border-outline-200">
-        <Pressable className="p-3 items-center" onPress={() => onSelectTab(activeIndex)}>
+      <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8, height: 64, backgroundColor: theme.colors.surface, borderTopWidth: 1, borderTopColor: theme.colors.border }}>
+        <Pressable style={{ padding: 12, alignItems: 'center' }} onPress={() => onSelectTab(activeIndex)}>
           <Icons.Home color={theme.colors.textSecondary} size={22} />
         </Pressable>
-        <Pressable className="p-3 items-center">
+        <Pressable style={{ padding: 12, alignItems: 'center' }}>
           <Icons.Search color={theme.colors.textSecondary} size={22} />
         </Pressable>
-        <Pressable className="p-3 items-center">
+        <Pressable style={{ padding: 12, alignItems: 'center' }}>
           <Icons.History color={theme.colors.textSecondary} size={22} />
         </Pressable>
-        <Pressable className="p-3 items-center">
+        <Pressable style={{ padding: 12, alignItems: 'center' }}>
           <Icons.Bookmark color={theme.colors.textSecondary} size={22} />
         </Pressable>
-        <Pressable className="p-3 items-center">
-          <Icons.Layers color="#1A65FF" size={22} />
+        <Pressable style={{ padding: 12, alignItems: 'center' }}>
+          <Icons.Layers color={theme.colors.accent} size={22} />
         </Pressable>
       </Box>
     </Box>

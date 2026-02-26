@@ -116,19 +116,10 @@ export default function App() {
                         <GluestackUIProvider mode={themeState.themeMode}>
                           <View style={{ flex: 1 }}>
                             <ImageBackground
-                              source={require("./assets/chat-bg.png")}
+                              source={require("./assets/background.png")}
                               style={StyleSheet.absoluteFill}
                               resizeMode="cover"
-                            >
-                              <View
-                                style={[
-                                  StyleSheet.absoluteFill,
-                                  {
-                                    backgroundColor: "rgba(0, 0, 0, 0)",
-                                  },
-                                ]}
-                              />
-                            </ImageBackground>
+                            />
                             <ChatPage {...chatPageProps} />
                           </View>
                         </GluestackUIProvider>

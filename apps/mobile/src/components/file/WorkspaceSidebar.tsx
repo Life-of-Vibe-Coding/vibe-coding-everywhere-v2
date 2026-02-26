@@ -734,7 +734,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
       <Box style={drawerCenterStyle} pointerEvents="box-none">
         <EntranceAnimation variant="slideRight" duration={280}>
           <Box style={[styles.drawer, drawerSize, embedded && styles.drawerEmbedded]}>
-            <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={85} tint="dark" style={StyleSheet.absoluteFill} />
             <SidebarHeader
               activeTab={activeTab}
               onClose={onClose}
@@ -823,15 +823,15 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     drawerCenter: { ...StyleSheet.absoluteFillObject, justifyContent: "flex-start", alignItems: "center" },
     drawerCenterEmbedded: { justifyContent: "flex-start" as const },
     drawer: {
-      backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.86)" : "rgba(255, 255, 255, 0.92)",
+      backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.7)",
       borderRadius: 24,
       borderWidth: 1,
-      borderColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.28)" : theme.colors.border,
+      borderColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.3)" : theme.colors.border,
       overflow: "hidden",
-      shadowColor: "#000",
+      shadowColor: theme.mode === "dark" ? theme.colors.accent : "#000",
       shadowOffset: { width: 4, height: 0 },
-      shadowOpacity: 0.12,
-      shadowRadius: 12,
+      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.12,
+      shadowRadius: theme.mode === "dark" ? 16 : 12,
       elevation: 8,
     },
     drawerEmbedded: {
@@ -956,13 +956,13 @@ function createWorkspaceSidebarStyles(theme: ReturnType<typeof useTheme>) {
     commitForm: {
       padding: 16,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.colors.border,
-      backgroundColor: theme.colors.background,
+      borderTopColor: theme.mode === "dark" ? "rgba(255,255,255,0.1)" : theme.colors.border,
+      backgroundColor: "transparent",
       flexShrink: 0,
     },
     commitFormDark: {
-      backgroundColor: theme.colors?.surface ?? theme.colors.background,
-      borderTopColor: theme.colors?.border ?? theme.colors.border,
+      backgroundColor: "transparent",
+      borderTopColor: "rgba(162, 210, 255, 0.15)",
     },
     commitInputRow: {
       flexDirection: "row",

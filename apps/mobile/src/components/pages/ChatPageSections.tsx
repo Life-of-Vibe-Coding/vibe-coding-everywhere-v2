@@ -61,6 +61,7 @@ export type ChatConversationSectionProps = {
   fileViewer: ChatPageFileViewer;
   sidebar: ChatPageSidebar;
   inputDockHeight: number;
+  isHidden?: boolean;
 };
 
 const overlayStyles = {
@@ -121,25 +122,27 @@ function OverlayLayer({
   );
 }
 
-export function ChatConversationSection({ conversation, fileViewer, sidebar, inputDockHeight }: ChatConversationSectionProps) {
+export function ChatConversationSection({ conversation, fileViewer, sidebar, inputDockHeight, isHidden }: ChatConversationSectionProps) {
   return (
     <ChatSectionFrame>
-      <ChatMessageList
-        messages={conversation.messages}
-        provider={conversation.provider}
-        sessionId={conversation.sessionId}
-        permissionDenials={conversation.permissionDenials}
-        lastSessionTerminated={conversation.lastSessionTerminated}
-        onOpenUrl={conversation.onOpenUrl}
-        onFileSelect={conversation.onFileSelect}
-        onRetryPermission={conversation.onRetryPermission}
-        onDismissPermission={conversation.onDismissPermission}
-        tailBoxMaxHeight={conversation.tailBoxMaxHeight}
-        flatListRef={conversation.flatListRef}
-        onContentSizeChange={conversation.onContentSizeChange}
-        style={{ flex: 1, minHeight: 0 }}
-        contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 16 }]}
-      />
+      {!isHidden && (
+        <ChatMessageList
+          messages={conversation.messages}
+          provider={conversation.provider}
+          sessionId={conversation.sessionId}
+          permissionDenials={conversation.permissionDenials}
+          lastSessionTerminated={conversation.lastSessionTerminated}
+          onOpenUrl={conversation.onOpenUrl}
+          onFileSelect={conversation.onFileSelect}
+          onRetryPermission={conversation.onRetryPermission}
+          onDismissPermission={conversation.onDismissPermission}
+          tailBoxMaxHeight={conversation.tailBoxMaxHeight}
+          flatListRef={conversation.flatListRef}
+          onContentSizeChange={conversation.onContentSizeChange}
+          style={{ flex: 1, minHeight: 0 }}
+          contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 36 }]}
+        />
+      )}
       <OverlayLayer fileViewer={fileViewer} sidebar={sidebar} />
     </ChatSectionFrame>
   );

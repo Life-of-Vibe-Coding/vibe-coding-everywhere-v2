@@ -39,7 +39,7 @@ export function FolderRow({
 }: FolderRowProps) {
   const isFolder = item.type === "folder";
   const fileColor = isFolder ? folderIconColor : getFileColor(item.name);
-  const pressedBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const pressedBg = isDark ? "rgba(162, 210, 255, 0.12)" : "rgba(14, 165, 233, 0.08)";
 
   const handlePress = () => {
     if (isFolder) {

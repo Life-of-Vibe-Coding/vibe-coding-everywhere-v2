@@ -13,6 +13,7 @@ import { SettingsGradientIcon } from "@/components/icons/HeaderIcons";
 import { BlurView } from "expo-blur";
 import { useTheme } from "@/theme/index";
 import { Image } from "react-native";
+import { layoutGlassHeaderStyleDark, layoutGlassHeaderStyleLight } from "@/components/styles/appStyles";
 
 interface AppHeaderBarProps {
   visible: boolean;
@@ -34,7 +35,7 @@ interface HeaderButtonProps {
   size?: number;
 }
 
-function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = false, size = 44 }: HeaderButtonProps) {
+function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = false, size = 44, isDark = true }: HeaderButtonProps & { isDark?: boolean }) {
   return (
     <EntranceAnimation variant="scale" delay={delay}>
       <AnimatedPressableView
@@ -51,8 +52,8 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = fa
           alignItems: "center",
           borderRadius: plain ? 0 : 12,
           overflow: plain ? "visible" : "hidden",
-          backgroundColor: plain ? "transparent" : "rgba(255, 255, 255, 0.2)",
-          borderColor: plain ? "transparent" : "rgba(255, 255, 255, 0.4)",
+          backgroundColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.4)"),
+          borderColor: plain ? "transparent" : (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.4)"),
           borderWidth: plain ? 0 : StyleSheet.hairlineWidth,
         }}
         accessibilityLabel={accessibilityLabel}
@@ -133,60 +134,68 @@ export function AppHeaderBar({
   if (!visible) return null;
 
   return (
-    <HStack className="relative h-20 flex-row items-center justify-between -mx-4 px-0 -mt-2" pointerEvents="box-none">
-      <HeaderButton
-        icon={<Box style={{ marginLeft: -10 }}><FlickerLogo /></Box>}
-        onPress={onOpenExplorer}
-        accessibilityLabel="Open Explorer"
-        delay={100}
-        size={72}
-        plain
-      />
-      <Box className="min-w-0 flex-1 shrink justify-center items-center px-2">
-        <VStack className="max-w-full gap-0 items-center">
-          <GluestackText
-            size="xs"
-            numberOfLines={1}
-            ellipsizeMode="middle"
-            style={{
-              color: isDark ? "rgba(0, 229, 255, 0.75)" : "rgba(0,0,0,0.5)",
-              textTransform: "uppercase",
-              letterSpacing: 1.5,
-              fontSize: 10,
-              textShadowColor: isDark ? "rgba(0, 229, 255, 0.3)" : "transparent",
-              textShadowRadius: isDark ? 4 : 0,
-              marginBottom: -4
-            }}
-            className="font-bold text-center"
-          >
-            {workspaceName}
-          </GluestackText>
-          <GluestackText
-            size="md"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={{
-              color: isDark ? "#FFFFFF" : "#111",
-              fontSize: 22,
-              textShadowColor: isDark ? "rgba(255, 255, 255, 0.4)" : "transparent",
-              textShadowRadius: isDark ? 12 : 0,
-            }}
-            className="font-black"
-          >
-            {statusLabel}
-          </GluestackText>
-        </VStack>
-      </Box>
-      <HeaderButton
-        icon={
-          <SettingsGradientIcon size={36} />
-        }
-        onPress={onOpenSessionManagement}
-        accessibilityLabel="Manage sessions"
-        delay={200}
-        size={56}
-        plain
-      />
-    </HStack>
+    <Box
+      style={isDark ? layoutGlassHeaderStyleDark : layoutGlassHeaderStyleLight}
+      className="relative z-10 -mx-6 px-6 pb-2 overflow-hidden"
+    >
+      <BlurView intensity={isDark ? 40 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+      <HStack className="relative h-20 flex-row items-center justify-between px-0 -mt-2" pointerEvents="box-none">
+        <HeaderButton
+          icon={<Box style={{ marginLeft: -10 }}><FlickerLogo /></Box>}
+          onPress={onOpenExplorer}
+          accessibilityLabel="Open Explorer"
+          delay={100}
+          size={72}
+          plain
+          isDark={isDark}
+        />
+        <Box className="min-w-0 flex-1 shrink justify-center items-center px-2">
+          <VStack className="max-w-full gap-0 items-center">
+            <GluestackText
+              size="xs"
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              style={{
+                color: isDark ? theme.colors.textMuted : "rgba(0,0,0,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+                fontSize: 10,
+                textShadowColor: isDark ? "rgba(0, 229, 255, 0.3)" : "transparent",
+                textShadowRadius: isDark ? 4 : 0,
+                marginBottom: 2
+              }}
+              className="font-bold text-center"
+            >
+              {workspaceName}
+            </GluestackText>
+            <GluestackText
+              size="md"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={{
+                color: theme.colors.textPrimary,
+                fontSize: 22,
+                textShadowColor: isDark ? "rgba(255, 255, 255, 0.4)" : "transparent",
+                textShadowRadius: isDark ? 12 : 0,
+              }}
+              className="font-black"
+            >
+              {statusLabel}
+            </GluestackText>
+          </VStack>
+        </Box>
+        <HeaderButton
+          icon={
+            <SettingsGradientIcon size={36} />
+          }
+          onPress={onOpenSessionManagement}
+          accessibilityLabel="Manage sessions"
+          delay={200}
+          size={56}
+          plain
+          isDark={isDark}
+        />
+      </HStack>
+    </Box>
   );
 }

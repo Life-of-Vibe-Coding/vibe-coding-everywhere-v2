@@ -35,8 +35,9 @@ export function FileTreePane({
   filteredTree,
   renderItem,
 }: FileTreePaneProps) {
-  const paneSurface = theme.mode === "dark" ? "rgba(8, 12, 22, 0.88)" : "rgba(255, 255, 255, 0.94)";
-  const paneBorder = theme.mode === "dark" ? "rgba(162, 210, 255, 0.24)" : theme.colors.border;
+  const paneSurface = theme.mode === "dark" ? "rgba(8, 12, 22, 0.2)" : "rgba(255, 255, 255, 0.4)";
+  const paneBorder = theme.mode === "dark" ? "rgba(162, 210, 255, 0.15)" : "rgba(0,0,0,0.08)";
+  const inputBg = theme.mode === "dark" ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)";
 
   return (
     <>
@@ -49,12 +50,12 @@ export function FileTreePane({
           {root ?? "Workspace"}
         </Text>
       </Box>
-      <Box className="px-3 pt-1 pb-2" style={{ backgroundColor: paneSurface }}>
+      <Box className="px-3 pt-1 pb-3 border-b" style={{ backgroundColor: paneSurface, borderBottomColor: paneBorder }}>
         <Input
           variant="outline"
           size="md"
-          className="flex-1"
-          style={{ backgroundColor: paneSurface, borderColor: paneBorder }}
+          className="flex-1 rounded-xl"
+          style={{ backgroundColor: inputBg, borderColor: paneBorder }}
         >
           <InputField
             placeholder="Search files..."

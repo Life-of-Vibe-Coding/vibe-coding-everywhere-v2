@@ -19,8 +19,8 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
     <Box
       className="flex-row items-center justify-center border-b"
       style={{
-        borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.3)" : theme.colors.border,
-        backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.9)" : "rgba(255, 255, 255, 0.94)",
+        borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.15)" : "rgba(0,0,0,0.06)",
+        backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.6)",
       }}
     >
       <Box className="w-[48px]" />
@@ -39,15 +39,20 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
       </Box>
       <Box className="w-[48px] flex-row items-center justify-end">
         <Pressable
-          className="w-11 h-11 rounded-lg items-center justify-center"
+          className="w-11 h-11 rounded-lg items-center justify-center border"
           style={({ pressed }) => ({
+            borderColor: pressed ? theme.colors.accent : "transparent",
             backgroundColor: pressed
               ? theme.mode === "dark"
                 ? "rgba(160, 209, 255, 0.16)"
                 : "rgba(15, 23, 42, 0.08)"
               : theme.mode === "dark"
-                ? "rgba(255, 255, 255, 0.08)"
-                : "rgba(15, 23, 42, 0.06)",
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(15, 23, 42, 0.04)",
+            shadowColor: pressed ? theme.colors.accent : "transparent",
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: pressed ? 0.6 : 0,
+            shadowRadius: pressed ? 8 : 0,
           })}
           onPress={onClose}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

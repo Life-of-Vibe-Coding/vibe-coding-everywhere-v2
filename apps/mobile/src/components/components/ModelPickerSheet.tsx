@@ -1,7 +1,14 @@
 import React from "react";
 import { getTheme, type Provider as BrandProvider } from "@/theme/index";
+import { BlurView } from "expo-blur";
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { triggerHaptic } from "@/design-system";
-import { ClaudeIcon, GeminiIcon, CodexIcon } from "@/components/icons/ProviderIcons";
+import {
+  ClaudeIcon,
+  GeminiIcon,
+  CodexIcon,
+} from "@/components/icons/ProviderIcons";
 import { Box } from "@/components/ui/box";
 import { Text as GluestackText } from "@/components/ui/text";
 import { ActionsheetOptionRow } from "@/components/reusable/ActionsheetOptionRow";
@@ -46,57 +53,91 @@ export function ModelPickerSheet({
 }: ModelPickerSheetProps) {
   const providers = ["claude", "gemini", "codex"] as const;
   const currentProvider = provider;
+  const { bottom } = useSafeAreaInsets();
   const isDark = themeMode === "dark";
-  const contentSurface = isDark ? "rgba(6, 10, 20, 0.95)" : surfaceColor;
-  const sectionSurface = isDark ? "rgba(13, 20, 36, 0.82)" : "rgba(248, 250, 252, 0.95)";
-  const sectionBorder = isDark ? "rgba(162, 210, 255, 0.25)" : "rgba(15, 23, 42, 0.1)";
-  const headingColor = isDark ? "#E6F3FF" : "#0F172A";
-  const mutedHeadingColor = isDark ? "rgba(216, 235, 255, 0.78)" : "#334155";
+  const theme = getTheme(currentProvider, themeMode);
+  const contentSurface = isDark ? theme.colors.surface : surfaceColor;
+  const sectionSurface = isDark
+    ? theme.colors.surfaceAlt
+    : theme.colors.surfaceAlt;
+  const sectionBorder = isDark
+    ? theme.colors.border
+    : theme.colors.border;
+  const headingColor = isDark ? theme.colors.textPrimary : theme.colors.textPrimary;
+  const mutedHeadingColor = isDark ? theme.colors.textMuted : theme.colors.textMuted;
 
   return (
-    <Actionsheet isOpen={isOpen} onClose={onClose} snapPoints={[75]}>
+    <Actionsheet isOpen={isOpen} onClose={onClose} snapPoints={[75, 100]}>
       <ActionsheetBackdrop className="bg-background-dark/75" />
       <ActionsheetContent
         style={{
-          backgroundColor: contentSurface,
+          backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
           opacity: 1,
           borderColor: sectionBorder,
-          borderWidth: 1,
+          borderTopWidth: 1,
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          overflow: "hidden"
         }}
       >
+        <BlurView intensity={isDark ? 40 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
         <ActionsheetDragIndicatorWrapper>
-          <ActionsheetDragIndicator style={{ backgroundColor: isDark ? "rgba(216, 235, 255, 0.48)" : "rgba(51, 65, 85, 0.36)" }} />
+          <ActionsheetDragIndicator
+            style={{
+              backgroundColor: isDark
+                ? "rgba(216, 235, 255, 0.48)"
+                : "rgba(51, 65, 85, 0.36)",
+            }}
+          />
         </ActionsheetDragIndicatorWrapper>
-        <Box className="w-full px-1 pb-2">
-          <GluestackText size="sm" bold style={{ color: headingColor }}>
+        <Box className="w-full px-3 pb-4 pt-1">
+          <GluestackText size="md" bold style={{ color: headingColor }}>
             Select Model
           </GluestackText>
-          <GluestackText size="xs" style={{ color: mutedHeadingColor }}>
+          <GluestackText
+            size="xs"
+            style={{ color: mutedHeadingColor, marginTop: 4 }}
+          >
             Choose provider and model for this chat session
           </GluestackText>
         </Box>
-        <ActionsheetScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        <ActionsheetScrollView
+          contentContainerStyle={{ paddingBottom: Math.max(bottom, 24) + 16 }}
+          showsVerticalScrollIndicator={false}
+        >
           {providers.map((p) => {
             const opts = providerModelOptions[p];
             if (opts.length === 0) return null;
 
-            const ProviderIcon = p === "claude" ? ClaudeIcon : p === "gemini" ? GeminiIcon : CodexIcon;
-            const accent = getTheme(p, themeMode).colors.accent;
-            const isActiveProvider = (entryModel: string) => currentProvider === p && model === entryModel;
+            const ProviderIcon =
+              p === "claude"
+                ? ClaudeIcon
+                : p === "gemini"
+                  ? GeminiIcon
+                  : CodexIcon;
+            const theme = getTheme(p, themeMode);
+            const accent = theme.colors.accent;
+            const isActiveProvider = (entryModel: string) =>
+              currentProvider === p && model === entryModel;
 
             return (
               <Box
                 key={p}
-                className="mb-4 rounded-2xl p-2.5"
+                className="mb-3 rounded-2xl p-2"
                 style={{
-                  backgroundColor: sectionSurface,
+                  backgroundColor:
+                    currentProvider === p
+                      ? isDark
+                        ? theme.colors.surfaceAlt
+                        : sectionSurface
+                      : sectionSurface,
                   borderWidth: 1,
-                  borderColor: sectionBorder,
+                  borderColor: currentProvider === p ? accent : sectionBorder,
                 }}
               >
-                <Box className="flex-row items-center gap-2 mb-2 px-1">
+                <Box className="flex-row items-center gap-2 mb-1 px-2">
                   <ProviderIcon size={18} color={accent} />
-                  <GluestackText size="xs" bold style={{ color: headingColor }}>
+                  <GluestackText size="sm" bold style={{ color: headingColor }}>
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </GluestackText>
                 </Box>
@@ -107,27 +148,26 @@ export function ModelPickerSheet({
                       key={opt.value}
                       label={opt.label}
                       selected={selected}
+                      minHeight={40}
                       itemClassName="rounded-xl"
                       itemStyle={({ pressed }) => ({
+                        paddingVertical: 4,
                         borderWidth: 1,
-                        borderColor: selected
-                          ? isDark
-                            ? "rgba(179, 223, 255, 0.42)"
-                            : "rgba(15, 23, 42, 0.2)"
-                          : "transparent",
+                        borderColor: selected ? accent : "transparent",
                         backgroundColor: selected
                           ? isDark
-                            ? "rgba(139, 117, 255, 0.2)"
-                            : "rgba(15, 23, 42, 0.08)"
+                            ? theme.colors.skeletonHighlight
+                            : `${accent}1A`
                           : pressed
                             ? isDark
-                              ? "rgba(173, 222, 255, 0.12)"
+                              ? theme.colors.skeleton
                               : "rgba(15, 23, 42, 0.06)"
                             : "transparent",
                       })}
                       labelStyle={{
-                        color: selected ? headingColor : mutedHeadingColor,
+                        color: selected ? accent : mutedHeadingColor,
                         fontWeight: selected ? "700" : "500",
+                        fontSize: 14,
                       }}
                       selectedIndicatorLabel="Selected"
                       selectedIndicatorStyle={{ color: accent }}
