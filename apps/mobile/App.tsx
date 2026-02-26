@@ -24,7 +24,7 @@ function AppBackground() {
     <ImageBackground
       source={assets.background}
       style={StyleSheet.absoluteFill}
-      resizeMode="cover"
+      resizeMode="stretch"
     />
   );
 }

@@ -55,9 +55,28 @@ export function ChatModalsSection({
     modals.preview.previewVisible;
   const isSkillsConfigOpen = modalStates.skillsConfig.isOpen;
 
+  const isSessionManagementOpen = modalStates.sessionManagement.isOpen;
+
   return (
     <>
-      {isSkillsConfigOpen ? (
+      {isSessionManagementOpen ? (
+        <Box className="flex-1">
+          <SessionManagementModal
+            isOpen
+            onClose={modalStates.sessionManagement.close}
+            currentSessionId={modals.sessionManagement.currentSessionId}
+            workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
+            serverBaseUrl={modals.sessionManagement.serverBaseUrl}
+            workspaceLoading={modals.sessionManagement.workspaceLoading}
+            onOpenWorkspacePicker={handleWorkspacePickerFromSession}
+            onSelectSession={handleSessionSelect}
+            onNewSession={handleNewSession}
+            showActiveChat={modals.sessionManagement.showActiveChat}
+            sessionRunning={modals.sessionManagement.sessionRunning}
+            onSelectActiveChat={handleSelectActiveChat}
+          />
+        </Box>
+      ) : isSkillsConfigOpen ? (
         <Box className="flex-1">
           <SkillConfigurationView
             isOpen
@@ -79,20 +98,6 @@ export function ChatModalsSection({
         workspacePath={modals.workspacePicker.workspacePath}
         onRefreshWorkspace={modals.workspacePicker.onRefreshWorkspace}
         onWorkspaceSelected={handleWorkspaceSelected}
-      />
-      <SessionManagementModal
-        isOpen={modalStates.sessionManagement.isOpen}
-        onClose={modalStates.sessionManagement.close}
-        currentSessionId={modals.sessionManagement.currentSessionId}
-        workspacePath={modals.sessionManagement.workspacePathForSessionManagement}
-        serverBaseUrl={modals.sessionManagement.serverBaseUrl}
-        workspaceLoading={modals.sessionManagement.workspaceLoading}
-        onOpenWorkspacePicker={handleWorkspacePickerFromSession}
-        onSelectSession={handleSessionSelect}
-        onNewSession={handleNewSession}
-        showActiveChat={modals.sessionManagement.showActiveChat}
-        sessionRunning={modals.sessionManagement.sessionRunning}
-        onSelectActiveChat={handleSelectActiveChat}
       />
       <ProcessDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
       <DockerManagerModal isOpen={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
