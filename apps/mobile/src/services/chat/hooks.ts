@@ -130,10 +130,7 @@ export function useChat(options: UseChatOptions = {}) {
 
   const getConnectionIntent = useCallback((sid: string | null): boolean | undefined => {
     if (!sid) return undefined;
-    const intent = connectionIntentBySessionRef.current.get(sid);
-    if (intent === undefined) return undefined;
-    connectionIntentBySessionRef.current.delete(sid);
-    return intent;
+    return connectionIntentBySessionRef.current.get(sid);
   }, []);
 
   const setConnectionIntent = useCallback((sid: string | null, shouldConnect: boolean) => {
@@ -196,9 +193,19 @@ export function useChat(options: UseChatOptions = {}) {
         source.removeEventListener("done", handlers.done);
       }
       source.close();
-      if (displayedSessionIdRef.current === id && sawAgentEndRef.current) {
-        setSessionStateForSession(id, "idle");
-        setWaitingForUserInput(false);
+      if (displayedSessionIdRef.current === id) {
+        if (sawAgentEndRef.current) {
+          // Normal end — agent_end was received.
+          setSessionStateForSession(id, "idle");
+          setWaitingForUserInput(false);
+        } else if (reason !== "session-switch" && reason !== "session-load") {
+          // Server ended (crash/restart) while session was running — agent_end was never sent.
+          // Transition to idle so the UI doesn't stay stuck in "running" state.
+          if (__DEV__) console.log("[sse] server ended without agent_end, forcing idle", { sessionId: id, reason });
+          setSessionStateForSession(id, "idle");
+          setWaitingForUserInput(false);
+          setLastSessionTerminated(true);
+        }
       }
       suppressActiveSessionSwitchRef.current = false;
       activeSseRef.current = null;

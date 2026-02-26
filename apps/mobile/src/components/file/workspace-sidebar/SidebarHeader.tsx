@@ -66,11 +66,12 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
           })}
           onPress={onClose}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          accessibilityLabel="Close file explorer"
+          accessibilityLabel="Menu"
         >
-          <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textPrimary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M18 6L6 18" />
-            <Path d="M6 6l12 12" />
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textPrimary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M4 6h16" />
+            <Path d="M4 12h16" />
+            <Path d="M4 18h16" />
           </Svg>
         </Pressable>
       </Box>

@@ -67,7 +67,19 @@ export const createSessionMessageHandlers = (deps: SessionMessageHandlerDeps): S
     if (last?.role === "assistant") {
       setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: nextDraft }]);
     } else {
-      setSessionMessages(sid, [...currentMessages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: sanitized }]);
+      if (__DEV__ && currentDraft) {
+        console.warn("[appendAssistantText] NEW assistant msg with existing draft!", {
+          draftLen: currentDraft.length,
+          nextDraftLen: nextDraft.length,
+          sanitizedLen: sanitized.length,
+          lastRole: last?.role ?? "(none)",
+          msgCount: currentMessages.length,
+        });
+      }
+      // Use nextDraft (full accumulated text) — not just sanitized (current chunk) —
+      // so all previously streamed content is preserved when a non-assistant message
+      // (e.g. system/tool) was inserted mid-stream.
+      setSessionMessages(sid, [...currentMessages, { id: `msg-${++nextIdRef.current}`, role: "assistant", content: nextDraft }]);
     }
 
     state.sessionState = "running";
@@ -86,21 +98,42 @@ export const createSessionMessageHandlers = (deps: SessionMessageHandlerDeps): S
     const raw = getSessionDraft(sid);
     const cleaned = stripTrailingIncompleteTag(raw ?? "");
 
-    if (cleaned !== (raw ?? "")) {
+    if (__DEV__) {
       const last = currentMessages[currentMessages.length - 1];
-      if (last?.role === "assistant") {
-        const trimmed = cleaned.trim();
-        if (trimmed === "") {
-          setSessionMessages(sid, currentMessages.slice(0, -1));
-        } else {
-          setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: cleaned }]);
+      console.log("[finalize] assistant message check", {
+        draftLen: (raw ?? "").length,
+        cleanedLen: cleaned.length,
+        lastRole: last?.role ?? "(none)",
+        lastContentLen: ((last?.content as string) ?? "").length,
+        contentMatchesDraft: last?.role === "assistant" ? (last.content === cleaned) : "N/A",
+        msgCount: currentMessages.length,
+        draftPreview: (raw ?? "").slice(0, 100),
+        contentPreview: ((last?.content as string) ?? "").slice(0, 100),
+      });
+    }
+
+    // Always sync the last assistant message with the full cleaned draft.
+    // This ensures content is correct even if a mid-stream non-assistant message
+    // caused the assistant message to be recreated with only a partial chunk.
+    const last = currentMessages[currentMessages.length - 1];
+    if (last?.role === "assistant") {
+      const trimmed = cleaned.trim();
+      if (trimmed === "") {
+        setSessionMessages(sid, currentMessages.slice(0, -1));
+      } else if (last.content !== cleaned) {
+        if (__DEV__) {
+          console.warn("[finalize] content MISMATCH — syncing to draft", {
+            contentLen: ((last.content as string) ?? "").length,
+            draftLen: cleaned.length,
+          });
         }
+        setSessionMessages(sid, [...currentMessages.slice(0, -1), { ...last, content: cleaned }]);
       }
     }
 
     const afterTrimMessages = getOrCreateSessionMessages(sid);
-    const last = afterTrimMessages[afterTrimMessages.length - 1];
-    if (last?.role === "assistant" && (last.content ?? "").trim() === "") {
+    const lastAfterTrim = afterTrimMessages[afterTrimMessages.length - 1];
+    if (lastAfterTrim?.role === "assistant" && (lastAfterTrim.content ?? "").trim() === "") {
       setSessionMessages(sid, afterTrimMessages.slice(0, -1));
     }
 

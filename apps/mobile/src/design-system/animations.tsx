@@ -62,7 +62,7 @@ const hapticFeedbackMap: Record<string, () => Promise<void>> = {
 export function triggerHaptic(type: HapticConfig["type"]): void {
   const feedback = hapticFeedbackMap[type];
   if (feedback) {
-    feedback().catch(() => {});
+    feedback().catch(() => { });
   }
 }
 
@@ -270,6 +270,7 @@ export function AnimatedPressableView({
   return (
     <Animated.View style={[style, animatedStyle, disabled && { opacity: 0.5 }]}>
       <Pressable
+        style={{ flex: 1 }}
         onPressIn={disabled ? undefined : handlers.onPressIn}
         onPressOut={disabled ? undefined : handlers.onPressOut}
         onPress={disabled ? undefined : handlers.onPress}
@@ -684,7 +685,9 @@ export function EntranceAnimation({
     } else {
       startAnimation();
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Animated.Values are
+    // stable refs; variant/delay/duration/onComplete included so dynamic props work.
+  }, [variant, delay, duration, onComplete, opacity, translateY, translateX, scale]);
 
   return (
     <Animated.View
@@ -801,7 +804,7 @@ export function PulseAnimation({
       scaleAnim.stop();
       opacityAnim.stop();
     };
-  }, []);
+  }, [intensity, duration, scale, pulseOpacity]);
 
   return (
     <Animated.View

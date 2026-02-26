@@ -249,7 +249,11 @@ export function parseContentSegments(content: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
   // Only match fully-closed thinking blocks to avoid swallowing trailing content
   // when a <think> tag is unclosed during streaming.
+  // WARNING: This regex uses /g, making .exec() stateful via .lastIndex.
+  // Do NOT hoist to module scope — a shared /g regex across calls causes
+  // silent skipped matches or infinite loops.
   const CLOSED_THINKING_REGEX = /<think(?:_start)?>([\s\S]*?)<\/think(?:_end)?>/gi;
+  CLOSED_THINKING_REGEX.lastIndex = 0; // defensive reset
   let lastIndex = 0;
   let match;
 

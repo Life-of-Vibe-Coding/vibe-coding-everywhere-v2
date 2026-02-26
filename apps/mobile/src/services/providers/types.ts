@@ -109,7 +109,9 @@ export function collectTextFromContentBlocks(contents: ProviderContentBlock[]): 
 
 /** Append only delta when provider sends a full accumulated assistant snapshot.
  * Avoids duplicate display when fullText is already contained in current (e.g. turn_end
- * snapshot differs slightly from streamed text_delta content). */
+ * snapshot differs slightly from streamed text_delta content).
+ * Handles the common case where current draft contains \<think\> blocks from
+ * reasoning/tool output that the snapshot doesn't include. */
 export function appendSnapshotTextDelta(ctx: EventContext, fullText: string): void {
   if (!fullText) return;
   const current = ctx.getCurrentAssistantContent();
@@ -123,10 +125,32 @@ export function appendSnapshotTextDelta(ctx: EventContext, fullText: string): vo
     if (delta) ctx.appendAssistantText(delta);
     return;
   }
-  // Unrelated/partial overlap: append fullText only when current is empty (fresh message)
-  if (current.length === 0) {
-    ctx.appendAssistantText(fullText);
+  // Draft may contain <think> blocks from reasoning/tool output that the
+  // turn_end snapshot doesn't include. Strip them and re-compare against
+  // just the visible text portion.
+  if (current.length > 0) {
+    const visibleCurrent = current
+      .replace(/<think(?:_start)?>[\s\S]*?<\/think(?:_end)?>/gi, "")
+      .replace(/<think(?:_start)?>[\s\S]*$/i, "")  // trailing unclosed
+      .trim();
+    if (visibleCurrent.length >= fullText.length && visibleCurrent.endsWith(fullText.trimEnd())) {
+      return; // visible text is already present
+    }
+    if (visibleCurrent.length > 0 && fullText.startsWith(visibleCurrent)) {
+      const delta = fullText.slice(visibleCurrent.length);
+      if (delta) ctx.appendAssistantText(delta);
+      return;
+    }
+    // Visible text is empty but draft has content (all thinking) — append full text
+    if (visibleCurrent.length === 0) {
+      ctx.appendAssistantText(fullText);
+      return;
+    }
+    // Partial overlap or unrelated — don't append to avoid corruption
+    return;
   }
+  // current is empty → fresh message, append everything
+  ctx.appendAssistantText(fullText);
 }
 
 /**

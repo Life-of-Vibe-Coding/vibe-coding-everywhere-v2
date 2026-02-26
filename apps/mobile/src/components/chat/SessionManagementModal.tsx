@@ -457,6 +457,22 @@ export function SessionManagementModal({
       <HStack style={styles.embeddedHeader}>
         <VStack style={styles.embeddedHeaderTitleGroup}>
           <Text style={styles.mainTitle}>Session Management</Text>
+          {onOpenWorkspacePicker && (
+            <Pressable
+              onPress={() => {
+                triggerHaptic("selection");
+                onOpenWorkspacePicker();
+              }}
+              accessibilityLabel="Change workspace"
+              accessibilityRole="button"
+              style={styles.changeWorkspaceButton}
+            >
+              <Text size="xs" style={styles.changeWorkspaceText}>
+                {workspacePath ? displayWorkspace(null, workspacePath) : "Select workspace"}
+              </Text>
+              <ChevronRightIcon size={12} color={styles.changeWorkspaceText.color} strokeWidth={2} />
+            </Pressable>
+          )}
         </VStack>
         <HStack style={styles.headerActions}>
           <Button
@@ -591,7 +607,7 @@ export function SessionManagementModal({
                       ) : (
                         <ChevronDownIcon size={14} color={theme.colors.textSecondary} strokeWidth={2} />
                       )}
-                      <Text size="sm" style={styles.workspaceGroupLabel} numberOfLines={1} ellipsizeMode="middle">
+                      <Text size="sm" style={styles.workspaceGroupLabel} numberOfLines={1} ellipsizeMode="tail">
                         {displayWorkspace(group.key, workspacePath)}
                       </Text>
                     </HStack>
@@ -702,7 +718,7 @@ export function SessionManagementModal({
           })}
         </ScrollView>
       </AsyncStateView>
-      <EntranceAnimation variant="slideUp" duration={300} delay={200} style={[{ position: 'absolute', right: 24, zIndex: 50 }, { bottom: 24 + insets.bottom }] as any}>
+      <EntranceAnimation variant="slideUp" duration={300} delay={200} style={[{ position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 50 }, { bottom: 24 + insets.bottom }] as any}>
         <Button
           action="primary"
           variant="solid"
@@ -739,6 +755,22 @@ export function SessionManagementModal({
       title={
         <VStack>
           <Text style={styles.mainTitle}>Session Management</Text>
+          {onOpenWorkspacePicker && (
+            <Pressable
+              onPress={() => {
+                triggerHaptic("selection");
+                onOpenWorkspacePicker();
+              }}
+              accessibilityLabel="Change workspace"
+              accessibilityRole="button"
+              style={styles.changeWorkspaceButton}
+            >
+              <Text size="xs" style={styles.changeWorkspaceText}>
+                {workspacePath ? displayWorkspace(null, workspacePath) : "Select workspace"}
+              </Text>
+              <ChevronRightIcon size={12} color={styles.changeWorkspaceText.color} strokeWidth={2} />
+            </Pressable>
+          )}
         </VStack>
       }
       contentClassName="w-full h-full max-w-none rounded-none border-0 p-0 bg-transparent"
@@ -833,6 +865,22 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       transform: [{ scale: 0.96 }],
     },
     headerIconColor: { color: theme.mode === "dark" ? "#00e5ff" : theme.colors.textSecondary },
+    changeWorkspaceButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: 4,
+      paddingVertical: 2,
+      paddingHorizontal: 2,
+      alignSelf: "flex-start",
+    },
+    changeWorkspaceText: {
+      color: theme.mode === "dark" ? "rgba(0, 229, 255, 0.8)" : theme.colors.accent,
+      fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined,
+      fontSize: 12,
+      fontWeight: "600",
+      letterSpacing: theme.mode === "dark" ? -0.3 : 0,
+    },
     errorBanner: {
       padding: spacing["4"], marginHorizontal: spacing["5"], marginTop: spacing["2"],
       backgroundColor: theme.mode === "dark" ? "rgba(255, 0, 0, 0.15)" : theme.colors.surfaceMuted,
@@ -924,7 +972,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       borderRadius: 9999,
       height: 56,
       paddingHorizontal: 20,
-      backgroundColor: theme.colors.accent,
+      backgroundColor: '#5BAAED',
       shadowColor: theme.mode === "dark" ? theme.colors.accent : theme.colors.shadow,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: theme.mode === "dark" ? 0.4 : 0.2,

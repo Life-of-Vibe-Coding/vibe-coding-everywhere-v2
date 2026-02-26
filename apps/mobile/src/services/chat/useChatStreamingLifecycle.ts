@@ -158,6 +158,16 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
   const refreshCurrentSessionFromDisk = useCallback(
     async (sid: string | null) => {
       if (!sid || sid.startsWith("temp-")) return;
+      // If there is an active draft for this session, streaming hasn't finalized yet.
+      // The in-memory data is more current than what's on disk — skip the refresh
+      // to avoid clobbering streamed content with a stale disk snapshot.
+      const activeDraft = getSessionDraft(sid);
+      if (activeDraft && activeDraft.length > 0) {
+        if (__DEV__) {
+          console.log("[sse] skipping disk refresh — active draft exists", { sid, draftLen: activeDraft.length });
+        }
+        return;
+      }
       try {
         const res = await fetch(`${serverUrl}/api/sessions/${encodeURIComponent(sid)}/messages`);
         if (!res.ok) return;
@@ -191,6 +201,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       deduplicateMessageIds,
       getMaxMessageId,
       getOrCreateSessionState,
+      getSessionDraft,
       setSessionDraft,
       setSessionMessages,
       serverUrl,
@@ -289,6 +300,9 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       skipReplayForSessionRef.current = null;
     }
     const sse = new (resolveEventSourceCtor())(streamUrl);
+    // Mutable ref so that scheduleRetry always cleans up the *current* SSE,
+    // not the original one captured by closure (fixes zombie connection bug).
+    const currentSseRef = { current: sse };
     activeSseRef.current = { id: sid, source: sse };
 
     const setSessionIdWithRekey = (newId: string | null) => {
@@ -336,6 +350,9 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         perf.lastFlushAt = now;
         const start = now;
         handlers.appendAssistantTextForSession(chunk);
+        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+          currentAssistantContentRef.current = getSessionDraft(connectionSessionIdRef.current);
+        }
         if (perf.flushCount % 15 === 0) {
           console.debug("[stream] assistant flush", {
             flushCount: perf.flushCount,
@@ -349,6 +366,9 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       }
 
       handlers.appendAssistantTextForSession(chunk);
+      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+        currentAssistantContentRef.current = getSessionDraft(connectionSessionIdRef.current);
+      }
     };
     const queueAssistantText = (chunk: string) => {
       pendingAssistantText += chunk;
@@ -436,20 +456,23 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       retryTimeoutRef.current = setTimeout(() => {
         retryTimeoutRef.current = null;
         if (isAborted) return;
-        // Close the stale SSE source before reconnecting.
+        // Close the *current* SSE source before reconnecting (via mutable ref
+        // so retries after retry #1 don't reference the original dead instance).
         try {
-          sse.removeEventListener("open", openHandler);
-          sse.removeEventListener("error", errorHandler);
-          sse.removeEventListener("message", messageHandler);
+          const staleSse = currentSseRef.current;
+          staleSse.removeEventListener("open", openHandler);
+          staleSse.removeEventListener("error", errorHandler);
+          staleSse.removeEventListener("message", messageHandler);
           // @ts-ignore
-          sse.removeEventListener("end", endHandler);
+          staleSse.removeEventListener("end", endHandler);
           // @ts-ignore
-          sse.removeEventListener("done", doneHandler);
-          sse.close();
+          staleSse.removeEventListener("done", doneHandler);
+          staleSse.close();
         } catch {}
 
         const { url: retryUrl } = resolveStreamUrl(serverUrl, connectionSessionIdRef.current, null);
         const retrySse = new (resolveEventSourceCtor())(retryUrl);
+        currentSseRef.current = retrySse;
         activeSseRef.current = { id: connectionSessionIdRef.current, source: retrySse };
 
         retrySse.addEventListener("open", openHandler);
@@ -478,10 +501,8 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         (typeof e?.message === "string" && e.message.toLowerCase().includes("connection abort"));
       if (isExpectedServerClose) {
         if (__DEV__) console.log("[sse] stream ended (server closed)", { sessionId: connectionSessionIdRef.current });
-        // Expected close — no retry needed.
-        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-          setConnected(false);
-        }
+        // Expected close — flush any remaining content and finalize the stream.
+        handleStreamEnd({}, 0);
         return;
       }
       if (__DEV__) console.log("[sse] disconnected (error), will retry", { sessionId: connectionSessionIdRef.current, err });
@@ -489,7 +510,8 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     };
 
     const messageHandler = (event: any) => {
-      if (!event.data && typeof event.data !== "string") return;
+      // Accept any string (including empty ""), reject null/undefined.
+      if (event.data == null) return;
 
       const dataStr = event.data;
       outputBufferRef.current += dataStr + "\n";
@@ -619,6 +641,9 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       }
       flushAssistantText();
       handlers.finalizeAssistantMessageForSession();
+      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+        currentAssistantContentRef.current = "";
+      }
       closeActiveSse("stream-end");
     };
 
@@ -644,7 +669,16 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     return () => {
       isAborted = true;
       clearRetryTimeout();
-      // SSE lifecycle is driven by target session state; cleanup handled by effect transitions.
+      // Flush any pending assistant text before the closure is abandoned.
+      // Without this, text queued via queueAssistantText() but not yet
+      // flushed (waiting on the 50–95ms timer) would be silently lost
+      // when the effect re-runs (e.g. polling detects session ended →
+      // isTargetSessionRunning flips → closeActiveSse clears the timer).
+      if (streamFlushTimeoutRef.current) {
+        clearTimeout(streamFlushTimeoutRef.current);
+        streamFlushTimeoutRef.current = null;
+      }
+      flushAssistantText();
     };
   }, [
     closeActiveSse,
