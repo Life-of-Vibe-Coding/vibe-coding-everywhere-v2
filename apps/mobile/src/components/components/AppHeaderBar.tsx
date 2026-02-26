@@ -66,7 +66,7 @@ function HeaderButton({ icon, onPress, accessibilityLabel, delay = 0, plain = fa
   );
 }
 
-function FlickerLogo() {
+function FlickerLogo({ isDark }: { isDark: boolean }) {
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -110,7 +110,7 @@ function FlickerLogo() {
   return (
     <Animated.View style={{ opacity }}>
       <Image
-        source={require("../../../assets/ai-logo-final.png")}
+        source={isDark ? require("../../../assets/theme/dark/left_header_icon.png") : require("../../../assets/theme/light/left_header_icon.png")}
         style={{ width: 80, height: 80 }}
         resizeMode="contain"
       />
@@ -141,7 +141,7 @@ export function AppHeaderBar({
       <BlurView intensity={isDark ? 40 : 80} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
       <HStack className="relative h-20 flex-row items-center justify-between px-0 -mt-2" pointerEvents="box-none">
         <HeaderButton
-          icon={<Box style={{ marginLeft: -10 }}><FlickerLogo /></Box>}
+          icon={<Box style={{ marginLeft: -10 }}><FlickerLogo isDark={isDark} /></Box>}
           onPress={onOpenExplorer}
           accessibilityLabel="Open Explorer"
           delay={100}

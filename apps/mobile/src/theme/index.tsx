@@ -5,14 +5,14 @@
  */
 
 import React, { createContext, useContext, useMemo, useCallback } from "react";
-import { Dimensions, PixelRatio } from "react-native";
+import { Dimensions, PixelRatio, useColorScheme } from "react-native";
 import { buildTypographyScale, type TypographyScaleRecord } from "@/theme/typography";
 
 export type Provider = "claude" | "gemini" | "codex" | "cocoa";
-export type ColorMode = "dark";
-export type ColorModePreference = ColorMode;
+export type ColorMode = "dark" | "light";
+export type ColorModePreference = ColorMode | "system";
 
-export const universalGlassTheme = {
+export const darkUniversalGlassTheme = {
   accent: "#8B75FF",
   accentSoft: "rgba(139, 117, 255, 0.15)",
   accentMuted: "rgba(139, 117, 255, 0.25)",
@@ -56,7 +56,7 @@ const spacing = { xs: 8, sm: 16, md: 24, lg: 32, xl: 40, xxl: 48, xxxl: 64 };
 const radii = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 };
 const motion = { fast: 140, normal: 220, slow: 360, spring: { damping: 18, stiffness: 240, mass: 0.8 } };
 
-function getNeutrals(_mode: ColorMode = "dark") {
+function getNeutrals(_mode: ColorMode = "light") {
   return {
     background: "transparent",
     surface: "rgba(10, 15, 30, 0.6)",
@@ -74,8 +74,8 @@ function getNeutrals(_mode: ColorMode = "dark") {
   };
 }
 
-function buildTheme(provider: Provider = "codex", mode: ColorMode = "dark"): DesignTheme {
-  const brand = universalGlassTheme;
+function buildTheme(provider: Provider = "codex", mode: ColorMode = "light"): DesignTheme {
+  const brand = darkUniversalGlassTheme;
   const neutral = getNeutrals(mode);
   const accent = provider === "cocoa" ? "#D2B48C" : brand.accentOnDark;
 
@@ -106,24 +106,31 @@ export function getTheme(): DesignTheme {
 
 
 type ThemeContextValue = {
-  colorMode: ColorModePreference;
+  activeMode: ColorMode;
 };
 
-const ThemeContext = createContext<ThemeContextValue>({ colorMode: "dark" });
+const ThemeContext = createContext<ThemeContextValue>({ activeMode: "light" });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const value = useMemo(() => ({ colorMode: "dark" as const }), []);
+  const systemColorScheme = useColorScheme();
+
+  const activeMode = useMemo(() => {
+    return (systemColorScheme === "dark" ? "dark" : "light") as ColorMode;
+  }, [systemColorScheme]);
+
+  const value = useMemo(() => ({ activeMode }), [activeMode]);
+
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): DesignTheme {
   const ctx = useContext(ThemeContext);
-  return useMemo(() => buildTheme(), []);
+  return useMemo(() => buildTheme("codex", ctx.activeMode), [ctx.activeMode]);
 }
 
 export function useColorMode(): ColorMode {
   const ctx = useContext(ThemeContext);
-  return ctx.colorMode;
+  return ctx.activeMode;
 }
 
 export function useResponsive() {

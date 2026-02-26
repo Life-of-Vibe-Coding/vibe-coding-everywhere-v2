@@ -41,12 +41,12 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           onFocus={[Function]}
           onSubmitEditing={[Function]}
           placeholder="How can I help you today?"
-          placeholderTextColor="#737373"
+          placeholderTextColor="rgba(0, 229, 255, 0.5)"
           returnKeyType="default"
           scrollEnabled={false}
           style={
             {
-              "color": "#000000",
+              "color": "#FFFFFF",
               "maxHeight": 96,
               "minHeight": 32,
               "minWidth": 0,
@@ -129,9 +129,9 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
-              "borderColor": "transparent",
-              "borderWidth": 0,
+              "backgroundColor": "rgba(255, 255, 255, 0.05)",
+              "borderColor": "#A594FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -198,9 +198,9 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
-              "borderColor": "transparent",
-              "borderWidth": 0,
+              "backgroundColor": "rgba(255, 255, 255, 0.05)",
+              "borderColor": "#60a5fa",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -212,7 +212,7 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
               [
                 undefined,
                 {
-                  "color": "#8B75FF",
+                  "color": "#60a5fa",
                 },
               ]
             }
@@ -281,7 +281,9 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
+              "backgroundColor": "rgba(255, 0, 255, 0.1)",
+              "borderColor": "#FF00FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -339,7 +341,9 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
+              "backgroundColor": "rgba(0, 229, 255, 0.1)",
+              "borderColor": "#00E5FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -379,23 +383,23 @@ exports[`chat/InputPanel visual regression matches snapshot in idle state 1`] = 
           onStartShouldSetResponder={[Function]}
           style={
             {
-              "backgroundColor": "#111",
-              "borderColor": "transparent",
-              "borderWidth": 0,
-              "shadowColor": "#000",
+              "backgroundColor": "rgba(139, 117, 255, 0.18)",
+              "borderColor": "#A594FF",
+              "borderWidth": 1.5,
+              "shadowColor": "#A594FF",
               "shadowOffset": {
-                "height": 2,
+                "height": 0,
                 "width": 0,
               },
-              "shadowOpacity": 0.1,
-              "shadowRadius": 4,
+              "shadowOpacity": 0.5,
+              "shadowRadius": 8,
             }
           }
         >
           <View
             style={
               {
-                "color": "#FFFFFF",
+                "color": "#A594FF",
               }
             }
           >
@@ -448,13 +452,13 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onContentSizeChange={[Function]}
           onFocus={[Function]}
           onSubmitEditing={[Function]}
-          placeholder="Type response for Claude…"
-          placeholderTextColor="#737373"
+          placeholder="Type your response…"
+          placeholderTextColor="rgba(0, 229, 255, 0.5)"
           returnKeyType="default"
           scrollEnabled={false}
           style={
             {
-              "color": "#000000",
+              "color": "#FFFFFF",
               "maxHeight": 96,
               "minHeight": 32,
               "minWidth": 0,
@@ -537,9 +541,9 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
-              "borderColor": "transparent",
-              "borderWidth": 0,
+              "backgroundColor": "rgba(255, 255, 255, 0.05)",
+              "borderColor": "#A594FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -606,9 +610,9 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
-              "borderColor": "transparent",
-              "borderWidth": 0,
+              "backgroundColor": "rgba(255, 255, 255, 0.05)",
+              "borderColor": "#60a5fa",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -620,7 +624,7 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
               [
                 undefined,
                 {
-                  "color": "#8B75FF",
+                  "color": "#60a5fa",
                 },
               ]
             }
@@ -689,7 +693,9 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
+              "backgroundColor": "rgba(255, 0, 255, 0.1)",
+              "borderColor": "#FF00FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -747,7 +753,9 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           }
           style={
             {
-              "backgroundColor": "rgba(255, 255, 255, 0.4)",
+              "backgroundColor": "rgba(0, 229, 255, 0.1)",
+              "borderColor": "#00E5FF",
+              "borderWidth": 1.5,
             }
           }
         >
@@ -845,23 +853,23 @@ exports[`chat/InputPanel visual regression matches snapshot in waiting-for-user-
           onStartShouldSetResponder={[Function]}
           style={
             {
-              "backgroundColor": "#111",
-              "borderColor": "transparent",
-              "borderWidth": 0,
-              "shadowColor": "#000",
+              "backgroundColor": "rgba(139, 117, 255, 0.18)",
+              "borderColor": "#A594FF",
+              "borderWidth": 1.5,
+              "shadowColor": "#A594FF",
               "shadowOffset": {
-                "height": 2,
+                "height": 0,
                 "width": 0,
               },
-              "shadowOpacity": 0.1,
-              "shadowRadius": 4,
+              "shadowOpacity": 0.5,
+              "shadowRadius": 8,
             }
           }
         >
           <View
             style={
               {
-                "color": "#FFFFFF",
+                "color": "#A594FF",
               }
             }
           >

@@ -2,6 +2,10 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { Keyboard, AccessibilityInfo } from 'react-native';
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+
 jest.mock('@/design-system', () => ({
   triggerHaptic: jest.fn(),
   EntranceAnimation: ({ children }: { children: React.ReactNode }) => <>{children}</>,

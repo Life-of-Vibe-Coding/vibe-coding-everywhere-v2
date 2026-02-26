@@ -1,5 +1,6 @@
 import { getBackendPermissionMode, type PermissionModeUI, type BackendPermissionResult } from "@/utils/permission";
 import type { Provider as BrandProvider } from "@/constants/modelOptions";
+import { ColorMode, ColorModePreference } from "@/design-system/theme";
 import {
   DEFAULT_CLAUDE_MODEL,
   DEFAULT_CODEX_MODEL,
@@ -25,8 +26,11 @@ export const SESSION_CLEANUP_INTERVAL_MS = 60_000;
 export const SESSION_STATUS_POLL_INTERVAL_MS = 3_000;
 export const SESSION_STORE_PAYLOAD_THROTTLE_MS = 30_000;
 
-export function getThemeMode(_provider?: string): "dark" {
-  return "dark";
+export function getThemeMode(preference: ColorModePreference, systemMode: ColorMode): ColorMode {
+  if (preference === "system") {
+    return systemMode;
+  }
+  return preference;
 }
 
 export function getDefaultPermissionModeUI(): PermissionModeUI {

@@ -309,8 +309,8 @@ export type ShadowToken = keyof ShadowsRecord;
 // Theme Type Definitions
 // ============================================================================
 
-export type ColorMode = "dark";
-export type ColorModePreference = ColorMode;
+export type ColorMode = "dark" | "light";
+export type ColorModePreference = ColorMode | "system";
 
 export interface ThemeColors {
   // Background colors
@@ -385,7 +385,7 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function buildColors(_mode: ColorMode = "dark"): ThemeColors {
+function buildColors(_mode: ColorMode = "light"): ThemeColors {
   const brand = brandColors;
 
   // Neutral palette selection (Dark Only)
@@ -455,7 +455,7 @@ interface ThemeContextValue {
 }
 
 const defaultContextValue: ThemeContextValue = {
-  mode: "dark",
+  mode: "light",
 };
 
 const ThemeContext = createContext<ThemeContextValue>(defaultContextValue);
@@ -467,13 +467,34 @@ export interface ModernThemeProviderProps {
 }
 
 export function ModernThemeProvider({
+  mode: initialMode = "system",
+  onModeChange,
   children,
-}: { children: React.ReactNode }) {
+}: ModernThemeProviderProps) {
+  const systemColorScheme = useColorScheme();
+
+  // Note: if initialMode changes dynamically, it will override userPreference
+  const [userPreference, setUserPreference] = React.useState<ColorModePreference>(initialMode);
+
+  // Update state if controlled prop changes
+  React.useEffect(() => {
+    if (initialMode && initialMode !== userPreference) {
+      setUserPreference(initialMode);
+    }
+  }, [initialMode]);
+
+  const activeMode = useMemo(() => {
+    if (userPreference === "system") {
+      return (systemColorScheme === "dark" ? "dark" : "light") as ColorMode;
+    }
+    return userPreference as ColorMode;
+  }, [userPreference, systemColorScheme]);
+
   const value = useMemo(
     () => ({
-      mode: "dark" as const,
+      mode: activeMode,
     }),
-    []
+    [activeMode]
   );
 
   return (
@@ -492,7 +513,7 @@ export function useThemeContext(): ThemeContextValue {
 }
 
 export function useThemeMode(): ColorMode {
-  return "dark";
+  return useThemeContext().mode;
 }
 
 export function useTheme(): Theme {

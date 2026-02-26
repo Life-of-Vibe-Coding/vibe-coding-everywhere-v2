@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useColorScheme } from "react-native";
 
 import { getTheme } from "@/theme/index";
 import { type Provider as BrandProvider } from "@/constants/modelOptions";
@@ -33,7 +34,9 @@ export function ThemeSessionState({ children }: ThemeSessionStateProps) {
   const [provider, setProvider] = useState<BrandProvider>("codex");
   const [model, setModel] = useState<string>(getModel(provider));
 
-  const themeMode = useMemo(() => getThemeMode(provider), [provider]);
+  const systemColorScheme = useColorScheme();
+  const resolvedSystemMode = systemColorScheme === "dark" ? "dark" : "light";
+  const themeMode = useMemo(() => getThemeMode("system", resolvedSystemMode), [resolvedSystemMode]);
   const theme = useMemo(() => getTheme(), []);
   const styles = useMemo(() => createAppStyles(theme), [theme]);
   const modelOptions = useMemo(() => getModelOptions(provider), [provider]);

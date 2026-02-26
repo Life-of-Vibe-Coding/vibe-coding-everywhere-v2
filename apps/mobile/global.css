@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "uniwind";
 
+@variant light (&:is(.light *));
+@variant dark (&:is(.dark *));
+
 /* gluestack-ui design tokens - dark theme only */
 @layer theme {
   :root {

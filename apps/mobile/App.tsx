@@ -116,7 +116,7 @@ export default function App() {
                         <GluestackUIProvider mode={themeState.themeMode}>
                           <View style={{ flex: 1 }}>
                             <ImageBackground
-                              source={require("./assets/background.png")}
+                              source={themeState.themeMode === "light" ? require("./assets/theme/light/background.png") : require("./assets/theme/dark/background.png")}
                               style={StyleSheet.absoluteFill}
                               resizeMode="cover"
                             />
