@@ -5,8 +5,6 @@ import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
 
 type WorkspaceSidebarPageProps = {
   isOpen: boolean;
-  style?: StyleProp<ViewStyle>;
-  pointerEvents?: "auto" | "none" | "box-none" | "box-only";
   onClose: () => void;
   onFileSelect: (path: string) => void;
   onCommitByAI: (request: string) => void;
@@ -15,15 +13,15 @@ type WorkspaceSidebarPageProps = {
 
 export function WorkspaceSidebarPage({
   isOpen,
-  style,
-  pointerEvents,
   onClose,
   onFileSelect,
   onCommitByAI,
   onActiveTabChange,
 }: WorkspaceSidebarPageProps) {
+  if (!isOpen) return null;
+
   return (
-    <Box style={style} pointerEvents={pointerEvents ?? "none"}>
+    <Box className="flex-1 bg-surface-base">
       <WorkspaceSidebar
         isOpen={isOpen}
         embedded
