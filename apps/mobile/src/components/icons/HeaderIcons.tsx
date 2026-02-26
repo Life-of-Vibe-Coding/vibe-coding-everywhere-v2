@@ -66,8 +66,8 @@ export function SettingsGradientIcon({ size = 30 }: { size?: number }) {
   const theme = useTheme();
   const isLight = theme.mode === "light";
 
-  const stop1Color = isLight ? "#FFE135" : "#00E5FF";
-  const stop2Color = isLight ? "#87664B" : "#FF00FF";
+  const stop1Color = isLight ? "#B3D4FF" : "#00E5FF";
+  const stop2Color = isLight ? "#4A90E2" : "#FF00FF";
 
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

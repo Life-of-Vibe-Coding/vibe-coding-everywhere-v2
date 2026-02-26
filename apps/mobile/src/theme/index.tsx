@@ -29,10 +29,13 @@ export type DesignTheme = {
     surfaceAlt: string;
     surfaceMuted: string;
     border: string;
+    borderSubtle: string;
+    borderStrong: string;
     textPrimary: string;
     textSecondary: string;
     textMuted: string;
     textInverse: string;
+    textPlaceholder: string;
     accent: string;
     accentSoft: string;
     accentSubtle: string;
@@ -63,23 +66,26 @@ const motion = { fast: 140, normal: 220, slow: 360, spring: { damping: 18, stiff
 function getNeutrals(mode: ColorMode = "light") {
   if (mode === "light") {
     return {
-      background: "#F9F3EA", // Soft cream from the image background
-      surface: "#F1E5D1", // Light tan for surfaces/cards
-      surfaceAlt: "#E8D8C2", // Mid tan
-      surfaceMuted: "#E2CDBA", // Deeper tan for secondary backgrounds
-      border: "#D1BCA3", // Subdued tan border
-      textPrimary: "#4A2E1B", // Deep chocolate brown
-      textSecondary: "#87664B",
-      textMuted: "#A38268", // Solid medium warm brown
-      textInverse: "#F9F3EA",
-      overlay: "rgba(74, 46, 27, 0.4)",
-      shadow: "rgba(74, 46, 27, 0.1)",
-      skeleton: "#E2CDBA",
-      skeletonHighlight: "#F1E5D1",
-      cocoaCream: "#F9F3EA",
-      cocoaTan: "#F1E5D1",
-      cocoaBrown: "#87664B",
-      cocoaDark: "#4A2E1B",
+      background: "transparent",
+      surface: "rgba(255, 255, 255, 0.6)",
+      surfaceAlt: "rgba(240, 248, 255, 0.6)",
+      surfaceMuted: "rgba(224, 242, 255, 0.6)",
+      border: "#E2E8F0",
+      borderSubtle: "rgba(226, 232, 240, 0.4)",
+      borderStrong: "#CBD5E1",
+      textPrimary: "#0F172A",
+      textSecondary: "#334155",
+      textMuted: "#64748B",
+      textInverse: "#FFFFFF",
+      textPlaceholder: "#94A3B8",
+      overlay: "rgba(255, 255, 255, 0.7)",
+      shadow: "rgba(0, 100, 200, 0.05)",
+      skeleton: "rgba(135, 206, 235, 0.1)",
+      skeletonHighlight: "rgba(135, 206, 235, 0.3)",
+      cocoaCream: "rgba(255, 255, 255, 0.8)",
+      cocoaTan: "rgba(240, 248, 255, 0.8)",
+      cocoaBrown: "#4A90E2",
+      cocoaDark: "#0F172A",
     };
   }
 
@@ -89,10 +95,13 @@ function getNeutrals(mode: ColorMode = "light") {
     surfaceAlt: "rgba(15, 20, 40, 0.6)",
     surfaceMuted: "rgba(20, 25, 45, 0.6)",
     border: "rgba(0, 229, 255, 0.25)",
+    borderSubtle: "rgba(0, 229, 255, 0.15)",
+    borderStrong: "rgba(0, 229, 255, 0.4)",
     textPrimary: "#FFFFFF",
     textSecondary: "#A5F5F5",
     textMuted: "rgba(0, 229, 255, 0.5)",
     textInverse: "#000000",
+    textPlaceholder: "rgba(0, 229, 255, 0.3)",
     overlay: "rgba(0, 0, 10, 0.7)",
     shadow: "rgba(0, 229, 255, 0.3)",
     skeleton: "rgba(0, 229, 255, 0.1)",
@@ -109,7 +118,7 @@ export function buildTheme(provider: Provider = "codex", mode: ColorMode = "ligh
   const brand = darkUniversalGlassTheme;
   const neutral = getNeutrals(mode);
   const isLight = mode === "light";
-  const defaultAccent = isLight ? "#87664B" : brand.accentOnDark;
+  const defaultAccent = isLight ? "#4A90E2" : brand.accentOnDark;
   const accent = provider === "cocoa" ? "#D2B48C" : defaultAccent;
 
   return {
@@ -118,8 +127,8 @@ export function buildTheme(provider: Provider = "codex", mode: ColorMode = "ligh
     colors: {
       ...neutral,
       accent,
-      accentSoft: isLight ? "rgba(135, 102, 75, 0.18)" : "rgba(139, 117, 255, 0.18)",
-      accentSubtle: isLight ? "rgba(135, 102, 75, 0.2)" : "rgba(139, 117, 255, 0.2)",
+      accentSoft: isLight ? "#B3D4FF" : "rgba(139, 117, 255, 0.18)",
+      accentSubtle: isLight ? "rgba(179, 212, 255, 0.4)" : "rgba(139, 117, 255, 0.2)",
       success: "#22c55e",
       danger: "#f87171",
       warning: "#fbbf24",

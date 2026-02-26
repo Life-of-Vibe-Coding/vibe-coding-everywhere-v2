@@ -35,17 +35,17 @@ const BG_SURFACE_ALT = "rgba(0, 20, 35, 0.4)";
 const ORANGE = "#ff5e00";
 const MONO_FONT = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
-// ── Clay / Chocolate palette (light mode) ────────────────────────────
-const CLAY_900 = "#3D2A1C";
-const CLAY_800 = "#523724";
-const CLAY_700 = "#6F4B30";
-const CLAY_600 = "#8B5E3C";
-const CLAY_500 = "#B08264";
-const CLAY_400 = "#C9A68D";
-const CLAY_300 = "#DCC3B0";
-const CLAY_200 = "#EADBCF";
-const CLAY_100 = "#F7F1EB";
-const CLAY_BG = "#F2E8DF";
+// ── Clean White palette (light mode) ────────────────────────────
+const LIGHT_900 = "#0F172A";
+const LIGHT_800 = "#334155";
+const LIGHT_700 = "#475569";
+const LIGHT_600 = "#4A90E2";
+const LIGHT_500 = "#64748B";
+const LIGHT_400 = "#94A3B8";
+const LIGHT_300 = "#CBD5E1";
+const LIGHT_200 = "#E2E8F0";
+const LIGHT_100 = "#F0F4F8";
+const LIGHT_BG = "transparent";
 
 type WorkspaceChild = { name: string; path: string };
 
@@ -75,11 +75,11 @@ export function WorkspacePickerModal({
   const currentWorkspaceRowY = useRef<number | null>(null);
 
   // Theme-aware accent colors for inline use
-  const accentColor = isDark ? CYAN : CLAY_600;
-  const folderColor = isDark ? CYAN_75 : CLAY_500;
-  const chevronColor = isDark ? CYAN : CLAY_600;
-  const spinnerColor = isDark ? CYAN : CLAY_600;
-  const secondaryTextColor = isDark ? CYAN_50 : CLAY_400;
+  const accentColor = isDark ? CYAN : LIGHT_600;
+  const folderColor = isDark ? CYAN_75 : LIGHT_500;
+  const chevronColor = isDark ? CYAN : LIGHT_600;
+  const spinnerColor = isDark ? CYAN : LIGHT_600;
+  const secondaryTextColor = isDark ? CYAN_50 : LIGHT_400;
 
   const [workspaceRoot, setWorkspaceRoot] = useState<string | null>(null);
   const [allowedRoot, setAllowedRoot] = useState<string | null>(null);
@@ -527,7 +527,7 @@ export function WorkspacePickerModal({
                             >
                               {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
                             </GText>
-                            <GText size="xs" style={[styles.childPath, { fontSize: 12, color: isDark ? CYAN_50 : CLAY_400, fontWeight: "400" }]}>
+                            <GText size="xs" style={[styles.childPath, { fontSize: 12, color: isDark ? CYAN_50 : LIGHT_400, fontWeight: "400" }]}>
                               Current folder
                             </GText>
                           </VStack>
@@ -593,12 +593,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? "rgba(5, 10, 20, 0.45)" : CLAY_BG,
+      backgroundColor: isDark ? "rgba(5, 10, 20, 0.45)" : LIGHT_BG,
     },
 
     // Title
     titleText: {
-      color: isDark ? TEXT_WHITE : CLAY_900,
+      color: isDark ? TEXT_WHITE : LIGHT_900,
       fontSize: 18,
       fontWeight: "800",
       letterSpacing: isDark ? 1.5 : 0,
@@ -609,7 +609,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textShadowRadius: isDark ? 12 : 0,
     },
     subtitleText: {
-      color: isDark ? CYAN_50 : CLAY_500,
+      color: isDark ? CYAN_50 : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontSize: 9,
       fontWeight: "700",
@@ -620,7 +620,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     // Header section
     headerSection: {
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? CYAN_25 : CLAY_300,
+      borderBottomColor: isDark ? CYAN_25 : LIGHT_300,
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.4)",
       paddingHorizontal: 16,
       paddingBottom: 16,
@@ -637,8 +637,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minWidth: 98,
       borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: isDark ? CYAN : CLAY_300,
-      backgroundColor: isDark ? "rgba(0, 24, 46, 0.9)" : CLAY_100,
+      borderColor: isDark ? CYAN : LIGHT_300,
+      backgroundColor: isDark ? "rgba(0, 24, 46, 0.9)" : LIGHT_100,
       paddingHorizontal: 14,
       flexDirection: "row",
       alignItems: "center",
@@ -650,13 +650,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       elevation: 2,
     },
     backButtonPressed: {
-      backgroundColor: isDark ? CYAN_15 : CLAY_200,
+      backgroundColor: isDark ? CYAN_15 : LIGHT_200,
       shadowOpacity: isDark ? 0.75 : 0,
       shadowRadius: isDark ? 12 : 0,
       transform: [{ scale: 0.97 }],
     },
     backButtonText: {
-      color: isDark ? CYAN : CLAY_600,
+      color: isDark ? CYAN : LIGHT_600,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 13,
@@ -666,13 +666,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     browserCard: {
       borderRadius: isDark ? 16 : 20,
       borderWidth: 1,
-      borderColor: isDark ? CYAN_25 : CLAY_200,
-      backgroundColor: isDark ? BG_SURFACE_ALT : CLAY_100,
+      borderColor: isDark ? CYAN_25 : LIGHT_200,
+      backgroundColor: isDark ? BG_SURFACE_ALT : LIGHT_100,
       paddingHorizontal: 14,
       paddingVertical: 12,
     },
     browserLabel: {
-      color: isDark ? CYAN_50 : CLAY_500,
+      color: isDark ? CYAN_50 : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 10,
@@ -680,13 +680,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textTransform: "uppercase",
     },
     browserPath: {
-      color: isDark ? TEXT_TINT : CLAY_700,
+      color: isDark ? TEXT_TINT : LIGHT_700,
       fontFamily: MONO_FONT,
       fontWeight: "700",
       fontSize: 14,
     },
     instructionText: {
-      color: isDark ? CYAN_50 : CLAY_400,
+      color: isDark ? CYAN_50 : LIGHT_400,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontSize: 12,
     },
@@ -713,14 +713,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
       paddingHorizontal: 14,
       paddingVertical: 12,
-      shadowColor: isDark ? CYAN : CLAY_900,
+      shadowColor: isDark ? CYAN : LIGHT_900,
       shadowOffset: { width: 0, height: isDark ? 0 : 4 },
       shadowOpacity: isDark ? 0.25 : 0.06,
       shadowRadius: isDark ? 8 : 12,
       elevation: 3,
     },
     currentFolderCardActive: {
-      borderColor: isDark ? CYAN : CLAY_600,
+      borderColor: isDark ? CYAN : LIGHT_600,
       backgroundColor: isDark ? "rgba(0, 25, 45, 0.7)" : "rgba(255, 255, 255, 0.7)",
       shadowOpacity: isDark ? 0.5 : 0.1,
       shadowRadius: 12,
@@ -732,7 +732,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginBottom: 8,
       borderRadius: isDark ? 16 : 24,
       borderWidth: 1,
-      borderColor: isDark ? PINK_25 : CLAY_200,
+      borderColor: isDark ? PINK_25 : LIGHT_200,
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -743,9 +743,9 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       elevation: 2,
     },
     childCardActive: {
-      borderColor: isDark ? CYAN : CLAY_600,
-      backgroundColor: isDark ? "rgba(0, 25, 45, 0.7)" : CLAY_100,
-      shadowColor: isDark ? CYAN : CLAY_600,
+      borderColor: isDark ? CYAN : LIGHT_600,
+      backgroundColor: isDark ? "rgba(0, 25, 45, 0.7)" : LIGHT_100,
+      shadowColor: isDark ? CYAN : LIGHT_600,
       shadowOpacity: isDark ? 0.4 : 0.1,
       shadowRadius: 10,
     },
@@ -772,11 +772,11 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minWidth: 0,
     },
     childNameActive: {
-      color: isDark ? CYAN : CLAY_600,
+      color: isDark ? CYAN : LIGHT_600,
       fontWeight: "800",
     },
     childPath: {
-      color: isDark ? CYAN_50 : CLAY_800,
+      color: isDark ? CYAN_50 : LIGHT_800,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "500",
       fontSize: 14,
@@ -787,8 +787,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 44,
       borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: isDark ? PINK : CLAY_600,
-      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : CLAY_600,
+      borderColor: isDark ? PINK : LIGHT_600,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : LIGHT_600,
       paddingHorizontal: 16,
       alignItems: "center",
       justifyContent: "center",
@@ -799,7 +799,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       elevation: 2,
     },
     selectButtonPressed: {
-      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : CLAY_700,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : LIGHT_700,
       shadowOpacity: isDark ? 0.6 : 0,
       transform: [{ scale: 0.97 }],
     },
@@ -815,8 +815,8 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       minHeight: 44,
       borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
-      borderColor: isDark ? PINK : CLAY_600,
-      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : CLAY_600,
+      borderColor: isDark ? PINK : LIGHT_600,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : LIGHT_600,
       paddingHorizontal: 16,
       alignItems: "center",
       justifyContent: "center",
@@ -827,7 +827,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       elevation: 2,
     },
     useFolderButtonPressed: {
-      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : CLAY_700,
+      backgroundColor: isDark ? "rgba(255, 0, 229, 0.3)" : LIGHT_700,
       shadowOpacity: isDark ? 0.6 : 0,
       transform: [{ scale: 0.97 }],
     },
@@ -840,7 +840,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
 
     // Section label
     sectionLabel: {
-      color: isDark ? CYAN : CLAY_500,
+      color: isDark ? CYAN : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
       fontSize: 11,
@@ -879,7 +879,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "center",
       borderRadius: isDark ? 16 : 24,
       borderWidth: 1,
-      borderColor: isDark ? CYAN_25 : CLAY_200,
+      borderColor: isDark ? CYAN_25 : LIGHT_200,
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.4)",
     },
 
@@ -889,13 +889,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       marginTop: 8,
       borderRadius: isDark ? 12 : 20,
       borderWidth: 1,
-      borderColor: isDark ? CYAN_25 : CLAY_200,
-      backgroundColor: isDark ? BG_SURFACE_ALT : CLAY_100,
+      borderColor: isDark ? CYAN_25 : LIGHT_200,
+      backgroundColor: isDark ? BG_SURFACE_ALT : LIGHT_100,
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
     emptyText: {
-      color: isDark ? CYAN_50 : CLAY_400,
+      color: isDark ? CYAN_50 : LIGHT_400,
       fontFamily: MONO_FONT,
       fontSize: 12,
     },

@@ -51,14 +51,14 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
           style={({ pressed }) => ({
             borderColor: pressed
               ? theme.colors.accent
-              : theme.mode === "dark" ? "transparent" : "#DCC3B0",
+              : theme.mode === "dark" ? "transparent" : theme.colors.border,
             backgroundColor: pressed
               ? theme.mode === "dark"
                 ? "rgba(160, 209, 255, 0.16)"
-                : "rgba(234, 219, 207, 0.8)"
+                : theme.colors.surfaceAlt
               : theme.mode === "dark"
                 ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(234, 219, 207, 0.5)",
+                : theme.colors.surfaceMuted,
             shadowColor: pressed ? theme.colors.accent : "transparent",
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: pressed ? 0.6 : 0,
@@ -68,7 +68,7 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel="Close file explorer"
         >
-          <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.mode === "dark" ? theme.colors.textPrimary : "#523724"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textPrimary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <Path d="M18 6L6 18" />
             <Path d="M6 6l12 12" />
           </Svg>

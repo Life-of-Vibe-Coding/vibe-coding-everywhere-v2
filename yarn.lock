@@ -5310,6 +5310,11 @@ image-size@^1.0.2:
   dependencies:
     queue "6.0.2"
 
+imagetracerjs@^1.2.6:
+  version "1.2.6"
+  resolved "https://registry.npmjs.org/imagetracerjs/-/imagetracerjs-1.2.6.tgz"
+  integrity sha512-LKJlnKmXFzDdh6IZtXTyBxXcCLTAkwgKYS+NMiPXiXVnlTLjQC8fq7U89laUSgHtypJB3TdMMDK4ecG5NI/Cgw==
+
 import-local@^3.0.2:
   version "3.2.0"
   resolved "https://registry.npmjs.org/import-local/-/import-local-3.2.0.tgz"
@@ -6681,11 +6686,13 @@ mkdirp@^1.0.4:
     react-dom "19.1.0"
     react-native "0.81.5"
     react-native-markdown-display "^7.0.2"
+    react-native-reanimated "^4.2.2"
     react-native-safe-area-context "^5.6.1"
     react-native-sse "^1.2.1"
     react-native-svg "^15.12.0"
     react-native-web "^0.21.0"
     react-native-webview "13.15.0"
+    react-native-worklets "^0.7.0"
     tailwind-merge "^3.5.0"
     tailwindcss "^4.2.0"
     uniwind "^1.3.2"

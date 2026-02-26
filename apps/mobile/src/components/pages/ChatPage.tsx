@@ -69,6 +69,7 @@ export type ChatPageConversation = {
   onFileSelect: (path: string) => void;
   onRetryPermission: () => void;
   onDismissPermission: () => void;
+  isSessionLoading: boolean;
 };
 
 export type ChatPageFileViewer = {

@@ -412,24 +412,24 @@ function buildColors(mode: ColorMode = "light"): ThemeColors {
       skeletonHighlight: "#2a3140",
     }
     : {
-      background: "#F9F3EA", // Soft cream from the image background
-      surface: "#F1E5D1", // Light tan for surfaces/cards
-      surfaceElevated: "#EBE0CC",
-      surfaceAlt: "#EBE0CC",
-      surfaceMuted: "#E2CDBA", // Deeper tan for secondary backgrounds
-      border: "#D1BCA3", // Subdued tan border
-      borderSubtle: "rgba(209, 188, 163, 0.4)",
-      borderStrong: "#C2A789",
-      textPrimary: "#4A2E1B", // Deep chocolate brown
-      textSecondary: "#63432B",
-      textTertiary: "#87664B", // Medium warm brown
-      textMuted: "rgba(135, 102, 75, 0.7)",
-      textInverse: "#F9F3EA",
-      textPlaceholder: "#A78F7B",
-      overlay: "rgba(249, 243, 234, 0.7)",
-      shadow: "rgba(135, 102, 75, 0.15)",
-      skeleton: "#E2CDBA",
-      skeletonHighlight: "#D1BCA3",
+      background: "transparent",
+      surface: "rgba(255, 255, 255, 0.6)",
+      surfaceElevated: "rgba(255, 255, 255, 0.8)",
+      surfaceAlt: "rgba(240, 248, 255, 0.6)",
+      surfaceMuted: "rgba(224, 242, 255, 0.6)",
+      border: "rgba(135, 206, 235, 0.4)",
+      borderSubtle: "rgba(135, 206, 235, 0.2)",
+      borderStrong: "rgba(135, 206, 235, 0.6)",
+      textPrimary: "#0F172A",
+      textSecondary: "#334155",
+      textTertiary: "#475569",
+      textMuted: "rgba(71, 85, 105, 0.7)",
+      textInverse: "#FFFFFF",
+      textPlaceholder: "#94A3B8",
+      overlay: "rgba(255, 255, 255, 0.7)",
+      shadow: "rgba(0, 100, 200, 0.05)",
+      skeleton: "rgba(135, 206, 235, 0.1)",
+      skeletonHighlight: "rgba(135, 206, 235, 0.3)",
     };
 
   // Semantic colors
@@ -456,10 +456,10 @@ function buildColors(mode: ColorMode = "light"): ThemeColors {
     };
 
   const lightBrandColors = {
-    accent: "#87664B", // Warm brown
-    accentSoft: "rgba(135, 102, 75, 0.15)",
-    accentMuted: "rgba(135, 102, 75, 0.25)",
-    accentOnDaily: "#87664B",
+    accent: "#4A90E2", // Soft Cerulean
+    accentSoft: "#B3D4FF", // Cloud Blue
+    accentMuted: "rgba(179, 212, 255, 0.25)",
+    accentOnDaily: "#4A90E2",
     accentOnDark: "#A594FF",
   };
   const activeBrand = isDark ? brand : lightBrandColors;
@@ -470,7 +470,7 @@ function buildColors(mode: ColorMode = "light"): ThemeColors {
     ...semantic,
     accentSubtle: withAlpha(activeBrand.accent, 0.2),
     assistantBg: neutrals.surfaceAlt,
-    userBg: isDark ? "#1e2a3a" : "#E2CDBA",
+    userBg: isDark ? "#1e2a3a" : "#F0F4F8",
   };
 }
 

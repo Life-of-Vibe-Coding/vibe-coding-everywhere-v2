@@ -316,8 +316,8 @@ const LEADING_OPEN_TAG_FRAGMENT_REGEX = /^\s*'[^']*'\s*u>\s*|^\s*'\s*u>\s*/i;
 const TRAILING_OPEN_TAG_FRAGMENT_REGEX = /<u\s*'[^']*'(?:\s*u?\s*)?$|<u\s*'[^']*$/i;
 /** Trailing incomplete closing tag (e.g. "</u" without ">"). */
 const TRAILING_CLOSE_TAG_FRAGMENT_REGEX = /<\/u\s*$/i;
-/** Leading bare "<u" not part of full command tag (PTY-injected before JSON line). Remove so we don't show "<u{...}". */
-const LEADING_BARE_U_REGEX = /^\s*<u(?!\s*'[^']*'\s*u>)/gm;
+/** Leading bare "<u" that is a PTY command tag fragment (followed by ' or {), not legitimate HTML like <ul>/<u>. */
+const LEADING_BARE_U_REGEX = /^\s*<u(?=\s*'[^']*$|\s*\{)/gm;
 
 /** Known bash/zsh system messages to hide from terminal output display. */
 const BASH_NOISE_PATTERNS = [

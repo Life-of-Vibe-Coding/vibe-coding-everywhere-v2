@@ -1,5 +1,5 @@
 import React from "react";
-import { type LayoutChangeEvent } from "react-native";
+import { type LayoutChangeEvent, ActivityIndicator } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
@@ -44,22 +44,29 @@ export function ChatConversationSection({ conversation, inputDockHeight, isHidde
   return (
     <ChatSectionFrame>
       {!isHidden && (
-        <ChatMessageList
-          messages={conversation.messages}
-          provider={conversation.provider}
-          sessionId={conversation.sessionId}
-          permissionDenials={conversation.permissionDenials}
-          lastSessionTerminated={conversation.lastSessionTerminated}
-          onOpenUrl={conversation.onOpenUrl}
-          onFileSelect={conversation.onFileSelect}
-          onRetryPermission={conversation.onRetryPermission}
-          onDismissPermission={conversation.onDismissPermission}
-          tailBoxMaxHeight={conversation.tailBoxMaxHeight}
-          scrollViewRef={conversation.scrollViewRef}
-          onContentSizeChange={conversation.onContentSizeChange}
-          style={{ flex: 1, minHeight: 0 }}
-          contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 36 }]}
-        />
+        <Box className="flex-1 min-h-0 relative">
+          <ChatMessageList
+            messages={conversation.messages}
+            provider={conversation.provider}
+            sessionId={conversation.sessionId}
+            permissionDenials={conversation.permissionDenials}
+            lastSessionTerminated={conversation.lastSessionTerminated}
+            onOpenUrl={conversation.onOpenUrl}
+            onFileSelect={conversation.onFileSelect}
+            onRetryPermission={conversation.onRetryPermission}
+            onDismissPermission={conversation.onDismissPermission}
+            tailBoxMaxHeight={conversation.tailBoxMaxHeight}
+            scrollViewRef={conversation.scrollViewRef}
+            onContentSizeChange={conversation.onContentSizeChange}
+            style={{ flex: 1, minHeight: 0, opacity: conversation.isSessionLoading ? 0 : 1 }}
+            contentContainerStyle={[{ paddingHorizontal: 12 }, { paddingBottom: inputDockHeight + 36 }]}
+          />
+          {conversation.isSessionLoading && (
+            <Box className="absolute inset-0 items-center justify-center pointer-events-none" style={{ backgroundColor: "transparent" }}>
+              <ActivityIndicator size="large" />
+            </Box>
+          )}
+        </Box>
       )}
     </ChatSectionFrame>
   );

@@ -82,6 +82,15 @@ const STREAM_FLUSH_INTERVAL_LARGE_MS = 95;
 const STREAM_FLUSH_DRAFT_THRESHOLD = 2400;
 const STREAM_BOUNDARY_MARKER = /[.!?;,\n]/;
 
+const SSE_MAX_RETRIES = 5;
+const SSE_RETRY_BASE_MS = 1000;
+
+/** Resolve the EventSource constructor across CJS/ESM module shapes. */
+function resolveEventSourceCtor(): EventSourceCtor {
+  return ((EventSource as unknown as { default?: EventSourceCtor }).default ??
+    (EventSource as EventSourceCtor)) as EventSourceCtor;
+}
+
 export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParams) {
   const {
     serverUrl,
@@ -133,12 +142,12 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     lastRunOptionsRef,
   } = params;
 
-  const isSessionManagedRunning = useCallback(
-    (sid: string | null): boolean => {
-      if (!sid) return false;
-      return sessionStatuses.find((session) => session.id === sid)?.status === "running";
-    },
-    [sessionStatuses]
+  // Derive a primitive boolean for the target session's running status.
+  // This replaces the volatile `isSessionManagedRunning` callback in the dep array:
+  // sessionStatuses array changes identity every 3s poll (lastAccess/mtime), but
+  // this boolean only changes when the target session *actually* transitions.
+  const isTargetSessionRunning = Boolean(
+    storeSessionId && sessionStatuses.find((s) => s.id === storeSessionId)?.status === "running"
   );
   const streamFlushPerfRef = useRef({
     flushCount: 0,
@@ -201,7 +210,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     const targetSessionId = storeSessionId;
     const targetSessionIntent = getConnectionIntent(targetSessionId);
     const targetSessionRunning = targetSessionId
-      ? (targetSessionIntent ?? isSessionManagedRunning(targetSessionId))
+      ? (targetSessionIntent ?? isTargetSessionRunning)
       : false;
     const prevSessionRuntime = selectedSessionRuntimeRef.current;
     if (prevSessionRuntime?.id === targetSessionId && prevSessionRuntime.running && !targetSessionRunning) {
@@ -254,6 +263,16 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     });
     const hasStreamEndedRef = { current: false };
     sawAgentEndRef.current = false;
+    const retryCountRef = { current: 0 };
+    const retryTimeoutRef: { current: ReturnType<typeof setTimeout> | null } = { current: null };
+    let isAborted = false;
+
+    const clearRetryTimeout = () => {
+      if (retryTimeoutRef.current !== null) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
 
     const markAgentEnd = () => {
       if (sawAgentEndRef.current) return;
@@ -269,9 +288,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     if (applySkipReplay) {
       skipReplayForSessionRef.current = null;
     }
-    const EventSourceCtor = ((EventSource as unknown as { default?: EventSourceCtor }).default ??
-      (EventSource as EventSourceCtor)) as EventSourceCtor;
-    const sse = new EventSourceCtor(streamUrl);
+    const sse = new (resolveEventSourceCtor())(streamUrl);
     activeSseRef.current = { id: sid, source: sse };
 
     const setSessionIdWithRekey = (newId: string | null) => {
@@ -279,6 +296,11 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       if (newId && newId !== currentSid && !newId.startsWith("temp-")) {
         moveSessionCacheData(currentSid, newId, sessionStatesRef.current, sessionMessagesRef.current, sessionDraftRef.current);
         connectionSessionIdRef.current = newId;
+        // Sync displayed session ID so live messages continue to display
+        // during the rekey window (temp-* → real session ID)
+        if (displayedSessionIdRef.current === currentSid) {
+          displayedSessionIdRef.current = newId;
+        }
         if (activeSseRef.current && activeSseRef.current.id === currentSid) {
           activeSseRef.current.id = newId;
           suppressActiveSessionSwitchRef.current = true;
@@ -304,25 +326,29 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       if (!pendingAssistantText) return;
       const chunk = pendingAssistantText;
       pendingAssistantText = "";
-      streamFlushPerfRef.current.flushCount += 1;
-      streamFlushPerfRef.current.totalChars += chunk.length;
-      const now = Date.now();
-      const sinceLast = streamFlushPerfRef.current.lastFlushAt
-        ? now - streamFlushPerfRef.current.lastFlushAt
-        : 0;
-      streamFlushPerfRef.current.lastFlushAt = now;
-      const start = Date.now();
-      handlers.appendAssistantTextForSession(chunk);
-      const appendDuration = Date.now() - start;
-      if (__DEV__ && streamFlushPerfRef.current.flushCount % 15 === 0) {
-        console.debug("[stream] assistant flush", {
-          flushCount: streamFlushPerfRef.current.flushCount,
-          totalChars: streamFlushPerfRef.current.totalChars,
-          sinceLastMs: sinceLast,
-          appendMs: appendDuration,
-          chunkLen: chunk.length,
-        });
+
+      if (__DEV__) {
+        const perf = streamFlushPerfRef.current;
+        perf.flushCount += 1;
+        perf.totalChars += chunk.length;
+        const now = Date.now();
+        const sinceLast = perf.lastFlushAt ? now - perf.lastFlushAt : 0;
+        perf.lastFlushAt = now;
+        const start = now;
+        handlers.appendAssistantTextForSession(chunk);
+        if (perf.flushCount % 15 === 0) {
+          console.debug("[stream] assistant flush", {
+            flushCount: perf.flushCount,
+            totalChars: perf.totalChars,
+            sinceLastMs: sinceLast,
+            appendMs: Date.now() - start,
+            chunkLen: chunk.length,
+          });
+        }
+        return;
       }
+
+      handlers.appendAssistantTextForSession(chunk);
     };
     const queueAssistantText = (chunk: string) => {
       pendingAssistantText += chunk;
@@ -384,8 +410,64 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
 
     const openHandler = () => {
       hasStreamEndedRef.current = false;
+      retryCountRef.current = 0;
+      clearRetryTimeout();
       if (__DEV__) console.log("[sse] connected", { sessionId: connectionSessionIdRef.current });
       setConnected(true);
+    };
+
+    const scheduleRetry = () => {
+      if (isAborted) return;
+      if (retryCountRef.current >= SSE_MAX_RETRIES) {
+        if (__DEV__) console.log("[sse] max retries reached, giving up", { sessionId: connectionSessionIdRef.current });
+        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+          setConnected(false);
+        }
+        return;
+      }
+      const delay = Math.min(SSE_RETRY_BASE_MS * Math.pow(2, retryCountRef.current), 30_000);
+      retryCountRef.current += 1;
+      if (__DEV__)
+        console.log("[sse] scheduling retry", {
+          attempt: retryCountRef.current,
+          delayMs: delay,
+          sessionId: connectionSessionIdRef.current,
+        });
+      retryTimeoutRef.current = setTimeout(() => {
+        retryTimeoutRef.current = null;
+        if (isAborted) return;
+        // Close the stale SSE source before reconnecting.
+        try {
+          sse.removeEventListener("open", openHandler);
+          sse.removeEventListener("error", errorHandler);
+          sse.removeEventListener("message", messageHandler);
+          // @ts-ignore
+          sse.removeEventListener("end", endHandler);
+          // @ts-ignore
+          sse.removeEventListener("done", doneHandler);
+          sse.close();
+        } catch {}
+
+        const { url: retryUrl } = resolveStreamUrl(serverUrl, connectionSessionIdRef.current, null);
+        const retrySse = new (resolveEventSourceCtor())(retryUrl);
+        activeSseRef.current = { id: connectionSessionIdRef.current, source: retrySse };
+
+        retrySse.addEventListener("open", openHandler);
+        retrySse.addEventListener("error", errorHandler);
+        retrySse.addEventListener("message", messageHandler);
+        // @ts-ignore
+        retrySse.addEventListener("end", endHandler);
+        // @ts-ignore
+        retrySse.addEventListener("done", doneHandler);
+
+        activeSseHandlersRef.current = {
+          open: openHandler,
+          error: errorHandler,
+          message: messageHandler,
+          end: endHandler,
+          done: doneHandler,
+        };
+      }, delay);
     };
 
     const errorHandler = (err: unknown) => {
@@ -396,13 +478,14 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         (typeof e?.message === "string" && e.message.toLowerCase().includes("connection abort"));
       if (isExpectedServerClose) {
         if (__DEV__) console.log("[sse] stream ended (server closed)", { sessionId: connectionSessionIdRef.current });
-      } else {
-        if (__DEV__) console.log("[sse] disconnected (error)", { sessionId: connectionSessionIdRef.current });
-        console.error("[sse] error:", err);
+        // Expected close — no retry needed.
+        if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
+          setConnected(false);
+        }
+        return;
       }
-      if (displayedSessionIdRef.current === connectionSessionIdRef.current) {
-        setConnected(false);
-      }
+      if (__DEV__) console.log("[sse] disconnected (error), will retry", { sessionId: connectionSessionIdRef.current, err });
+      scheduleRetry();
     };
 
     const messageHandler = (event: any) => {
@@ -506,6 +589,30 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
         setWaitingForUserInput(false);
         if (exitCode !== 0) setLastSessionTerminated(true);
       }
+
+      // Flush any remaining partial line left in the output buffer.
+      // Without this, the last chunk of AI text is silently discarded
+      // when the final SSE payload doesn't end with a newline.
+      const remainingBuffer = outputBufferRef.current.trim();
+      if (remainingBuffer) {
+        outputBufferRef.current = "";
+        const clean = stripAnsi(remainingBuffer);
+        if (clean && !isProviderSystemNoise(clean)) {
+          try {
+            const parsed = JSON.parse(clean);
+            if (isProviderStream(parsed)) {
+              dispatchProviderEvent(parsed as Record<string, unknown>);
+            } else if (typeof parsed === "object" && parsed != null && "type" in parsed) {
+              // Known typed event but not a provider stream — skip
+            } else {
+              queueAssistantText(clean + "\n");
+            }
+          } catch {
+            queueAssistantText(clean + "\n");
+          }
+        }
+      }
+
       if (streamFlushTimeoutRef.current) {
         clearTimeout(streamFlushTimeoutRef.current);
         streamFlushTimeoutRef.current = null;
@@ -535,6 +642,8 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     sse.addEventListener("done", doneHandler);
 
     return () => {
+      isAborted = true;
+      clearRetryTimeout();
       // SSE lifecycle is driven by target session state; cleanup handled by effect transitions.
     };
   }, [
@@ -543,7 +652,7 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
     refreshCurrentSessionFromDisk,
     setSessionStateForSession,
     getConnectionIntent,
-    isSessionManagedRunning,
+    isTargetSessionRunning,
     storeSessionId,
     serverUrl,
     syncSessionToReact,

@@ -28,7 +28,7 @@ export const layoutGlassHeaderStyleDark = {
 };
 
 export const layoutGlassHeaderStyleLight = {
-  backgroundColor: "#F9F3EA", // Solid cream canvas
+  backgroundColor: "#FFFFFF", // Solid white canvas
   borderBottomWidth: 1.5,
-  borderBottomColor: "#E2CDBA", // Deeper tan border
+  borderBottomColor: "#E2E8F0", // Slate border
 };

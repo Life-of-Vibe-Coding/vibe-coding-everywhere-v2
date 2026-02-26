@@ -110,7 +110,7 @@ function replaceHighlightWithTextColor(content: string, highlightColor: string):
 const BASH_LANGUAGES = new Set(["bash", "sh", "shell", "zsh"]);
 
 /** Supports both emoji and non-emoji prefixes. Groups: 1=prefix, 2=label, 3=encodedPath. */
-const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:([^)]+)\)\s*$/;
+const FILE_ACTIVITY_LINK_REGEX = /^((?:(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading))\s+\[([^\]]+)\]\(file:(.+)\)\s*$/;
 
 /** Matches "Running command:" or "🖥 Running command:" followed by newlines, `cmd`, optional Output block, and optional status (→ or ->). */
 const BASH_COMMAND_BLOCK_REGEX = /(?:🖥\s*)?Running command:(?:\r?\n)+`([^`]*)`(?:(?:\r?\n)+Output:\r?\n```(?:[a-zA-Z0-9-]*)\r?\n([\s\S]*?)\r?\n```)?(?:(?:\r?\n)+(?:→|->)\s*(Completed|Failed)(?:\s*\((\d+)\))?)?/g;
@@ -247,11 +247,13 @@ export type ContentSegment =
 /** Parses content into alternating thinking and text segments to maintain chronological order. */
 export function parseContentSegments(content: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  const THINKING_BLOCK_REGEX = /<think(?:_start)?>([\s\S]*?)(?:<\/think(?:_end)?>|$)/gi;
+  // Only match fully-closed thinking blocks to avoid swallowing trailing content
+  // when a <think> tag is unclosed during streaming.
+  const CLOSED_THINKING_REGEX = /<think(?:_start)?>([\s\S]*?)<\/think(?:_end)?>/gi;
   let lastIndex = 0;
   let match;
 
-  while ((match = THINKING_BLOCK_REGEX.exec(content)) !== null) {
+  while ((match = CLOSED_THINKING_REGEX.exec(content)) !== null) {
     if (match.index > lastIndex) {
       const text = content.slice(lastIndex, match.index).trim();
       if (text) {
@@ -262,16 +264,33 @@ export function parseContentSegments(content: string): ContentSegment[] {
     if (thinkContent) {
       segments.push({ type: "thinking", content: thinkContent });
     }
-    if (match.index === THINKING_BLOCK_REGEX.lastIndex) {
-      THINKING_BLOCK_REGEX.lastIndex++;
+    if (match.index === CLOSED_THINKING_REGEX.lastIndex) {
+      CLOSED_THINKING_REGEX.lastIndex++;
     }
-    lastIndex = THINKING_BLOCK_REGEX.lastIndex;
+    lastIndex = CLOSED_THINKING_REGEX.lastIndex;
   }
 
+  // Handle remaining content after the last closed thinking block.
   if (lastIndex < content.length) {
-    const text = content.slice(lastIndex).trim();
-    if (text) {
-      segments.push({ type: "text", content: text.replace(/\n{3,}/g, "\n\n") });
+    const remaining = content.slice(lastIndex);
+    // Check for a trailing unclosed <think> tag (common during streaming).
+    // Only the content after the unclosed tag goes into a thinking segment;
+    // text before it stays as a normal text segment.
+    const trailingThinkMatch = remaining.match(/<think(?:_start)?>([\s\S]*)$/i);
+    if (trailingThinkMatch && trailingThinkMatch.index != null) {
+      const textBefore = remaining.slice(0, trailingThinkMatch.index).trim();
+      if (textBefore) {
+        segments.push({ type: "text", content: textBefore.replace(/\n{3,}/g, "\n\n") });
+      }
+      const thinkContent = trailingThinkMatch[1].trim();
+      if (thinkContent) {
+        segments.push({ type: "thinking", content: thinkContent });
+      }
+    } else {
+      const text = remaining.trim();
+      if (text) {
+        segments.push({ type: "text", content: text.replace(/\n{3,}/g, "\n\n") });
+      }
     }
   }
 
@@ -483,8 +502,8 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const markdownStyles = useMemo(
     () => ({
       body: { color: textColor },
-      text: { fontSize: 16, lineHeight: 26, color: textColor },
-      paragraph: { marginTop: 4, marginBottom: 4 },
+      text: { fontSize: 16, lineHeight: 24, color: textColor },
+      paragraph: { marginTop: 2, marginBottom: 2 },
       heading1: { fontSize: 22, lineHeight: 30, fontWeight: "700" as const, color: textColor },
       heading2: { fontSize: 19, lineHeight: 28, fontWeight: "700" as const, color: textColor },
       heading3: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: textColor, marginTop: spacing["3"], marginBottom: spacing["1"] },
@@ -548,34 +567,34 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        row: { flexDirection: "row" as const, alignItems: "flex-start", gap: 10 },
+        row: { flexDirection: "row" as const, alignItems: "flex-start", gap: 8 },
         rowAssistant: { flexDirection: "column" as const, alignItems: "stretch" },
         rowUser: { flexDirection: "row" as const, justifyContent: "flex-end" },
         providerIconWrap: { width: 24, height: 24, marginBottom: 4 },
         bubble: {
-          paddingVertical: 16,
-          paddingHorizontal: 18,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
           borderRadius: 0, // removed radius to let SVG handle corners
           backgroundColor: "transparent",
         },
         bubbleAssistant: {
           alignSelf: "stretch",
           marginHorizontal: -spacing["4"],
-          paddingVertical: spacing["3"],
+          paddingVertical: spacing["2"],
           paddingHorizontal: spacing["4"],
         },
         bubbleUser: {
           maxWidth: "85%",
-          paddingVertical: spacing["3"],
-          paddingHorizontal: spacing["4"],
+          paddingVertical: spacing["2"],
+          paddingHorizontal: spacing["3"],
         },
         bubbleSystem: {
           alignSelf: "center",
-          paddingVertical: spacing["2"],
-          marginVertical: spacing["2"],
+          paddingVertical: spacing["1"],
+          marginVertical: spacing["1"],
         },
-        bubbleText: { fontSize: 16, lineHeight: 26, color: theme.colors.textPrimary },
-        bubbleTextUser: { fontSize: 16, lineHeight: 26, color: theme.colors.textInverse },
+        bubbleText: { fontSize: 16, lineHeight: 24, color: theme.colors.textPrimary },
+        bubbleTextUser: { fontSize: 16, lineHeight: 24, color: theme.colors.textInverse },
         bubbleTextSystem: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center" },
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },

@@ -22,6 +22,7 @@ export type SseSessionControllerProps = {
 
 export type SseSessionControllerState = {
   connected: boolean;
+  isSessionLoading: boolean;
   messages: Message[];
   sessionRunning: boolean;
   waitingForUserInput: boolean;
@@ -70,6 +71,7 @@ export function SseSessionController({
   const storeModel = useSessionManagementStore((state) => state.model);
   const sessionStatuses = useSessionManagementStore((state) => state.sessionStatuses);
   const setSessionStatuses = useSessionManagementStore((state) => state.setSessionStatuses);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [connected, setConnected] = useState(false);
   const [sessionRunning, setSessionRunning] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -187,6 +189,11 @@ export function SseSessionController({
       if (!session || typeof session.id !== "string" || session.id.length === 0) {
         return;
       }
+      setIsSessionLoading(true);
+
+      // Let React render the loading state
+      await new Promise(resolve => setTimeout(resolve, 10));
+
       const selectedProvider = (typeof session.provider === "string" && session.provider.length > 0 ? session.provider : "codex") as Provider;
       const selectedModel =
         typeof session.model === "string" && session.model.length > 0 ? session.model : getModel(selectedProvider);
@@ -207,12 +214,17 @@ export function SseSessionController({
 
       loadSession(sessionMessages, session.id, session.running || session.sseConnected);
 
-      runAfterInteractionScroll();
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          setIsSessionLoading(false);
+          scrollViewRef.current?.scrollToEnd({ animated: false });
+        }, 100);
+      });
     },
     [
       loadSession,
-      runAfterInteractionScroll,
       setModel,
+      setProvider,
       switchWorkspaceForSession,
     ]
   );
@@ -227,6 +239,7 @@ export function SseSessionController({
 
   const state: SseSessionControllerState = {
     connected,
+    isSessionLoading,
     messages,
     sessionRunning,
     waitingForUserInput,

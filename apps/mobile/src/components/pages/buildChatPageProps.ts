@@ -78,6 +78,7 @@ export function buildChatPageProps({
       onFileSelect: onChatFileSelect,
       onRetryPermission: chatActionState.onRetryPermission,
       onDismissPermission: sseState.dismissPermission,
+      isSessionLoading: sseState.isSessionLoading,
     },
     fileViewer: {
       selectedFilePath: workspaceState.selectedFilePath,
