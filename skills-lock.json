@@ -21,6 +21,11 @@
       "sourceType": "github",
       "computedHash": "91638a265753a50a8a30dfda3844462c2d3e94ca15c1f47cf8c5897e5e8fa7f4"
     },
+    "nano-banana-2": {
+      "source": "inference-sh-9/skills",
+      "sourceType": "github",
+      "computedHash": "ac3d77d31fc4349e567e860868dc55759eb50cd3315a1dacfb490a275c4bf476"
+    },
     "refactor": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
