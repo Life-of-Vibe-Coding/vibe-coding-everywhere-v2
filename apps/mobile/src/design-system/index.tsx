@@ -44,7 +44,6 @@ export {
   type ThemeColors,
   type ColorMode,
   type ColorModePreference,
-  type BrandProvider,
   type TypographyVariant,
   type TypographyStyle,
   type SpacingToken,

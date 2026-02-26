@@ -1,4 +1,4 @@
-import type { Provider as BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 
 export type PermissionModeUI = "always_ask" | "ask_once_per_session" | "yolo";
 
@@ -15,7 +15,7 @@ export type BackendPermissionResult = {
  */
 export function getBackendPermissionMode(
   ui: PermissionModeUI,
-  provider: BrandProvider
+  provider: string
 ): BackendPermissionResult {
   if (provider === "codex") {
     if (ui === "yolo") return { yolo: true };

@@ -4,10 +4,10 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { Button, ButtonText } from '@/components/ui/button';
 
 describe('ui/button', () => {
-  it('maps legacy disabled prop and prevents presses', () => {
+  it('maps isDisabled prop and prevents presses', () => {
     const onPress = jest.fn();
     const { getByTestId } = render(
-      <Button testID="btn" disabled onPress={onPress}>
+      <Button testID="btn" isDisabled onPress={onPress}>
         <ButtonText>Save</ButtonText>
       </Button>
     );
@@ -16,7 +16,7 @@ describe('ui/button', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it('maps legacy loading prop to disabled for transition safety', () => {
+  it('handles loading prop by disabling the button', () => {
     const onPress = jest.fn();
     const { getByTestId } = render(
       <Button testID="btn" loading onPress={onPress}>

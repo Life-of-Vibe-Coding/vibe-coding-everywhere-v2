@@ -3,7 +3,7 @@ import type { PermissionModeUI } from "@/utils/permission";
 import { getBackendPermissionMode } from "@/utils/permission";
 import { InputPanel } from "@/components/chat/InputPanel";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
-import type { Provider as BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 
 type ModelOption = {
   value: string;
@@ -24,11 +24,7 @@ type ChatInputDockProps = {
   provider: BrandProvider;
   model: string;
   modelOptions: ModelOption[];
-  providerModelOptions: {
-    claude: ModelOption[];
-    gemini: ModelOption[];
-    codex: ModelOption[];
-  };
+  providerModelOptions: Record<BrandProvider, ModelOption[]>;
   onProviderChange: (provider: BrandProvider) => void;
   onModelChange: (model: string) => void;
   onOpenModelPicker: () => void;
@@ -65,7 +61,7 @@ export function ChatInputDock({
       sessionRunning={sessionRunning}
       waitingForUserInput={waitingForUserInput}
       permissionMode={permissionMode.permissionMode ?? permissionMode.approvalMode ?? null}
-      onPermissionModeChange={() => {}}
+      onPermissionModeChange={() => { }}
       onSubmit={onSubmit}
       pendingCodeRefs={pendingCodeRefs}
       onRemoveCodeRef={onRemoveCodeRef}

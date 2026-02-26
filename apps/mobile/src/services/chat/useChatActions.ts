@@ -9,7 +9,7 @@ import type {
 } from "@/core/types";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import type { SessionLiveState, SessionRuntimeState } from "./hooks-types";
-import type { Provider } from "@/theme/index";
+import type { Provider } from "@/constants/modelOptions";
 import { appendCodeRefsToPrompt } from "./hooks-utils";
 import { normalizeSubmitPayload, stableStringify } from "./hooks-serialization";
 import { useSessionManagementStore } from "@/state/sessionManagementStore";

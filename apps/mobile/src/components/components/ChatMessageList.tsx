@@ -5,7 +5,7 @@ import type { PermissionDenial, Message } from "@/services/chat/hooks";
 import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
 import { PermissionDenialBanner } from "@/components/common/PermissionDenialBanner";
-import type { Provider as BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 
 type ChatMessageListProps = {
   messages: Message[];

@@ -4,9 +4,9 @@ import { render } from '@testing-library/react-native';
 import { Text } from '@/components/ui/text';
 
 describe('ui/text', () => {
-  it('maps legacy truncate prop to one-line behavior', () => {
+  it('maps isTruncated prop to one-line behavior', () => {
     const { getByTestId } = render(
-      <Text testID="text" truncate>
+      <Text testID="text" isTruncated>
         Hello
       </Text>
     );

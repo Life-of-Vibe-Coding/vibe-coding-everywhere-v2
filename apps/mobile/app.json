@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Mobile Cocoa",
+    "slug": "mobile-cocoa",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -36,9 +36,26 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }],
-      ["expo-screen-orientation", { "initialOrientation": "DEFAULT" }],
-      ["expo-notifications", { "defaultChannel": "agent-events" }]
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "agent-events"
+        }
+      ]
     ]
   }
 }

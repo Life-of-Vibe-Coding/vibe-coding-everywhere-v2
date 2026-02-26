@@ -4,9 +4,9 @@ import { render } from '@testing-library/react-native';
 import { Pressable } from '@/components/ui/pressable';
 
 describe('ui/pressable', () => {
-  it('maps legacy disabled prop to accessibilityState.disabled', () => {
+  it('maps isDisabled prop to accessibilityState.disabled', () => {
     const { getByTestId } = render(
-      <Pressable testID="pressable" disabled />
+      <Pressable testID="pressable" isDisabled />
     );
 
     expect(getByTestId('pressable').props.accessibilityState?.disabled).toBe(true);

@@ -2,21 +2,21 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Dimensions, InteractionManager, type FlatList as RNFlatList } from "react-native";
 import { FlatList } from "@/components/ui/flat-list";
 
-import { getModelForProvider, ModalSessionItem } from "@/features/app/appConfig";
+import { getModel, ModalSessionItem } from "@/features/app/appConfig";
 import { triggerHaptic } from "@/design-system";
+import { type Provider } from "@/constants/modelOptions";
 import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
 import * as sessionStore from "@/services/sessionStore";
 import { useChat, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/chat/hooks";
-import type { Provider as BrandProvider } from "@/theme/index";
 
 export type SseSessionControllerProps = {
-  provider: BrandProvider;
+  provider: Provider;
   model: string;
   serverConfig: {
     getBaseUrl: () => string;
   };
-  setProvider: (provider: BrandProvider) => void;
   setModel: (model: string) => void;
+  setProvider: (provider: Provider) => void;
   switchWorkspaceForSession?: (workspacePath: string) => Promise<void>;
   children: (state: SseSessionControllerState) => React.ReactNode;
 };
@@ -44,11 +44,11 @@ export type SseSessionControllerState = {
   onContentSizeChange: () => void;
   sessionStatuses: SessionStatus[];
   setSessionStatuses: (sessions: SessionStatus[]) => void;
-  storeProvider: BrandProvider | null;
+  storeProvider: string | null;
   storeModel: string | null;
   storeSessionId: string | null;
-  handleProviderChange: (provider: BrandProvider) => void;
   handleModelChange: (model: string) => void;
+  handleProviderChange: (provider: Provider) => void;
   handleSelectSession: (session: ModalSessionItem | null) => Promise<void>;
   handleSelectActiveChat: () => void;
   handleNewSession: () => void;
@@ -58,8 +58,8 @@ export function SseSessionController({
   provider,
   model,
   serverConfig,
-  setProvider,
   setModel,
+  setProvider,
   switchWorkspaceForSession,
   children,
 }: SseSessionControllerProps) {
@@ -78,7 +78,7 @@ export function SseSessionController({
   const [permissionDenials, setPermissionDenials] = useState<PermissionDenial[] | null>(null);
   const [lastSessionTerminated, setLastSessionTerminated] = useState(false);
   const [pendingAskQuestion, setPendingAskQuestion] = useState<PendingAskUserQuestion | null>(null);
-  const { 
+  const {
     sessionId,
     submitPrompt,
     submitAskQuestionAnswer,
@@ -115,18 +115,13 @@ export function SseSessionController({
       .loadLastUsedProviderModel()
       .then((lastUsed) => {
         if (lastUsed) {
-          const validProvider: BrandProvider =
-            lastUsed.provider === "claude" || lastUsed.provider === "gemini" || lastUsed.provider === "codex"
-              ? lastUsed.provider
-              : "codex";
-          setProvider(validProvider);
           setModel(lastUsed.model);
         }
       })
       .catch(() => {
         // Ignore restore failures.
       });
-  }, [setModel, setProvider]);
+  }, [setModel]);
 
   useEffect(() => {
     sessionStore.setLastUsedProviderModel(provider, model);
@@ -163,21 +158,6 @@ export function SseSessionController({
     });
   }, []);
 
-  const handleProviderChange = useCallback(
-    (nextProvider: BrandProvider) => {
-      const newModel = getModelForProvider(nextProvider);
-      const isChanging = nextProvider !== provider || newModel !== model;
-      if (isChanging) {
-        resetSession();
-      }
-      setProvider(nextProvider);
-      setModel(newModel);
-      sessionStore.setLastUsedProviderModel(nextProvider, newModel);
-      triggerHaptic("selection");
-    },
-    [model, provider, resetSession, setProvider, setModel]
-  );
-
   const handleModelChange = useCallback(
     (nextModel: string) => {
       if (nextModel === model) {
@@ -191,15 +171,26 @@ export function SseSessionController({
     [model, provider, resetSession, setModel]
   );
 
+  const handleProviderChange = useCallback(
+    (nextProvider: Provider) => {
+      if (nextProvider === provider) {
+        return;
+      }
+      resetSession();
+      setProvider(nextProvider);
+      triggerHaptic("selection");
+    },
+    [provider, resetSession, setProvider]
+  );
+
   const handleSelectSession = useCallback(
     async (session: ModalSessionItem | null) => {
       if (!session || typeof session.id !== "string" || session.id.length === 0) {
         return;
       }
-      const selectedProvider =
-        typeof session.provider === "string" && session.provider.length > 0 ? session.provider : null;
+      const selectedProvider = (typeof session.provider === "string" && session.provider.length > 0 ? session.provider : "codex") as Provider;
       const selectedModel =
-        typeof session.model === "string" && session.model.length > 0 ? session.model : null;
+        typeof session.model === "string" && session.model.length > 0 ? session.model : getModel(selectedProvider);
       const sessionMessages = Array.isArray(session.messages) ? session.messages : [];
       const sessionWorkspace =
         typeof session.cwd === "string" && session.cwd.trim().length > 0 ? session.cwd.trim() : null;
@@ -208,16 +199,12 @@ export function SseSessionController({
         await switchWorkspaceForSession?.(sessionWorkspace);
       }
 
-
-      if (selectedProvider) {
-        setProvider(selectedProvider as BrandProvider);
-      }
       if (selectedModel) {
         setModel(selectedModel);
       }
-      if (selectedProvider && selectedModel) {
-        sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
-      }
+      setProvider(selectedProvider);
+
+      sessionStore.setLastUsedProviderModel(selectedProvider, selectedModel);
 
       loadSession(sessionMessages, session.id, session.running || session.sseConnected);
 
@@ -227,7 +214,6 @@ export function SseSessionController({
       loadSession,
       runAfterInteractionScroll,
       setModel,
-      setProvider,
       switchWorkspaceForSession,
     ]
   );
@@ -266,8 +252,8 @@ export function SseSessionController({
     storeProvider,
     storeModel,
     storeSessionId,
-    handleProviderChange,
     handleModelChange,
+    handleProviderChange,
     handleSelectSession,
     handleSelectActiveChat,
     handleNewSession,

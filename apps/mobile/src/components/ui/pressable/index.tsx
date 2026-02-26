@@ -10,10 +10,7 @@ import {
 import { tva } from '@gluestack-ui/utils/nativewind-utils';
 import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  normalizeLegacyBoolean,
-  resolveLegacyStyle,
-} from '@/components/ui/_migration/legacyAdapter';
+
 
 const UIPressable = createPressable({
   Root: withStyleContext(RNPressable),
@@ -28,35 +25,23 @@ type IPressableProps = Omit<
   'context'
 > &
   VariantProps<typeof pressableStyle> & {
-    disabled?: boolean;
     isDisabled?: boolean;
-    legacyStyle?: StyleProp<ViewStyle>;
   };
 const Pressable = React.forwardRef<
   React.ComponentRef<typeof UIPressable>,
   IPressableProps
 >(function Pressable(
-  { className, disabled, isDisabled, legacyStyle, style, ...props },
+  { className, isDisabled, style, ...props },
   ref
 ) {
-  const finalDisabled = Boolean(
-    normalizeLegacyBoolean('Pressable', 'isDisabled', isDisabled, disabled)
-  );
-  const resolvedStyle =
-    typeof style === 'function'
-      ? style
-      : resolveLegacyStyle(
-          'Pressable',
-          style as StyleProp<ViewStyle>,
-          legacyStyle as StyleProp<ViewStyle>
-        );
+  const finalDisabled = Boolean(isDisabled || props.disabled);
 
   return (
     <UIPressable
       {...props}
       ref={ref}
       disabled={finalDisabled}
-      style={resolvedStyle}
+      style={style}
       className={pressableStyle({
         class: className,
       })}

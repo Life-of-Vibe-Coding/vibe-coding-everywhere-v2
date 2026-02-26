@@ -38,8 +38,8 @@ export default function App() {
               provider={themeState.provider}
               model={themeState.model}
               serverConfig={serverConfig}
-              setProvider={themeState.setProvider}
               setModel={themeState.setModel}
+              setProvider={themeState.setProvider}
               switchWorkspaceForSession={workspaceState.switchWorkspaceForSession}
             >
               {(sseState) => (
@@ -112,7 +112,7 @@ export default function App() {
                     });
 
                     return (
-                      <ThemeProvider provider={themeState.provider} colorMode={themeState.themeMode}>
+                      <ThemeProvider>
                         <GluestackUIProvider mode={themeState.themeMode}>
                           <View style={{ flex: 1 }}>
                             <ImageBackground

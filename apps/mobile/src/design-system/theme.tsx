@@ -84,51 +84,16 @@ const semanticColors = {
   info: { light: "#2563eb", dark: "#60a5fa" },
 } as const;
 
-// Brand color configurations
+// Brand color configurations (Unified Universal Theme)
 export const brandColors = {
-  gemini: {
-    light: {
-      accent: "#1a73e8",
-      accentSoft: "#e8f0fe",
-      accentMuted: "#d2e3fc",
-      accentOnDark: "#8ab4f8",
-    },
-    dark: {
-      accent: "#8ab4f8",
-      accentSoft: "rgba(138, 180, 248, 0.18)",
-      accentMuted: "rgba(138, 180, 248, 0.12)",
-      accentOnDark: "#8ab4f8",
-    },
-  },
-  claude: {
-    light: {
-      accent: "#b3541e",
-      accentSoft: "#f6ddc8",
-      accentMuted: "#f0d4bf",
-      accentOnDark: "#f2b07f",
-    },
-    dark: {
-      accent: "#f2b07f",
-      accentSoft: "rgba(242, 176, 127, 0.18)",
-      accentMuted: "rgba(242, 176, 127, 0.12)",
-      accentOnDark: "#f2b07f",
-    },
-  },
-  codex: {
-    light: {
-      accent: "#000000",
-      accentSoft: "rgba(0, 0, 0, 0.08)",
-      accentMuted: "rgba(0, 0, 0, 0.05)",
-      accentOnDark: "#FFFFFF",
-    },
-    dark: {
-      accent: "#FFFFFF",
-      accentSoft: "rgba(255, 255, 255, 0.16)",
-      accentMuted: "rgba(255, 255, 255, 0.12)",
-      accentOnDark: "#FFFFFF",
-    },
-  },
+  accent: "#8B75FF",
+  accentSoft: "rgba(139, 117, 255, 0.15)",
+  accentMuted: "rgba(139, 117, 255, 0.25)",
+  accentOnDaily: "#8B75FF", // Standard accent
+  accentOnDark: "#A594FF", // Slightly lighter for dark mode contrast
 } as const;
+
+
 
 // ============================================================================
 // Typography System (shared types from theme/typography)
@@ -344,9 +309,8 @@ export type ShadowToken = keyof ShadowsRecord;
 // Theme Type Definitions
 // ============================================================================
 
-export type ColorMode = "light" | "dark";
-export type ColorModePreference = "system" | ColorMode;
-export type BrandProvider = "gemini" | "claude" | "codex";
+export type ColorMode = "dark";
+export type ColorModePreference = ColorMode;
 
 export interface ThemeColors {
   // Background colors
@@ -355,12 +319,12 @@ export interface ThemeColors {
   surfaceElevated: string;
   surfaceAlt: string;
   surfaceMuted: string;
-  
+
   // Border colors
   border: string;
   borderSubtle: string;
   borderStrong: string;
-  
+
   // Text colors
   textPrimary: string;
   textSecondary: string;
@@ -368,14 +332,14 @@ export interface ThemeColors {
   textMuted: string;
   textInverse: string;
   textPlaceholder: string;
-  
+
   // Brand colors
   accent: string;
   accentSoft: string;
   accentMuted: string;
   accentSubtle: string;
   accentOnDark: string;
-  
+
   // Semantic colors
   success: string;
   successSoft: string;
@@ -385,20 +349,19 @@ export interface ThemeColors {
   warningSoft: string;
   info: string;
   infoSoft: string;
-  
+
   // Utility colors
   overlay: string;
   shadow: string;
   skeleton: string;
   skeletonHighlight: string;
-  
+
   // Special colors
   assistantBg: string;
   userBg: string;
 }
 
 export interface Theme {
-  provider: BrandProvider;
   mode: ColorMode;
   colors: ThemeColors;
   typography: TypographyScaleRecord;
@@ -422,12 +385,11 @@ function withAlpha(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function buildColors(provider: BrandProvider, mode: ColorMode): ThemeColors {
-  const brand = brandColors[provider][mode];
-  const isDark = mode === "dark";
-  
-  // Neutral palette selection
-  const neutrals = isDark ? {
+function buildColors(_mode: ColorMode = "dark"): ThemeColors {
+  const brand = brandColors;
+
+  // Neutral palette selection (Dark Only)
+  const neutrals = {
     background: neutralColors.black,
     surface: "#151821",
     surfaceElevated: "#1d202a",
@@ -446,54 +408,34 @@ function buildColors(provider: BrandProvider, mode: ColorMode): ThemeColors {
     shadow: "rgba(0, 0, 0, 0.5)",
     skeleton: "#1e222d",
     skeletonHighlight: "#2a3140",
-  } : {
-    background: neutralColors.gray50,
-    surface: neutralColors.white,
-    surfaceElevated: neutralColors.white,
-    surfaceAlt: neutralColors.gray100,
-    surfaceMuted: neutralColors.gray200,
-    border: neutralColors.gray300,
-    borderSubtle: neutralColors.gray200,
-    borderStrong: neutralColors.gray400,
-    textPrimary: neutralColors.gray900,
-    textSecondary: neutralColors.gray800,
-    textTertiary: neutralColors.gray600,
-    textMuted: neutralColors.gray500,
-    textInverse: neutralColors.white,
-    textPlaceholder: neutralColors.gray500,
-    overlay: "rgba(13, 15, 20, 0.5)",
-    shadow: "rgba(16, 24, 40, 0.12)",
-    skeleton: neutralColors.gray200,
-    skeletonHighlight: neutralColors.gray100,
   };
 
-  // Semantic colors
+  // Semantic colors (Dark Only)
   const semantic = {
-    success: semanticColors.success[mode],
-    successSoft: withAlpha(semanticColors.success[mode], isDark ? 0.2 : 0.12),
-    danger: semanticColors.danger[mode],
-    dangerSoft: withAlpha(semanticColors.danger[mode], isDark ? 0.2 : 0.12),
-    warning: semanticColors.warning[mode],
-    warningSoft: withAlpha(semanticColors.warning[mode], isDark ? 0.2 : 0.12),
-    info: semanticColors.info[mode],
-    infoSoft: withAlpha(semanticColors.info[mode], isDark ? 0.2 : 0.12),
+    success: semanticColors.success.dark,
+    successSoft: withAlpha(semanticColors.success.dark, 0.2),
+    danger: semanticColors.danger.dark,
+    dangerSoft: withAlpha(semanticColors.danger.dark, 0.2),
+    warning: semanticColors.warning.dark,
+    warningSoft: withAlpha(semanticColors.warning.dark, 0.2),
+    info: semanticColors.info.dark,
+    infoSoft: withAlpha(semanticColors.info.dark, 0.2),
   };
 
   return {
     ...neutrals,
     ...brand,
     ...semantic,
-    accentSubtle: withAlpha(brand.accent, isDark ? 0.2 : 0.14),
+    accentSubtle: withAlpha(brand.accent, 0.2),
     assistantBg: neutrals.surfaceAlt,
-    userBg: isDark ? "#1e2a3a" : "#fef3e2",
+    userBg: "#1e2a3a",
   };
 }
 
-export function buildTheme(provider: BrandProvider, mode: ColorMode): Theme {
+export function buildTheme(mode: ColorMode): Theme {
   return {
-    provider,
     mode,
-    colors: buildColors(provider, mode),
+    colors: buildColors(mode),
     typography: getTypographyScale(),
     spacing,
     radii,
@@ -509,52 +451,29 @@ export function buildTheme(provider: BrandProvider, mode: ColorMode): Theme {
 // ============================================================================
 
 interface ThemeContextValue {
-  provider: BrandProvider;
-  mode: ColorModePreference;
-  setProvider?: (provider: BrandProvider) => void;
-  setMode?: (mode: ColorModePreference) => void;
+  mode: ColorMode;
 }
 
 const defaultContextValue: ThemeContextValue = {
-  provider: "codex",
-  mode: "system",
+  mode: "dark",
 };
 
 const ThemeContext = createContext<ThemeContextValue>(defaultContextValue);
 
 export interface ModernThemeProviderProps {
-  provider?: BrandProvider;
   mode?: ColorModePreference;
-  onProviderChange?: (provider: BrandProvider) => void;
   onModeChange?: (mode: ColorModePreference) => void;
   children: React.ReactNode;
 }
 
 export function ModernThemeProvider({
-  provider = "codex",
-  mode = "system",
-  onProviderChange,
-  onModeChange,
   children,
-}: ModernThemeProviderProps) {
-  const setProvider = useCallback(
-    (p: BrandProvider) => onProviderChange?.(p),
-    [onProviderChange]
-  );
-  
-  const setMode = useCallback(
-    (m: ColorModePreference) => onModeChange?.(m),
-    [onModeChange]
-  );
-
+}: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
-      provider,
-      mode,
-      setProvider,
-      setMode,
+      mode: "dark" as const,
     }),
-    [provider, mode, setProvider, setMode]
+    []
   );
 
   return (
@@ -573,20 +492,13 @@ export function useThemeContext(): ThemeContextValue {
 }
 
 export function useThemeMode(): ColorMode {
-  const systemMode = useColorScheme();
-  const { mode } = useContext(ThemeContext);
-  
-  if (mode === "system") {
-    return systemMode === "dark" ? "dark" : "light";
-  }
-  return mode;
+  return "dark";
 }
 
 export function useTheme(): Theme {
-  const { provider } = useContext(ThemeContext);
   const mode = useThemeMode();
-  
-  return useMemo(() => buildTheme(provider, mode), [provider, mode]);
+
+  return useMemo(() => buildTheme(mode), [mode]);
 }
 
 export function useColors(): ThemeColors {
@@ -603,7 +515,7 @@ export function useTypography(): TypographyScaleRecord {
 
 export function useResponsive() {
   const { width, height, scale, fontScale } = Dimensions.get("window");
-  
+
   return useMemo(() => ({
     width,
     height,
@@ -614,11 +526,11 @@ export function useResponsive() {
     isLargeScreen: width >= 414,
     isLandscape: width > height,
     pixelDensity: PixelRatio.get(),
-    
+
     // Responsive sizing helpers
     scaleSize: (size: number) => Math.round(size * scale),
     scaleFont: (size: number) => Math.round(size * fontScale),
-    
+
     // Breakpoint helpers
     gt: {
       xs: width >= 320,

@@ -3,40 +3,28 @@ import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { View } from 'react-native';
 import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
 import { hstackStyle } from '@/components/ui/hstack/styles';
-import { resolveLegacyStyle, warnLegacyProp } from '@/components/ui/_migration/legacyAdapter';
+
 
 type StackSpace = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 
 type IHStackProps = ViewProps &
   VariantProps<typeof hstackStyle> & {
-    spacing?: StackSpace;
-    reverse?: boolean;
-    legacyStyle?: StyleProp<ViewStyle>;
+    className?: string; // hstackStyle variant props includes space and reversed
   };
 
 const HStack = React.forwardRef<React.ComponentRef<typeof View>, IHStackProps>(
   function HStack(
-    { className, space, spacing, reversed, reverse, legacyStyle, style, ...props },
+    { className, space, reversed, style, ...props },
     ref
   ) {
-    const finalSpace = space ?? spacing;
-    const finalReversed = reversed ?? reverse;
-
-    if (spacing !== undefined) {
-      warnLegacyProp('HStack', 'spacing', 'space');
-    }
-    if (reverse !== undefined) {
-      warnLegacyProp('HStack', 'reverse', 'reversed');
-    }
-
     return (
       <View
         className={hstackStyle({
-          space: finalSpace,
-          reversed: finalReversed as boolean,
+          space,
+          reversed,
           class: className,
         })}
-        style={resolveLegacyStyle('HStack', style as StyleProp<ViewStyle>, legacyStyle)}
+        style={style as StyleProp<ViewStyle>}
         {...props}
         ref={ref}
       />

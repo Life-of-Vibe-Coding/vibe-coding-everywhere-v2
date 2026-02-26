@@ -10,11 +10,6 @@ import {
 } from 'react-native';
 
 import { cn } from '@/utils/cn';
-import {
-  normalizeLegacyBoolean,
-  resolveLegacyStyle,
-} from '@/components/ui/_migration/legacyAdapter';
-
 type InputVariant = 'underlined' | 'outline' | 'rounded';
 type InputSize = 'sm' | 'md' | 'lg' | 'xl';
 type IconSize = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -72,9 +67,6 @@ export type InputProps = ViewProps & {
   size?: InputSize;
   isInvalid?: boolean;
   isDisabled?: boolean;
-  disabled?: boolean;
-  invalid?: boolean;
-  legacyStyle?: StyleProp<ViewStyle>;
 };
 
 const Input = React.forwardRef<React.ComponentRef<typeof View>, InputProps>(function Input(
@@ -84,16 +76,13 @@ const Input = React.forwardRef<React.ComponentRef<typeof View>, InputProps>(func
     size = 'md',
     isInvalid,
     isDisabled,
-    disabled,
-    invalid,
-    legacyStyle,
     style,
     ...props
   },
   ref
 ) {
-  const finalDisabled = Boolean(normalizeLegacyBoolean('Input', 'disabled', disabled, isDisabled));
-  const finalInvalid = Boolean(normalizeLegacyBoolean('Input', 'invalid', invalid, isInvalid));
+  const finalDisabled = Boolean(isDisabled);
+  const finalInvalid = Boolean(isInvalid);
 
   const [focused, setFocused] = useState(false);
   const value = useMemo(
@@ -106,7 +95,7 @@ const Input = React.forwardRef<React.ComponentRef<typeof View>, InputProps>(func
       <View
         ref={ref}
         {...props}
-        style={resolveLegacyStyle('Input', style as StyleProp<ViewStyle>, legacyStyle)}
+        style={style as StyleProp<ViewStyle>}
         className={cn(
           rootBase,
           rootVariantClass[variant],

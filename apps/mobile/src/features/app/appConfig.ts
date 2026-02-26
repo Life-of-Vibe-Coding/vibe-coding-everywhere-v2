@@ -1,5 +1,5 @@
-import { getBackendPermissionMode, type PermissionModeUI } from "@/utils/permission";
-import type { Provider as BrandProvider } from "@/theme/index";
+import { getBackendPermissionMode, type PermissionModeUI, type BackendPermissionResult } from "@/utils/permission";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 import {
   DEFAULT_CLAUDE_MODEL,
   DEFAULT_CODEX_MODEL,
@@ -25,7 +25,7 @@ export const SESSION_CLEANUP_INTERVAL_MS = 60_000;
 export const SESSION_STATUS_POLL_INTERVAL_MS = 3_000;
 export const SESSION_STORE_PAYLOAD_THROTTLE_MS = 30_000;
 
-export function getThemeModeForProvider(_provider: BrandProvider): "light" | "dark" {
+export function getThemeMode(_provider?: string): "dark" {
   return "dark";
 }
 
@@ -38,7 +38,7 @@ export function getDefaultPermissionModeUI(): PermissionModeUI {
     : "yolo";
 }
 
-export function getModelForProvider(provider: BrandProvider): string {
+export function getModel(provider: string): string {
   return provider === "claude"
     ? DEFAULT_CLAUDE_MODEL
     : provider === "gemini"
@@ -46,11 +46,11 @@ export function getModelForProvider(provider: BrandProvider): string {
       : DEFAULT_CODEX_MODEL;
 }
 
-export function getModelOptionsForProvider(provider: BrandProvider) {
+export function getModelOptions(provider: string) {
   return provider === "claude" ? CLAUDE_MODELS : provider === "codex" ? CODEX_MODELS : GEMINI_MODELS;
 }
 
-export function getSubmitPermissionConfig(permissionModeUI: PermissionModeUI, provider: BrandProvider) {
+export function getSubmitPermissionConfig(permissionModeUI: PermissionModeUI, provider: string) {
   const backend = getBackendPermissionMode(permissionModeUI, provider);
   const codexOptions =
     provider === "codex"

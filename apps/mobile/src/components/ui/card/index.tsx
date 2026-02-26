@@ -2,7 +2,7 @@ import React from 'react';
 import { View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { cn } from '@/utils/cn';
-import { resolveLegacyStyle } from '@/components/ui/_migration/legacyAdapter';
+
 
 type CardVariant = 'elevated' | 'outline' | 'filled' | 'ghost';
 type CardSize = 'sm' | 'md' | 'lg';
@@ -24,18 +24,17 @@ type ICardProps = ViewProps & {
   className?: string;
   size?: CardSize;
   variant?: CardVariant;
-  legacyStyle?: StyleProp<ViewStyle>;
 };
 
 const Card = React.forwardRef<React.ComponentRef<typeof View>, ICardProps>(function Card(
-  { className, size = 'md', variant = 'elevated', legacyStyle, style, ...props },
+  { className, size = 'md', variant = 'elevated', style, ...props },
   ref
 ) {
   return (
     <View
       ref={ref}
       {...props}
-      style={resolveLegacyStyle('Card', style as StyleProp<ViewStyle>, legacyStyle)}
+      style={style as StyleProp<ViewStyle>}
       className={cn(sizeClass[size], variantClass[variant], className)}
     />
   );

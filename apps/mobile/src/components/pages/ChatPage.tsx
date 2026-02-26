@@ -1,7 +1,7 @@
 import React from "react";
 import type { FlatList } from "react-native";
 import type { PermissionModeUI } from "@/utils/permission";
-import type { Provider as BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/chat/hooks";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import type { createAppStyles } from "@/components/styles/appStyles";
@@ -24,20 +24,14 @@ type ModalSessionItem = {
   cwd?: string | null;
 };
 
-type ProviderModelOptions = {
-  claude: ModelOption[];
-  gemini: ModelOption[];
-  codex: ModelOption[];
-};
-
 export type ChatPageContext = {
   theme: ReturnType<typeof getTheme>;
-  themeMode: "light" | "dark";
+  themeMode: "dark";
   styles: ReturnType<typeof createAppStyles>;
   provider: BrandProvider;
   model: string;
   modelOptions: ModelOption[];
-  providerModelOptions: ProviderModelOptions;
+  providerModelOptions: Record<BrandProvider, ModelOption[]>;
   permissionModeUI: PermissionModeUI;
 };
 

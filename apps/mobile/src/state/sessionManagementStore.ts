@@ -9,7 +9,7 @@ export type SessionStatus = {
   title: string;
 };
 
-export type ProviderName = "claude" | "gemini" | "codex";
+export type ProviderName = string;
 
 export type SessionManagementStore = {
   sessionStatuses: SessionStatus[];

@@ -1,12 +1,11 @@
 import React from "react";
-import { getTheme, type Provider as BrandProvider } from "@/theme/index";
+import { getTheme } from "@/theme/index";
+import { type Provider } from "@/constants/modelOptions";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { triggerHaptic } from "@/design-system";
 import {
-  ClaudeIcon,
-  GeminiIcon,
   CodexIcon,
 } from "@/components/icons/ProviderIcons";
 import { Box } from "@/components/ui/box";
@@ -22,21 +21,16 @@ import {
 } from "@/components/ui/actionsheet";
 
 type ModelOption = { value: string; label: string };
-type ProviderModelOptions = {
-  claude: ModelOption[];
-  gemini: ModelOption[];
-  codex: ModelOption[];
-};
 
 interface ModelPickerSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  provider: BrandProvider;
+  provider: Provider;
   model: string;
   themeMode: "light" | "dark";
   surfaceColor: string;
-  providerModelOptions: ProviderModelOptions;
-  onProviderChange: (provider: BrandProvider) => void;
+  providerModelOptions: Record<Provider, ModelOption[]>;
+  onProviderChange: (provider: Provider) => void;
   onModelChange: (model: string) => void;
 }
 
@@ -51,12 +45,12 @@ export function ModelPickerSheet({
   onProviderChange,
   onModelChange,
 }: ModelPickerSheetProps) {
-  const providers = ["claude", "gemini", "codex"] as const;
+  const providers: Provider[] = ["claude", "gemini", "codex", "cocoa"];
   const currentProvider = provider;
   const { bottom } = useSafeAreaInsets();
   const isDark = themeMode === "dark";
-  const theme = getTheme(currentProvider, themeMode);
-  const contentSurface = isDark ? theme.colors.surface : surfaceColor;
+  const theme = getTheme();
+
   const sectionSurface = isDark
     ? theme.colors.surfaceAlt
     : theme.colors.surfaceAlt;
@@ -107,30 +101,20 @@ export function ModelPickerSheet({
         >
           {providers.map((p) => {
             const opts = providerModelOptions[p];
-            if (opts.length === 0) return null;
+            if (!opts || opts.length === 0) return null;
 
-            const ProviderIcon =
-              p === "claude"
-                ? ClaudeIcon
-                : p === "gemini"
-                  ? GeminiIcon
-                  : CodexIcon;
-            const theme = getTheme(p, themeMode);
+            const ProviderIcon = CodexIcon; // Unified icon
+
             const accent = theme.colors.accent;
-            const isActiveProvider = (entryModel: string) =>
-              currentProvider === p && model === entryModel;
+            const isActiveModel = (entryModel: string) =>
+              provider === p && model === entryModel;
 
             return (
               <Box
                 key={p}
                 className="mb-3 rounded-2xl p-2"
                 style={{
-                  backgroundColor:
-                    currentProvider === p
-                      ? isDark
-                        ? theme.colors.surfaceAlt
-                        : sectionSurface
-                      : sectionSurface,
+                  backgroundColor: sectionSurface,
                   borderWidth: 1,
                   borderColor: currentProvider === p ? accent : sectionBorder,
                 }}
@@ -142,7 +126,7 @@ export function ModelPickerSheet({
                   </GluestackText>
                 </Box>
                 {opts.map((opt) => {
-                  const selected = isActiveProvider(opt.value);
+                  const selected = isActiveModel(opt.value);
                   return (
                     <ActionsheetOptionRow
                       key={opt.value}

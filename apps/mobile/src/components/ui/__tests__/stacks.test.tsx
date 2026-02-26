@@ -5,9 +5,9 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 
 describe('ui/stacks', () => {
-  it('maps HStack legacy spacing/reverse aliases', () => {
+  it('maps HStack space/reversed props', () => {
     const { getByTestId } = render(
-      <HStack testID="hstack" spacing="lg" reverse />
+      <HStack testID="hstack" space="lg" reversed />
     );
 
     const className = getByTestId('hstack').props.className as string;
@@ -15,9 +15,9 @@ describe('ui/stacks', () => {
     expect(className).toContain('flex-row-reverse');
   });
 
-  it('maps VStack legacy spacing/reverse aliases', () => {
+  it('maps VStack space/reversed props', () => {
     const { getByTestId } = render(
-      <VStack testID="vstack" spacing="sm" reverse />
+      <VStack testID="vstack" space="sm" reversed />
     );
 
     const className = getByTestId('vstack').props.className as string;

@@ -78,6 +78,7 @@ function baseProps() {
       codex: [{ value: "gpt-5.1-codex-mini", label: "gpt-5.1-codex-mini" }],
       claude: [{ value: "claude-sonnet-4-5", label: "claude-sonnet-4-5" }],
       gemini: [{ value: "gemini-2.5-pro", label: "gemini-2.5-pro" }],
+      cocoa: [],
     },
     onProviderChange: jest.fn(),
     onModelChange: jest.fn(),

@@ -12,11 +12,7 @@ import {
 } from 'react-native';
 
 import { cn } from '@/utils/cn';
-import {
-  normalizeLegacyBoolean,
-  resolveLegacyStyle,
-  warnLegacyProp,
-} from '@/components/ui/_migration/legacyAdapter';
+
 
 type ButtonAction = 'primary' | 'secondary' | 'positive' | 'negative' | 'default';
 type ButtonVariant = 'solid' | 'outline' | 'link';
@@ -143,7 +139,6 @@ export type ButtonProps = PressableProps & {
   size?: ButtonSize;
   isDisabled?: boolean;
   loading?: boolean;
-  legacyStyle?: StyleProp<ViewStyle>;
 };
 
 const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, ButtonProps>(function Button(
@@ -153,25 +148,13 @@ const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, ButtonProp
     variant = 'solid',
     size = 'md',
     isDisabled,
-    disabled,
     loading,
-    legacyStyle,
     style,
     ...props
   },
   ref
 ) {
-  const mappedDisabled = normalizeLegacyBoolean(
-    'Button',
-    'disabled',
-    disabled == null ? undefined : disabled,
-    isDisabled
-  );
-  const finalDisabled = Boolean(mappedDisabled ?? loading);
-
-  if (loading !== undefined) {
-    warnLegacyProp('Button', 'loading', 'isDisabled + ButtonSpinner');
-  }
+  const finalDisabled = Boolean(isDisabled || props.disabled || loading);
 
   return (
     <ButtonContext.Provider value={{ action, variant, size, isDisabled: finalDisabled }}>
@@ -179,7 +162,7 @@ const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, ButtonProp
         ref={ref}
         {...props}
         disabled={finalDisabled}
-        style={resolveLegacyStyle('Button', style as StyleProp<ViewStyle>, legacyStyle)}
+        style={style as StyleProp<ViewStyle>}
         className={cn(
           'group/button flex-row items-center justify-center rounded gap-2',
           buttonSizeClass[size],

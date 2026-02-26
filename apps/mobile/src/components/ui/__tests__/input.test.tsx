@@ -4,9 +4,9 @@ import { render } from '@testing-library/react-native';
 import { Input, InputField } from '@/components/ui/input';
 
 describe('ui/input', () => {
-  it('maps legacy disabled prop to InputField editable=false', () => {
+  it('maps isDisabled prop to InputField editable=false', () => {
     const { getByTestId } = render(
-      <Input disabled>
+      <Input isDisabled>
         <InputField testID="field" />
       </Input>
     );
@@ -14,9 +14,9 @@ describe('ui/input', () => {
     expect(getByTestId('field').props.editable).toBe(false);
   });
 
-  it('maps legacy invalid prop to invalid border class', () => {
+  it('maps isInvalid prop to invalid border class', () => {
     const { getByTestId } = render(
-      <Input testID="input" invalid>
+      <Input testID="input" isInvalid>
         <InputField />
       </Input>
     );

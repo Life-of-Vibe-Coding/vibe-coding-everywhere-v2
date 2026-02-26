@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useEffect, useCallback, useState } from "react"
 import { StyleSheet, Linking, Platform, Dimensions } from "react-native";
 import type { MarkdownProps } from "react-native-markdown-display";
 import { useTheme } from "@/theme/index";
+import { type Provider } from "@/constants/modelOptions";
 import { spacing, radii, triggerHaptic } from "@/design-system";
 import type { Message } from "@/services/chat/hooks";
 import { stripTrailingIncompleteTag } from "@/services/providers/stream";
@@ -384,7 +385,7 @@ interface MessageBubbleProps {
   /** Max height for the tail box (e.g. half screen). Only used when showAsTailBox is true. */
   tailBoxMaxHeight?: number;
   /** AI provider for assistant messages; shows Gemini, Claude, or Codex icon when set. */
-  provider?: "claude" | "gemini" | "codex";
+  provider?: string;
   /** When provided, links (including bare URLs) open in the app's internal browser instead of external. */
   onOpenUrl?: (url: string) => void;
   /** When provided, file: links (from Writing/Editing/Reading) open the file in explorer. */
@@ -1009,9 +1010,8 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       theme.colors.accent,
     ]
   );
-  const showProviderIcon = !isUser && !isSystem && provider;
-  const ProviderIcon =
-    provider === "claude" ? ClaudeIcon : provider === "codex" ? CodexIcon : GeminiIcon;
+  const showProviderIcon = false; // Unified theme has no brand icons in bubbles
+  const ProviderIcon = CodexIcon; // Default fallback if needed
 
   const isLatestThinkingBlock = useCallback((index: number) => {
     const isThinking = contentSegments[index]?.type === "thinking";
@@ -1108,11 +1108,6 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           {bubbleContent}
         </Box>
       </Box>
-      {!isUser && !isSystem && !!provider && (
-        <Box className="ml-1 mt-1 mb-2 max-w-[80%] opacity-60">
-          <Text size="xs" style={{ color: "#333" }} className="font-semibold uppercase tracking-wider">{provider}</Text>
-        </Box>
-      )}
     </EntranceAnimation>
   );
 }

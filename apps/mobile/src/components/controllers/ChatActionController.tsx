@@ -5,7 +5,7 @@ import { getSubmitPermissionConfig } from "@/features/app/appConfig";
 import type { PermissionModeUI } from "@/utils/permission";
 import { type Message, useChat } from "@/services/chat/hooks";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
-import type { Provider as BrandProvider } from "@/theme/index";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
 
 type SseApi = ReturnType<typeof useChat>;
 

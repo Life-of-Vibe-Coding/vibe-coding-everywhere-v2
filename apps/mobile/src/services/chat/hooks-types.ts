@@ -1,5 +1,6 @@
 import type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions, IServerConfig } from "@/core/types";
-import type { Provider } from "@/theme/index";
+import type { Provider } from "@/constants/modelOptions";
+
 
 export interface UseChatOptions {
   serverConfig?: IServerConfig;

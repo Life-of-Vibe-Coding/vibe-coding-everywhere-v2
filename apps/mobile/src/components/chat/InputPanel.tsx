@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/actionsheet";
 import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { useTheme } from "@/theme/index";
+import { type Provider } from "@/constants/modelOptions";
 import { getFileName } from "@/utils/path";
 import { cn } from "@/utils/cn";
 import { BlurView } from "expo-blur";
@@ -39,18 +40,16 @@ import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polygon } from "react-native-svg";
 
-function NeonGlassInputWrapper({ width, height, isDark }: { width: number; height: number; isDark: boolean }) {
+function NeonGlassInputWrapper({ width, height }: { width: number; height: number }) {
   const cut = 24;
-  const color = isDark ? "#22C55E" : "#059669"; // Cyberpunk green CTA border
-  const bg = isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255,255,255,0.7)"; // Cyan-tinted dark background
+  const color = "#22C55E"; // Cyberpunk green CTA border
+  const bg = "rgba(15, 23, 42, 0.85)"; // Cyan-tinted dark background
 
   const points = `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`;
 
   return (
     <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
-      {isDark && (
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-      )}
+      <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
       <Svg width={width} height={height}>
         <Polygon points={points} fill="none" stroke={color} strokeWidth={6} opacity={0.3} />
         <Polygon points={points} fill="none" stroke="#00E5FF" strokeWidth={3} opacity={0.6} />
@@ -61,7 +60,7 @@ function NeonGlassInputWrapper({ width, height, isDark }: { width: number; heigh
 }
 
 const DEFAULT_PLACEHOLDER = "How can I help you today?";
-const INPUT_PLACEHOLDER = "Type response for Claude…";
+const INPUT_PLACEHOLDER = "Type your response…";
 const LINE_HEIGHT = 24;
 const MAX_LINES = 4;
 const MAX_INPUT_HEIGHT = LINE_HEIGHT * MAX_LINES;
@@ -87,11 +86,11 @@ export interface InputPanelProps {
   onTerminateAgent?: () => void;
   onOpenWebPreview?: () => void;
   onOpenProcesses?: () => void;
-  provider?: "claude" | "gemini" | "codex";
+  provider?: Provider;
   model?: string;
   modelOptions?: { value: string; label: string }[];
-  providerModelOptions?: Record<"claude" | "gemini" | "codex", { value: string; label: string }[]>;
-  onProviderChange?: (provider: "claude" | "gemini" | "codex") => void;
+  providerModelOptions?: Record<Provider, { value: string; label: string }[]>;
+  onProviderChange?: (provider: Provider) => void;
   onModelChange?: (model: string) => void;
   onOpenModelPicker?: () => void;
   onOpenSkillsConfig?: () => void;
@@ -166,7 +165,7 @@ export function InputPanel({
     setInputHeight(DEFAULT_INPUT_HEIGHT);
   }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
-  const isDark = theme.mode === "dark";
+  const isDark = true; // Dark mode only
   const inputTextColor = theme.colors.textPrimary;
   const placeholderColor = theme.colors.textMuted;
 
@@ -179,7 +178,7 @@ export function InputPanel({
         style={{ backgroundColor: "transparent" }}
       >
         {panelSize.width > 0 && panelSize.height > 0 && (
-          <NeonGlassInputWrapper width={panelSize.width} height={panelSize.height} isDark={isDark} />
+          <NeonGlassInputWrapper width={panelSize.width} height={panelSize.height} />
         )}
         {pendingCodeRefs.length > 0 && (
           <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
@@ -440,15 +439,9 @@ export function InputPanel({
               >
                 <ButtonIcon
                   as={
-                    provider === "claude"
-                      ? ClaudeSendIcon
-                      : provider === "gemini"
-                        ? GeminiSendIcon
-                        : provider === "codex"
-                          ? (p: { size?: number }) => (
-                            <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : "#FFFFFF"} color={isDark ? theme.colors.accent : "#FFFFFF"} />
-                          )
-                          : CodexSendIcon
+                    (p: { size?: number }) => (
+                      <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : "#FFFFFF"} color={isDark ? theme.colors.accent : "#FFFFFF"} />
+                    )
                   }
                   size="md"
                   color={isDark ? theme.colors.accent : "#FFFFFF"}

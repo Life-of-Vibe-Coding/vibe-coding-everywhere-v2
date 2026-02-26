@@ -71,10 +71,7 @@ export function normalizeSubmitPayload(payload: {
           .map((item) => (typeof item === "string" ? item : String(item)))
           .filter(Boolean)
       : undefined,
-    provider:
-      payload.provider === "claude" || payload.provider === "gemini" || payload.provider === "codex"
-        ? payload.provider
-        : "codex",
+    provider: typeof payload.provider === "string" ? payload.provider : "codex",
     model: typeof payload.model === "string" && payload.model.trim() ? payload.model.trim() : undefined,
     approvalMode: payload.approvalMode === undefined ? undefined : String(payload.approvalMode),
     sessionId:

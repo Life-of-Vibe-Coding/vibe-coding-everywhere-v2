@@ -2,7 +2,7 @@ import React from 'react';
 import { Text as RNText, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
 import { cn } from '@/utils/cn';
-import { resolveLegacyStyle, warnLegacyProp } from '@/components/ui/_migration/legacyAdapter';
+
 
 type TextSize =
   | '2xs'
@@ -35,14 +35,12 @@ export type TextPropsCompat = TextProps & {
   className?: string;
   size?: TextSize;
   isTruncated?: boolean;
-  truncate?: boolean;
   bold?: boolean;
   underline?: boolean;
   strikeThrough?: boolean;
   sub?: boolean;
   italic?: boolean;
   highlight?: boolean;
-  legacyStyle?: StyleProp<TextStyle>;
 };
 
 const Text = React.forwardRef<React.ComponentRef<typeof RNText>, TextPropsCompat>(function Text(
@@ -53,21 +51,14 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, TextPropsCompat
     underline,
     strikeThrough,
     size = 'md',
-    truncate,
     sub,
     italic,
     highlight,
-    legacyStyle,
     style,
     ...props
   },
   ref
 ) {
-  const truncated = isTruncated ?? truncate;
-  if (truncate !== undefined) {
-    warnLegacyProp('Text', 'truncate', 'isTruncated');
-  }
-
   const textDecorationLine = underline
     ? strikeThrough
       ? 'underline line-through'
@@ -80,7 +71,7 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, TextPropsCompat
     <RNText
       ref={ref}
       {...props}
-      numberOfLines={truncated ? 1 : props.numberOfLines}
+      numberOfLines={isTruncated ? 1 : props.numberOfLines}
       className={cn(
         'text-typography-900',
         sizeClasses[size],
@@ -90,11 +81,10 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, TextPropsCompat
         sub && 'align-sub',
         className
       )}
-      style={resolveLegacyStyle(
-        'Text',
-        [textDecorationLine ? { textDecorationLine } : undefined, style] as StyleProp<TextStyle>,
-        legacyStyle
-      )}
+      style={[
+        textDecorationLine ? { textDecorationLine } : undefined,
+        style,
+      ] as StyleProp<TextStyle>}
     />
   );
 });
