@@ -277,22 +277,7 @@ export function SessionManagementModal({
     () => groupedSessions.reduce((acc, group) => acc + group.sessions.length, 0),
     [groupedSessions]
   );
-  const showViewAllToggle = useMemo(() => {
-    if (groupedSessions.length > 1) return true;
-    const firstGroupSize = groupedSessions[0]?.sessions.length ?? 0;
-    return firstGroupSize > 3;
-  }, [groupedSessions]);
-  const visibleGroups = useMemo(() => {
-    if (showAllSessions) return groupedSessions;
-    const primary = groupedSessions[0];
-    if (!primary) return [];
-    return [
-      {
-        ...primary,
-        sessions: primary.sessions.slice(0, 3),
-      },
-    ];
-  }, [showAllSessions, groupedSessions]);
+  const visibleGroups = groupedSessions;
   const groupedSessionsByKey = useMemo(
     () => new Map(groupedSessions.map((group) => [group.key, group])),
     [groupedSessions]
@@ -527,97 +512,12 @@ export function SessionManagementModal({
           </HStack>
         </EntranceAnimation>
       )}
-      <EntranceAnimation variant="slideDown" duration={300} delay={40}>
-        <VStack style={styles.workspaceSection}>
-          <Box style={[styles.workspaceBox, { overflow: 'hidden' }]}>
-            <LinearGradient
-              colors={theme.mode === "dark" ? ["rgba(0, 229, 255, 0.08)", "rgba(10, 15, 30, 0.2)"] : ["rgba(255, 255, 255, 0.8)", "rgba(247, 241, 235, 0.4)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <VStack style={styles.workspacePathContainer}>
-              <Text size="xs" style={styles.workspaceLabel}>
-                Current Workspace
-              </Text>
-              {workspaceLoading ? (
-                <SkeletonText lineHeight={16} lines={1} lastLineWidth="64%" />
-              ) : (
-                <Box style={styles.cwdPathBox}>
-                  <HStack style={styles.cwdPathTopRow}>
-                    <Text size="xs" style={styles.cwdPreviewPrefix}>
-                      {workspacePreviewPrefix}
-                    </Text>
-                    <HStack style={styles.cwdDots}>
-                      <Box style={[styles.cwdDot, styles.cwdDotAmber]} />
-                      <Box style={[styles.cwdDot, styles.cwdDotYellow]} />
-                      <Box style={[styles.cwdDot, styles.cwdDotGreen]} />
-                    </HStack>
-                  </HStack>
-                  <Text
-                    size="xs"
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                    style={styles.cwdPathText}
-                  >
-                    {formatPathForWrap(workspaceDisplayPath)}
-                  </Text>
-                </Box>
-              )}
-            </VStack>
-            <HStack style={styles.workspaceActions}>
-              {onOpenWorkspacePicker && (
-                <Box style={styles.workspaceActionWrap}>
-                  <Button
-                    action="secondary"
-                    variant="outline"
-                    size="sm"
-                    onPress={onOpenWorkspacePicker}
-                    style={styles.workspaceActionButtonSecondary}
-                    className=""
-                  >
-                    <ButtonText style={styles.secondaryActionText}>
-                      Change Workspace
-                    </ButtonText>
-                  </Button>
-                </Box>
-              )}
-              <Box style={styles.workspaceActionWrap}>
-                <Button
-                  action="primary"
-                  variant="solid"
-                  size="sm"
-                  onPress={handleNewSession}
-                  style={styles.workspaceActionButtonPrimary}
-                  className=""
-                >
-                  <ButtonIcon as={PlayIcon} size="xs" style={{ color: uiColors.textInverse }} />
-                  <ButtonText style={styles.primaryActionText}>Start Session</ButtonText>
-                </Button>
-              </Box>
-            </HStack>
-          </Box>
-        </VStack>
-      </EntranceAnimation>
-
-      <EntranceAnimation variant="fade" duration={400} delay={100}>
+      <EntranceAnimation variant="fade" duration={400} delay={40}>
         <HStack style={styles.recentHeaderRow}>
           <VStack style={styles.recentHeaderText}>
-            <Text size="sm" style={styles.recentHeaderTitle}>Recent Sessions</Text>
+            <Text size="sm" style={styles.recentHeaderTitle}>All Sessions</Text>
             <Text size="xs" style={styles.recentHeaderHint}>Grouped by workspace</Text>
           </VStack>
-          {showViewAllToggle && (
-            <AnimatedPressableView
-              onPress={() => setShowAllSessions((prev) => !prev)}
-              style={styles.viewAllButton}
-              accessibilityRole="button"
-              accessibilityLabel={showAllSessions ? "Show fewer sessions" : "View all sessions"}
-            >
-              <Text size="sm" style={styles.viewAllText}>
-                {showAllSessions ? "View Less" : "View All"}
-              </Text>
-            </AnimatedPressableView>
-          )}
         </HStack>
       </EntranceAnimation>
 
@@ -633,7 +533,7 @@ export function SessionManagementModal({
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.list, { paddingBottom: 32 + insets.bottom }]}
+          contentContainerStyle={[styles.list, { paddingBottom: 100 + insets.bottom }]}
           refreshControl={undefined}
           showsVerticalScrollIndicator={false}
         >
@@ -691,7 +591,7 @@ export function SessionManagementModal({
                       ) : (
                         <ChevronDownIcon size={17} color={theme.colors.textSecondary} strokeWidth={2} />
                       )}
-                      <Text size="sm" numberOfLines={1} ellipsizeMode="tail" style={styles.workspaceGroupLabel}>
+                      <Text size="sm" style={styles.workspaceGroupLabel}>
                         {displayWorkspace(group.key, workspacePath)}
                       </Text>
                     </HStack>
@@ -805,6 +705,19 @@ export function SessionManagementModal({
           })}
         </ScrollView>
       </AsyncStateView>
+      <EntranceAnimation variant="slideUp" duration={300} delay={200} style={[{ position: 'absolute', right: 24, zIndex: 50 }, { bottom: 24 + insets.bottom }] as any}>
+        <Button
+          action="primary"
+          variant="solid"
+          size="md"
+          onPress={handleNewSession}
+          style={styles.fabButton}
+          className=""
+        >
+          <ButtonIcon as={PlayIcon} size="md" style={{ color: '#ffffff' }} />
+          <ButtonText style={styles.fabText}>Start Session</ButtonText>
+        </Button>
+      </EntranceAnimation>
     </>
   );
 
@@ -1005,11 +918,31 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       textShadowColor: theme.mode === "dark" ? "rgba(0, 229, 255, 0.6)" : "transparent", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: theme.mode === "dark" ? 8 : 0,
     },
     recentHeaderHint: { display: "none" },
-    viewAllButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 9999, backgroundColor: theme.mode === "dark" ? "rgba(255, 0, 229, 0.1)" : "transparent" },
-    viewAllButtonPressed: { opacity: 0.6, backgroundColor: theme.mode === "dark" ? "rgba(255, 0, 229, 0.2)" : "rgba(0,0,0,0.05)" },
-    viewAllText: {
-      color: theme.mode === "dark" ? theme.colors.textPrimary : "#C9A68D", // clay-400
-      fontWeight: "800", fontSize: 10, fontFamily: uiMonoFontFamily, letterSpacing: 1, textTransform: "uppercase"
+    fabContainer: {
+      position: 'absolute',
+      right: spacing["5"],
+      zIndex: 50,
+    },
+    fabButton: {
+      borderRadius: 9999,
+      height: 56,
+      paddingHorizontal: 20,
+      backgroundColor: theme.mode === "dark" ? theme.colors.accent : "#8B5E3C",
+      shadowColor: theme.mode === "dark" ? theme.colors.accent : "#3D2A1C",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.mode === "dark" ? 0.4 : 0.2,
+      shadowRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.mode === "dark" ? "#00e5ff" : "transparent",
+      gap: 8,
+    },
+    fabText: {
+      color: "#ffffff",
+      fontFamily: theme.mode === "dark" ? uiMonoFontFamily : undefined,
+      fontWeight: "800",
+      fontSize: 15,
+      textShadowColor: theme.mode === "dark" ? "rgba(255, 255, 255, 0.4)" : "transparent",
+      textShadowRadius: theme.mode === "dark" ? 4 : 0,
     },
     scrollView: { flex: 1, backgroundColor: "transparent" },
     list: { paddingHorizontal: spacing["5"], paddingBottom: spacing["8"], gap: spacing["4"] },

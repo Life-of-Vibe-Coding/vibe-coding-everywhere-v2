@@ -23,9 +23,6 @@ type UseChatActionsParams = {
   permissionDenials: PermissionDenial[] | null;
   lastRunOptionsRef: MutableRefObject<LastRunOptions>;
   liveMessagesRef: MutableRefObject<Message[]>;
-  sessionStatesRef: MutableRefObject<Map<string, SessionLiveState>>;
-  sessionMessagesRef: MutableRefObject<Map<string, Message[]>>;
-  sessionDraftRef: MutableRefObject<Map<string, string>>;
   pendingMessagesForNewSessionRef: MutableRefObject<Message[]>;
   currentAssistantContentRef: MutableRefObject<string>;
   outputBufferRef: MutableRefObject<string>;
@@ -58,9 +55,6 @@ export function useChatActions(params: UseChatActionsParams) {
     permissionDenials,
     lastRunOptionsRef,
     liveMessagesRef,
-    sessionStatesRef,
-    sessionMessagesRef,
-    sessionDraftRef,
     pendingMessagesForNewSessionRef,
     currentAssistantContentRef,
     outputBufferRef,
@@ -373,9 +367,6 @@ export function useChatActions(params: UseChatActionsParams) {
       }
       if (__DEV__) console.log("[sse] disconnected (reset)", { sessionId });
       closeActiveSse("reset");
-      sessionStatesRef.current.delete(sessionId);
-      sessionMessagesRef.current.delete(sessionId);
-      sessionDraftRef.current.delete(sessionId);
       clearConnectionIntent(sessionId);
       setConnectionIntent(sessionId, false);
     }
@@ -392,9 +383,6 @@ export function useChatActions(params: UseChatActionsParams) {
     serverUrl,
     setConnectionIntent,
     clearConnectionIntent,
-    sessionStatesRef,
-    sessionMessagesRef,
-    sessionDraftRef,
     setLiveSessionMessages,
     setSessionId,
     setPermissionDenials,
@@ -417,9 +405,6 @@ export function useChatActions(params: UseChatActionsParams) {
       }
       if (__DEV__) console.log("[sse] disconnected (new session)", { sessionId });
       closeActiveSse("new-session");
-      sessionStatesRef.current.delete(sessionId);
-      sessionMessagesRef.current.delete(sessionId);
-      sessionDraftRef.current.delete(sessionId);
       clearConnectionIntent(sessionId);
       setConnectionIntent(sessionId, false);
     }
@@ -437,9 +422,6 @@ export function useChatActions(params: UseChatActionsParams) {
     serverUrl,
     setConnectionIntent,
     clearConnectionIntent,
-    sessionStatesRef,
-    sessionMessagesRef,
-    sessionDraftRef,
     pendingMessagesForNewSessionRef,
     setLiveSessionMessages,
     setPermissionDenials,
