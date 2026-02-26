@@ -8,6 +8,8 @@ import type { createAppStyles } from "@/components/styles/appStyles";
 import type { getTheme } from "@/theme/index";
 import { ChatModalsSection } from "@/components/components/ChatModalsSection";
 import { ChatPageShell } from "@/components/pages/ChatPageShell";
+import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
+import { Box } from "@/components/ui/box";
 
 type ModelOption = {
   value: string;
@@ -185,18 +187,34 @@ export function ChatPage({
       modals={modals}
       onSelectActiveChat={modals.sessionManagement.onSelectActiveChat}
     >
-      {(modalHandlers) => (
-        <ChatPageShell
-          context={context}
-          runtime={runtime}
-          header={header}
-          conversation={conversation}
-          fileViewer={fileViewer}
-          sidebar={sidebar}
-          inputDock={inputDock}
-          modalHandlers={modalHandlers}
-        />
-      )}
+      {(modalHandlers) => {
+        if (sidebar.visible) {
+          return (
+            <Box className="flex-1 bg-surface-base">
+              <WorkspaceSidebarPage
+                isOpen={sidebar.visible}
+                onClose={sidebar.onCloseSidebar}
+                onFileSelect={sidebar.onFileSelectFromSidebar}
+                onCommitByAI={sidebar.onCommitByAI}
+                onActiveTabChange={sidebar.onSidebarTabChange}
+              />
+            </Box>
+          );
+        }
+
+        return (
+          <ChatPageShell
+            context={context}
+            runtime={runtime}
+            header={header}
+            conversation={conversation}
+            fileViewer={fileViewer}
+            sidebar={sidebar}
+            inputDock={inputDock}
+            modalHandlers={modalHandlers}
+          />
+        );
+      }}
     </ChatModalsSection>
   );
 }
