@@ -525,8 +525,8 @@ export function PreviewWebViewModal({
 }
 
 function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
-  const modalCardBackground = theme.mode === "dark" ? "#161616" : "#FFFFFF";
-  const webviewFallbackBackground = theme.mode === "dark" ? "#0A0A0A" : "#F3F4F6";
+  const modalCardBackground = theme.mode === "dark" ? "#161616" : theme.colors.surfaceMuted;
+  const webviewFallbackBackground = theme.mode === "dark" ? "#0A0A0A" : theme.colors.surfaceAlt;
 
   return StyleSheet.create({
     safe: {
@@ -562,12 +562,16 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
     loadingCard: {
       minWidth: 180,
       alignItems: "center",
-      paddingVertical: 16,
-      paddingHorizontal: 18,
-      borderRadius: 14,
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      borderRadius: theme.mode === "dark" ? 14 : 24,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.mode === "dark" ? theme.colors.surface : theme.colors.surfaceMuted,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.mode === "dark" ? 0.2 : 0.05,
+      shadowRadius: theme.mode === "dark" ? 8 : 12,
     },
     loadingText: {
       marginTop: 10,
@@ -591,12 +595,16 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
       paddingHorizontal: 20,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      borderRadius: 16,
+      borderRadius: theme.mode === "dark" ? 16 : 28,
       backgroundColor: modalCardBackground,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.mode === "dark" ? 0.3 : 0.08,
+      shadowRadius: theme.mode === "dark" ? 16 : 20,
     },
     errorTitle: {
       fontSize: 18,
-      fontWeight: "700",
+      fontWeight: "800",
       color: theme.colors.textPrimary,
       textAlign: "center",
       marginBottom: 8,
@@ -613,11 +621,11 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
       textAlign: "center",
     },
     retryBtn: {
-      minHeight: 44,
+      minHeight: 46,
       paddingVertical: 11,
-      paddingHorizontal: 20,
+      paddingHorizontal: 24,
       backgroundColor: theme.colors.accent,
-      borderRadius: 12,
+      borderRadius: theme.mode === "dark" ? 12 : 9999,
     },
     retryBtnText: {
       fontSize: 15,
@@ -632,11 +640,11 @@ function createPreviewStyles(theme: ReturnType<typeof useTheme>) {
       alignItems: "center",
     },
     editBtn: {
-      marginLeft: 10,
-      minHeight: 44,
+      marginLeft: 12,
+      minHeight: 46,
       paddingVertical: 11,
-      paddingHorizontal: 16,
-      borderRadius: 12,
+      paddingHorizontal: 20,
+      borderRadius: theme.mode === "dark" ? 12 : 9999,
       borderWidth: 1,
       borderColor: theme.colors.border,
       backgroundColor: theme.colors.surfaceAlt,

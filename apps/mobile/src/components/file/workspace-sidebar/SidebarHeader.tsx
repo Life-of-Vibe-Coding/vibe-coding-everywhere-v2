@@ -19,8 +19,8 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
     <Box
       className="flex-row items-center justify-center border-b"
       style={{
-        borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.15)" : "rgba(0,0,0,0.06)",
-        backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "rgba(255, 255, 255, 0.6)",
+        borderBottomColor: theme.mode === "dark" ? "rgba(162, 210, 255, 0.15)" : theme.colors.border,
+        backgroundColor: theme.mode === "dark" ? "rgba(8, 12, 22, 0.4)" : "transparent",
       }}
     >
       <Box className="w-[48px]" />
@@ -45,10 +45,10 @@ export function SidebarHeader({ activeTab, onTabChange, onClose }: SidebarHeader
             backgroundColor: pressed
               ? theme.mode === "dark"
                 ? "rgba(160, 209, 255, 0.16)"
-                : "rgba(15, 23, 42, 0.08)"
+                : theme.colors.surfaceAlt
               : theme.mode === "dark"
                 ? "rgba(255, 255, 255, 0.05)"
-                : "rgba(15, 23, 42, 0.04)",
+                : theme.colors.surfaceMuted,
             shadowColor: pressed ? theme.colors.accent : "transparent",
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: pressed ? 0.6 : 0,

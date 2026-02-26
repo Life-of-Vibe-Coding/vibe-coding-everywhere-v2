@@ -4,6 +4,7 @@
  */
 import React from "react";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
+import { useTheme } from "@/theme/index";
 
 const size = 22;
 /** Bar width 16, height 1.5 — no bolding; square ends. */
@@ -60,17 +61,24 @@ export function SettingsIcon({ color = "currentColor" }: { color?: string }) {
 }
 
 /** Transparent-background SVG settings icon with neon gradient fill. */
+
 export function SettingsGradientIcon({ size = 30 }: { size?: number }) {
+  const theme = useTheme();
+  const isLight = theme.mode === "light";
+
+  const stop1Color = isLight ? "#FFE135" : "#00E5FF";
+  const stop2Color = isLight ? "#87664B" : "#FF00FF";
+
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Defs>
-        <LinearGradient id="settingsGradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <Stop offset="0" stopColor="#00E5FF" />
-          <Stop offset="1" stopColor="#FF00FF" />
+        <LinearGradient id={`settingsGradient-${theme.mode}`} x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <Stop offset="0" stopColor={stop1Color} />
+          <Stop offset="1" stopColor={stop2Color} />
         </LinearGradient>
       </Defs>
       <Path
-        fill="url(#settingsGradient)"
+        fill={`url(#settingsGradient-${theme.mode})`}
         fillRule="evenodd"
         d={`${gearPath} ${centerHole}`}
       />

@@ -56,10 +56,6 @@ export function ChatPageShell({
                 {!isAnyOverlayOpen && (
                   <ChatHeaderSection
                     theme={context.theme}
-                    workspaceName={header.workspaceName}
-                    sessionIdLabel={header.sessionIdLabel}
-                    sessionRunning={runtime.sessionRunning}
-                    waitingForUserInput={runtime.waitingForUserInput}
                     onOpenExplorer={header.onOpenExplorer}
                     onOpenSessionManagement={modalHandlers.onOpenSessionManagement}
                     sidebarVisible={header.sidebarVisible || modalHandlers.isAnyModalOpen}

@@ -11,10 +11,6 @@ import type { getTheme } from "@/theme/index";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;
-  workspaceName: string;
-  sessionIdLabel: string;
-  sessionRunning: boolean;
-  waitingForUserInput: boolean;
   onOpenExplorer: () => void;
   onOpenSessionManagement: () => void;
   sidebarVisible: boolean;
@@ -22,34 +18,14 @@ export type ChatHeaderSectionProps = {
 
 export function ChatHeaderSection({
   theme,
-  workspaceName,
-  sessionIdLabel,
-  sessionRunning,
-  waitingForUserInput,
   onOpenExplorer,
   onOpenSessionManagement,
   sidebarVisible,
 }: ChatHeaderSectionProps) {
-  const hasRealSessionId = sessionIdLabel !== "—" && sessionIdLabel.toLowerCase() !== "temp";
-  const statusColor = !hasRealSessionId
-    ? theme.colors.accent
-    : sessionRunning
-      ? (waitingForUserInput ? theme.colors.warning : theme.colors.success)
-      : theme.colors.info;
-  const statusLabel = !hasRealSessionId
-    ? "Start"
-    : sessionRunning
-      ? `Running: ${sessionIdLabel}`
-      : `Idling: ${sessionIdLabel}`;
-
   return (
     <AppHeaderBar
       visible={!sidebarVisible}
-      workspaceName={workspaceName}
       iconColor={theme.colors.textPrimary}
-      workspaceColor={theme.colors.accent}
-      statusColor={statusColor}
-      statusLabel={statusLabel}
       onOpenExplorer={onOpenExplorer}
       onOpenSessionManagement={onOpenSessionManagement}
     />

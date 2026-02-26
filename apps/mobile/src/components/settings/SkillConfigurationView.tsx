@@ -134,7 +134,7 @@ export function SkillConfigurationView({
             isOpen
             skillId={selectedSkillId!}
             serverBaseUrl={serverBaseUrl}
-            onClose={onCloseSkillDetail ?? (() => {})}
+            onClose={onCloseSkillDetail ?? (() => { })}
           />
         </Box>
       ) : (
@@ -220,7 +220,7 @@ export function SkillConfigurationView({
                       accessibilityLabel={`Enable ${skill.name}`}
                       trackColor={{
                         false: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(15, 23, 42, 0.2)",
-                        true: isDark ? "rgba(139, 117, 255, 0.4)" : "rgba(139, 117, 255, 0.34)",
+                        true: isDark ? "rgba(139, 117, 255, 0.4)" : "rgba(135, 102, 75, 0.34)",
                       }}
                       thumbColor={
                         enabledSkillIds.has(skill.id)

@@ -129,10 +129,10 @@ export function AppHeaderBar({
 
   return (
     <Box
-      style={isDark ? layoutGlassHeaderStyleDark : { backgroundColor: "rgba(255, 255, 255, 0.6)", borderBottomWidth: 0, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 1 }}
+      style={isDark ? layoutGlassHeaderStyleDark : { backgroundColor: "transparent" }}
       className="relative z-10 -mx-6 px-6 pb-2 overflow-hidden"
     >
-      {isDark ? <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} /> : <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />}
+      {isDark && <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />}
       <HStack className="relative h-20 flex-row items-center justify-between px-0 -mt-2" pointerEvents="box-none">
         <HeaderButton
           icon={<Box style={{ marginLeft: -10 }}><FlickerLogo isDark={isDark} /></Box>}
