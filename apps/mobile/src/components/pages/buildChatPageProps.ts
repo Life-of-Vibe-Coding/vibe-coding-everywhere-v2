@@ -102,6 +102,7 @@ export function buildChatPageProps({
     },
     inputDock: {
       visible: !sidebarVisible || sidebarActiveTab === "files",
+      serverBaseUrl: serverConfig.getBaseUrl(),
       pendingCodeRefs: chatActionState.pendingCodeRefs,
       onSubmitPrompt: chatActionState.onSubmitPrompt,
       onRemoveCodeRef: chatActionState.onRemoveCodeRef,

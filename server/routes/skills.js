@@ -1,7 +1,8 @@
 /**
  * Skills discovery and management routes.
  */
-import { SKILLS_DIR, projectRoot, getWorkspaceCwd } from "../config/index.js";
+import path from "path";
+import { projectRoot, getWorkspaceCwd } from "../config/index.js";
 import {
   discoverSkills,
   getSkillContent,
@@ -11,10 +12,15 @@ import {
   resolveAgentDir,
 } from "../skills/index.js";
 
+/** Resolve skills directory from the server directory. */
+function getSkillsDir() {
+  return path.join(projectRoot, "server", "skills-library");
+}
+
 export function registerSkillsRoutes(app) {
   app.get("/api/skills", (_, res) => {
     try {
-      const data = discoverSkills(SKILLS_DIR);
+      const data = discoverSkills(getSkillsDir());
       res.json(data);
     } catch (err) {
       res.status(500).json({ error: err.message || "Failed to list skills" });
@@ -28,7 +34,7 @@ export function registerSkillsRoutes(app) {
       return res.status(400).json({ error: "Missing or invalid skill id" });
     }
     try {
-      const data = getSkillChildren(id, relPath, SKILLS_DIR);
+      const data = getSkillChildren(id, relPath, getSkillsDir());
       if (!data) {
         return res.status(404).json({ error: "Path not found" });
       }
@@ -44,7 +50,7 @@ export function registerSkillsRoutes(app) {
       return res.status(400).json({ error: "Missing or invalid skill id" });
     }
     try {
-      const data = getSkillContent(id, SKILLS_DIR);
+      const data = getSkillContent(id, getSkillsDir());
       if (!data) {
         return res.status(404).json({ error: "Skill not found" });
       }

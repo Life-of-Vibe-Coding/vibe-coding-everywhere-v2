@@ -125,6 +125,7 @@ export function ChatInputDockSection({
         onOpenModelPicker={onOpenModelPicker}
         onOpenSkillsConfig={onOpenSkillsConfig}
         onOpenDocker={onOpenDocker}
+        serverBaseUrl={input.serverBaseUrl}
       />
     </Box>
   );

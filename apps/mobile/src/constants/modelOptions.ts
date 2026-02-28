@@ -25,20 +25,16 @@ export const CODEX_MODELS: ModelOption[] = [
   { value: "gpt-5.2-codex", label: "GPT-5.2 Codex" },
 ];
 
-export const COCOA_MODELS: ModelOption[] = [
-  { value: "opus4.5", label: "Opus 4.5" },
-];
+
 
 export const MODEL_OPTIONS_BY_PROVIDER: Record<Provider, ModelOption[]> = {
   claude: CLAUDE_MODELS,
   gemini: GEMINI_MODELS,
   codex: CODEX_MODELS,
-  cocoa: COCOA_MODELS,
 };
 
 export const DEFAULT_CLAUDE_MODEL = "sonnet4.5";
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export const DEFAULT_CODEX_MODEL = "gpt-5.1-codex-mini";
-export const DEFAULT_COCOA_MODEL = "opus4.5";
 
 export type { Provider };

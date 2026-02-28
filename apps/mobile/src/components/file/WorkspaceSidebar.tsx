@@ -733,9 +733,7 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
               </Box>
             ) : gitError && activeTab !== "files" ? (
               <ScrollView style={styles.scroll} contentContainerStyle={styles.errorContainer}>
-                <Text style={styles.errorTitle}>Git Error</Text>
-                <Text style={styles.errorText}>{gitError}</Text>
-                {gitError.includes("not a git repository") && (
+                {gitError.includes("not a git repository") ? (
                   <Pressable
                     style={[styles.initGitBtn, actionLoading && styles.initGitBtnDisabled]}
                     onPress={handleGitInit}
@@ -748,6 +746,11 @@ export function WorkspaceSidebar({ isOpen, embedded, onClose, onFileSelect, onCo
                       <Text style={styles.initGitBtnText}>Initialize Git Repository</Text>
                     )}
                   </Pressable>
+                ) : (
+                  <>
+                    <Text style={styles.errorTitle}>Git Error</Text>
+                    <Text style={styles.errorText}>{gitError}</Text>
+                  </>
                 )}
               </ScrollView>
             ) : activeTab === "files" ? (

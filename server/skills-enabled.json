@@ -1,0 +1,22 @@
+{
+  "enabledIds": [
+    "enhance-prompt",
+    "fullstack-software-engineer",
+    "terminal-runner",
+    "git-advanced-workflows",
+    "component-refactoring",
+    "refactor-module",
+    "refactor",
+    "explain-code",
+    "ui-ux-pro-max",
+    "dispatching-parallel-agents",
+    "writing-plans",
+    "using-git-worktrees",
+    "receiving-code-review",
+    "requesting-code-review",
+    "systematic-debugging",
+    "verification-before-completion",
+    "executing-plans",
+    "subagent-driven-development"
+  ]
+}

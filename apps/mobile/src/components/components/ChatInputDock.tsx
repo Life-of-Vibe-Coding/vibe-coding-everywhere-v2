@@ -30,6 +30,7 @@ type ChatInputDockProps = {
   onOpenModelPicker: () => void;
   onOpenSkillsConfig: () => void;
   onOpenDocker: () => void;
+  serverBaseUrl: string;
 };
 
 export function ChatInputDock({
@@ -52,6 +53,7 @@ export function ChatInputDock({
   onOpenModelPicker,
   onOpenSkillsConfig,
   onOpenDocker,
+  serverBaseUrl,
 }: ChatInputDockProps) {
   const permissionMode = getBackendPermissionMode(permissionModeUI, provider);
 
@@ -77,6 +79,7 @@ export function ChatInputDock({
       onOpenModelPicker={onOpenModelPicker}
       onOpenSkillsConfig={onOpenSkillsConfig}
       onOpenDocker={onOpenDocker}
+      serverBaseUrl={serverBaseUrl}
     />
   );
 }

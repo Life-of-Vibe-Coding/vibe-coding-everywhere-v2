@@ -10,7 +10,30 @@ import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
 import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
-type Skill = { id: string; name: string; description: string };
+import { ScrollView as RNScrollView } from "react-native";
+
+type Skill = { id: string; name: string; description: string; category?: string };
+
+const CATEGORIES = ["All", "Development", "UI/UX", "DevOps", "Debug", "Prompt"] as const;
+type Category = (typeof CATEGORIES)[number];
+
+const CATEGORY_COLORS: Record<Category, { active: string; text: string }> = {
+  All: { active: "rgba(139, 117, 255, 0.35)", text: "#A78BFA" },
+  Development: { active: "rgba(59, 130, 246, 0.35)", text: "#60A5FA" },
+  "UI/UX": { active: "rgba(236, 72, 153, 0.35)", text: "#F472B6" },
+  DevOps: { active: "rgba(16, 185, 129, 0.35)", text: "#34D399" },
+  Debug: { active: "rgba(245, 158, 11, 0.35)", text: "#FBBF24" },
+  Prompt: { active: "rgba(99, 102, 241, 0.35)", text: "#818CF8" },
+};
+
+const CATEGORY_COLORS_LIGHT: Record<Category, { active: string; text: string }> = {
+  All: { active: "rgba(109, 40, 217, 0.15)", text: "#7C3AED" },
+  Development: { active: "rgba(37, 99, 235, 0.15)", text: "#2563EB" },
+  "UI/UX": { active: "rgba(219, 39, 119, 0.15)", text: "#DB2777" },
+  DevOps: { active: "rgba(5, 150, 105, 0.15)", text: "#059669" },
+  Debug: { active: "rgba(217, 119, 6, 0.15)", text: "#D97706" },
+  Prompt: { active: "rgba(79, 70, 229, 0.15)", text: "#4F46E5" },
+};
 
 export interface SkillConfigurationViewProps {
   isOpen: boolean;
@@ -52,6 +75,7 @@ export function SkillConfigurationView({
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [skillsSaving, setSkillsSaving] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category>("All");
 
   useEffect(() => {
     if (isOpen && serverBaseUrl) {
@@ -112,6 +136,20 @@ export function SkillConfigurationView({
     [onSelectSkill]
   );
 
+  const filteredSkills =
+    selectedCategory === "All"
+      ? skills
+      : skills.filter((s) => (s.category ?? "Development") === selectedCategory);
+
+  const categoryCounts: Record<Category, number> = {
+    All: skills.length,
+    Development: skills.filter((s) => (s.category ?? "Development") === "Development").length,
+    "UI/UX": skills.filter((s) => s.category === "UI/UX").length,
+    DevOps: skills.filter((s) => s.category === "DevOps").length,
+    Debug: skills.filter((s) => s.category === "Debug").length,
+    Prompt: skills.filter((s) => s.category === "Prompt").length,
+  };
+
   if (!isOpen) return null;
 
   const safeStyle = {
@@ -124,6 +162,7 @@ export function SkillConfigurationView({
   };
 
   const showDetailOverlay = Boolean(selectedSkillId);
+  const colorPalette = isDark ? CATEGORY_COLORS : CATEGORY_COLORS_LIGHT;
 
   const content = (
     <Box className="flex-1 overflow-hidden" style={{ backgroundColor: pageSurface }}>
@@ -155,6 +194,98 @@ export function SkillConfigurationView({
               <CloseIcon size={20} color={mutedColor} />
             </Pressable>
           </Box>
+
+          {/* Category Navbar */}
+          <Box
+            style={{
+              borderBottomColor: panelBorder,
+              borderBottomWidth: 1,
+              backgroundColor: isDark ? "rgba(10, 16, 30, 0.6)" : "rgba(248, 250, 252, 0.7)",
+            }}
+          >
+            <RNScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                gap: 8,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              {CATEGORIES.map((cat) => {
+                const isActive = selectedCategory === cat;
+                const colors = colorPalette[cat];
+                const count = categoryCounts[cat];
+
+                return (
+                  <Pressable
+                    key={cat}
+                    onPress={() => setSelectedCategory(cat)}
+                    accessibilityLabel={`Filter by ${cat}`}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: isActive }}
+                    style={({ pressed }) => [
+                      {
+                        paddingHorizontal: 14,
+                        paddingVertical: 7,
+                        borderRadius: 20,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        backgroundColor: isActive
+                          ? colors.active
+                          : pressed
+                            ? (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)")
+                            : (isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)"),
+                        borderWidth: 1,
+                        borderColor: isActive
+                          ? (isDark ? `${colors.text}44` : `${colors.text}33`)
+                          : (isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"),
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: isActive ? "700" : "500",
+                        color: isActive ? colors.text : mutedColor,
+                        letterSpacing: -0.2,
+                      }}
+                    >
+                      {cat}
+                    </Text>
+                    {count > 0 && (
+                      <Box
+                        style={{
+                          backgroundColor: isActive
+                            ? `${colors.text}22`
+                            : (isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"),
+                          borderRadius: 10,
+                          paddingHorizontal: 6,
+                          paddingVertical: 1,
+                          minWidth: 20,
+                          alignItems: "center" as const,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: "600",
+                            color: isActive ? colors.text : mutedColor,
+                          }}
+                        >
+                          {count}
+                        </Text>
+                      </Box>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </RNScrollView>
+          </Box>
+
           <ScrollView
             className="flex-1"
             contentContainerStyle={{
@@ -176,63 +307,91 @@ export function SkillConfigurationView({
               />
             ) : skillsError ? (
               <Text className="text-sm text-error-500 mt-4">{skillsError}</Text>
-            ) : skills.length === 0 ? (
+            ) : filteredSkills.length === 0 ? (
               <Text className="text-sm mt-4" style={{ color: mutedColor }}>
-                No skills found in project skills folder.
+                {skills.length === 0
+                  ? "No skills found in project skills folder."
+                  : `No skills in "${selectedCategory}" category.`}
               </Text>
             ) : (
-              skills.map((skill) => (
-                <Box
-                  key={skill.id}
-                  className="flex-row items-center justify-between py-3.5 px-4 rounded-xl border mb-2.5"
-                  style={{ backgroundColor: cardSurface, borderColor: panelBorder }}
-                >
-                  <Pressable
-                    onPress={() => handleSkillRowPress(skill.id)}
-                    hitSlop={{ top: 12, bottom: 12, left: 0, right: 12 }}
-                    accessibilityLabel={`${skill.name}. View details`}
-                    accessibilityHint="Opens skill details"
-                    accessibilityRole="button"
-                    className="flex-1 flex-row items-center mr-3"
-                    style={({ pressed }) => (pressed ? { backgroundColor: pressedSurface, borderRadius: 10 } : undefined)}
+              filteredSkills.map((skill) => {
+                const catColors = colorPalette[(skill.category as Category) ?? "Development"];
+                return (
+                  <Box
+                    key={skill.id}
+                    className="flex-row items-center justify-between py-3.5 px-4 rounded-xl border mb-2.5"
+                    style={{ backgroundColor: cardSurface, borderColor: panelBorder }}
                   >
-                    <Box className="flex-1 mr-2 min-w-0">
-                      <Text className="text-[15px] font-semibold" style={{ color: bodyColor }}>
-                        {skill.name}
-                      </Text>
-                      {skill.description ? (
-                        <Text
-                          className="text-xs mt-1 leading-4"
-                          style={{ color: mutedColor }}
-                          numberOfLines={2}
-                        >
-                          {skill.description}
-                        </Text>
-                      ) : null}
+                    <Pressable
+                      onPress={() => handleSkillRowPress(skill.id)}
+                      hitSlop={{ top: 12, bottom: 12, left: 0, right: 12 }}
+                      accessibilityLabel={`${skill.name}. View details`}
+                      accessibilityHint="Opens skill details"
+                      accessibilityRole="button"
+                      className="flex-1 flex-row items-center mr-3"
+                      style={({ pressed }) => (pressed ? { backgroundColor: pressedSurface, borderRadius: 10 } : undefined)}
+                    >
+                      <Box className="flex-1 mr-2 min-w-0">
+                        <Box style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                          <Text className="text-[15px] font-semibold" style={{ color: bodyColor }}>
+                            {skill.name}
+                          </Text>
+                          {selectedCategory === "All" && skill.category && (
+                            <Box
+                              style={{
+                                backgroundColor: catColors.active,
+                                borderRadius: 8,
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: "600",
+                                  color: catColors.text,
+                                  letterSpacing: -0.2,
+                                }}
+                              >
+                                {skill.category}
+                              </Text>
+                            </Box>
+                          )}
+                        </Box>
+                        {skill.description ? (
+                          <Text
+                            className="text-xs mt-1 leading-4"
+                            style={{ color: mutedColor }}
+                            numberOfLines={2}
+                          >
+                            {skill.description}
+                          </Text>
+                        ) : null}
+                      </Box>
+                      <ChevronRightIcon size={18} color={mutedColor} />
+                    </Pressable>
+                    <Box className="shrink-0">
+                      <Switch
+                        value={enabledSkillIds.has(skill.id)}
+                        onValueChange={(val) => handleSkillToggle(skill.id, val)}
+                        disabled={skillsSaving}
+                        accessibilityLabel={`Enable ${skill.name}`}
+                        trackColor={{
+                          false: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(15, 23, 42, 0.2)",
+                          true: isDark ? `${catColors.text}66` : `${catColors.text}55`,
+                        }}
+                        thumbColor={
+                          enabledSkillIds.has(skill.id)
+                            ? catColors.text
+                            : isDark
+                              ? "rgba(226, 238, 252, 0.9)"
+                              : "#F8FAFC"
+                        }
+                      />
                     </Box>
-                    <ChevronRightIcon size={18} color={mutedColor} />
-                  </Pressable>
-                  <Box className="shrink-0">
-                    <Switch
-                      value={enabledSkillIds.has(skill.id)}
-                      onValueChange={(val) => handleSkillToggle(skill.id, val)}
-                      disabled={skillsSaving}
-                      accessibilityLabel={`Enable ${skill.name}`}
-                      trackColor={{
-                        false: isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(15, 23, 42, 0.2)",
-                        true: isDark ? "rgba(139, 117, 255, 0.4)" : "rgba(135, 102, 75, 0.34)",
-                      }}
-                      thumbColor={
-                        enabledSkillIds.has(skill.id)
-                          ? theme.colors.accent
-                          : isDark
-                            ? "rgba(226, 238, 252, 0.9)"
-                            : "#F8FAFC"
-                      }
-                    />
                   </Box>
-                </Box>
-              ))
+                );
+              })
             )}
           </ScrollView>
         </Box>

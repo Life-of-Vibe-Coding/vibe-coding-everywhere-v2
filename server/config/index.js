@@ -22,7 +22,7 @@ const projectRoot = path.resolve(__dirname, "../..");
 function resolveWorkspaceCwd() {
   const args = process.argv.slice(2);
   let fromCli = null;
-  
+
   // Parse command line arguments
   for (let i = 0; i < args.length; i++) {
     // Check for --workspace flag
@@ -36,12 +36,12 @@ function resolveWorkspaceCwd() {
       break;
     }
   }
-  
+
   // Resolve final path with fallback chain.
   // Default to project root so sessions come from project-root/.pi only (not workspace_for_testing/.pi).
   const raw = fromCli ?? process.env.WORKSPACE ?? process.env.WORKSPACE_CWD ?? projectRoot;
   const resolved = path.resolve(raw);
-  
+
   // Validate workspace path exists and is a directory
   if (!fs.existsSync(resolved)) {
     console.warn(`[workspace] Path does not exist: ${resolved}. Using server directory.`);
@@ -175,14 +175,9 @@ export function getLlmCliIoTurnPaths(provider, sessionId, turnId) {
 }
 
 /**
- * Directory for Pi agent skills. ONLY skills from this folder are loaded.
- * Always resolves to <projectRoot>/skills so the canonical source is the project's skills/ folder.
- * Override with SKILLS_DIR env only when necessary (e.g. explicit path override).
+ * DEPRECATED: Skills are now loaded from the workspace's ./skills directory.
+ * See server/routes/skills.js and server/process/piRpcSession.js.
  */
-const _skillsDirFromEnv = process.env.SKILLS_DIR?.trim();
-export const SKILLS_DIR = _skillsDirFromEnv
-  ? path.resolve(_skillsDirFromEnv)
-  : path.join(projectRoot, "skills");
 
 /** Path to pi CLI binary. Defaults to "pi" (must be on PATH). */
 export const PI_CLI_PATH = process.env.PI_CLI_PATH || "pi";

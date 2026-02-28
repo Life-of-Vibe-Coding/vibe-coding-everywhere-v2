@@ -37,6 +37,9 @@ Thumbs.db
 !.github/
 !.vscode/
 
+# Auto-generated skill symlinks
+skills_enabled/
+
 # Optional
 .cache/
 coverage/

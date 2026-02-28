@@ -8,7 +8,7 @@ import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { Dimensions, PixelRatio, useColorScheme } from "react-native";
 import { buildTypographyScale, type TypographyScaleRecord } from "@/theme/typography";
 
-export type Provider = "claude" | "gemini" | "codex" | "cocoa";
+export type Provider = "claude" | "gemini" | "codex";
 export type ColorMode = "dark" | "light";
 export type ColorModePreference = ColorMode | "system";
 
@@ -119,7 +119,7 @@ export function buildTheme(provider: Provider = "codex", mode: ColorMode = "ligh
   const neutral = getNeutrals(mode);
   const isLight = mode === "light";
   const defaultAccent = isLight ? "#4A90E2" : brand.accentOnDark;
-  const accent = provider === "cocoa" ? "#D2B48C" : defaultAccent;
+  const accent = defaultAccent;
 
   return {
     provider,

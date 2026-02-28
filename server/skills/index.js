@@ -6,9 +6,42 @@
  */
 import fs from "fs";
 import path from "path";
+import { projectRoot } from "../config/index.js";
 
 const SKILL_FILE = "SKILL.md";
-const ENABLED_FILE = "skills-enabled.json";
+const ENABLED_FILE_PATH = path.join(projectRoot, "server", "skills-enabled.json");
+
+/**
+ * Skill category mapping. Maps skill directory name to a category.
+ * Categories: Development, UI/UX, DevOps, Debug, Prompt
+ */
+const SKILL_CATEGORIES = {
+  "fullstack-software-engineer": "Development",
+  "react-native-animations": "Development",
+  "refactor": "Development",
+  "test-driven-development": "Development",
+  "terminal-runner": "Development",
+  "ui-ux-pro-max": "UI/UX",
+  "enhance-prompt": "UI/UX",
+  "git-advanced-workflows": "DevOps",
+  "using-git-worktrees": "DevOps",
+  "finishing-a-development-branch": "DevOps",
+  "systematic-debugging": "Debug",
+  "receiving-code-review": "Debug",
+  "requesting-code-review": "Debug",
+  "verification-before-completion": "Debug",
+  "brainstorming": "Prompt",
+  "dispatching-parallel-agents": "Prompt",
+  "executing-plans": "Prompt",
+  "subagent-driven-development": "Prompt",
+  "using-superpowers": "Prompt",
+  "writing-plans": "Prompt",
+  "writing-skills": "Prompt",
+};
+
+function getSkillCategory(id) {
+  return SKILL_CATEGORIES[id] || "Development";
+}
 
 /**
  * Parse YAML frontmatter from SKILL.md content.
@@ -58,6 +91,7 @@ export function discoverSkills(skillsDir) {
           id: ent.name,
           name: name ?? ent.name,
           description: description ?? "",
+          category: getSkillCategory(ent.name),
         });
       } catch (err) {
         console.warn("[skills] Failed to parse", skillFile, err?.message);
@@ -207,45 +241,39 @@ export function resolveAgentDir(workspaceCwd, projectRoot) {
 
 /**
  * Get enabled skill IDs from persistence.
- * @param {string} agentDir - Resolved agent directory
+ * @param {string} agentDir - Resolved agent directory (ignored, stored globally now)
  * @returns {string[]}
  */
 export function getEnabledIds(agentDir) {
-  if (!agentDir) return [];
-
-  const filePath = path.join(agentDir, ENABLED_FILE);
   try {
-    if (!fs.existsSync(filePath)) return [];
-    const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    if (!fs.existsSync(ENABLED_FILE_PATH)) return [];
+    const data = JSON.parse(fs.readFileSync(ENABLED_FILE_PATH, "utf8"));
     const ids = data?.enabledIds;
     const filtered = Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [];
     return [...new Set(filtered)]; // Deduplicate to prevent same skill loading twice
   } catch (err) {
-    console.warn("[skills] Failed to read", filePath, err?.message);
+    console.warn("[skills] Failed to read", ENABLED_FILE_PATH, err?.message);
     return [];
   }
 }
 
 /**
  * Set enabled skill IDs in persistence.
- * @param {string} agentDir - Resolved agent directory
+ * @param {string} agentDir - Resolved agent directory (ignored, stored globally now)
  * @param {string[]} enabledIds - List of skill IDs to enable
  * @returns {{ ok: boolean; error?: string }}
  */
 export function setEnabledIds(agentDir, enabledIds) {
-  if (!agentDir) return { ok: false, error: "Agent dir not resolved" };
-
   const normalized = Array.isArray(enabledIds)
     ? enabledIds.filter((x) => typeof x === "string" && x.trim())
     : [];
 
-  const filePath = path.join(agentDir, ENABLED_FILE);
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify({ enabledIds: normalized }, null, 2), "utf8");
+    fs.mkdirSync(path.dirname(ENABLED_FILE_PATH), { recursive: true });
+    fs.writeFileSync(ENABLED_FILE_PATH, JSON.stringify({ enabledIds: normalized }, null, 2), "utf8");
     return { ok: true };
   } catch (err) {
-    console.warn("[skills] Failed to write", filePath, err?.message);
+    console.warn("[skills] Failed to write", ENABLED_FILE_PATH, err?.message);
     return { ok: false, error: err?.message ?? "Failed to save" };
   }
 }
@@ -296,10 +324,10 @@ export function syncEnabledSkillsFolder(skillsDir, agentDir, targetDir) {
           const p = path.join(targetDir, ent.name);
           try {
             fs.unlinkSync(p); // symlinks are removed with unlink
-          } catch (_) {}
+          } catch (_) { }
           try {
             fs.rmSync(p, { recursive: true, force: true });
-          } catch (_) {}
+          } catch (_) { }
         }
       }
     } else {

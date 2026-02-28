@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Platform, Keyboard, AccessibilityInfo, Animated } from "react-native";
+import { Platform, Keyboard, AccessibilityInfo, Animated, Modal, View as RNView, TouchableWithoutFeedback, Dimensions, ScrollView } from "react-native";
 import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
   AttachPlusIcon,
@@ -11,6 +11,8 @@ import {
   SkillIcon,
   StopCircleIcon,
   TerminalIcon,
+  WrenchIcon,
+  BoxIcon,
 } from "@/components/icons/ChatActionIcons";
 import { EntranceAnimation, triggerHaptic } from "@/design-system";
 import { Badge, BadgeText } from "@/components/ui/badge";
@@ -21,15 +23,6 @@ import { Text } from "@/components/ui/text";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
-import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetItem,
-  ActionsheetItemText,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-} from "@/components/ui/actionsheet";
 import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { useTheme } from "@/theme/index";
 import { type Provider } from "@/constants/modelOptions";
@@ -120,6 +113,7 @@ export interface InputPanelProps {
   onOpenModelPicker?: () => void;
   onOpenSkillsConfig?: () => void;
   onOpenDocker?: () => void;
+  serverBaseUrl?: string;
 }
 
 export function InputPanel({
@@ -143,14 +137,34 @@ export function InputPanel({
   onOpenModelPicker,
   onOpenSkillsConfig,
   onOpenDocker,
+  serverBaseUrl,
 }: InputPanelProps) {
   const theme = useTheme();
   const [prompt, setPrompt] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [terminalMenuVisible, setTerminalMenuVisible] = useState(false);
+  const [skillMenuVisible, setSkillMenuVisible] = useState(false);
+  const [enabledSkills, setEnabledSkills] = useState<{ id: string; name: string; category?: string }[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [skillsLoading, setSkillsLoading] = useState(false);
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
   const { bottom } = useSafeAreaInsets();
+  const triggerLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const skillTriggerLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+
+  const fetchEnabledSkills = useCallback(() => {
+    if (!serverBaseUrl) return;
+    setSkillsLoading(true);
+    Promise.all([
+      fetch(`${serverBaseUrl}/api/skills`).then(r => r.json()),
+      fetch(`${serverBaseUrl}/api/skills-enabled`).then(r => r.json())
+    ]).then(([allData, enabledData]) => {
+      const enabledSet = new Set(enabledData?.enabledIds || []);
+      const allSkills = allData?.skills || [];
+      setEnabledSkills(allSkills.filter((s: any) => enabledSet.has(s.id)));
+    }).catch(() => { }).finally(() => setSkillsLoading(false));
+  }, [serverBaseUrl]);
 
   const sendScale = useRef(new Animated.Value(1)).current;
   const sendStyle = { transform: [{ scale: sendScale }] };
@@ -306,15 +320,21 @@ export function InputPanel({
             )}
           />
         </HStack>
-        <HStack space="sm" className="flex-row items-center justify-between gap-2 flex-nowrap">
-          <HStack space="sm" className="flex-1 flex-row items-center gap-2 min-w-0">
-            {onOpenSkillsConfig && (
+        <HStack space="sm" className="w-full flex-row items-center justify-between gap-2 flex-nowrap mt-1">
+          {onOpenSkillsConfig && (
+            <>
               <Pressable
                 onPress={() => {
                   triggerHaptic("selection");
-                  onOpenSkillsConfig();
+                  if (enabledSkills.length === 0) fetchEnabledSkills();
+                  setSkillMenuVisible((v) => !v);
                 }}
-                accessibilityLabel="Skill configuration"
+                onLayout={(e) => {
+                  e.target.measureInWindow((x: number, y: number, w: number, h: number) => {
+                    skillTriggerLayout.current = { x, y, width: w, height: h };
+                  });
+                }}
+                accessibilityLabel="Skill Hub"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 className="items-center justify-center p-2 rounded-full w-11 h-11 active:opacity-90"
                 style={{
@@ -323,114 +343,199 @@ export function InputPanel({
                   borderWidth: isDark ? 1.5 : 1,
                 }}
               >
-                <AttachPlusIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
+                <SkillIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
               </Pressable>
-            )}
-            <Pressable
-              onPress={() => {
-                triggerHaptic("selection");
-                onOpenModelPicker?.();
-              }}
-              disabled={!onOpenModelPicker}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityLabel="Select model"
-              className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
-              style={{
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
-                borderColor: isDark ? theme.colors.info : theme.colors.border,
-                borderWidth: isDark ? 1.5 : 1,
-              }}
-            >
-              <Text
-                size="sm"
-                bold
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                className="flex-1 min-w-0"
-                style={{ color: isDark ? theme.colors.info : theme.colors.textPrimary }}
+              <Modal
+                visible={skillMenuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setSkillMenuVisible(false)}
               >
-                {currentModelLabel}
-              </Text>
-              <Box className="shrink-0 self-center pl-1">
-                <ChevronDownIcon size={12} color={isDark ? theme.colors.info : theme.colors.textPrimary} />
-              </Box>
-            </Pressable>
-          </HStack>
-          <HStack space="sm" className="flex-row items-center gap-2 shrink-0">
-            {(onOpenProcesses || onOpenDocker) && (
-              <>
-                <Pressable
-                  onPress={() => {
-                    triggerHaptic("selection");
-                    setTerminalMenuVisible(true);
-                  }}
-                  accessibilityLabel="System menu"
-                  className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-80"
-                  style={isDark ? {
-                    backgroundColor: "rgba(255, 0, 255, 0.1)",
-                    borderColor: "#FF00FF",
-                    borderWidth: 1.5
-                  } : {
-                    backgroundColor: theme.colors.surfaceMuted,
-                    borderColor: theme.colors.border,
-                    borderWidth: 1
-                  }}
-                >
-                  <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
-                  {terminalMenuVisible ? (
-                    <ChevronUpIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
-                  ) : (
-                    <ChevronDownIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
-                  )}
-                </Pressable>
-                <Actionsheet isOpen={terminalMenuVisible} onClose={() => setTerminalMenuVisible(false)} snapPoints={[25]}>
-                  <ActionsheetBackdrop />
-                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface, paddingBottom: Math.max(bottom, 24) }}>
-                    <ActionsheetDragIndicatorWrapper>
-                      <ActionsheetDragIndicator />
-                    </ActionsheetDragIndicatorWrapper>
-                    {onOpenProcesses && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          setTerminalMenuVisible(false);
-                          onOpenProcesses();
-                        }}
-                        accessibilityLabel="Terminal processes"
-                      >
-                        <HStack space="sm" className="items-center">
-                          <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
-                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Terminal processes</ActionsheetItemText>
-                        </HStack>
-                      </ActionsheetItem>
-                    )}
-                    {onOpenDocker && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          setTerminalMenuVisible(false);
-                          onOpenDocker();
-                        }}
-                        accessibilityLabel="Docker manager"
-                      >
-                        <HStack space="sm" className="items-center">
-                          <DockerIcon size={18} color={theme.colors.accent} />
-                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Docker manager</ActionsheetItemText>
-                        </HStack>
-                      </ActionsheetItem>
-                    )}
-                  </ActionsheetContent>
-                </Actionsheet>
-              </>
-            )}
-            {onOpenWebPreview && (
+                <TouchableWithoutFeedback onPress={() => setSkillMenuVisible(false)}>
+                  <RNView style={StyleSheet.absoluteFill}>
+                    <BlurView
+                      intensity={isDark ? 40 : 60}
+                      tint={isDark ? "dark" : "light"}
+                      style={{
+                        position: "absolute",
+                        bottom: skillTriggerLayout.current
+                          ? (Dimensions.get("window").height - skillTriggerLayout.current.y + 10)
+                          : 120,
+                        left: skillTriggerLayout.current ? skillTriggerLayout.current.x : 16,
+                        backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.95)",
+                        borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
+                        borderWidth: 1,
+                        borderRadius: 20,
+                        padding: 12,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 12 },
+                        shadowOpacity: isDark ? 0.5 : 0.15,
+                        shadowRadius: 32,
+                        elevation: 10,
+                        width: 220,
+                        maxHeight: 450,
+                        overflow: "hidden"
+                      }}
+                    >
+                      <HStack className="items-center justify-between mb-4 px-2">
+                        <Text style={{
+                          color: isDark ? theme.colors.accent : theme.colors.textPrimary,
+                          fontWeight: "800",
+                          fontSize: 18,
+                          letterSpacing: -0.5
+                        }}>Skill Hub</Text>
+                        <Pressable
+                          onPress={() => {
+                            triggerHaptic("selection");
+                            setSkillMenuVisible(false);
+                            onOpenSkillsConfig();
+                          }}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          style={({ pressed }) => [
+                            {
+                              padding: 6,
+                              borderRadius: 12,
+                              backgroundColor: isDark
+                                ? (pressed ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)")
+                                : (pressed ? "rgba(0,0,0,0.08)" : "rgba(0,0,0,0.04)"),
+                              opacity: pressed ? 0.7 : 1,
+                            }
+                          ]}
+                        >
+                          <AttachPlusIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} strokeWidth={2.5} />
+                        </Pressable>
+                      </HStack>
+
+                      {skillsLoading ? (
+                        <Text style={{ padding: 8, color: theme.colors.textMuted }}>Loading...</Text>
+                      ) : enabledSkills.length === 0 ? (
+                        <Text style={{ padding: 8, color: theme.colors.textMuted }}>No skills enabled.</Text>
+                      ) : (
+                        <>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3 px-1">
+                            {["All", ...Array.from(new Set(enabledSkills.map(s => s.category || "Uncategorized"))).sort()].map(category => (
+                              <Pressable
+                                key={category}
+                                onPress={() => {
+                                  triggerHaptic("selection");
+                                  setSelectedCategory(category);
+                                }}
+                                style={({ pressed }) => [
+                                  {
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    marginRight: 8,
+                                    borderRadius: 16,
+                                    backgroundColor: selectedCategory === category
+                                      ? (isDark ? theme.colors.accent : theme.colors.textPrimary)
+                                      : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"),
+                                    opacity: pressed ? 0.8 : 1,
+                                  }
+                                ]}
+                              >
+                                <Text style={{
+                                  color: selectedCategory === category
+                                    ? (isDark ? theme.colors.textInverse : theme.colors.surface)
+                                    : (isDark ? theme.colors.textMuted : theme.colors.textMuted),
+                                  fontWeight: selectedCategory === category ? "600" : "500",
+                                  fontSize: 13
+                                }}>
+                                  {category}
+                                </Text>
+                              </Pressable>
+                            ))}
+                          </ScrollView>
+                          <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                            {enabledSkills
+                              .filter(skill => selectedCategory === "All" || (skill.category || "Uncategorized") === selectedCategory)
+                              .map(skill => (
+                                <Pressable
+                                  key={skill.id}
+                                  onPress={() => {
+                                    triggerHaptic("selection");
+                                    setPrompt((p) => p + (p.length && !p.endsWith(" ") ? " " : "") + skill.name + " ");
+                                    setSkillMenuVisible(false);
+                                    // Auto-focus could be added here if needed
+                                  }}
+                                  style={({ pressed }) => [
+                                    {
+                                      paddingVertical: 8,
+                                      paddingHorizontal: 12,
+                                      borderRadius: 16,
+                                      marginBottom: 4,
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      backgroundColor: isDark
+                                        ? (pressed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)")
+                                        : (pressed ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.02)"),
+                                      borderWidth: 1,
+                                      borderColor: isDark
+                                        ? (pressed ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)")
+                                        : (pressed ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.05)"),
+                                    }
+                                  ]}
+                                >
+                                  <VStack style={{ flex: 1, justifyContent: "center", paddingVertical: 4 }}>
+                                    <Text style={{ color: theme.colors.textPrimary, fontWeight: "600", fontSize: 15 }}>{skill.name}</Text>
+                                  </VStack>
+                                </Pressable>
+                              ))}
+                          </ScrollView>
+                        </>
+                      )}
+                    </BlurView>
+                  </RNView>
+                </TouchableWithoutFeedback>
+              </Modal>
+            </>
+          )}
+          <Pressable
+            onPress={() => {
+              triggerHaptic("selection");
+              onOpenModelPicker?.();
+            }}
+            disabled={!onOpenModelPicker}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel="Select model"
+            className="flex-1 flex-row items-center gap-0.5 py-0.5 px-2 rounded-full min-h-11 min-w-0 max-w-36 justify-start active:opacity-90"
+            style={{
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
+              borderColor: isDark ? theme.colors.info : theme.colors.border,
+              borderWidth: isDark ? 1.5 : 1,
+            }}
+          >
+            <Text
+              size="sm"
+              bold
+              numberOfLines={2}
+              ellipsizeMode="tail"
+              className="flex-1 min-w-0"
+              style={{ color: isDark ? theme.colors.info : theme.colors.textPrimary }}
+            >
+              {currentModelLabel}
+            </Text>
+            <Box className="shrink-0 self-center pl-1">
+              <ChevronDownIcon size={12} color={isDark ? theme.colors.info : theme.colors.textPrimary} />
+            </Box>
+          </Pressable>
+          {(onOpenProcesses || onOpenDocker || onOpenWebPreview) && (
+            <>
               <Pressable
-                onPress={onOpenWebPreview}
-                accessibilityLabel="Open web preview"
-                className="w-11 h-11 items-center justify-center rounded-full active:opacity-80"
+                onPress={() => {
+                  triggerHaptic("selection");
+                  setTerminalMenuVisible((v) => !v);
+                }}
+                onLayout={(e) => {
+                  e.target.measureInWindow((x: number, y: number, w: number, h: number) => {
+                    triggerLayout.current = { x, y, width: w, height: h };
+                  });
+                }}
+                accessibilityLabel="System menu"
+                className="flex-row items-center justify-center gap-1 px-3 rounded-full min-h-11 active:opacity-80"
                 style={isDark ? {
-                  backgroundColor: "rgba(0, 229, 255, 0.1)",
-                  borderColor: "#00E5FF",
+                  backgroundColor: "rgba(255, 0, 255, 0.1)",
+                  borderColor: "#FF00FF",
                   borderWidth: 1.5
                 } : {
                   backgroundColor: theme.colors.surfaceMuted,
@@ -438,69 +543,190 @@ export function InputPanel({
                   borderWidth: 1
                 }}
               >
-                <GlobeIcon size={18} color={isDark ? "#00E5FF" : theme.colors.textPrimary} />
+                <AttachPlusIcon size={20} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                {terminalMenuVisible ? (
+                  <ChevronUpIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                ) : (
+                  <ChevronDownIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                )}
               </Pressable>
-            )}
-            {onTerminateAgent && sessionRunning && (
-              <ActionIconButton
-                icon={StopCircleIcon}
-                onPress={() => {
-                  triggerHaptic("heavy");
-                  onTerminateAgent();
-                }}
-                accessibilityLabel="Terminate agent response"
-                className="w-11 h-11 rounded-xl"
-                tone="danger"
-              />
-            )}
-            {!(sessionRunning && !waitingForUserInput) && (
-              <Animated.View style={sendStyle}>
-                <Button
-                  action="primary"
-                  variant="solid"
-                  size="md"
-                  onPress={handleSubmit}
-                  onPressIn={handlePressIn}
-                  onPressOut={handlePressOut}
-                  isDisabled={disabled}
-                  accessibilityLabel="Send message"
-                  className="w-12 h-12 rounded-full active:opacity-80"
-                  style={
-                    disabled
-                      ? undefined
-                      : {
-                        backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.textPrimary,
-                        borderColor: isDark ? theme.colors.accent : "transparent",
-                        borderWidth: isDark ? 1.5 : 0,
-                        ...Platform.select({
-                          ios: {
-                            shadowColor: isDark ? theme.colors.accent : theme.colors.textPrimary,
-                            shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
-                            shadowOpacity: isDark ? 0.5 : 0.3,
-                            shadowRadius: isDark ? 8 : 8,
-                          },
-                          android: { elevation: 8 },
-                          default: {},
-                        }),
-                      }
-                  }
-                >
-                  <ButtonIcon
-                    as={
-                      (p: { size?: number }) => (
-                        <CodexEnterIcon {...p} stroke={isDark ? theme.colors.accent : theme.colors.textInverse} color={isDark ? theme.colors.accent : theme.colors.textInverse} />
-                      )
+              <Modal
+                visible={terminalMenuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setTerminalMenuVisible(false)}
+              >
+                <TouchableWithoutFeedback onPress={() => setTerminalMenuVisible(false)}>
+                  <RNView style={StyleSheet.absoluteFill}>
+                    <BlurView
+                      intensity={isDark ? 40 : 60}
+                      tint={isDark ? "dark" : "light"}
+                      style={{
+                        position: "absolute",
+                        bottom: triggerLayout.current
+                          ? (Dimensions.get("window").height - triggerLayout.current.y + 10)
+                          : 120,
+                        right: 16,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        backgroundColor: isDark ? "rgba(15, 23, 42, 0.8)" : "rgba(255, 255, 255, 0.9)",
+                        borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
+                        borderWidth: 1,
+                        borderRadius: 24,
+                        padding: 8,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 12 },
+                        shadowOpacity: isDark ? 0.5 : 0.15,
+                        shadowRadius: 32,
+                        elevation: 10,
+                        overflow: "hidden"
+                      }}
+                    >
+                      {onOpenProcesses && (
+                        <Pressable
+                          onPress={() => {
+                            triggerHaptic("selection");
+                            setTerminalMenuVisible(false);
+                            onOpenProcesses();
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open Terminal"
+                          style={({ pressed }) => [
+                            {
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 56,
+                              height: 56,
+                              gap: 4,
+                              borderRadius: 16,
+                              backgroundColor: pressed ? (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)") : "transparent",
+                            }
+                          ]}
+                        >
+                          <TerminalIcon size={22} color={isDark ? "#FF00FF" : theme.colors.info} />
+                          <Text size="xs" style={{ color: theme.colors.textPrimary, fontWeight: "500", fontSize: 10 }}>Process</Text>
+                        </Pressable>
+                      )}
+                      {onOpenDocker && (
+                        <Pressable
+                          onPress={() => {
+                            triggerHaptic("selection");
+                            setTerminalMenuVisible(false);
+                            onOpenDocker();
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open Docker"
+                          style={({ pressed }) => [
+                            {
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 56,
+                              height: 56,
+                              gap: 4,
+                              borderRadius: 16,
+                              backgroundColor: pressed ? (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)") : "transparent",
+                            }
+                          ]}
+                        >
+                          <DockerIcon size={22} color={theme.colors.accent} />
+                          <Text size="xs" style={{ color: theme.colors.textPrimary, fontWeight: "500", fontSize: 10 }}>Docker</Text>
+                        </Pressable>
+                      )}
+                      {onOpenWebPreview && (
+                        <Pressable
+                          onPress={() => {
+                            triggerHaptic("selection");
+                            setTerminalMenuVisible(false);
+                            onOpenWebPreview();
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open Browser"
+                          style={({ pressed }) => [
+                            {
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 56,
+                              height: 56,
+                              gap: 4,
+                              borderRadius: 16,
+                              backgroundColor: pressed ? (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)") : "transparent",
+                            }
+                          ]}
+                        >
+                          <GlobeIcon size={22} color={theme.colors.info} />
+                          <Text size="xs" style={{ color: theme.colors.textPrimary, fontWeight: "500", fontSize: 10 }}>Browser</Text>
+                        </Pressable>
+                      )}
+                    </BlurView>
+                  </RNView>
+                </TouchableWithoutFeedback>
+              </Modal>
+            </>
+          )}
+          {onTerminateAgent && sessionRunning && (
+            <ActionIconButton
+              icon={StopCircleIcon}
+              onPress={() => {
+                triggerHaptic("heavy");
+                onTerminateAgent();
+              }}
+              accessibilityLabel="Terminate agent response"
+              className="w-11 h-11 rounded-xl"
+              tone="danger"
+            />
+          )}
+          {!(sessionRunning && !waitingForUserInput) && (
+            <Animated.View style={sendStyle}>
+              <Button
+                action="primary"
+                variant="solid"
+                size="md"
+                onPress={handleSubmit}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                isDisabled={disabled}
+                accessibilityLabel="Send message"
+                className="w-12 h-12 rounded-full active:opacity-80"
+                style={
+                  disabled
+                    ? undefined
+                    : {
+                      backgroundColor: isDark ? theme.colors.accentSoft : theme.colors.textPrimary,
+                      borderColor: isDark ? theme.colors.accent : "transparent",
+                      borderWidth: isDark ? 1.5 : 0,
+                      ...Platform.select({
+                        ios: {
+                          shadowColor: isDark ? theme.colors.accent : theme.colors.textPrimary,
+                          shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
+                          shadowOpacity: isDark ? 0.5 : 0.3,
+                          shadowRadius: isDark ? 8 : 8,
+                        },
+                        android: { elevation: 8 },
+                        default: {},
+                      }),
                     }
-                    size="md"
-                    color={isDark ? theme.colors.accent : theme.colors.textInverse}
-                    style={{ color: isDark ? theme.colors.accent : theme.colors.textInverse }}
-                  />
-                </Button>
-              </Animated.View>
-            )}
-          </HStack>
+                }
+              >
+                <ButtonIcon
+                  as={
+                    (p: { size?: number }) => {
+                      const Icon = provider === "claude" ? ClaudeSendIcon : provider === "gemini" ? GeminiSendIcon : CodexEnterIcon;
+                      return <Icon {...p} stroke={isDark ? theme.colors.accent : theme.colors.textInverse} color={isDark ? theme.colors.accent : theme.colors.textInverse} />;
+                    }
+                  }
+                  size="md"
+                  color={isDark ? theme.colors.accent : theme.colors.textInverse}
+                  style={{ color: isDark ? theme.colors.accent : theme.colors.textInverse }}
+                />
+              </Button>
+            </Animated.View>
+          )}
         </HStack>
       </VStack>
-    </Box>
+    </Box >
   );
 }

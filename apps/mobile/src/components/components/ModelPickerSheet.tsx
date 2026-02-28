@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { triggerHaptic } from "@/design-system";
 import {
   CodexIcon,
+  ClaudeIcon,
+  GeminiIcon,
 } from "@/components/icons/ProviderIcons";
 import { Box } from "@/components/ui/box";
 import { Text as GluestackText } from "@/components/ui/text";
@@ -45,7 +47,7 @@ export function ModelPickerSheet({
   onProviderChange,
   onModelChange,
 }: ModelPickerSheetProps) {
-  const providers: Provider[] = ["claude", "gemini", "codex", "cocoa"];
+  const providers: Provider[] = ["claude", "gemini", "codex"];
   const currentProvider = provider;
   const { bottom } = useSafeAreaInsets();
   const isDark = themeMode === "dark";
@@ -105,7 +107,7 @@ export function ModelPickerSheet({
             const opts = providerModelOptions[p];
             if (!opts || opts.length === 0) return null;
 
-            const ProviderIcon = CodexIcon; // Unified icon
+            const ProviderIcon = p === "claude" ? ClaudeIcon : p === "gemini" ? GeminiIcon : CodexIcon;
 
             const accent = theme.colors.accent;
             const isActiveModel = (entryModel: string) =>

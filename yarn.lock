@@ -1604,7 +1604,7 @@
   resolved "https://registry.npmjs.org/@js-sdsl/ordered-map/-/ordered-map-4.4.2.tgz"
   integrity sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==
 
-"@legendapp/motion@^2.4.0":
+"@legendapp/motion@^2.5.3":
   version "2.5.3"
   resolved "https://registry.npmjs.org/@legendapp/motion/-/motion-2.5.3.tgz"
   integrity sha512-IcNiStiK3qG5LaIPLC8fVV0BHIrkf7EY5HfOv3xbuMH0z4D945yaaEDafP5bboHf/uj9XRjTQHVTtZgwpMNlHw==

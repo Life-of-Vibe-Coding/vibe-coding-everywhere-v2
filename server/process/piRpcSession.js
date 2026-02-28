@@ -11,7 +11,6 @@ import { spawn } from "child_process";
 import {
   getWorkspaceCwd,
   PI_CLI_PATH,
-  SKILLS_DIR,
   projectRoot,
   PORT,
   SESSIONS_ROOT,
@@ -339,8 +338,8 @@ export function createPiRpcSession({
       connectionType === "tunnel remote host"
         ? `The user is connecting via tunnel (e.g. Cloudflare Tunnel).${overlayHint}`
         : connectionType === "localhost"
-            ? "The user is connecting via localhost."
-            : `The user is connecting from a remote host (not localhost).${overlayHint}`;
+          ? "The user is connecting via localhost."
+          : `The user is connecting from a remote host (not localhost).${overlayHint}`;
     const criticalPrompt = `CRITICAL: You are running within a process with PID ${process.pid}. The application that manages you is listening on port ${PORT}. You MUST NEVER kill this process (PID ${process.pid}) or occupy its port (${PORT}). If you kill this process, you will immediately terminate yourself.`;
     const connectionPrompt = `Connection context: ${connectionContext}`;
     const workspace = getWorkspaceCwd();
@@ -373,10 +372,11 @@ export function createPiRpcSession({
     console.log("[pi]   3.", connectionPrompt);
     console.log("[pi]   4. terminal-runner context:", terminalRunnerContext);
 
-    // Register enabled skills: sync symlinks, then pass single --skill path to skills-enabled dir
+    // Register enabled skills: sync symlinks from ./server/skills-library into ./server/skills_enabled
+    const skillsDir = path.join(projectRoot, "server", "skills-library");
     const skillsAgentDir = resolveAgentDir(cwd, projectRoot);
-    const skillsEnabledDir = path.join(cwd, ".pi", "skills-enabled");
-    const skillPaths = syncEnabledSkillsFolder(SKILLS_DIR, skillsAgentDir, skillsEnabledDir);
+    const skillsEnabledDir = path.join(projectRoot, "server", "skills_enabled");
+    const skillPaths = syncEnabledSkillsFolder(skillsDir, skillsAgentDir, skillsEnabledDir);
     if (skillPaths.length > 0) {
       args.push("--skill", skillsEnabledDir);
     }

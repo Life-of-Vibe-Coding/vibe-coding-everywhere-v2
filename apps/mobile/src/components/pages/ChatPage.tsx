@@ -93,6 +93,7 @@ export type ChatPageSidebar = {
 
 export type ChatPageInputDock = {
   visible: boolean;
+  serverBaseUrl: string;
   pendingCodeRefs: CodeRefPayload[];
   onSubmitPrompt: (prompt: string) => void;
   onRemoveCodeRef: (index: number) => void;

@@ -631,7 +631,7 @@ export function WorkspacePickerModal({
                             >
                               {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
                             </GText>
-                            <GText size="xs" style={[styles.childPath, { fontSize: 11, color: isDark ? CYAN_50 : LIGHT_400, fontWeight: "400" }]}>
+                            <GText size="xs" style={[styles.childPath, { fontSize: 8, color: isDark ? CYAN_50 : LIGHT_400, fontWeight: "400" }]}>
                               Current folder
                             </GText>
                           </VStack>
@@ -703,7 +703,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     // Title
     titleText: {
       color: isDark ? TEXT_WHITE : LIGHT_900,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: "800",
       letterSpacing: isDark ? 1.5 : 0,
       textTransform: isDark ? "uppercase" : "none",
@@ -737,13 +737,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       justifyContent: "flex-start",
     },
     backButton: {
-      minHeight: 44,
-      minWidth: 98,
-      borderRadius: isDark ? 12 : 16,
+      minHeight: 36,
+      minWidth: 80,
+      borderRadius: isDark ? 10 : 14,
       borderWidth: 1,
       borderColor: isDark ? CYAN : LIGHT_300,
       backgroundColor: isDark ? "rgba(0, 24, 46, 0.9)" : LIGHT_100,
-      paddingHorizontal: 14,
+      paddingHorizontal: 12,
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
@@ -763,7 +763,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN : LIGHT_600,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 12,
+      fontSize: 11,
     },
     createFolderRow: {
       flexDirection: "row",
@@ -774,18 +774,18 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
 
     // Browser card
     browserCard: {
-      borderRadius: isDark ? 16 : 20,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
       borderColor: isDark ? CYAN_25 : LIGHT_200,
       backgroundColor: isDark ? BG_SURFACE_ALT : LIGHT_100,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
     },
     browserLabel: {
       color: isDark ? CYAN_50 : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 9,
+      fontSize: 8,
       letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
     },
@@ -793,7 +793,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? TEXT_TINT : LIGHT_700,
       fontFamily: MONO_FONT,
       fontWeight: "700",
-      fontSize: 13,
+      fontSize: 9,
     },
     instructionText: {
       color: isDark ? CYAN_50 : LIGHT_400,
@@ -817,12 +817,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     // Current folder card
     currentFolderCard: {
       marginHorizontal: 16,
-      borderRadius: isDark ? 16 : 24,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1.5,
       borderColor: isDark ? CYAN : "rgba(255, 255, 255, 0.6)",
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
-      paddingHorizontal: 14,
-      paddingVertical: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       shadowColor: isDark ? CYAN : LIGHT_900,
       shadowOffset: { width: 0, height: isDark ? 0 : 4 },
       shadowOpacity: isDark ? 0.25 : 0.06,
@@ -839,13 +839,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     // Child rows
     childCard: {
       marginHorizontal: 16,
-      marginBottom: 8,
-      borderRadius: isDark ? 16 : 24,
+      marginBottom: 6,
+      borderRadius: isDark ? 12 : 16,
       borderWidth: 1,
       borderColor: isDark ? PINK_25 : LIGHT_200,
       backgroundColor: isDark ? BG_SURFACE : "rgba(255, 255, 255, 0.5)",
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       shadowColor: isDark ? PINK : "transparent",
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: isDark ? 0.15 : 0,
@@ -868,14 +868,14 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     childPressable: {
       flex: 1,
       minWidth: 0,
-      minHeight: 44,
+      minHeight: 36,
       justifyContent: "center",
-      borderRadius: 12,
+      borderRadius: 10,
     },
     childInnerRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 10,
+      gap: 8,
     },
     childTextCol: {
       flex: 1,
@@ -889,17 +889,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN_50 : LIGHT_800,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "500",
-      fontSize: 13,
+      fontSize: 9,
     },
 
     // Select button
     selectButton: {
-      minHeight: 44,
-      borderRadius: isDark ? 12 : 16,
+      minHeight: 32,
+      borderRadius: isDark ? 8 : 12,
       borderWidth: 1,
       borderColor: isDark ? PINK : LIGHT_600,
       backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : LIGHT_600,
-      paddingHorizontal: 16,
+      paddingHorizontal: 12,
       alignItems: "center",
       justifyContent: "center",
       shadowColor: isDark ? PINK : "transparent",
@@ -917,17 +917,17 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: TEXT_WHITE,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 12,
+      fontSize: 11,
     },
 
     // Use Folder button (primary)
     useFolderButton: {
-      minHeight: 44,
-      borderRadius: isDark ? 12 : 16,
+      minHeight: 32,
+      borderRadius: isDark ? 8 : 12,
       borderWidth: 1,
       borderColor: isDark ? PINK : LIGHT_600,
       backgroundColor: isDark ? "rgba(255, 0, 229, 0.15)" : LIGHT_600,
-      paddingHorizontal: 16,
+      paddingHorizontal: 12,
       alignItems: "center",
       justifyContent: "center",
       shadowColor: isDark ? PINK : "transparent",
@@ -945,7 +945,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: TEXT_WHITE,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 13,
+      fontSize: 11,
     },
 
     // Section label
@@ -953,7 +953,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 10,
+      fontSize: 9,
       letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
       marginHorizontal: 16,
