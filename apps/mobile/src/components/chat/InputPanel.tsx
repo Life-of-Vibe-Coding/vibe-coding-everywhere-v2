@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Platform, Keyboard, AccessibilityInfo, Animated, Modal, View as RNView, TouchableWithoutFeedback, Dimensions, ScrollView } from "react-native";
 import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
@@ -22,6 +22,7 @@ import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { VStack } from "@/components/ui/vstack";
+import { getCategoryIcon } from "@/components/icons/SkillCategoryIcons";
 import { HStack } from "@/components/ui/hstack";
 import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { useTheme } from "@/theme/index";
@@ -32,6 +33,7 @@ import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polygon } from "react-native-svg";
+import { CATEGORY_COLORS, CATEGORY_COLORS_LIGHT, type Category } from "@/utils/skillColors";
 
 function InputWrapper({ width, height, isDark, theme }: { width: number; height: number; isDark: boolean; theme: any }) {
   const cut = 24;
@@ -145,8 +147,20 @@ export function InputPanel({
   const [terminalMenuVisible, setTerminalMenuVisible] = useState(false);
   const [skillMenuVisible, setSkillMenuVisible] = useState(false);
   const [enabledSkills, setEnabledSkills] = useState<{ id: string; name: string; category?: string }[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [skillsLoading, setSkillsLoading] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<{ id: string; name: string; category?: string }[]>([]);
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(enabledSkills.map(s => s.category || "Uncategorized"))).sort();
+  }, [enabledSkills]);
+
+  useEffect(() => {
+    if (categories.length > 0 && (!selectedCategory || !categories.includes(selectedCategory))) {
+      setSelectedCategory(categories[0]);
+    }
+  }, [categories, selectedCategory]);
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
   const { bottom } = useSafeAreaInsets();
@@ -163,7 +177,7 @@ export function InputPanel({
       const enabledSet = new Set(enabledData?.enabledIds || []);
       const allSkills = allData?.skills || [];
       setEnabledSkills(allSkills.filter((s: any) => enabledSet.has(s.id)));
-    }).catch(() => { }).finally(() => setSkillsLoading(false));
+    }).catch((err) => { console.error('[SkillHub] Failed to fetch skills:', err); }).finally(() => setSkillsLoading(false));
   }, [serverBaseUrl]);
 
   const sendScale = useRef(new Animated.Value(1)).current;
@@ -199,20 +213,27 @@ export function InputPanel({
 
   const handleSubmit = useCallback(() => {
     const trimmed = prompt.trim();
-    if (!trimmed && !pendingCodeRefs.length) return;
+    if (!trimmed && !pendingCodeRefs.length && !selectedSkills.length) return;
     Keyboard.dismiss();
     triggerHaptic("medium");
+    // Wrap prompt with <skill> tags for each selected skill
+    const skillPrefix = selectedSkills.length > 0
+      ? selectedSkills.map(s => `<skill>Use ${s.name}</skill>`).join(" ") + " "
+      : "";
+    const finalPrompt = skillPrefix + trimmed;
     if (waitingForUserInput && sessionRunning) {
-      onSubmit(trimmed, permissionMode ?? undefined);
+      onSubmit(finalPrompt, permissionMode ?? undefined);
       setPrompt("");
+      setSelectedSkills([]);
       setInputHeight(DEFAULT_INPUT_HEIGHT);
       return;
     }
     if (sessionRunning) return;
-    onSubmit(trimmed || "See code references below.", permissionMode ?? undefined);
+    onSubmit(finalPrompt || "See code references below.", permissionMode ?? undefined);
     setPrompt("");
+    setSelectedSkills([]);
     setInputHeight(DEFAULT_INPUT_HEIGHT);
-  }, [prompt, pendingCodeRefs.length, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
+  }, [prompt, pendingCodeRefs.length, selectedSkills, waitingForUserInput, sessionRunning, permissionMode, onSubmit]);
 
   const isDark = theme.mode === "dark";
   const inputTextColor = theme.colors.textPrimary;
@@ -229,8 +250,56 @@ export function InputPanel({
         {panelSize.width > 0 && panelSize.height > 0 && (
           <InputWrapper width={panelSize.width} height={panelSize.height} isDark={isDark} theme={theme} />
         )}
-        {pendingCodeRefs.length > 0 && (
-          <HStack space="sm" className="flex-row flex-wrap gap-2 mb-0.5">
+        {(pendingCodeRefs.length > 0 || selectedSkills.length > 0) && (
+          <HStack space="sm" className="flex-row flex-wrap gap-1 mb-0.5">
+            {selectedSkills.map((skill, idx) => {
+              const skillCategory = (skill.category as Category) ?? "Development";
+              const palette = isDark ? CATEGORY_COLORS : CATEGORY_COLORS_LIGHT;
+              const skillColor = palette[skillCategory]?.text ?? (isDark ? "#38BDF8" : "#0EA5E9");
+              const skillBg = palette[skillCategory]?.active ?? (isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(14, 165, 233, 0.10)");
+
+              const skillChip = (
+                <Badge action="success" variant="solid" size="sm" className="pr-0.5"
+                  style={{
+                    backgroundColor: skillBg,
+                    borderColor: skillColor + "80", // 50% opacity border
+                    borderWidth: 1,
+                    borderRadius: 14,
+                    paddingVertical: 2,
+                    paddingHorizontal: 6,
+                  }}
+                >
+                  <SkillIcon size={10} color={skillColor} />
+                  <BadgeText style={{ color: skillColor, marginLeft: 3, fontWeight: "600", fontSize: 10 }}>
+                    {skill.name}
+                  </BadgeText>
+                  <Pressable
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    onPress={() => {
+                      triggerHaptic("selection");
+                      setSelectedSkills(prev => prev.filter(s => s.id !== skill.id));
+                    }}
+                    className="items-center justify-center ml-1"
+                    style={{ minWidth: 16, minHeight: 16 }}
+                    accessibilityLabel={`Remove ${skill.name} skill`}
+                  >
+                    <Box
+                      className="w-4 h-4 rounded-full items-center justify-center"
+                      style={{ backgroundColor: skillColor + "33" }}
+                    >
+                      <CloseIcon size={8} color={skillColor} />
+                    </Box>
+                  </Pressable>
+                </Badge>
+              );
+              return reduceMotion ? (
+                <Box key={skill.id}>{skillChip}</Box>
+              ) : (
+                <EntranceAnimation key={skill.id} variant="scale" delay={idx * 40}>
+                  {skillChip}
+                </EntranceAnimation>
+              );
+            })}
             {pendingCodeRefs.map((ref, index) => {
               const key = `${ref.path}-${ref.startLine}-${index}`;
               const range =
@@ -326,7 +395,7 @@ export function InputPanel({
               <Pressable
                 onPress={() => {
                   triggerHaptic("selection");
-                  if (enabledSkills.length === 0) fetchEnabledSkills();
+                  fetchEnabledSkills();
                   setSkillMenuVisible((v) => !v);
                 }}
                 onLayout={(e) => {
@@ -372,8 +441,8 @@ export function InputPanel({
                         shadowOpacity: isDark ? 0.5 : 0.15,
                         shadowRadius: 32,
                         elevation: 10,
-                        width: 220,
-                        maxHeight: 450,
+                        width: Dimensions.get("window").width * 0.65,
+                        height: Dimensions.get("window").height * 0.5,
                         overflow: "hidden"
                       }}
                     >
@@ -412,75 +481,174 @@ export function InputPanel({
                         <Text style={{ padding: 8, color: theme.colors.textMuted }}>No skills enabled.</Text>
                       ) : (
                         <>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3 px-1">
-                            {["All", ...Array.from(new Set(enabledSkills.map(s => s.category || "Uncategorized"))).sort()].map(category => (
-                              <Pressable
-                                key={category}
-                                onPress={() => {
-                                  triggerHaptic("selection");
-                                  setSelectedCategory(category);
-                                }}
-                                style={({ pressed }) => [
-                                  {
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    marginRight: 8,
-                                    borderRadius: 16,
-                                    backgroundColor: selectedCategory === category
-                                      ? (isDark ? theme.colors.accent : theme.colors.textPrimary)
-                                      : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"),
-                                    opacity: pressed ? 0.8 : 1,
-                                  }
-                                ]}
-                              >
+                          <RNView style={{ marginBottom: 12, paddingHorizontal: 4, zIndex: 10, position: "relative" }}>
+                            <Pressable
+                              onPress={() => {
+                                triggerHaptic("selection");
+                                setCategoryDropdownOpen(v => !v);
+                              }}
+                              style={({ pressed }) => [{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                paddingHorizontal: 16,
+                                paddingVertical: 10,
+                                borderRadius: 16,
+                                backgroundColor: isDark
+                                  ? (pressed ? "rgba(255, 255, 255, 0.15)" : theme.colors.surfaceAlt)
+                                  : (pressed ? "rgba(0,0,0,0.06)" : "#ffffff"),
+                                borderWidth: 1.5,
+                                borderColor: isDark ? theme.colors.accent : theme.colors.info,
+                                shadowColor: isDark ? theme.colors.accent : theme.colors.info,
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 8,
+                                elevation: 4,
+                              }]}
+                            >
+                              <HStack style={{ alignItems: "center", gap: 6 }}>
+                                {getCategoryIcon(selectedCategory, { color: isDark ? theme.colors.accent : theme.colors.info, size: 14, strokeWidth: 2.5 })}
                                 <Text style={{
-                                  color: selectedCategory === category
-                                    ? (isDark ? theme.colors.textInverse : theme.colors.surface)
-                                    : (isDark ? theme.colors.textMuted : theme.colors.textMuted),
-                                  fontWeight: selectedCategory === category ? "600" : "500",
-                                  fontSize: 13
+                                  color: isDark ? theme.colors.accent : theme.colors.info,
+                                  fontWeight: "600",
+                                  fontSize: 13,
                                 }}>
-                                  {category}
+                                  {selectedCategory}
                                 </Text>
-                              </Pressable>
-                            ))}
-                          </ScrollView>
+                              </HStack>
+                              {categoryDropdownOpen
+                                ? <ChevronUpIcon size={14} color={isDark ? theme.colors.accent : theme.colors.info} />
+                                : <ChevronDownIcon size={14} color={isDark ? theme.colors.accent : theme.colors.info} />
+                              }
+                            </Pressable>
+                            {categoryDropdownOpen && (
+                              <RNView style={{
+                                position: "absolute",
+                                top: "100%",
+                                left: 0,
+                                right: 0,
+                                marginTop: 6,
+                                borderRadius: 16,
+                                backgroundColor: isDark ? theme.colors.surfaceAlt : "#ffffff",
+                                borderWidth: 1,
+                                borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 8 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 12,
+                                elevation: 15,
+                                overflow: "hidden",
+                                zIndex: 100,
+                              }}>
+                                {categories.map((category, idx) => (
+                                  <Pressable
+                                    key={category}
+                                    onPress={() => {
+                                      triggerHaptic("selection");
+                                      setSelectedCategory(category);
+                                      setCategoryDropdownOpen(false);
+                                    }}
+                                    style={({ pressed }) => [{
+                                      paddingHorizontal: 14,
+                                      paddingVertical: 10,
+                                      backgroundColor: selectedCategory === category
+                                        ? (isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)")
+                                        : (pressed ? (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)") : "transparent"),
+                                      borderTopWidth: idx > 0 ? 0.5 : 0,
+                                      borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                                    }]}
+                                  >
+                                    <HStack style={{ alignItems: "center", gap: 6 }}>
+                                      {getCategoryIcon(category, {
+                                        color: selectedCategory === category
+                                          ? (isDark ? theme.colors.accent : theme.colors.textPrimary)
+                                          : (isDark ? theme.colors.textMuted : theme.colors.textSecondary),
+                                        size: 14,
+                                        strokeWidth: selectedCategory === category ? 2.5 : 2
+                                      })}
+                                      <Text style={{
+                                        color: selectedCategory === category
+                                          ? (isDark ? theme.colors.accent : theme.colors.textPrimary)
+                                          : (isDark ? theme.colors.textMuted : theme.colors.textSecondary),
+                                        fontWeight: selectedCategory === category ? "700" : "500",
+                                        fontSize: 13,
+                                      }}>
+                                        {category}
+                                      </Text>
+                                    </HStack>
+                                  </Pressable>
+                                ))}
+                              </RNView>
+                            )}
+                          </RNView>
                           <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-                            {enabledSkills
-                              .filter(skill => selectedCategory === "All" || (skill.category || "Uncategorized") === selectedCategory)
-                              .map(skill => (
-                                <Pressable
-                                  key={skill.id}
-                                  onPress={() => {
-                                    triggerHaptic("selection");
-                                    setPrompt((p) => p + (p.length && !p.endsWith(" ") ? " " : "") + skill.name + " ");
-                                    setSkillMenuVisible(false);
-                                    // Auto-focus could be added here if needed
-                                  }}
-                                  style={({ pressed }) => [
-                                    {
-                                      paddingVertical: 8,
-                                      paddingHorizontal: 12,
-                                      borderRadius: 16,
-                                      marginBottom: 4,
-                                      flexDirection: "row",
-                                      alignItems: "center",
-                                      gap: 8,
-                                      backgroundColor: isDark
-                                        ? (pressed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)")
-                                        : (pressed ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.02)"),
-                                      borderWidth: 1,
-                                      borderColor: isDark
-                                        ? (pressed ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)")
-                                        : (pressed ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.05)"),
-                                    }
-                                  ]}
-                                >
-                                  <VStack style={{ flex: 1, justifyContent: "center", paddingVertical: 4 }}>
-                                    <Text style={{ color: theme.colors.textPrimary, fontWeight: "600", fontSize: 15 }}>{skill.name}</Text>
-                                  </VStack>
-                                </Pressable>
-                              ))}
+                            <RNView style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 16 }}>
+                              {enabledSkills
+                                .filter(skill => (skill.category || "Uncategorized") === selectedCategory)
+                                .map(skill => {
+                                  const isSelected = selectedSkills.some(s => s.id === skill.id);
+                                  const skillCategory = (skill.category as Category) ?? "Development";
+                                  const palette = isDark ? CATEGORY_COLORS : CATEGORY_COLORS_LIGHT;
+                                  const skillColor = palette[skillCategory]?.text ?? (isDark ? "#38BDF8" : "#0EA5E9");
+                                  const skillBg = palette[skillCategory]?.active ?? (isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(14, 165, 233, 0.10)");
+
+                                  return (
+                                    <Pressable
+                                      key={skill.id}
+                                      onPress={() => {
+                                        triggerHaptic("selection");
+                                        setSelectedSkills(prev => {
+                                          if (prev.some(s => s.id === skill.id)) {
+                                            return prev.filter(s => s.id !== skill.id);
+                                          }
+                                          return [...prev, { id: skill.id, name: skill.name, category: skill.category }];
+                                        });
+                                        // Optional: setSkillMenuVisible(false) could be removed if we want to let users select multiple at once, but let's keep the existing behaviour for now
+                                        setSkillMenuVisible(false);
+                                      }}
+                                      style={({ pressed }) => [
+                                        {
+                                          flexDirection: "row",
+                                          alignItems: "center",
+                                          paddingVertical: 6,
+                                          paddingHorizontal: 10,
+                                          borderRadius: 14,
+                                          gap: 6,
+                                          backgroundColor: isSelected
+                                            ? skillBg
+                                            : isDark
+                                              ? (pressed ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)")
+                                              : (pressed ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.02)"),
+                                          borderWidth: 1,
+                                          borderColor: isSelected
+                                            ? skillColor + "80"
+                                            : isDark
+                                              ? (pressed ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)")
+                                              : (pressed ? "rgba(0,0,0,0.1)" : "rgba(0,0,0,0.05)"),
+                                        }
+                                      ]}
+                                    >
+                                      <SkillIcon
+                                        size={12}
+                                        color={
+                                          isSelected
+                                            ? skillColor
+                                            : (isDark ? theme.colors.textSecondary : theme.colors.textMuted)
+                                        }
+                                      />
+                                      <Text style={{
+                                        color: isSelected
+                                          ? skillColor
+                                          : theme.colors.textPrimary,
+                                        fontWeight: isSelected ? "700" : "500",
+                                        fontSize: 12
+                                      }}>
+                                        {skill.name}
+                                      </Text>
+                                    </Pressable>
+                                  );
+                                })}
+                            </RNView>
                           </ScrollView>
                         </>
                       )}

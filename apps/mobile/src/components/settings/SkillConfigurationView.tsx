@@ -10,30 +10,12 @@ import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
 import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
+import { getCategoryIcon } from "@/components/icons/SkillCategoryIcons";
 import { ScrollView as RNScrollView } from "react-native";
 
+import { CATEGORIES, type Category, CATEGORY_COLORS, CATEGORY_COLORS_LIGHT } from "@/utils/skillColors";
+
 type Skill = { id: string; name: string; description: string; category?: string };
-
-const CATEGORIES = ["All", "Development", "UI/UX", "DevOps", "Debug", "Prompt"] as const;
-type Category = (typeof CATEGORIES)[number];
-
-const CATEGORY_COLORS: Record<Category, { active: string; text: string }> = {
-  All: { active: "rgba(139, 117, 255, 0.35)", text: "#A78BFA" },
-  Development: { active: "rgba(59, 130, 246, 0.35)", text: "#60A5FA" },
-  "UI/UX": { active: "rgba(236, 72, 153, 0.35)", text: "#F472B6" },
-  DevOps: { active: "rgba(16, 185, 129, 0.35)", text: "#34D399" },
-  Debug: { active: "rgba(245, 158, 11, 0.35)", text: "#FBBF24" },
-  Prompt: { active: "rgba(99, 102, 241, 0.35)", text: "#818CF8" },
-};
-
-const CATEGORY_COLORS_LIGHT: Record<Category, { active: string; text: string }> = {
-  All: { active: "rgba(109, 40, 217, 0.15)", text: "#7C3AED" },
-  Development: { active: "rgba(37, 99, 235, 0.15)", text: "#2563EB" },
-  "UI/UX": { active: "rgba(219, 39, 119, 0.15)", text: "#DB2777" },
-  DevOps: { active: "rgba(5, 150, 105, 0.15)", text: "#059669" },
-  Debug: { active: "rgba(217, 119, 6, 0.15)", text: "#D97706" },
-  Prompt: { active: "rgba(79, 70, 229, 0.15)", text: "#4F46E5" },
-};
 
 export interface SkillConfigurationViewProps {
   isOpen: boolean;
@@ -246,6 +228,11 @@ export function SkillConfigurationView({
                       },
                     ]}
                   >
+                    {getCategoryIcon(cat, {
+                      color: isActive ? colors.text : mutedColor,
+                      size: 14,
+                      strokeWidth: isActive ? 2.5 : 2
+                    })}
                     <Text
                       style={{
                         fontSize: 13,
