@@ -126,8 +126,20 @@ export function PlayIcon({ color = "currentColor", size = 12 }: IconProps) {
   );
 }
 
+/** Skill icon (lucide:sparkles) - for AI skills/plugins. */
+export function SkillIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {
+  const stroke = getStrokeProps(color, strokeWidth);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path fill={color} d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+      <Path {...stroke} d="M20 2v4m2-2h-4" />
+      <Circle fill={color} cx="4" cy="20" r="2" />
+    </Svg>
+  );
+}
+
 /** Skill icon (Vibe mascot) - Venn diagram of three overlapping circles with smiley faces. */
-export function SkillIcon({ size = 18 }: IconProps) {
+export function VibeIcon({ size = 18 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       {/* Red/Pink Circle */}

@@ -1,4 +1,4 @@
-import { ChevronDownIcon, SkillIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { ChevronDownIcon, VibeIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
 import { BookOpenIcon, FilePenIcon, PencilIcon } from "@/components/icons/FileActivityIcons";
 import { CodexIcon } from "@/components/icons/ProviderIcons";
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
@@ -60,7 +60,7 @@ function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUs
         position: "absolute",
         top: 0,
         left: 0,
-        backgroundColor: isDark ? "#0F172A" : theme.colors.textPrimary,
+        backgroundColor: isDark ? "#0F172A" : "#E0F2FE", // Light blue for light mode user bubble
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         borderBottomLeftRadius: 24,
@@ -83,13 +83,13 @@ function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUs
         position: "absolute",
         top: 0,
         left: 0,
-        backgroundColor: `${theme.colors.surfaceMuted}B3`, // light tan soft glass
+        backgroundColor: theme.colors.surfaceMuted, // light theme surface
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         borderBottomLeftRadius: 6, // organic chat tail
         borderBottomRightRadius: 24,
         borderWidth: 1,
-        borderColor: `${theme.colors.surface}B3`, // frosted edge highlight
+        borderColor: theme.colors.border, // frosted edge highlight
         shadowColor: theme.colors.shadow,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.15,
@@ -525,10 +525,10 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
 
   const textColor = isDark
     ? (isUser ? "#FFFFFF" : "#E5FFFF")
-    : theme.colors.textPrimary;
+    : (isUser ? theme.colors.textPrimary : theme.colors.textPrimary);
   const linkColor = isDark
     ? (isUser ? "#38BDF8" : "#00E5FF")
-    : theme.colors.accent;
+    : (isUser ? theme.colors.accent : theme.colors.accent); // Use standard accent for both to ensure readability on bright backgrounds
 
   const markdownStyles = useMemo(
     () => ({
@@ -598,7 +598,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        row: { flexDirection: "row" as const, alignItems: "flex-start", gap: 8 },
+        row: { flexDirection: "row" as const, alignItems: "flex-start", gap: 8, marginBottom: spacing["4"] },
         rowAssistant: { flexDirection: "column" as const, alignItems: "stretch" },
         rowUser: { flexDirection: "row" as const, justifyContent: "flex-end" },
         providerIconWrap: { width: 24, height: 24, marginBottom: 4 },
@@ -611,12 +611,12 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         bubbleAssistant: {
           alignSelf: "stretch",
           marginHorizontal: -spacing["4"],
-          paddingVertical: spacing["2"],
+          paddingVertical: spacing["3"],
           paddingHorizontal: spacing["4"],
         },
         bubbleUser: {
           maxWidth: "85%",
-          paddingVertical: 10,
+          paddingVertical: spacing["3"],
           paddingHorizontal: 16,
         },
         bubbleSystem: {
@@ -625,7 +625,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           marginVertical: spacing["1"],
         },
         bubbleText: { fontSize: 16, lineHeight: 24, color: theme.colors.textPrimary },
-        bubbleTextUser: { fontSize: 16, lineHeight: 24, color: isDark ? "#FFFFFF" : theme.colors.textInverse },
+        bubbleTextUser: { fontSize: 16, lineHeight: 24, color: isDark ? "#FFFFFF" : theme.colors.textPrimary },
         bubbleTextSystem: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center" },
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },
@@ -1156,7 +1156,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
                         gap: 3,
                       }}
                     >
-                      <SkillIcon size={14} />
+                      <VibeIcon size={14} />
                       <Text style={{ color: "#38BDF8", fontSize: 11, fontWeight: "600" }}>
                         {seg.type === "skill" ? seg.name : ""}
                       </Text>

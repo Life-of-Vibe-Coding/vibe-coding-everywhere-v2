@@ -35,6 +35,7 @@ jest.mock("@/components/icons/ChatActionIcons", () => {
     DockerIcon: Icon,
     GlobeIcon: Icon,
     SkillIcon: Icon,
+    VibeIcon: Icon,
     StopCircleIcon: Icon,
     TerminalIcon: Icon,
   };
