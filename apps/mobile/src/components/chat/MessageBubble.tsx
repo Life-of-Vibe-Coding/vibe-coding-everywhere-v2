@@ -424,12 +424,15 @@ function CollapsibleReadResult({
   );
 }
 
-/** Matches file-activity lines from formatToolUseForDisplay (Writing, Reading, Editing). Supports emoji and non-emoji prefixes. */
+/** Matches file-activity lines from formatToolUseForDisplay (Writing, Reading, Editing).
+ * Requires the file-link markdown pattern (prefix + `[name](file:...)`) or backtick-quoted filename
+ * to avoid false positives on natural language like "I'm reading the docs". */
 export function hasFileActivityContent(content: string | null | undefined): boolean {
   if (!content || typeof content !== "string") return false;
+  // Match: "Writing [file](file:...)" / "📝 Writing [file](file:...)" or "Writing `file`" patterns
   return (
-    /(?:📝\s*)?Writing|(?:✏️\s*)?Editing|(?:📖\s*)?Reading/.test(content) ||
-    /Writing\s*`|Editing\s*`|Reading\s*`/.test(content)
+    /(?:📝\s*)?Writing\s+\[|(?:✏️\s*)?Editing\s+\[|(?:📖\s*)?Reading\s+\[/.test(content) ||
+    /(?:📝\s*)?Writing\s+`|(?:✏️\s*)?Editing\s+`|(?:📖\s*)?Reading\s+`/.test(content)
   );
 }
 

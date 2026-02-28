@@ -8,12 +8,14 @@ import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, bas
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  AttachPlusIcon,
 } from "@/components/icons/ChatActionIcons";
 import { FolderIcon } from "@/components/icons/WorkspaceTreeIcons";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text as GText } from "@/components/ui/text";
+import { Input, InputField } from "@/components/ui/input";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
 import { HStack } from "@/components/ui/hstack";
@@ -89,6 +91,9 @@ export function WorkspacePickerModal({
   const [currentPath, setCurrentPath] = useState<string>("");
   const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
   const [selectingWorkspace, setSelectingWorkspace] = useState(false);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const pickerRoot = browseRoot || (workspacePath ?? workspaceRoot ?? "");
 
@@ -141,6 +146,56 @@ export function WorkspacePickerModal({
     },
     [pickerRoot, treeCache, fetchPickerChildren]
   );
+
+  const handleCreateFolder = useCallback(async () => {
+    if (!newFolderName.trim() || !pickerRoot) return;
+    setCreatingFolder(true);
+    triggerHaptic("selection");
+    try {
+      const rootNorm = pickerRoot.replace(/\/$/, "");
+      const parentRel =
+        currentPath === rootNorm || currentPath === pickerRoot
+          ? ""
+          : currentPath.startsWith(rootNorm + "/")
+            ? currentPath.slice(rootNorm.length + 1)
+            : currentPath;
+
+      const res = await fetch(`${serverBaseUrl}/api/workspace/create-folder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          root: pickerRoot,
+          parent: parentRel,
+          name: newFolderName.trim()
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error ?? res.statusText);
+      }
+
+      setIsCreatingFolder(false);
+      setNewFolderName("");
+
+      // refresh current tree
+      const cacheKey = currentPath || pickerRoot;
+      setLoadingPaths((prev) => new Set(prev).add(cacheKey));
+      try {
+        const children = await fetchPickerChildren(currentPath || pickerRoot);
+        setTreeCache((prev) => ({ ...prev, [cacheKey]: children }));
+      } finally {
+        setLoadingPaths((prev) => {
+          const next = new Set(prev);
+          next.delete(cacheKey);
+          return next;
+        });
+      }
+    } catch (e) {
+      setPickerError(e instanceof Error ? e.message : "Failed to create folder");
+    } finally {
+      setCreatingFolder(false);
+    }
+  }, [newFolderName, currentPath, pickerRoot, serverBaseUrl, fetchPickerChildren]);
 
   const handleGoToParent = useCallback(() => {
     if (!pickerRoot) return;
@@ -326,6 +381,9 @@ export function WorkspacePickerModal({
       setCurrentPath("");
       setBrowseRoot("");
       setLoadingPaths(new Set());
+      setPickerError(null);
+      setIsCreatingFolder(false);
+      setNewFolderName("");
       currentWorkspaceRowY.current = null;
     }
   }, [isOpen]);
@@ -351,8 +409,6 @@ export function WorkspacePickerModal({
       const isLoading = loadingPaths.has(child.path);
       const isCurrentWorkspace =
         workspacePath != null && child.path === workspacePath;
-      const relativeChildPath = pickerRoot ? getRelativePath(child.path, pickerRoot) : child.name;
-
       return (
         <EntranceAnimation key={child.path} variant="slideUp" delay={index * 32} duration={220}>
           <Box
@@ -380,7 +436,7 @@ export function WorkspacePickerModal({
                       ellipsizeMode="middle"
                       style={[styles.childPath, isCurrentWorkspace && styles.childNameActive]}
                     >
-                      {relativeChildPath || child.name}
+                      {child.name}
                     </GText>
                   </VStack>
                   {isLoading ? (
@@ -439,7 +495,7 @@ export function WorkspacePickerModal({
         <Box style={{ flex: 1 }}>
           <EntranceAnimation variant="fade" duration={180}>
             <VStack style={styles.headerSection}>
-              <HStack style={styles.navRow}>
+              <HStack style={[styles.navRow, { justifyContent: "space-between" }]}>
                 {canGoBack ? (
                   <Pressable
                     onPress={handleGoToParent}
@@ -456,7 +512,55 @@ export function WorkspacePickerModal({
                 ) : (
                   <Box style={{ minHeight: 44, minWidth: 90 }} />
                 )}
+                <Pressable
+                  onPress={() => setIsCreatingFolder(!isCreatingFolder)}
+                  disabled={pickerLoading || viewLoading}
+                  style={({ pressed }) => [
+                    styles.backButton,
+                    { minWidth: 44, paddingHorizontal: 12 },
+                    pressed && styles.backButtonPressed,
+                  ]}
+                  accessibilityLabel="Create folder"
+                  accessibilityRole="button"
+                >
+                  <AttachPlusIcon size={18} color={accentColor} strokeWidth={2} />
+                </Pressable>
               </HStack>
+
+              {isCreatingFolder && (
+                <EntranceAnimation variant="slideDown" duration={200}>
+                  <Box style={styles.createFolderRow}>
+                    <Input style={{ flex: 1, borderColor: isDark ? CYAN_25 : LIGHT_300 }} size="md" variant="outline">
+                      <InputField
+                        placeholder="Folder name"
+                        value={newFolderName}
+                        onChangeText={setNewFolderName}
+                        style={{ color: isDark ? TEXT_WHITE : LIGHT_900 }}
+                        onSubmitEditing={handleCreateFolder}
+                        autoFocus
+                      />
+                    </Input>
+                    <Button
+                      size="md"
+                      onPress={handleCreateFolder}
+                      disabled={!newFolderName.trim() || creatingFolder}
+                      style={{ backgroundColor: isDark ? CYAN : LIGHT_600 }}
+                    >
+                      <ButtonText style={{ color: isDark ? LIGHT_900 : TEXT_WHITE }}>
+                        {creatingFolder ? "..." : "Create"}
+                      </ButtonText>
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="outline"
+                      onPress={() => { setIsCreatingFolder(false); setNewFolderName(''); }}
+                      style={{ borderColor: isDark ? PINK_25 : LIGHT_300, borderWidth: 1 }}
+                    >
+                      <ButtonText style={{ color: isDark ? PINK : LIGHT_600 }}>Cancel</ButtonText>
+                    </Button>
+                  </Box>
+                </EntranceAnimation>
+              )}
 
               <Box style={styles.browserCard}>
                 <VStack style={{ gap: 4 }}>
@@ -527,7 +631,7 @@ export function WorkspacePickerModal({
                             >
                               {basename(currentPath || pickerRoot) || truncatePathForDisplay(currentPath || pickerRoot) || "."}
                             </GText>
-                            <GText size="xs" style={[styles.childPath, { fontSize: 12, color: isDark ? CYAN_50 : LIGHT_400, fontWeight: "400" }]}>
+                            <GText size="xs" style={[styles.childPath, { fontSize: 11, color: isDark ? CYAN_50 : LIGHT_400, fontWeight: "400" }]}>
                               Current folder
                             </GText>
                           </VStack>
@@ -599,7 +703,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
     // Title
     titleText: {
       color: isDark ? TEXT_WHITE : LIGHT_900,
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: "800",
       letterSpacing: isDark ? 1.5 : 0,
       textTransform: isDark ? "uppercase" : "none",
@@ -659,7 +763,13 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN : LIGHT_600,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 13,
+      fontSize: 12,
+    },
+    createFolderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 4,
     },
 
     // Browser card
@@ -675,7 +785,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN_50 : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 10,
+      fontSize: 9,
       letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
     },
@@ -683,12 +793,12 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? TEXT_TINT : LIGHT_700,
       fontFamily: MONO_FONT,
       fontWeight: "700",
-      fontSize: 14,
+      fontSize: 13,
     },
     instructionText: {
       color: isDark ? CYAN_50 : LIGHT_400,
       fontFamily: isDark ? MONO_FONT : undefined,
-      fontSize: 12,
+      fontSize: 11,
     },
 
     // Spinner
@@ -779,7 +889,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN_50 : LIGHT_800,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "500",
-      fontSize: 14,
+      fontSize: 13,
     },
 
     // Select button
@@ -807,7 +917,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: TEXT_WHITE,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 13,
+      fontSize: 12,
     },
 
     // Use Folder button (primary)
@@ -835,7 +945,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: TEXT_WHITE,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 14,
+      fontSize: 13,
     },
 
     // Section label
@@ -843,7 +953,7 @@ function createStyles(theme: ReturnType<typeof useTheme>) {
       color: isDark ? CYAN : LIGHT_500,
       fontFamily: isDark ? MONO_FONT : undefined,
       fontWeight: "800",
-      fontSize: 11,
+      fontSize: 10,
       letterSpacing: isDark ? 2 : 1.5,
       textTransform: "uppercase",
       marginHorizontal: 16,

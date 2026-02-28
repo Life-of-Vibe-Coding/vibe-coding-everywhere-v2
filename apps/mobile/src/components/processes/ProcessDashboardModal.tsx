@@ -14,6 +14,7 @@ import { AsyncStateView } from "@/components/reusable/AsyncStateView";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
 import { ProcessListItemCard } from "@/components/reusable/ProcessListItem";
+import { LinkedText } from "@/components/reusable/LinkedText";
 
 import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
@@ -24,12 +25,15 @@ export interface ApiProcess {
   command: string;
   /** Log file names extracted from command (>> file.log, > file.log) */
   logPaths?: string[];
+  /** Whether this is a system-critical process (no kill / no log). */
+  protected?: boolean;
 }
 
 export interface ProcessDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   serverBaseUrl: string;
+  onOpenUrl?: (url: string) => void;
 }
 
 function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
@@ -40,7 +44,8 @@ function areApiProcessesEqual(a: ApiProcess[], b: ApiProcess[]): boolean {
     if (
       item.pid !== next.pid ||
       item.port !== next.port ||
-      item.command !== next.command
+      item.command !== next.command ||
+      !!item.protected !== !!next.protected
     ) {
       return false;
     }
@@ -59,6 +64,7 @@ export function ProcessDashboardModal({
   isOpen,
   onClose,
   serverBaseUrl,
+  onOpenUrl,
 }: ProcessDashboardModalProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -164,6 +170,14 @@ export function ProcessDashboardModal({
 
   const hasProcesses = apiProcesses.length > 0;
   const isEmpty = !hasProcesses && !loading && !error;
+  const protectedProcesses = useMemo(
+    () => apiProcesses.filter((p) => p.protected),
+    [apiProcesses]
+  );
+  const userProcesses = useMemo(
+    () => apiProcesses.filter((p) => !p.protected),
+    [apiProcesses]
+  );
   const processCount = apiProcesses.length;
   const uniquePortCount = useMemo(
     () => new Set(apiProcesses.map((proc) => proc.port)).size,
@@ -321,14 +335,27 @@ export function ProcessDashboardModal({
               }}
               horizontal={false}
             >
-              <Text
-                size="xs"
-                selectable
-                className="font-mono"
-                style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
-              >
-                {logViewer.content || "(empty)"}
-              </Text>
+              {onOpenUrl ? (
+                <LinkedText
+                  size="xs"
+                  selectable
+                  className="font-mono"
+                  style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
+                  onPressUrl={onOpenUrl}
+                  urlColor={theme.colors.accent}
+                >
+                  {logViewer.content || "(empty)"}
+                </LinkedText>
+              ) : (
+                <Text
+                  size="xs"
+                  selectable
+                  className="font-mono"
+                  style={{ color: theme.colors.textPrimary, fontFamily: terminalFont }}
+                >
+                  {logViewer.content || "(empty)"}
+                </Text>
+              )}
             </ScrollView>
           </SafeAreaView>
         </Box>
@@ -473,30 +500,62 @@ export function ProcessDashboardModal({
               emptyDescription="Port-bound processes (e.g. dev servers on 3000, 8000) will appear here when active."
             >
               {hasProcesses ? (
-                <ListSectionCard
-                  title="Port-bound processes"
-                  subtitle="Active local/dev server processes"
-                  className="mb-4"
-                  style={sectionCardStyle}
-                >
-                  <VStack className="gap-3">
-                    {[...apiProcesses]
-                      .sort((a, b) => b.pid - a.pid)
-                      .map((proc) => (
-                        <ProcessListItemCard
-                          key={`${proc.pid}-${proc.port}`}
-                          pid={proc.pid}
-                          port={proc.port}
-                          command={proc.command}
-                          logPaths={proc.logPaths}
-                          accentColor={theme.colors.accent}
-                          isKilling={killingPid === proc.pid}
-                          onViewLog={handleViewLog}
-                          onKill={() => handleKillApiProcess(proc)}
-                        />
-                      ))}
-                  </VStack>
-                </ListSectionCard>
+                <>
+                  {protectedProcesses.length > 0 && (
+                    <ListSectionCard
+                      title="System infrastructure"
+                      subtitle="Protected — cannot be killed or have logs read"
+                      className="mb-4"
+                      style={sectionCardStyle}
+                    >
+                      <VStack className="gap-3">
+                        {[...protectedProcesses]
+                          .sort((a, b) => b.pid - a.pid)
+                          .map((proc) => (
+                            <ProcessListItemCard
+                              key={`${proc.pid}-${proc.port}`}
+                              pid={proc.pid}
+                              port={proc.port}
+                              command={proc.command}
+                              logPaths={proc.logPaths}
+                              accentColor={theme.colors.accent}
+                              isProtected
+                              onViewLog={handleViewLog}
+                              onKill={() => { }}
+                              onOpenUrl={onOpenUrl}
+                            />
+                          ))}
+                      </VStack>
+                    </ListSectionCard>
+                  )}
+                  {userProcesses.length > 0 && (
+                    <ListSectionCard
+                      title="Port-bound processes"
+                      subtitle="Active local/dev server processes"
+                      className="mb-4"
+                      style={sectionCardStyle}
+                    >
+                      <VStack className="gap-3">
+                        {[...userProcesses]
+                          .sort((a, b) => b.pid - a.pid)
+                          .map((proc) => (
+                            <ProcessListItemCard
+                              key={`${proc.pid}-${proc.port}`}
+                              pid={proc.pid}
+                              port={proc.port}
+                              command={proc.command}
+                              logPaths={proc.logPaths}
+                              accentColor={theme.colors.accent}
+                              isKilling={killingPid === proc.pid}
+                              onViewLog={handleViewLog}
+                              onKill={() => handleKillApiProcess(proc)}
+                              onOpenUrl={onOpenUrl}
+                            />
+                          ))}
+                      </VStack>
+                    </ListSectionCard>
+                  )}
+                </>
               ) : null}
             </AsyncStateView>
           </ScrollView>

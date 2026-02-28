@@ -319,7 +319,7 @@ export function PreviewWebViewBottomBar({
       <Pressable style={bottomBarStyles.tabsButton} onPress={onShowTabs}>
         <Icons.Layers color={theme.colors.textSecondary} size={24} />
         <Box style={bottomBarStyles.tabsBadge}>
-          <Text style={{ fontSize: 10, color: '#000', fontWeight: 'bold' }}>{tabCount}</Text>
+          <Text style={{ fontSize: 10, color: '#000', fontWeight: 'bold' }}>{String(tabCount)}</Text>
         </Box>
       </Pressable>
       <Pressable style={bottomBarStyles.iconButton} onPress={onMenu}>
@@ -402,7 +402,7 @@ export function PreviewWebViewTabsPage({
             );
           })}
         </Box>
-        <Box style={{ height: 96 }} /> {/* Bottom padding */}
+        <Box style={{ height: 96 }} />
       </ScrollView>
 
       {/* Floating Action Button */}

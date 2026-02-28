@@ -131,6 +131,7 @@ type ChatPageModelPicker = {
 
 type ChatPageProcesses = {
   serverBaseUrl: string;
+  onOpenUrl?: (url: string) => void;
 };
 
 type ChatPageSessionManagement = {

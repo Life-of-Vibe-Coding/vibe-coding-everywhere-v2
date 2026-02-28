@@ -97,7 +97,7 @@ export function ChatModalsSection({
         onRefreshWorkspace={modals.workspacePicker.onRefreshWorkspace}
         onWorkspaceSelected={handleWorkspaceSelected}
       />
-      <ProcessDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} />
+      <ProcessDashboardModal isOpen={modalStates.processes.isOpen} onClose={modalStates.processes.close} serverBaseUrl={modals.processes.serverBaseUrl} onOpenUrl={modals.processes.onOpenUrl} />
       <DockerManagerModal isOpen={modalStates.docker.isOpen} onClose={modalStates.docker.close} serverBaseUrl={modals.docker.serverBaseUrl} />
       <ModelPickerSheet
         isOpen={modalStates.modelPicker.isOpen}

@@ -118,8 +118,15 @@ export const createSessionMessageHandlers = (deps: SessionMessageHandlerDeps): S
     const last = currentMessages[currentMessages.length - 1];
     if (last?.role === "assistant") {
       const trimmed = cleaned.trim();
+      const existingContentTrimmed = ((last.content as string) ?? "").trim();
+      
       if (trimmed === "") {
-        setSessionMessages(sid, currentMessages.slice(0, -1));
+        // Only delete the assistant message if it literally has no content accumulated.
+        // It's possible the draft was already cleared by a prior finalize call,
+        // in which case we don't want to delete the completed message.
+        if (existingContentTrimmed === "") {
+          setSessionMessages(sid, currentMessages.slice(0, -1));
+        }
       } else if (last.content !== cleaned) {
         if (__DEV__) {
           console.warn("[finalize] content MISMATCH — syncing to draft", {

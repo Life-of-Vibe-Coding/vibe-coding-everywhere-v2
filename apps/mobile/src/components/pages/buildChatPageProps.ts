@@ -135,6 +135,7 @@ export function buildChatPageProps({
       },
       processes: {
         serverBaseUrl: serverConfig.getBaseUrl(),
+        onOpenUrl: chatActionState.onOpenPreviewInApp,
       },
       sessionManagement: {
         serverBaseUrl: serverConfig.getBaseUrl(),

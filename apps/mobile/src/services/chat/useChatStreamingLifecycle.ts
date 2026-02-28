@@ -221,7 +221,8 @@ export function useChatStreamingLifecycle(params: UseChatStreamingLifecycleParam
       : false;
     const prevSessionRuntime = selectedSessionRuntimeRef.current;
     if (prevSessionRuntime?.id === targetSessionId && prevSessionRuntime.running && !targetSessionRunning) {
-      void refreshCurrentSessionFromDisk(targetSessionId);
+      // Intentionally do not refetch the data from disk and reload after SSE streaming finishes.
+      // void refreshCurrentSessionFromDisk(targetSessionId);
     }
     if (!targetSessionId || !targetSessionRunning) {
       closeActiveSse("inactive");

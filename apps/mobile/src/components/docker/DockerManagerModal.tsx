@@ -12,7 +12,7 @@ import { DockerIcon, CloseIcon, CopyIcon, ContainerIcon, ImageIcon, VolumeIcon, 
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
-import { Pressable } from "@/components/ui/pressable";
+import { TouchableOpacity as Pressable } from "react-native";
 import { HStack } from "@/components/ui/hstack";
 import { Spinner } from "@/components/ui/spinner";
 import { ScrollView } from "@/components/ui/scroll-view";

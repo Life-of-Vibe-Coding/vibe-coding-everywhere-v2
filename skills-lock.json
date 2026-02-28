@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "98d951503a52e094d701a15fedfe9448d1dffa7f50cc075c2e8483a3cb754c10"
     },
+    "docker-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "76bd52d934142cb8f3861cb37f2a39ad93bf3b03dcbc94a02beaa0544f6dd7c2"
+    },
     "git-advanced-workflows": {
       "source": "wshobson/agents",
       "sourceType": "github",

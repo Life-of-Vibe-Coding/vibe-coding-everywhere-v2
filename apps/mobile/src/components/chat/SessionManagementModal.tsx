@@ -283,27 +283,52 @@ export function SessionManagementModal({
     [groupedSessions]
   );
 
-  const refresh = useCallback(async (isPullRefresh = false) => {
-    if (isPullRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
+  const refresh = useCallback(async (isPullRefresh = false, showLoadingIndicator = true) => {
+    if (showLoadingIndicator) {
+      if (isPullRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
     }
     setListError(null);
-    setTimeout(() => {
-      setLoading(false);
-      setRefreshing(false);
-    }, 120);
-  }, []);
+
+    if (!serverBaseUrl) {
+      if (showLoadingIndicator) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch(`${serverBaseUrl}/api/sessions/status`);
+      if (!res.ok) throw new Error("Failed to load sessions");
+      const data = await res.json();
+      if (data?.sessions && Array.isArray(data.sessions)) {
+        useSessionManagementStore.getState().setSessionStatuses(data.sessions);
+      }
+    } catch (err: any) {
+      setListError(err.message || "Failed to fetch sessions");
+    } finally {
+      if (showLoadingIndicator) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [serverBaseUrl]);
 
   useEffect(() => {
     if (isOpen) {
-      setLoading(sessions.length === 0);
+      // Do a background refresh to ensure list is up-to-date,
+      // and only show loading state if we currently have zero sessions.
+      const currentSessionsCount = useSessionManagementStore.getState().sessionStatuses.length;
+      void refresh(false, currentSessionsCount === 0);
     } else {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isOpen, sessions.length]);
+  }, [isOpen, refresh]);
 
   const handleSelect = useCallback(
     (session: ApiSession) => {

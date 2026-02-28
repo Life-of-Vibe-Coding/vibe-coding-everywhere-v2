@@ -147,7 +147,7 @@ export function InputPanel({
   const theme = useTheme();
   const [prompt, setPrompt] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [plusMenuVisible, setPlusMenuVisible] = useState(false);
+  const [terminalMenuVisible, setTerminalMenuVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(DEFAULT_INPUT_HEIGHT);
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
   const { bottom } = useSafeAreaInsets();
@@ -308,69 +308,23 @@ export function InputPanel({
         </HStack>
         <HStack space="sm" className="flex-row items-center justify-between gap-2 flex-nowrap">
           <HStack space="sm" className="flex-1 flex-row items-center gap-2 min-w-0">
-            {(onOpenSkillsConfig || onOpenDocker) && (
-              <>
-                <Pressable
-                  onPress={() => {
-                    triggerHaptic("selection");
-                    setPlusMenuVisible(true);
-                  }}
-                  accessibilityLabel="More options"
-                  accessibilityHint="Opens Skills and Docker dropdown"
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-90"
-                  style={{
-                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
-                    borderColor: isDark ? theme.colors.accent : theme.colors.border,
-                    borderWidth: isDark ? 1.5 : 1,
-                  }}
-                >
-                  <AttachPlusIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
-                  {plusMenuVisible ? (
-                    <ChevronUpIcon size={12} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
-                  ) : (
-                    <ChevronDownIcon size={12} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
-                  )}
-                </Pressable>
-                <Actionsheet isOpen={plusMenuVisible} onClose={() => setPlusMenuVisible(false)} snapPoints={[25]}>
-                  <ActionsheetBackdrop />
-                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface, paddingBottom: Math.max(bottom, 24) }}>
-                    <ActionsheetDragIndicatorWrapper>
-                      <ActionsheetDragIndicator />
-                    </ActionsheetDragIndicatorWrapper>
-                    {onOpenSkillsConfig && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          setPlusMenuVisible(false);
-                          onOpenSkillsConfig();
-                        }}
-                        accessibilityLabel="Skill configuration"
-                      >
-                        <HStack space="sm" className="items-center">
-                          <SkillIcon size={18} color={theme.colors.accent} />
-                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Skills</ActionsheetItemText>
-                        </HStack>
-                      </ActionsheetItem>
-                    )}
-                    {onOpenDocker && (
-                      <ActionsheetItem
-                        onPress={() => {
-                          triggerHaptic("selection");
-                          setPlusMenuVisible(false);
-                          onOpenDocker();
-                        }}
-                        accessibilityLabel="Docker manager"
-                      >
-                        <HStack space="sm" className="items-center">
-                          <DockerIcon size={18} color={theme.colors.accent} />
-                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Docker</ActionsheetItemText>
-                        </HStack>
-                      </ActionsheetItem>
-                    )}
-                  </ActionsheetContent>
-                </Actionsheet>
-              </>
+            {onOpenSkillsConfig && (
+              <Pressable
+                onPress={() => {
+                  triggerHaptic("selection");
+                  onOpenSkillsConfig();
+                }}
+                accessibilityLabel="Skill configuration"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                className="items-center justify-center p-2 rounded-full w-11 h-11 active:opacity-90"
+                style={{
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.colors.surfaceMuted,
+                  borderColor: isDark ? theme.colors.accent : theme.colors.border,
+                  borderWidth: isDark ? 1.5 : 1,
+                }}
+              >
+                <AttachPlusIcon size={18} color={isDark ? theme.colors.accent : theme.colors.textPrimary} />
+              </Pressable>
             )}
             <Pressable
               onPress={() => {
@@ -403,23 +357,71 @@ export function InputPanel({
             </Pressable>
           </HStack>
           <HStack space="sm" className="flex-row items-center gap-2 shrink-0">
-            {onOpenProcesses && (
-              <Pressable
-                onPress={onOpenProcesses}
-                accessibilityLabel="Open process dashboard"
-                className="w-11 h-11 items-center justify-center rounded-full active:opacity-80"
-                style={isDark ? {
-                  backgroundColor: "rgba(255, 0, 255, 0.1)",
-                  borderColor: "#FF00FF",
-                  borderWidth: 1.5
-                } : {
-                  backgroundColor: theme.colors.surfaceMuted,
-                  borderColor: theme.colors.border,
-                  borderWidth: 1
-                }}
-              >
-                <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
-              </Pressable>
+            {(onOpenProcesses || onOpenDocker) && (
+              <>
+                <Pressable
+                  onPress={() => {
+                    triggerHaptic("selection");
+                    setTerminalMenuVisible(true);
+                  }}
+                  accessibilityLabel="System menu"
+                  className="flex-row items-center gap-1 py-2 px-2 rounded-full min-h-11 active:opacity-80"
+                  style={isDark ? {
+                    backgroundColor: "rgba(255, 0, 255, 0.1)",
+                    borderColor: "#FF00FF",
+                    borderWidth: 1.5
+                  } : {
+                    backgroundColor: theme.colors.surfaceMuted,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1
+                  }}
+                >
+                  <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                  {terminalMenuVisible ? (
+                    <ChevronUpIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                  ) : (
+                    <ChevronDownIcon size={12} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                  )}
+                </Pressable>
+                <Actionsheet isOpen={terminalMenuVisible} onClose={() => setTerminalMenuVisible(false)} snapPoints={[25]}>
+                  <ActionsheetBackdrop />
+                  <ActionsheetContent style={{ backgroundColor: theme.colors.surface, paddingBottom: Math.max(bottom, 24) }}>
+                    <ActionsheetDragIndicatorWrapper>
+                      <ActionsheetDragIndicator />
+                    </ActionsheetDragIndicatorWrapper>
+                    {onOpenProcesses && (
+                      <ActionsheetItem
+                        onPress={() => {
+                          triggerHaptic("selection");
+                          setTerminalMenuVisible(false);
+                          onOpenProcesses();
+                        }}
+                        accessibilityLabel="Terminal processes"
+                      >
+                        <HStack space="sm" className="items-center">
+                          <TerminalIcon size={18} color={isDark ? "#FF00FF" : theme.colors.textPrimary} />
+                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Terminal processes</ActionsheetItemText>
+                        </HStack>
+                      </ActionsheetItem>
+                    )}
+                    {onOpenDocker && (
+                      <ActionsheetItem
+                        onPress={() => {
+                          triggerHaptic("selection");
+                          setTerminalMenuVisible(false);
+                          onOpenDocker();
+                        }}
+                        accessibilityLabel="Docker manager"
+                      >
+                        <HStack space="sm" className="items-center">
+                          <DockerIcon size={18} color={theme.colors.accent} />
+                          <ActionsheetItemText style={{ color: theme.colors.textPrimary }}>Docker manager</ActionsheetItemText>
+                        </HStack>
+                      </ActionsheetItem>
+                    )}
+                  </ActionsheetContent>
+                </Actionsheet>
+              </>
             )}
             {onOpenWebPreview && (
               <Pressable

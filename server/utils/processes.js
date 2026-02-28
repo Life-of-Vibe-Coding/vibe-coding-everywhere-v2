@@ -6,9 +6,25 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { PORT, TUNNEL_PROXY_PORT } from "../config/index.js";
 
 /** Common development server ports to scan. */
 const COMMON_DEV_PORTS = [3000, 3456, 4000, 5000, 5173, 8000, 8080, 3001, 4001];
+
+/**
+ * Ports belonging to this application's own infrastructure.
+ * Processes on these ports are marked `protected: true` — they cannot be killed
+ * or have logs read via the API to prevent accidental self-destruction.
+ */
+const PROTECTED_PORTS = new Set([Number(PORT), Number(TUNNEL_PROXY_PORT)]);
+
+/** Set of PIDs currently known to be on protected ports. Updated on each scan. */
+let protectedPids = new Set();
+
+/** Check whether a PID belongs to a protected process. */
+export function isProtectedPid(pid) {
+  return protectedPids.has(Number(pid));
+}
 
 /**
  * Get log file paths from process's stdout/stderr (fd 1, 2) via lsof.
@@ -31,7 +47,7 @@ function getLogFilesFromProcess(pid) {
       const idx = line.indexOf("/");
       if (idx < 0) continue;
       const name = line.slice(idx).trim();
-      if (!name || name === "/dev/null" || name.startsWith("/dev/tty")) continue;
+      if (!name || name.startsWith("/dev/")) continue;
       if (name.includes("/") && name.length > 1) paths.add(name);
     }
   } catch (_) { }
@@ -59,7 +75,7 @@ function getLogFilesFromProcess(pid) {
             const idx = line.indexOf("/");
             if (idx < 0) continue;
             const name = line.slice(idx).trim();
-            if (name && name !== "/dev/null" && !name.startsWith("/dev/tty")) found.add(name);
+            if (name && !name.startsWith("/dev/")) found.add(name);
           }
           return [...found];
         } catch (_) {
@@ -104,12 +120,14 @@ export function extractLogPathsFromCommand(cmd) {
 export function listProcessesOnPorts(workspacePath) {
   const results = [];
   const seenPids = new Set();
+  const nextProtectedPids = new Set();
 
   if (process.platform === "win32") {
     return results;
   }
 
   for (const port of COMMON_DEV_PORTS) {
+    const isProtectedPort = PROTECTED_PORTS.has(port);
     try {
       const pidOut = execSync(`lsof -ti :${port} 2>/dev/null || true`, {
         encoding: "utf8",
@@ -121,6 +139,7 @@ export function listProcessesOnPorts(workspacePath) {
       for (const pid of pids) {
         if (!Number.isInteger(pid) || pid <= 0 || seenPids.has(pid)) continue;
         seenPids.add(pid);
+        if (isProtectedPort) nextProtectedPids.add(pid);
         let command = "";
         try {
           command = execSync(`ps -p ${pid} -o args= 2>/dev/null || ps -p ${pid} -o command= 2>/dev/null || echo ""`, {
@@ -132,8 +151,8 @@ export function listProcessesOnPorts(workspacePath) {
           command = "(unknown)";
         }
         const cmd = command || "(unknown)";
-        let logPaths = getLogFilesFromProcess(pid);
-        if (logPaths.length === 0) {
+        let logPaths = isProtectedPort ? [] : getLogFilesFromProcess(pid);
+        if (logPaths.length === 0 && !isProtectedPort) {
           logPaths = extractLogPathsFromCommand(cmd);
         }
         if (logPaths.length > 0 && workspacePath) {
@@ -148,14 +167,16 @@ export function listProcessesOnPorts(workspacePath) {
               return p;
             })
             .filter(Boolean);
-
         }
-        results.push({ pid, port, command: cmd, logPaths });
+        results.push({ pid, port, command: cmd, logPaths, protected: isProtectedPort });
       }
     } catch (_) {
       // Port scan failed for this port, skip
     }
   }
+
+  // Update the global set so killProcess / handleLogTail can check
+  protectedPids = nextProtectedPids;
 
   return results;
 }
@@ -171,6 +192,9 @@ export function killProcess(pid) {
   const p = parseInt(pid, 10);
   if (!Number.isInteger(p) || p <= 0) {
     return { ok: false, error: "Invalid PID" };
+  }
+  if (isProtectedPid(p)) {
+    return { ok: false, error: "Cannot kill a protected system process" };
   }
   try {
     if (process.platform === "win32") {
@@ -239,10 +263,23 @@ export function getLogTail(absPath, workspacePath, lines = TAIL_LINES, allowOuts
       return { ok: false, error: "Path outside workspace" };
     }
   }
+  // Reject device files (e.g. /dev/console) — tail would block forever on them
+  if (resolved.startsWith("/dev/")) {
+    return { ok: false, error: "Cannot tail device files" };
+  }
+  try {
+    const stat = fs.statSync(resolved);
+    if (!stat.isFile()) {
+      return { ok: false, error: "Not a regular file" };
+    }
+  } catch (_) {
+    return { ok: false, error: "File not found or inaccessible" };
+  }
   try {
     const content = execSync(`tail -n ${lines} "${resolved}" 2>/dev/null || true`, {
       encoding: "utf8",
       maxBuffer: 512 * 1024,
+      timeout: 10_000, // Safety net — never block event loop for more than 10s
     });
     return { ok: true, content, path: resolved };
   } catch (err) {

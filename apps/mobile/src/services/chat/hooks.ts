@@ -115,6 +115,8 @@ export function useChat(options: UseChatOptions = {}) {
 
   const nextIdRef = useRef(0);
   const toolUseByIdRef = useRef<Map<string, { tool_name: string; tool_input?: Record<string, unknown> }>>(new Map());
+  // Periodic cleanup: entries older than ~5 min are orphaned (tool_result never arrived).
+  // Clear the entire map on session transitions (closeActiveSse) to keep it bounded.
   const liveMessagesRef = useRef<Message[]>([]);
   liveMessagesRef.current = liveSessionMessages;
   const currentSessionIdRef = useRef<string | null>(null);
@@ -212,6 +214,9 @@ export function useChat(options: UseChatOptions = {}) {
         streamFlushTimeoutRef.current = null;
       }
       clearConnectionIntent(id);
+      // Clear orphaned tool_use records to prevent slow memory leak when
+      // tool_result never arrives (e.g. SSE drops, session crash).
+      toolUseByIdRef.current.clear();
       setConnected(false);
     },
     [clearConnectionIntent, setSessionStateForSession]

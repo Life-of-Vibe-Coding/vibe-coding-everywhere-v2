@@ -3,7 +3,7 @@
  */
 import path from "path";
 import { getWorkspaceCwd } from "../config/index.js";
-import { listProcessesOnPorts, killProcess, getLogTailByName, getLogTail } from "../utils/processes.js";
+import { listProcessesOnPorts, killProcess, getLogTailByName, getLogTail, isProtectedPid } from "../utils/processes.js";
 import { resolveWithinRoot } from "../utils/index.js";
 
 const LOG_LINES_MIN = 10;
@@ -67,6 +67,9 @@ function handleKillProcess(req, res) {
   const pid = req.params?.pid;
   if (!pid) {
     return res.status(400).json({ error: "Missing PID" });
+  }
+  if (isProtectedPid(pid)) {
+    return res.status(403).json({ error: "Cannot kill a protected system process" });
   }
   const result = killProcess(pid);
   if (result.ok) {
