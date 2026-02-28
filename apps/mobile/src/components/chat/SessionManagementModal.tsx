@@ -1,44 +1,34 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import {
-  StyleSheet,
-  Platform,
-  LayoutAnimation,
-  UIManager,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  triggerHaptic,
-  SkeletonText,
-  EntranceAnimation,
-  AnimatedPressableView,
-  FlashAnimation,
-  PulseAnimation,
-  spacing,
-} from "@/design-system";
-import { Box } from "@/components/ui/box";
-import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
-import { Pressable } from "@/components/ui/pressable";
-import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { RefreshControl } from "@/components/ui/refresh-control";
-import { VStack } from "@/components/ui/vstack";
-import { HStack } from "@/components/ui/hstack";
+    ChevronDownIcon,
+    ChevronRightIcon,
+    CloseIcon,
+    PlayIcon, RefreshCwIcon, TrashIcon
+} from "@/components/icons/ChatActionIcons";
 import { AsyncStateView } from "@/components/reusable/AsyncStateView";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { useTheme } from "@/theme/index";
 import { showAlert } from "@/components/ui/alert/native-alert";
-import {
-  TrashIcon,
-  RefreshCwIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  PlayIcon,
-} from "@/components/icons/ChatActionIcons";
-import { getFileName } from "@/utils/path";
-import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { HStack } from "@/components/ui/hstack";
+import { Pressable } from "@/components/ui/pressable";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
 import type { Message } from "@/core/types";
+import {
+    AnimatedPressableView, EntranceAnimation, FlashAnimation,
+    PulseAnimation,
+    spacing, triggerHaptic
+} from "@/design-system";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import { useTheme } from "@/theme/index";
+import { getFileName } from "@/utils/path";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    LayoutAnimation, Platform, StyleSheet, UIManager
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Session status entry from /api/sessions/status. */
 export interface ApiSession {

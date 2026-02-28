@@ -1,11 +1,11 @@
-import React, { memo } from "react";
+import type { ApiSession } from "@/components/chat/SessionManagementModal";
+import { TrashIcon } from "@/components/icons/ChatActionIcons";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import type { ApiSession } from "@/components/chat/SessionManagementModal";
-import { TrashIcon } from "@/components/icons/ChatActionIcons";
+import React, { memo } from "react";
 
 type SessionListItemProps = {
   item: ApiSession;

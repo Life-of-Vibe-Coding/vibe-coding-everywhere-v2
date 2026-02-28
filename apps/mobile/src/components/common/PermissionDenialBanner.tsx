@@ -1,8 +1,8 @@
-import React from "react";
-import type { PermissionDenial } from "@/services/chat/hooks";
+import { AlertBanner } from "@/components/reusable/AlertBanner";
 import { Button, ButtonText } from "@/components/ui/button";
 import { EntranceAnimation } from "@/design-system";
-import { AlertBanner } from "@/components/reusable/AlertBanner";
+import type { PermissionDenial } from "@/services/chat/hooks";
+import React from "react";
 interface PermissionDenialBannerProps {
   denials: PermissionDenial[];
   onDismiss: () => void;

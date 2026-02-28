@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import type { IWorkspaceFileService } from "@/core/types";
+import { useCallback, useEffect, useState } from "react";
 
 type ServerConfig = {
   getBaseUrl: () => string;

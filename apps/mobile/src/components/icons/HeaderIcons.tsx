@@ -2,9 +2,9 @@
  * Header icons: filled/solid style (no stroke-only).
  * Menu: three solid bars; Settings: solid gear with center hole.
  */
+import { useTheme } from "@/theme/index";
 import React from "react";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
-import { useTheme } from "@/theme/index";
 
 const size = 22;
 /** Bar width 16, height 1.5 — no bolding; square ends. */

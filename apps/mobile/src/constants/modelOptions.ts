@@ -1,5 +1,5 @@
 /**
- * Model Options - Cocoa Edition
+ * Model Options
  */
 
 import type { Provider } from "@/theme/index";

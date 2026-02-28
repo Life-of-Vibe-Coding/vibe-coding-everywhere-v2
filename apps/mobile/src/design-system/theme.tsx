@@ -9,9 +9,9 @@
  * - Fluid motion/animation timing
  */
 
-import { useColorScheme, Platform, Dimensions, PixelRatio } from "react-native";
 import { buildTypographyScale } from "@/theme/typography";
-import React, { createContext, useContext, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useMemo } from "react";
+import { Dimensions, PixelRatio, Platform, useColorScheme } from "react-native";
 
 // ============================================================================
 // Color System - WCAG 2.1 AA Compliant
@@ -100,11 +100,9 @@ export const brandColors = {
 // ============================================================================
 
 import type {
-  TypographyVariant,
-  TypographyStyle,
-  TypographyScaleRecord,
+    TypographyScaleRecord
 } from "@/theme/typography";
-export type { TypographyVariant, TypographyStyle, TypographyScaleRecord } from "@/theme/typography";
+export type { TypographyScaleRecord, TypographyStyle, TypographyVariant } from "@/theme/typography";
 
 // Lazy init to avoid "runtime not ready" (Dimensions at module load on Hermes)
 let _typographyScale: TypographyScaleRecord | null = null;

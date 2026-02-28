@@ -3,8 +3,8 @@
  */
 import path from "path";
 import { getWorkspaceCwd } from "../config/index.js";
-import { listProcessesOnPorts, killProcess, getLogTailByName, getLogTail, isProtectedPid } from "../utils/processes.js";
 import { resolveWithinRoot } from "../utils/index.js";
+import { getLogTail, getLogTailByName, isProtectedPid, killProcess, listProcessesOnPorts } from "../utils/processes.js";
 
 const LOG_LINES_MIN = 10;
 const LOG_LINES_MAX = 500;

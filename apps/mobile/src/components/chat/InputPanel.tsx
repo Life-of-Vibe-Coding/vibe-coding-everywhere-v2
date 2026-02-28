@@ -1,6 +1,3 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { Platform, Keyboard, AccessibilityInfo, Animated, Modal, View as RNView, TouchableWithoutFeedback, Dimensions, ScrollView } from "react-native";
-import { ClaudeSendIcon, GeminiSendIcon, CodexSendIcon, CodexEnterIcon } from "@/components/icons/ProviderIcons";
 import {
   AttachPlusIcon,
   ChevronDownIcon,
@@ -10,30 +7,30 @@ import {
   GlobeIcon,
   SkillIcon,
   StopCircleIcon,
-  TerminalIcon,
-  WrenchIcon,
-  BoxIcon,
+  TerminalIcon
 } from "@/components/icons/ChatActionIcons";
-import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import { ClaudeSendIcon, CodexEnterIcon, GeminiSendIcon } from "@/components/icons/ProviderIcons";
+import { getCategoryIcon } from "@/components/icons/SkillCategoryIcons";
+import { ActionIconButton } from "@/components/reusable/ActionIconButton";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon } from "@/components/ui/button";
+import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { VStack } from "@/components/ui/vstack";
-import { getCategoryIcon } from "@/components/icons/SkillCategoryIcons";
-import { HStack } from "@/components/ui/hstack";
-import { ActionIconButton } from "@/components/reusable/ActionIconButton";
-import { useTheme } from "@/theme/index";
 import { type Provider } from "@/constants/modelOptions";
-import { getFileName } from "@/utils/path";
+import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
 import { cn } from "@/utils/cn";
+import { getFileName } from "@/utils/path";
+import { CATEGORY_COLORS, CATEGORY_COLORS_LIGHT, type Category } from "@/utils/skillColors";
 import { BlurView } from "expo-blur";
-import { StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Animated, Dimensions, Keyboard, Modal, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback, View as RNView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Polygon } from "react-native-svg";
-import { CATEGORY_COLORS, CATEGORY_COLORS_LIGHT, type Category } from "@/utils/skillColors";
 
 function InputWrapper({ width, height, isDark, theme }: { width: number; height: number; isDark: boolean; theme: any }) {
   const cut = 24;
@@ -166,6 +163,13 @@ export function InputPanel({
   const { bottom } = useSafeAreaInsets();
   const triggerLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const skillTriggerLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+
+  const [skillCategoryHeights, setSkillCategoryHeights] = useState<Record<string, number>>({});
+  const maxSkillCategoryHeight = useMemo(() => {
+    const heights = Object.values(skillCategoryHeights);
+    if (heights.length === 0) return 180; // Default height while measuring
+    return Math.max(...heights);
+  }, [skillCategoryHeights]);
 
   const fetchEnabledSkills = useCallback(() => {
     if (!serverBaseUrl) return;
@@ -428,8 +432,8 @@ export function InputPanel({
                       style={{
                         position: "absolute",
                         bottom: skillTriggerLayout.current
-                          ? (Dimensions.get("window").height - skillTriggerLayout.current.y + 10)
-                          : 120,
+                          ? (Dimensions.get("window").height - skillTriggerLayout.current.y + 60)
+                          : 160,
                         left: skillTriggerLayout.current ? skillTriggerLayout.current.x : 16,
                         backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.95)",
                         borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
@@ -441,11 +445,49 @@ export function InputPanel({
                         shadowOpacity: isDark ? 0.5 : 0.15,
                         shadowRadius: 32,
                         elevation: 10,
-                        width: Dimensions.get("window").width * 0.65,
-                        height: Dimensions.get("window").height * 0.5,
+                        width: Dimensions.get("window").width * 0.75,
+                        // Removed fixed height, it will now be determined by content + maxSkillCategoryHeight
+                        maxHeight: Dimensions.get("window").height * 0.8,
                         overflow: "hidden"
                       }}
                     >
+                      {/* Hidden Measurer to determine Max Height across Categories */}
+                      <RNView style={{ position: "absolute", opacity: 0, pointerEvents: "none", top: -Dimensions.get("window").height, left: 0, width: (Dimensions.get("window").width * 0.65) - 24 }}>
+                        {categories.map((cat) => (
+                          <RNView
+                            key={`measure-${cat}`}
+                            onLayout={(e) => {
+                              const h = e.nativeEvent.layout.height;
+                              if (h > 0) {
+                                setSkillCategoryHeights(prev => (prev[cat] === h ? prev : { ...prev, [cat]: h }));
+                              }
+                            }}
+                            style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 16 }}
+                          >
+                            {enabledSkills
+                              .filter(skill => (skill.category || "Uncategorized") === cat)
+                              .map(skill => (
+                                <RNView
+                                  key={`dummy-${skill.id}`}
+                                  style={{
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    borderRadius: 14,
+                                    gap: 6,
+                                    borderWidth: 1,
+                                    borderColor: "transparent",
+                                  }}
+                                >
+                                  <SkillIcon size={12} color="transparent" />
+                                  <Text style={{ fontWeight: "500", fontSize: 12, color: "transparent" }}>{skill.name}</Text>
+                                </RNView>
+                              ))}
+                          </RNView>
+                        ))}
+                      </RNView>
+
                       <HStack className="items-center justify-between mb-4 px-2">
                         <Text style={{
                           color: isDark ? theme.colors.accent : theme.colors.textPrimary,
@@ -581,7 +623,13 @@ export function InputPanel({
                               </RNView>
                             )}
                           </RNView>
-                          <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+                          <ScrollView
+                            style={{
+                              height: Math.min(maxSkillCategoryHeight, Dimensions.get("window").height * 0.55),
+                              maxHeight: Dimensions.get("window").height * 0.6
+                            }}
+                            showsVerticalScrollIndicator={false}
+                          >
                             <RNView style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 16 }}>
                               {enabledSkills
                                 .filter(skill => (skill.category || "Uncategorized") === selectedCategory)
@@ -732,8 +780,8 @@ export function InputPanel({
                       style={{
                         position: "absolute",
                         bottom: triggerLayout.current
-                          ? (Dimensions.get("window").height - triggerLayout.current.y + 10)
-                          : 120,
+                          ? (Dimensions.get("window").height - triggerLayout.current.y + 60)
+                          : 160,
                         right: 16,
                         flexDirection: "row",
                         alignItems: "center",

@@ -1,14 +1,12 @@
 import React, { createContext, useContext } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-  type PressableProps,
-  type StyleProp,
-  type TextProps,
-  type ViewStyle,
-  type ViewProps,
+    ActivityIndicator,
+    Pressable,
+    Text,
+    View,
+    type PressableProps,
+    type StyleProp,
+    type TextProps, type ViewProps, type ViewStyle
 } from 'react-native';
 
 import { cn } from '@/utils/cn';

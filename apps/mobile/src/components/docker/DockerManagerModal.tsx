@@ -1,26 +1,24 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import {
-  StyleSheet,
-  Platform,
-} from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Clipboard from "expo-clipboard";
-import { Skeleton, triggerHaptic } from "@/design-system";
-import { useTheme } from "@/theme/index";
+import { ChevronLeftIcon, CloseIcon, ContainerIcon, CopyIcon, DockerIcon, ImageIcon, VolumeIcon } from "@/components/docker/DockerTabIcons";
+import { DockerResourceCard } from "@/components/reusable/DockerResourceCard";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { TabBarPills } from "@/components/reusable/TabBarPills";
 import { showAlert } from "@/components/ui/alert/native-alert";
-import { DockerIcon, CloseIcon, CopyIcon, ContainerIcon, ImageIcon, VolumeIcon, ChevronLeftIcon } from "@/components/docker/DockerTabIcons";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
-import { Input, InputField } from "@/components/ui/input";
-import { TouchableOpacity as Pressable } from "react-native";
 import { HStack } from "@/components/ui/hstack";
-import { Spinner } from "@/components/ui/spinner";
-import { ScrollView } from "@/components/ui/scroll-view";
+import { Input, InputField } from "@/components/ui/input";
 import { RefreshControl } from "@/components/ui/refresh-control";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { DockerResourceCard } from "@/components/reusable/DockerResourceCard";
-import { TabBarPills } from "@/components/reusable/TabBarPills";
+import { Skeleton, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import * as Clipboard from "expo-clipboard";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    Platform, StyleSheet, TouchableOpacity as Pressable
+} from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 export type DockerTab = "containers" | "images" | "volumes";

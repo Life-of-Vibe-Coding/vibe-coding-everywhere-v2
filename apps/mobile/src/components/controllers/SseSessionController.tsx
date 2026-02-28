@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, InteractionManager, ScrollView } from "react-native";
 
-import { getModel, ModalSessionItem } from "@/features/app/appConfig";
-import { triggerHaptic } from "@/design-system";
 import { type Provider } from "@/constants/modelOptions";
-import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
+import { triggerHaptic } from "@/design-system";
+import { getModel, ModalSessionItem } from "@/features/app/appConfig";
+import { useChat, type Message, type PendingAskUserQuestion, type PermissionDenial } from "@/services/chat/hooks";
 import * as sessionStore from "@/services/sessionStore";
-import { useChat, type Message, type PermissionDenial, type PendingAskUserQuestion } from "@/services/chat/hooks";
+import { useSessionManagementStore, type SessionStatus } from "@/state/sessionManagementStore";
 
 export type SseSessionControllerProps = {
   provider: Provider;

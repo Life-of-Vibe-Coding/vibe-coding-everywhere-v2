@@ -4,8 +4,8 @@
  */
 import Docker from "dockerode";
 import fs from "fs";
-import path from "path";
 import os from "os";
+import path from "path";
 
 /** Docker instance or null if unavailable. undefined = not yet tried. */
 let docker = undefined;

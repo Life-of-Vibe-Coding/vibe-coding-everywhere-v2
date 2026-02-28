@@ -1,18 +1,18 @@
+import { Box } from "@/components/ui/box";
+import { HStack } from "@/components/ui/hstack";
+import {
+    Modal,
+    ModalBackdrop,
+    ModalBody,
+    ModalCloseButton,
+    ModalContent,
+    ModalFooter,
+    ModalHeader
+} from "@/components/ui/modal";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-} from "@/components/ui/modal";
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { HStack } from "@/components/ui/hstack";
-import { useTheme } from "@/theme/index";
 type ModalBodyProps = React.ComponentProps<typeof ModalBody>;
 
 type ModalScaffoldProps = {

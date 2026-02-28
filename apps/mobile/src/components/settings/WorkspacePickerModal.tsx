@@ -1,26 +1,25 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import type { LayoutChangeEvent } from "react-native";
-import { StyleSheet, Platform } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic, EntranceAnimation } from "@/design-system";
-import { useTheme } from "@/theme/index";
-import { getRelativePath, getDirname, getParentPath, truncatePathForDisplay, basename } from "@/utils/path";
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  AttachPlusIcon,
+    AttachPlusIcon, ChevronLeftIcon,
+    ChevronRightIcon
 } from "@/components/icons/ChatActionIcons";
 import { FolderIcon } from "@/components/icons/WorkspaceTreeIcons";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
-import { Pressable } from "@/components/ui/pressable";
-import { Text as GText } from "@/components/ui/text";
+import { HStack } from "@/components/ui/hstack";
 import { Input, InputField } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
-import { HStack } from "@/components/ui/hstack";
+import { Text as GText } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { EntranceAnimation, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import { basename, getDirname, getParentPath, getRelativePath, truncatePathForDisplay } from "@/utils/path";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { LayoutChangeEvent } from "react-native";
+import { Platform, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ── Cyberpunk color palette (dark mode) ──────────────────────────────
 const CYAN = "#00e5ff";

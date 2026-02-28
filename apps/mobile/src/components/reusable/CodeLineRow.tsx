@@ -1,9 +1,9 @@
-import React, { memo } from "react";
-import { TextStyle, type ViewStyle, Text as RNText } from "react-native";
-import { Highlight, themes } from "prism-react-renderer";
-import { Pressable } from "@/components/ui/pressable";
 import { Box } from "@/components/ui/box";
+import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { Highlight, themes } from "prism-react-renderer";
+import React, { memo } from "react";
+import { Text as RNText, TextStyle, type ViewStyle } from "react-native";
 
 interface PrismTokenStyle {
   [key: string]: unknown;

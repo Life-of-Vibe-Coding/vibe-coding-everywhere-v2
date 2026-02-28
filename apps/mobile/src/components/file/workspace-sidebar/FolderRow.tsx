@@ -1,14 +1,14 @@
-import { Platform } from "react-native";
 import React from "react";
+import { Platform } from "react-native";
 
+import type { WorkspaceTreeItem } from "@/components/file/workspace-sidebar/FileTreePane";
+import {
+    FileIconByType,
+    FolderIconByType
+} from "@/components/icons/WorkspaceTreeIcons";
 import { Box } from "@/components/ui/box";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import {
-  FileIconByType,
-  FolderIconByType,
-} from "@/components/icons/WorkspaceTreeIcons";
-import type { WorkspaceTreeItem } from "@/components/file/workspace-sidebar/FileTreePane";
 
 type FolderRowProps = {
   item: WorkspaceTreeItem;

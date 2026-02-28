@@ -1,15 +1,13 @@
-import React, { useMemo } from "react";
-import { useTheme } from "@/theme/index";
-import { EntranceAnimation } from "@/design-system";
 import { Box } from "@/components/ui/box";
+import {
+    Modal,
+    ModalBackdrop, ModalBody, ModalContent
+} from "@/components/ui/modal";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import {
-  Modal,
-  ModalBackdrop,
-  ModalContent,
-  ModalBody,
-} from "@/components/ui/modal";
+import { EntranceAnimation } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import React, { useMemo } from "react";
 
 const URL_PREVIEW_MAX_LEN = 40;
 

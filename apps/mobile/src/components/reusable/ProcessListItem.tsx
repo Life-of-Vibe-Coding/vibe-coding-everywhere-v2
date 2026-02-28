@@ -1,13 +1,13 @@
-import React, { memo, useMemo } from "react";
-import { Platform, TouchableOpacity } from "react-native";
+import { StopCircleIcon } from "@/components/icons/ChatActionIcons";
+import { LinkedText } from "@/components/reusable/LinkedText";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { EntranceAnimation } from "@/design-system";
 import { useTheme } from "@/theme/index";
-import { StopCircleIcon } from "@/components/icons/ChatActionIcons";
-import { LinkedText } from "@/components/reusable/LinkedText";
+import React, { memo, useMemo } from "react";
+import { Platform, TouchableOpacity } from "react-native";
 
 type ProcessListItemProps = {
   pid: number;

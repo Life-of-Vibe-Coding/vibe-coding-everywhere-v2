@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from "react";
 import { useColorScheme } from "react-native";
 
-import { getTheme, buildTheme } from "@/theme/index";
-import { type Provider as BrandProvider } from "@/constants/modelOptions";
 import { createAppStyles } from "@/components/styles/appStyles";
+import { MODEL_OPTIONS_BY_PROVIDER, type Provider as BrandProvider } from "@/constants/modelOptions";
 import {
-  getDefaultPermissionModeUI,
-  getModel,
-  getModelOptions,
-  getThemeMode,
+    getDefaultPermissionModeUI,
+    getModel,
+    getModelOptions,
+    getThemeMode
 } from "@/features/app/appConfig";
-import { MODEL_OPTIONS_BY_PROVIDER } from "@/constants/modelOptions";
+import { buildTheme, getTheme } from "@/theme/index";
 import type { PermissionModeUI } from "@/utils/permission";
 
 export type ThemeSessionStateProps = {

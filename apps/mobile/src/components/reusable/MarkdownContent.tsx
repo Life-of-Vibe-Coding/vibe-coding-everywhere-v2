@@ -1,7 +1,7 @@
+import { useTheme } from "@/theme/index";
 import React, { useMemo } from "react";
 import { Linking, Platform } from "react-native";
 import Markdown, { MarkdownProps } from "react-native-markdown-display";
-import { useTheme } from "@/theme/index";
 
 type MarkdownContentProps = {
   content: string;

@@ -1,11 +1,11 @@
-import React from "react";
-import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 import {
-  ActionsheetItem,
-  ActionsheetItemText,
+    ActionsheetItem,
+    ActionsheetItemText
 } from "@/components/ui/actionsheet";
 import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
+import React from "react";
+import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 
 type ActionsheetOptionRowProps = {
   label: string;

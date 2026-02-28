@@ -5,18 +5,15 @@
  * Uses native Pi RPC protocol; extension_ui_request is transformed to AskUserQuestion
  * for compatibility with the client's approval modal.
  */
+import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { spawn } from "child_process";
 import {
-  getWorkspaceCwd,
-  PI_CLI_PATH,
-  projectRoot,
-  PORT,
-  SESSIONS_ROOT,
+    PI_CLI_PATH, PORT,
+    SESSIONS_ROOT
 } from "../config/index.js";
-import { syncEnabledSkillsFolder, resolveAgentDir } from "../skills/index.js";
-import { getPreviewHost, getActiveOverlay } from "../utils/index.js";
+import { resolveAgentDir, syncEnabledSkillsFolder } from "../skills/index.js";
+import { getActiveOverlay, getPreviewHost } from "../utils/index.js";
 
 const CLIENT_PROVIDER_TO_PI = {
   claude: "anthropic", // OAuth from auth.json
@@ -353,6 +350,15 @@ export function createPiRpcSession({
         ? `When using the terminal-runner skill, REQUIRED parameters are pre-filled — use them and do NOT ask the user: workspace=${JSON.stringify(workspace)}, remote_host=${JSON.stringify(effectiveRemoteHost)}. Never prompt for workspace or remote_host.`
         : `When using the terminal-runner skill, use workspace=${JSON.stringify(workspace)}. For remote_host, the value could not be determined — ask the user for the IP or hostname their browser will use to access exposed services.`;
 
+    const skillTagPrompt =
+      `When a user message begins with a <skill>Use SKILL_NAME</skill> tag, you MUST activate the corresponding skill's protocol and follow its instructions for the rest of that message. ` +
+      `If no <skill> tag is present, respond normally without applying any skill protocol.\n` +
+      `Example:\n` +
+      `  User: "<skill>Use systematic-debugging</skill> My app crashes on startup with a segfault"\n` +
+      `  → You MUST follow the systematic-debugging skill protocol to diagnose and fix the crash.\n` +
+      `  User: "How do I center a div?"\n` +
+      `  → No skill tag present. Respond normally.`;
+
     const args = [
       "--mode", "rpc",
       "--provider", piProvider,
@@ -364,6 +370,7 @@ export function createPiRpcSession({
       "--append-system-prompt", terminalRules,
       "--append-system-prompt", connectionPrompt,
       "--append-system-prompt", terminalRunnerContext,
+      "--append-system-prompt", skillTagPrompt,
     ];
 
     console.log("[pi] system prompt injected:");
@@ -371,6 +378,7 @@ export function createPiRpcSession({
     console.log("[pi]   2.", terminalRules);
     console.log("[pi]   3.", connectionPrompt);
     console.log("[pi]   4. terminal-runner context:", terminalRunnerContext);
+    console.log("[pi]   5. skill-tag awareness:", skillTagPrompt);
 
     // Register enabled skills: sync symlinks from ./server/skills-library into ./server/skills_enabled
     const skillsDir = path.join(projectRoot, "server", "skills-library");

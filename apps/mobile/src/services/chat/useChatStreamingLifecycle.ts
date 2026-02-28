@@ -1,25 +1,21 @@
+import { createEventDispatcher } from "@/services/providers/eventDispatcher";
+import {
+    isProviderStream,
+    isProviderSystemNoise, stripAnsi
+} from "@/services/providers/stream";
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import EventSource from "react-native-sse";
-import {
-  stripAnsi,
-  isProviderStream,
-  isProviderSystemNoise,
-} from "@/services/providers/stream";
-import { createEventDispatcher } from "@/services/providers/eventDispatcher";
-import { createSessionMessageHandlers } from "./sessionMessageHandlers";
-import { moveSessionCacheData } from "./sessionCacheHelpers";
 import { resolveStreamUrl } from "./chatHookHelpers";
 import type {
-  EventSourceCtor,
-  LastRunOptions,
-  EventSourceLike,
-  Message,
-  PendingAskUserQuestion,
-  PermissionDenial,
-  SessionLiveState,
-  SessionRuntimeState,
+    EventSourceCtor, EventSourceLike, LastRunOptions, Message,
+    PendingAskUserQuestion,
+    PermissionDenial,
+    SessionLiveState,
+    SessionRuntimeState
 } from "./hooks-types";
+import { moveSessionCacheData } from "./sessionCacheHelpers";
+import { createSessionMessageHandlers } from "./sessionMessageHandlers";
 
 type UseChatStreamingLifecycleParams = {
   serverUrl: string;

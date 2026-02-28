@@ -1,7 +1,7 @@
+import { SessionManagementModal, type SessionManagementModalProps } from "@/components/chat/SessionManagementModal";
+import { Box } from "@/components/ui/box";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Box } from "@/components/ui/box";
-import { SessionManagementModal, type SessionManagementModalProps } from "@/components/chat/SessionManagementModal";
 
 type SessionManagementPageProps = Omit<SessionManagementModalProps, "embedded">;
 

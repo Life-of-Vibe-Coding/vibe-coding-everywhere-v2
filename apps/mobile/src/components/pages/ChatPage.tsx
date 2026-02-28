@@ -1,17 +1,17 @@
+import { ChatModalsSection } from "@/components/components/ChatModalsSection";
+import type { CodeRefPayload } from "@/components/file/FileViewerModal";
+import { ChatPageShell } from "@/components/pages/ChatPageShell";
+import { FileViewerPage } from "@/components/pages/FileViewerPage";
+import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
+import type { createAppStyles } from "@/components/styles/appStyles";
+import { Box } from "@/components/ui/box";
+import type { Provider as BrandProvider } from "@/constants/modelOptions";
+import { EntranceAnimation } from "@/design-system";
+import type { Message, PendingAskUserQuestion, PermissionDenial } from "@/services/chat/hooks";
+import type { getTheme } from "@/theme/index";
+import type { PermissionModeUI } from "@/utils/permission";
 import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
-import type { PermissionModeUI } from "@/utils/permission";
-import type { Provider as BrandProvider } from "@/constants/modelOptions";
-import type { Message, PermissionDenial, PendingAskUserQuestion } from "@/services/chat/hooks";
-import type { CodeRefPayload } from "@/components/file/FileViewerModal";
-import type { createAppStyles } from "@/components/styles/appStyles";
-import type { getTheme } from "@/theme/index";
-import { ChatModalsSection } from "@/components/components/ChatModalsSection";
-import { ChatPageShell } from "@/components/pages/ChatPageShell";
-import { WorkspaceSidebarPage } from "@/components/pages/WorkspaceSidebarPage";
-import { FileViewerPage } from "@/components/pages/FileViewerPage";
-import { Box } from "@/components/ui/box";
-import { EntranceAnimation } from "@/design-system";
 
 type ModelOption = {
   value: string;

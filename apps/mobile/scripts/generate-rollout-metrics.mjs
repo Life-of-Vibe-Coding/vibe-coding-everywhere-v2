@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
-import { RESTRICTED_PRIMITIVES, shouldScan } from './ui-primitives-policy.mjs';
 import { parseReactNativeImports } from './ui-primitives-imports.mjs';
+import { shouldScan } from './ui-primitives-policy.mjs';
 
 const repoRoot = process.cwd();
 const mobileRoot = fs.existsSync(path.join(repoRoot, 'App.tsx')) ? repoRoot : path.join(repoRoot, 'apps/mobile');

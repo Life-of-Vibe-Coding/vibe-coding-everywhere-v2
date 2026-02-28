@@ -1,5 +1,5 @@
-import React, { useMemo, useCallback } from "react";
 import { Text } from "@/components/ui/text";
+import React, { useCallback, useMemo } from "react";
 
 /**
  * Regex that matches full URLs (http/https) with optional port and path,

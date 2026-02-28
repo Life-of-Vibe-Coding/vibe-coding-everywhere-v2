@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import Svg, { Circle, Path, Rect, Defs, LinearGradient, Stop } from "react-native-svg";
+import React, { useEffect, useRef, useState } from "react";
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
 const RAINBOW_COLORS = [
   "#D07B7B", "#D0A57B", "#D0D07B", "#7BD094",
@@ -126,36 +126,42 @@ export function PlayIcon({ color = "currentColor", size = 12 }: IconProps) {
   );
 }
 
-/** Skill icon (lucide:sparkles) - flowing rainbow gradient. */
-export function SkillIcon({ size = 18, strokeWidth = 2 }: IconProps) {
-  const [offset, setOffset] = useState(0);
-  const offsetRef = useRef(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      offsetRef.current = (offsetRef.current + 1) % RAINBOW_COLORS.length;
-      setOffset(offsetRef.current);
-    }, 150);
-    return () => clearInterval(id);
-  }, []);
-
-  const colors = RAINBOW_COLORS.map((_, i) => RAINBOW_COLORS[(i + offset) % RAINBOW_COLORS.length]);
-
+/** Skill icon (Vibe mascot) - Venn diagram of three overlapping circles with smiley faces. */
+export function SkillIcon({ size = 18 }: IconProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Defs>
-        <LinearGradient id="skillRainbow" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-          {colors.map((c, i) => (
-            <Stop key={i} offset={`${(i / (colors.length - 1)) * 100}%`} stopColor={c} />
-          ))}
-        </LinearGradient>
-      </Defs>
-      <Path fill="url(#skillRainbow)" d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-      <Path stroke="url(#skillRainbow)" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" d="M20 2v4m2-2h-4" />
-      <Circle fill="url(#skillRainbow)" cx="4" cy="20" r="2" />
+    <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      {/* Red/Pink Circle */}
+      <Circle cx="50" cy="35" r="30" fill="#E26A6A" opacity="1" />
+      {/* Green Circle */}
+      <Circle cx="35" cy="65" r="30" fill="#4CAF50" opacity="0.8" />
+      {/* Blue Circle */}
+      <Circle cx="65" cy="65" r="30" fill="#2196F3" opacity="0.8" />
+
+      {/* Note: We use opacity to create the Venn overlap effect */}
+
+      {/* Faces on each circle */}
+      <G>
+        {/* Top Face */}
+        <Circle cx="44" cy="30" r="3" fill="#1A1A1A" />
+        <Circle cx="56" cy="30" r="3" fill="#1A1A1A" />
+        <Path d="M46 38 Q50 42 54 38" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" />
+        <Circle cx="38" cy="35" r="5" fill="#FFFFFF" opacity="0.3" />
+        <Circle cx="62" cy="35" r="5" fill="#FFFFFF" opacity="0.3" />
+
+        {/* Left Face */}
+        <Circle cx="29" cy="60" r="3" fill="#1A1A1A" />
+        <Circle cx="41" cy="60" r="3" fill="#1A1A1A" />
+        <Path d="M31 68 Q35 72 39 68" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" />
+
+        {/* Right Face */}
+        <Circle cx="59" cy="60" r="3" fill="#1A1A1A" />
+        <Circle cx="71" cy="60" r="3" fill="#1A1A1A" />
+        <Path d="M61 68 Q65 72 69 68" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" />
+      </G>
     </Svg>
   );
 }
+
 
 /** Session management icon (lucide:layout-list) - list of sessions/conversations. */
 export function SessionManagementIcon({ color = "currentColor", size = 18, strokeWidth = 2 }: IconProps) {

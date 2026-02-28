@@ -6,10 +6,10 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 
-import { PORT, ENABLE_DOCKER_MANAGER } from "./server/config/index.js";
-import { getPreviewHost, getActiveOverlay } from "./server/utils/index.js";
+import { ENABLE_DOCKER_MANAGER, PORT } from "./server/config/index.js";
 import { shutdown } from "./server/process/index.js";
 import { setupRoutes } from "./server/routes/index.js";
+import { getActiveOverlay, getPreviewHost } from "./server/utils/index.js";
 
 const app = express();
 app.use(express.json());

@@ -4,50 +4,20 @@
  * Uses React Native's built-in Animated API instead of react-native-reanimated.
  */
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import { type ImageSource } from "expo-image";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  Switch,
-  Modal,
-  StyleSheet,
-  Animated,
-  Easing,
-  type ViewStyle,
-  type TextStyle,
-  type TextInputProps,
-  type PressableProps,
-  type StyleProp,
-  type GestureResponderEvent,
-  KeyboardAvoidingView,
-  Platform,
-  Dimensions,
+    Animated, KeyboardAvoidingView,
+    Platform, Pressable, StyleSheet, Text,
+    TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle
 } from "react-native";
-import { Image, type ImageSource } from "expo-image";
 
 import {
-  useTheme,
-  useColors,
-  useTypography,
-  type Theme,
-  type TypographyVariant,
-  spacing,
-  radii,
-  motion,
-  springConfigs,
-} from "@/design-system/theme";
-import {
-  triggerHaptic,
-  usePressableAnimation,
-  AnimatedPressableView,
-  Skeleton,
-  ProgressiveImage,
-  EntranceAnimation,
-  TypingDots,
+    AnimatedPressableView, EntranceAnimation, ProgressiveImage, Skeleton, triggerHaptic, TypingDots, usePressableAnimation
 } from "@/design-system/animations";
+import {
+    radii, spacing, useColors, useTheme, type TypographyVariant
+} from "@/design-system/theme";
 
 // ============================================================================
 // Typography Component
@@ -1013,23 +983,22 @@ export function KeyboardAware({
 // Export all components
 // ============================================================================
 
+// Re-export SkeletonText and SkeletonCard from animations
+export { SkeletonCard, SkeletonText } from "@/design-system/animations";
 export {
-  // Re-export types
-  type ButtonVariant,
-  type ButtonSize,
-  type CardVariant,
-  type TextTone,
-  type TypographyVariant,
-  type BadgeVariant,
-  type BadgeSize,
-  type AvatarSize,
-  // Animation components re-export
-  Skeleton,
-  ProgressiveImage,
-  EntranceAnimation,
-  TypingDots,
-  AnimatedPressableView,
+    type ButtonVariant,
+    type ButtonSize,
+    type CardVariant,
+    type TextTone,
+    type TypographyVariant,
+    type BadgeVariant,
+    type BadgeSize,
+    type AvatarSize,
+    // Animation components re-export
+    Skeleton,
+    ProgressiveImage,
+    EntranceAnimation,
+    TypingDots,
+    AnimatedPressableView,
 };
 
-// Re-export SkeletonText and SkeletonCard from animations
-export { SkeletonText, SkeletonCard } from "@/design-system/animations";

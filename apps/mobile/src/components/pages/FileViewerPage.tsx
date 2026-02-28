@@ -1,7 +1,7 @@
-import React from "react";
-import { Box } from "@/components/ui/box";
 import type { CodeRefPayload } from "@/components/file/FileViewerModal";
 import { FileViewerModal } from "@/components/file/FileViewerModal";
+import { Box } from "@/components/ui/box";
+import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type FileViewerPageProps = {

@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { triggerHaptic } from "@/design-system";
 import { createWorkspaceFileService } from "@/core";
 import type { IServerConfig } from "@/core/types";
+import { triggerHaptic } from "@/design-system";
 import { useFileViewer } from "@/features/app/useFileViewer";
 import {
-  basename,
-  dirname,
-  isAbsolutePath,
-  normalizePathSeparators,
-  toWorkspaceRelativePath,
+    basename,
+    dirname,
+    isAbsolutePath,
+    normalizePathSeparators,
+    toWorkspaceRelativePath
 } from "@/utils/path";
 
 export type WorkspaceFileControllerProps = {

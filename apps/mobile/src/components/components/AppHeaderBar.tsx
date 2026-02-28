@@ -1,20 +1,17 @@
-import React, { useEffect, useRef } from "react";
-import { StyleSheet, Animated } from "react-native";
-import { HStack } from "@/components/ui/hstack";
-import { VStack } from "@/components/ui/vstack";
-import { Box } from "@/components/ui/box";
-import { Text as GluestackText } from "@/components/ui/text";
-import {
-  AnimatedPressableView,
-  EntranceAnimation,
-  triggerHaptic,
-} from "@/design-system";
 import { SettingsGradientIcon } from "@/components/icons/HeaderIcons";
-import { BlurView } from "expo-blur";
-import { useTheme } from "@/theme/index";
-import { Image } from "react-native";
-import { layoutGlassHeaderStyleDark, layoutGlassHeaderStyleLight, SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
+import { layoutGlassHeaderStyleDark, SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
+import { Box } from "@/components/ui/box";
+import { HStack } from "@/components/ui/hstack";
+import {
+    AnimatedPressableView,
+    EntranceAnimation,
+    triggerHaptic
+} from "@/design-system";
 import { useThemeAssets } from "@/hooks/useThemeAssets";
+import { useTheme } from "@/theme/index";
+import { BlurView } from "expo-blur";
+import React from "react";
+import { Image, StyleSheet } from "react-native";
 
 interface AppHeaderBarProps {
   visible: boolean;

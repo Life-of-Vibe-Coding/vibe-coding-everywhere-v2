@@ -1,9 +1,9 @@
-import React from "react";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/theme/index";
+import React from "react";
 
 export type TabBarPillItem<T extends string> = {
   key: T;

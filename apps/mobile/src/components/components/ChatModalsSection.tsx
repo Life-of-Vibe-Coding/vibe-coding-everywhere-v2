@@ -1,17 +1,17 @@
 import React from "react";
 
 import { AskQuestionModal } from "@/components/chat/AskQuestionModal";
-import { SkillConfigurationView } from "@/components/settings/SkillConfigurationView";
-import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
+import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
 import { DockerManagerModal } from "@/components/docker/DockerManagerModal";
-import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardModal";
+import { useChatModalsController } from "@/components/hooks/useChatModalsController";
+import type { ChatPageContext, ChatPageModals } from "@/components/pages/ChatPage";
 import { SessionManagementPage } from "@/components/pages/SessionManagementPage";
 import { PreviewWebViewModal } from "@/components/preview/PreviewWebViewModal";
-import { ModelPickerSheet } from "@/components/components/ModelPickerSheet";
-import { Box } from "@/components/ui/box";
-import type { ChatPageContext, ChatPageModals } from "@/components/pages/ChatPage";
+import { ProcessDashboardModal } from "@/components/processes/ProcessDashboardModal";
+import { SkillConfigurationView } from "@/components/settings/SkillConfigurationView";
+import { WorkspacePickerModal } from "@/components/settings/WorkspacePickerModal";
 import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
-import { useChatModalsController } from "@/components/hooks/useChatModalsController";
+import { Box } from "@/components/ui/box";
 
 type ChatModalsSectionProps = {
   context: ChatPageContext;

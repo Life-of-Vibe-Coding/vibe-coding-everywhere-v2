@@ -2,8 +2,8 @@
  * Docker API routes (when ENABLE_DOCKER_MANAGER is set).
  */
 import fs from "fs";
-import path from "path";
 import os from "os";
+import path from "path";
 import { ENABLE_DOCKER_MANAGER, projectRoot } from "../config/index.js";
 
 function dockerUnavailableStatus(err) {

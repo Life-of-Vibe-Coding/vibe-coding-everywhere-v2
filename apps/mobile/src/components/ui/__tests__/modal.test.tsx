@@ -1,6 +1,6 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
 import type { Ref } from 'react';
+import React from 'react';
 
 jest.mock('@legendapp/motion', () => {
   const React = require('react');

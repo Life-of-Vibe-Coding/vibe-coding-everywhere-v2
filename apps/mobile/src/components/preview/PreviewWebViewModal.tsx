@@ -1,26 +1,20 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
-  StyleSheet,
-  Platform,
-  Keyboard,
-  useWindowDimensions,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
-import { useTheme } from "@/theme/index";
+    PreviewWebViewAddressBar, PreviewWebViewBottomBar, PreviewWebViewPlaceholder, PreviewWebViewTabsPage
+} from "@/components/preview/PreviewWebViewSubcomponents";
+import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
 import { Pressable } from "@/components/ui/pressable";
 import { Spinner } from "@/components/ui/spinner";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { UrlChoiceModal } from "@/components/preview/UrlChoiceModal";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  PreviewWebViewAddressBar,
-  PreviewWebViewPlaceholder,
-  PreviewWebViewBottomBar,
-  PreviewWebViewTabsPage
-} from "@/components/preview/PreviewWebViewSubcomponents";
+    Keyboard, Platform, StyleSheet, useWindowDimensions
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 const PREVIEW_TABS_KEY = "@vibe_preview_tabs";
 

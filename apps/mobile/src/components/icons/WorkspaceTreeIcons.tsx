@@ -3,10 +3,9 @@
  * Uses material-icon-theme (folders) and vscode-icons (files) via better-icons.
  * Regenerate: node scripts/fetch-workspace-icons.mjs
  */
+import { getFileIconSvg, getFolderIconSvg } from "@/data/workspaceIcons";
 import React from "react";
-import Svg, { Path, Circle, G } from "react-native-svg";
-import { SvgXml } from "react-native-svg";
-import { getFolderIconSvg, getFileIconSvg } from "@/data/workspaceIcons";
+import Svg, { Circle, G, Path, SvgXml } from "react-native-svg";
 
 const size = 20;
 const viewBox = "0 0 24 24";

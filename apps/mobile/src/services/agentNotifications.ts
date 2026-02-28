@@ -9,10 +9,10 @@
  * Note: expo-notifications is not fully supported in Expo Go. We lazy-load it
  * only in dev/preview builds to avoid the warning; in Expo Go we use haptics only.
  */
-import { Platform } from "react-native";
+import { triggerHaptic } from "@/design-system";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
-import { triggerHaptic } from "@/design-system";
+import { Platform } from "react-native";
 
 const AGENT_CHANNEL_ID = "agent-events";
 

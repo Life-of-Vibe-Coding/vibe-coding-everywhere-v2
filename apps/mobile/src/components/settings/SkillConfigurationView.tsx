@@ -1,19 +1,19 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/theme/index";
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { Pressable } from "@/components/ui/pressable";
-import { Switch } from "@/components/ui/switch";
-import { Modal } from "@/components/ui/modal";
-import { Spinner } from "@/components/ui/spinner";
-import { CloseIcon, ChevronRightIcon } from "@/components/icons/ChatActionIcons";
-import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
+import { ChevronRightIcon, CloseIcon } from "@/components/icons/ChatActionIcons";
 import { getCategoryIcon } from "@/components/icons/SkillCategoryIcons";
+import { SkillDetailSheet } from "@/components/settings/SkillDetailSheet";
+import { Box } from "@/components/ui/box";
+import { Modal } from "@/components/ui/modal";
+import { Pressable } from "@/components/ui/pressable";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
+import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView as RNScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CATEGORIES, type Category, CATEGORY_COLORS, CATEGORY_COLORS_LIGHT } from "@/utils/skillColors";
+import { CATEGORIES, CATEGORY_COLORS, CATEGORY_COLORS_LIGHT, type Category } from "@/utils/skillColors";
 
 type Skill = { id: string; name: string; description: string; category?: string };
 

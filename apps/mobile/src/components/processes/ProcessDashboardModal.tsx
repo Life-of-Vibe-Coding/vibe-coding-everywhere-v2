@@ -1,23 +1,23 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { StyleSheet, Platform } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic, spacing } from "@/design-system";
-import { CloseIcon, RefreshCwIcon, TerminalIcon, ChevronLeftIcon } from "@/components/icons/ChatActionIcons";
-import { useTheme } from "@/theme/index";
+import { ChevronLeftIcon, CloseIcon, RefreshCwIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { AsyncStateView } from "@/components/reusable/AsyncStateView";
+import { LinkedText } from "@/components/reusable/LinkedText";
+import { ListSectionCard } from "@/components/reusable/ListSectionCard";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { ProcessListItemCard } from "@/components/reusable/ProcessListItem";
 import { showAlert } from "@/components/ui/alert/native-alert";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonIcon } from "@/components/ui/button";
 import { HStack } from "@/components/ui/hstack";
-import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { AsyncStateView } from "@/components/reusable/AsyncStateView";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { ListSectionCard } from "@/components/reusable/ListSectionCard";
-import { ProcessListItemCard } from "@/components/reusable/ProcessListItem";
-import { LinkedText } from "@/components/reusable/LinkedText";
+import { VStack } from "@/components/ui/vstack";
+import { spacing, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Platform, StyleSheet } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ScrollView } from "@/components/ui/scroll-view";
 import { RefreshControl } from "@/components/ui/refresh-control";
+import { ScrollView } from "@/components/ui/scroll-view";
 
 export interface ApiProcess {
   pid: number;

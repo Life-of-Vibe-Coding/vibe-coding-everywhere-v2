@@ -1,15 +1,15 @@
-import { Dimensions, type TextStyle, type ViewStyle } from "react-native";
-import React, { memo } from "react";
 import { EntranceAnimation } from "@/design-system";
+import React, { memo } from "react";
+import { Dimensions, type TextStyle, type ViewStyle } from "react-native";
 
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { Pressable } from "@/components/ui/pressable";
-import { Image } from "@/components/ui/image";
-import { useTheme } from "@/theme/index";
-import type { DesignTheme } from "@/theme/index";
 import CodeLineRow from "@/components/reusable/CodeLineRow";
+import { Box } from "@/components/ui/box";
+import { Image } from "@/components/ui/image";
+import { Pressable } from "@/components/ui/pressable";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Text } from "@/components/ui/text";
+import type { DesignTheme } from "@/theme/index";
+import { useTheme } from "@/theme/index";
 
 type FileHeaderProps = {
   headerLabel: string;

@@ -1,8 +1,8 @@
-import React from 'react';
-import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { View } from 'react-native';
-import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
 import { hstackStyle } from '@/components/ui/hstack/styles';
+import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+import React from 'react';
+import type { StyleProp, ViewProps, ViewStyle } from 'react-native';
+import { View } from 'react-native';
 
 
 type StackSpace = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';

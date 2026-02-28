@@ -1,17 +1,11 @@
 /**
  * Git routes (commits, tree, status, diff, actions).
  */
-import path from "path";
 import { spawnSync } from "child_process";
 import { getWorkspaceCwd } from "../config/index.js";
 import {
-  getGitCommits,
-  getGitTree,
-  getGitStatus,
-  gitAdd,
-  gitCommit,
-  gitPush,
-  gitInit,
+    getGitCommits, getGitStatus, getGitTree, gitAdd,
+    gitCommit, gitInit, gitPush
 } from "../utils/git.js";
 import { normalizeRelativePath } from "../utils/index.js";
 

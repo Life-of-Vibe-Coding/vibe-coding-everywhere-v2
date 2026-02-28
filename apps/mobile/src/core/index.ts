@@ -1,13 +1,13 @@
 export * from "@/core/types";
-export {
-  createDefaultServerConfig,
-  getDefaultServerConfig,
-} from "@/services/server/config";
 export { createWorkspaceFileService } from "@/services/file/service";
 export {
-  createEventDispatcher,
+    createEventDispatcher
 } from "@/services/providers/eventDispatcher";
 export type {
-  EventContext,
-  EventHandler,
+    EventContext,
+    EventHandler
 } from "@/services/providers/types";
+export {
+    createDefaultServerConfig,
+    getDefaultServerConfig
+} from "@/services/server/config";

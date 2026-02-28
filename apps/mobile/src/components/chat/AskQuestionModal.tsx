@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useEffect } from "react";
-import type { PendingAskUserQuestion, AskUserQuestionItem } from "@/core/types";
-import { useTheme } from "@/theme/index";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Pressable } from "@/components/ui/pressable";
-import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { EntranceAnimation, AnimatedPressableView, triggerHaptic } from "@/design-system";
+import { Text } from "@/components/ui/text";
+import type { AskUserQuestionItem, PendingAskUserQuestion } from "@/core/types";
+import { AnimatedPressableView, EntranceAnimation, triggerHaptic } from "@/design-system";
+import { useTheme } from "@/theme/index";
+import React, { useCallback, useEffect, useState } from "react";
 
 export interface AskQuestionModalProps {
   pending: PendingAskUserQuestion | null;

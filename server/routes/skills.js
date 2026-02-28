@@ -2,14 +2,9 @@
  * Skills discovery and management routes.
  */
 import path from "path";
-import { projectRoot, getWorkspaceCwd } from "../config/index.js";
+import { getWorkspaceCwd, projectRoot } from "../config/index.js";
 import {
-  discoverSkills,
-  getSkillContent,
-  getSkillChildren,
-  getEnabledIds,
-  setEnabledIds,
-  resolveAgentDir,
+    discoverSkills, getEnabledIds, getSkillChildren, getSkillContent, resolveAgentDir, setEnabledIds
 } from "../skills/index.js";
 
 /** Resolve skills directory from the server directory. */

@@ -1,10 +1,10 @@
-import React from "react";
 import { Box } from "@/components/ui/box";
 import { Card } from "@/components/ui/card";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useTheme } from "@/theme/index";
+import React from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
 type ListSectionCardProps = {

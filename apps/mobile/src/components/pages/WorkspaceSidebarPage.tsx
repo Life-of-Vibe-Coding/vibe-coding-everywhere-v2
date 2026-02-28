@@ -1,7 +1,7 @@
+import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
+import { Box } from "@/components/ui/box";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Box } from "@/components/ui/box";
-import { WorkspaceSidebar } from "@/components/file/WorkspaceSidebar";
 
 type WorkspaceSidebarPageProps = {
   isOpen: boolean;

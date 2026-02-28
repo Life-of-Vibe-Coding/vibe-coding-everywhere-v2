@@ -1,7 +1,7 @@
-import React from 'react';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
-import { View } from 'react-native';
+import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { View } from 'react-native';
 
 import { vstackStyle } from '@/components/ui/vstack/styles';
 

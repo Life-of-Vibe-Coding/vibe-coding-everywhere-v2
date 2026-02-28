@@ -3,11 +3,8 @@
  */
 import os from "os";
 import {
-  ENABLE_DOCKER_MANAGER,
-  SIDEBAR_REFRESH_INTERVAL_MS,
-  getWorkspaceCwd,
-  setWorkspaceCwd,
-  WORKSPACE_ALLOWED_ROOT,
+    ENABLE_DOCKER_MANAGER, getWorkspaceCwd,
+    setWorkspaceCwd, SIDEBAR_REFRESH_INTERVAL_MS, WORKSPACE_ALLOWED_ROOT
 } from "../config/index.js";
 
 function toMb(value) {

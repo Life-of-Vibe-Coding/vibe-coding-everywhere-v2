@@ -2,22 +2,22 @@ import "./global.css";
 
 import React, { useCallback, useMemo } from "react";
 
+import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { getDefaultServerConfig } from "@/core";
 import { ThemeProvider } from "@/theme/index";
-import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { ImageBackground, StyleSheet, View } from "react-native";
 
-import { ChatPage } from "@/components/pages/ChatPage";
 import { ChatActionController, type ChatActionControllerState } from "@/components/controllers/ChatActionController";
-import { SseSessionController, type SseSessionControllerState } from "@/components/controllers/SseSessionController";
 import { useSessionSideEffects } from "@/components/controllers/SessionSideEffectManager";
+import { SseSessionController, type SseSessionControllerState } from "@/components/controllers/SseSessionController";
 import { ThemeSessionState, type ThemeSessionStateState } from "@/components/controllers/ThemeSessionState";
 import { WorkspaceFileController, type WorkspaceFileControllerState } from "@/components/controllers/WorkspaceFileController";
-import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
 import { useSidebarState, type SidebarState } from "@/components/hooks/useSidebarState";
-import { useSessionManagementStore } from "@/state/sessionManagementStore";
-import { useThemeAssets } from "@/hooks/useThemeAssets";
+import { buildChatPageProps } from "@/components/pages/buildChatPageProps";
+import { ChatPage } from "@/components/pages/ChatPage";
 import type { IServerConfig } from "@/core/types";
+import { useThemeAssets } from "@/hooks/useThemeAssets";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
 
 function AppBackground() {
   const assets = useThemeAssets();

@@ -1,55 +1,81 @@
-import React, { useMemo, useRef, useEffect, useCallback, useState } from "react";
-import { StyleSheet, Linking, Platform, Dimensions } from "react-native";
-import type { MarkdownProps } from "react-native-markdown-display";
-import { useTheme } from "@/theme/index";
-import { type Provider } from "@/constants/modelOptions";
-import { spacing, radii, triggerHaptic } from "@/design-system";
-import type { Message } from "@/services/chat/hooks";
-import { stripTrailingIncompleteTag } from "@/services/providers/stream";
-import { TerminalIcon, ChevronDownIcon } from "@/components/icons/ChatActionIcons";
-import { BookOpenIcon, PencilIcon, FilePenIcon } from "@/components/icons/FileActivityIcons";
-import { GeminiIcon, ClaudeIcon, CodexIcon } from "@/components/icons/ProviderIcons";
-import { wrapBareUrlsInMarkdown, parseTextWithUrlSegments } from "@/utils/markdown";
-import { getFileName } from "@/utils/path";
-import {
-  fillEmptyBashBlocks,
-  stripTrailingTerminalHeaderLines,
-  extractBashCommandOnly,
-  collapseIdenticalCommandSteps,
-} from "@/utils/bashContent";
-import { EntranceAnimation } from "@/design-system";
+import { ChevronDownIcon, SkillIcon, TerminalIcon } from "@/components/icons/ChatActionIcons";
+import { BookOpenIcon, FilePenIcon, PencilIcon } from "@/components/icons/FileActivityIcons";
+import { CodexIcon } from "@/components/icons/ProviderIcons";
+import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Box } from "@/components/ui/box";
 import { Pressable } from "@/components/ui/pressable";
-import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
-import { MarkdownContent } from "@/components/reusable/MarkdownContent";
-import { LinearGradient } from "expo-linear-gradient";
+import { Text } from "@/components/ui/text";
+import { EntranceAnimation, radii, spacing, triggerHaptic } from "@/design-system";
+import type { Message } from "@/services/chat/hooks";
+import { stripTrailingIncompleteTag } from "@/services/providers/stream";
+import { useTheme } from "@/theme/index";
+import {
+  collapseIdenticalCommandSteps, extractBashCommandOnly, fillEmptyBashBlocks,
+  stripTrailingTerminalHeaderLines
+} from "@/utils/bashContent";
+import { parseTextWithUrlSegments, wrapBareUrlsInMarkdown } from "@/utils/markdown";
+import { getFileName } from "@/utils/path";
 import { BlurView } from "expo-blur";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dimensions, Linking, Platform, StyleSheet, View as RNView } from "react-native";
+import type { MarkdownProps } from "react-native-markdown-display";
 import Svg, { Polygon } from "react-native-svg";
 
-function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUser: boolean; isDark: boolean; width: number; height: number; theme: any }) {
-  if (!isDark) {
-    if (isUser) {
-      return (
-        <Box style={{
-          width,
-          height,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          backgroundColor: theme.colors.textPrimary, // deep chocolate brown
-          borderTopLeftRadius: 28,
-          borderTopRightRadius: 28,
-          borderBottomLeftRadius: 28,
-          borderBottomRightRadius: 6, // organic chat tail
-          shadowColor: theme.colors.shadow,
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.25,
-          shadowRadius: 12,
-        }} />
-      );
+/** Regex to match <skill>Use SKILL_NAME</skill> tags in user messages. */
+const SKILL_TAG_REGEX = /<skill>Use\s+(.+?)<\/skill>/g;
+
+type SkillTagSegment =
+  | { type: "text"; value: string }
+  | { type: "skill"; name: string };
+
+/** Parse user message content into text and skill-chip segments. */
+function parseSkillTags(content: string): SkillTagSegment[] {
+  const segments: SkillTagSegment[] = [];
+  const re = new RegExp(SKILL_TAG_REGEX.source, "g");
+  let lastIndex = 0;
+  let m;
+  while ((m = re.exec(content)) !== null) {
+    if (m.index > lastIndex) {
+      const text = content.slice(lastIndex, m.index);
+      if (text) segments.push({ type: "text", value: text });
     }
+    segments.push({ type: "skill", name: m[1].trim() });
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex);
+    if (text) segments.push({ type: "text", value: text });
+  }
+  return segments;
+}
+
+function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUser: boolean; isDark: boolean; width: number; height: number; theme: any }) {
+  if (isUser) {
+    return (
+      <Box style={{
+        width,
+        height,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        backgroundColor: isDark ? "#0F172A" : theme.colors.textPrimary,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 6, // organic chat tail
+        borderWidth: isDark ? 1 : 0,
+        borderColor: isDark ? "rgba(255,255,255,0.05)" : "transparent",
+        shadowColor: theme.colors.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+      }} />
+    );
+  }
+
+  if (!isDark) {
     return (
       <Box style={{
         width,
@@ -58,10 +84,10 @@ function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUs
         top: 0,
         left: 0,
         backgroundColor: `${theme.colors.surfaceMuted}B3`, // light tan soft glass
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         borderBottomLeftRadius: 6, // organic chat tail
-        borderBottomRightRadius: 28,
+        borderBottomRightRadius: 24,
         borderWidth: 1,
         borderColor: `${theme.colors.surface}B3`, // frosted edge highlight
         shadowColor: theme.colors.shadow,
@@ -76,12 +102,10 @@ function NeonGlassBubbleWrapper({ isUser, isDark, width, height, theme }: { isUs
   }
 
   const cut = 16;
-  const color = isUser ? "#FF00FF" : "#00E5FF";
-  const bg = isUser ? "rgba(255,0,255,0.1)" : "rgba(0,229,255,0.1)";
+  const color = "#00E5FF";
+  const bg = "rgba(0,229,255,0.1)";
 
-  const points = isUser
-    ? `0,${cut} ${cut},0 ${width},0 ${width},${height - cut} ${width - cut},${height} 0,${height}`
-    : `0,0 ${width - cut},0 ${width},${cut} ${width},${height} ${cut},${height} 0,${height - cut}`;
+  const points = `0,0 ${width - cut},0 ${width},${cut} ${width},${height} ${cut},${height} 0,${height - cut}`;
 
   return (
     <Box style={{ width, height, position: "absolute", top: 0, left: 0 }}>
@@ -500,10 +524,10 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
   const isDark = theme.mode === "dark";
 
   const textColor = isDark
-    ? (isUser ? "#FFE5FF" : "#E5FFFF")
+    ? (isUser ? "#FFFFFF" : "#E5FFFF")
     : theme.colors.textPrimary;
   const linkColor = isDark
-    ? (isUser ? "#FF88FF" : "#00E5FF")
+    ? (isUser ? "#38BDF8" : "#00E5FF")
     : theme.colors.accent;
 
   const markdownStyles = useMemo(
@@ -520,7 +544,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
       link: { color: linkColor, textDecorationLine: "underline" as const },
       code_inline: {
         color: linkColor,
-        backgroundColor: isDark ? (isUser ? "rgba(255,0,255,0.15)" : "rgba(0,229,255,0.15)") : theme.colors.accentSoft,
+        backgroundColor: isDark ? (isUser ? "rgba(56, 189, 248, 0.15)" : "rgba(0,229,255,0.15)") : theme.colors.accentSoft,
         paddingHorizontal: 4,
         paddingVertical: 2,
         borderRadius: 4,
@@ -592,8 +616,8 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         },
         bubbleUser: {
           maxWidth: "85%",
-          paddingVertical: spacing["2"],
-          paddingHorizontal: spacing["3"],
+          paddingVertical: 10,
+          paddingHorizontal: 16,
         },
         bubbleSystem: {
           alignSelf: "center",
@@ -601,7 +625,7 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
           marginVertical: spacing["1"],
         },
         bubbleText: { fontSize: 16, lineHeight: 24, color: theme.colors.textPrimary },
-        bubbleTextUser: { fontSize: 16, lineHeight: 24, color: theme.colors.textInverse },
+        bubbleTextUser: { fontSize: 16, lineHeight: 24, color: isDark ? "#FFFFFF" : theme.colors.textInverse },
         bubbleTextSystem: { fontSize: 13, color: theme.colors.textMuted, textAlign: "center" },
         bubbleTextTerminated: { color: theme.colors.textMuted, fontStyle: "italic" as const },
         bubbleTextPlaceholder: { color: theme.colors.textMuted, fontStyle: "italic" as const },
@@ -1096,11 +1120,65 @@ function MessageBubbleInner({ message, isTerminatedLabel, showAsTailBox, tailBox
         </Text>
       ) : (message.content && message.content.trim() !== "" ? (
         isUser || isSystem ? (
-          <Text
-            style={isSystem ? styles.bubbleTextSystem : (isUser ? styles.bubbleTextUser : styles.bubbleText)}
-          >
-            {message.content}
-          </Text>
+          (() => {
+            if (isSystem) {
+              return (
+                <Text style={styles.bubbleTextSystem}>
+                  {message.content}
+                </Text>
+              );
+            }
+            // User message: parse <skill> tags into chips
+            const skillSegments = parseSkillTags(message.content!);
+            const hasSkillTags = skillSegments.some(s => s.type === "skill");
+            if (!hasSkillTags) {
+              return (
+                <Text style={styles.bubbleTextUser}>
+                  {message.content}
+                </Text>
+              );
+            }
+            return (
+              <RNView style={{ flexDirection: "column", gap: 6 }}>
+                <RNView style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
+                  {skillSegments.filter(s => s.type === "skill").map((seg, i) => (
+                    <RNView
+                      key={`skill-${i}`}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: "rgba(56, 189, 248, 0.2)",
+                        borderColor: "rgba(56, 189, 248, 0.5)",
+                        borderWidth: 1,
+                        borderRadius: 12,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        gap: 3,
+                      }}
+                    >
+                      <SkillIcon size={14} />
+                      <Text style={{ color: "#38BDF8", fontSize: 11, fontWeight: "600" }}>
+                        {seg.type === "skill" ? seg.name : ""}
+                      </Text>
+                    </RNView>
+                  ))}
+                </RNView>
+                {(() => {
+                  const textValue = skillSegments
+                    .filter(s => s.type === "text")
+                    .map(s => s.type === "text" ? s.value : "")
+                    .join("")
+                    .trim();
+                  if (!textValue) return null;
+                  return (
+                    <Text style={styles.bubbleTextUser}>
+                      {textValue}
+                    </Text>
+                  );
+                })()}
+              </RNView>
+            );
+          })()
         ) : (
           <>
             {contentSegments.map((seg, i) => (

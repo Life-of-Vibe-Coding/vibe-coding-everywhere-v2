@@ -1,15 +1,11 @@
-import { getBackendPermissionMode, type PermissionModeUI, type BackendPermissionResult } from "@/utils/permission";
-import type { Provider as BrandProvider } from "@/constants/modelOptions";
-import { ColorMode, ColorModePreference } from "@/theme";
 import {
-  DEFAULT_CLAUDE_MODEL,
-  DEFAULT_CODEX_MODEL,
-  DEFAULT_GEMINI_MODEL,
-  CLAUDE_MODELS,
-  GEMINI_MODELS,
-  CODEX_MODELS,
+    CLAUDE_MODELS, CODEX_MODELS, DEFAULT_CLAUDE_MODEL,
+    DEFAULT_CODEX_MODEL,
+    DEFAULT_GEMINI_MODEL, GEMINI_MODELS
 } from "@/constants/modelOptions";
 import type { Message } from "@/core";
+import { ColorMode, ColorModePreference } from "@/theme";
+import { getBackendPermissionMode, type PermissionModeUI } from "@/utils/permission";
 
 export type ModalSessionItem = {
   id: string;

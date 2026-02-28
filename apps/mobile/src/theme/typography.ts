@@ -8,7 +8,7 @@
  * - Consolidated font weights: 400, 600, 700 (500 mapped to 600 for bundle size)
  */
 
-import { Platform, Dimensions } from "react-native";
+import { Dimensions, Platform } from "react-native";
 
 export type TypographyVariant =
   | "display"

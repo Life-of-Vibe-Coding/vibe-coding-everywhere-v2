@@ -1,17 +1,17 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/theme/index";
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { Pressable } from "@/components/ui/pressable";
-import { Button, ButtonText } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from "@/components/icons/ChatActionIcons";
 import { MarkdownContent } from "@/components/reusable/MarkdownContent";
 import { ModalScaffold } from "@/components/reusable/ModalScaffold";
-import { wrapBareUrlsInMarkdown, stripFrontmatter } from "@/utils/markdown";
+import { Box } from "@/components/ui/box";
+import { Button, ButtonText } from "@/components/ui/button";
+import { Pressable } from "@/components/ui/pressable";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
+import { stripFrontmatter, wrapBareUrlsInMarkdown } from "@/utils/markdown";
+import React, { useCallback, useEffect, useState } from "react";
 import type { ScrollView as RNScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface SkillDetailSheetProps {
   isOpen: boolean;

@@ -1,37 +1,32 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  StyleSheet,
-  useWindowDimensions,
-  Platform,
-  TextInput
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/theme/index";
-import { showAlert } from "@/components/ui/alert/native-alert";
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { ScrollView } from "@/components/ui/scroll-view";
-import { Pressable } from "@/components/ui/pressable";
-import { Spinner } from "@/components/ui/spinner";
-import { Badge, BadgeText } from "@/components/ui/badge";
-import { ListSectionCard } from "@/components/reusable/ListSectionCard";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+    FileTreePane,
+    type WorkspaceTreeItem
+} from "@/components/file/workspace-sidebar/FileTreePane";
+import { FolderRow } from "@/components/file/workspace-sidebar/FolderRow";
+import { GitPane } from "@/components/file/workspace-sidebar/GitPane";
 import { SidebarHeader } from "@/components/file/workspace-sidebar/SidebarHeader";
 import {
-  FileTreePane,
-  type WorkspaceTreeItem,
-} from "@/components/file/workspace-sidebar/FileTreePane";
-import { GitPane } from "@/components/file/workspace-sidebar/GitPane";
-import { FolderRow } from "@/components/file/workspace-sidebar/FolderRow";
-import { getDefaultServerConfig } from "@/core";
-import {
-  FolderIconByType,
-  FileIconByType,
+    FileIconByType, FolderIconByType
 } from "@/components/icons/WorkspaceTreeIcons";
+import { ListSectionCard } from "@/components/reusable/ListSectionCard";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import { showAlert } from "@/components/ui/alert/native-alert";
+import { Badge, BadgeText } from "@/components/ui/badge";
+import { Box } from "@/components/ui/box";
+import { Pressable } from "@/components/ui/pressable";
+import { ScrollView } from "@/components/ui/scroll-view";
+import { Spinner } from "@/components/ui/spinner";
+import { Text } from "@/components/ui/text";
+import { getDefaultServerConfig } from "@/core";
 import { EntranceAnimation, triggerHaptic } from "@/design-system";
-import type { SidebarTab } from "@/components/hooks/useSidebarState";
+import { useTheme } from "@/theme/index";
 import { basename, dirname } from "@/utils/path";
 import { BlurView } from "expo-blur";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    Platform, StyleSheet, TextInput, useWindowDimensions
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type TreeItem = WorkspaceTreeItem;
 

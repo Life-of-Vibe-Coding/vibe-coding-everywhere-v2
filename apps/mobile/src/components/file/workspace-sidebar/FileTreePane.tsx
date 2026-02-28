@@ -1,10 +1,10 @@
 import React from "react";
 
 import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
+import { Input, InputField } from "@/components/ui/input";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
-import { Input, InputField } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import { useTheme } from "@/theme/index";
 
 export type WorkspaceTreeItem = {

@@ -1,5 +1,5 @@
-import { StyleSheet } from "react-native";
 import type { getTheme } from "@/theme/index";
+import { StyleSheet } from "react-native";
 
 export function createAppStyles(theme: ReturnType<typeof getTheme>) {
   return StyleSheet.create({

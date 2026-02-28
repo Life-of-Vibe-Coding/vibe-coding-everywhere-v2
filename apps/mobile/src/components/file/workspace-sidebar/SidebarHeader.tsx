@@ -2,13 +2,12 @@ import React from "react";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
-import { Pressable } from "@/components/ui/pressable";
-import Svg, { Path } from "react-native-svg";
-import { TabBarPills } from "@/components/reusable/TabBarPills";
 import type { SidebarTab } from "@/components/hooks/useSidebarState";
+import { TabBarPills } from "@/components/reusable/TabBarPills";
+import { Box } from "@/components/ui/box";
+import { Pressable } from "@/components/ui/pressable";
 import { useTheme } from "@/theme/index";
+import Svg, { Path } from "react-native-svg";
 
 type SidebarHeaderProps = {
   activeTab: SidebarTab;

@@ -6,8 +6,8 @@
  * - Workspace directory resolution (from CLI args or env vars)
  * - AI output logging paths
  */
-import path from "path";
 import fs from "fs";
+import path from "path";
 import { fileURLToPath } from "url";
 
 // Get current directory and project root for path resolution

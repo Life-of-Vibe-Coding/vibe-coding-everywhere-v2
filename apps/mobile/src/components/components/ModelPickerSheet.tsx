@@ -1,26 +1,24 @@
-import React from "react";
-import { getTheme } from "@/theme/index";
-import { type Provider } from "@/constants/modelOptions";
-import { BlurView } from "expo-blur";
-import { StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { triggerHaptic } from "@/design-system";
 import {
-  CodexIcon,
-  ClaudeIcon,
-  GeminiIcon,
+    ClaudeIcon, CodexIcon, GeminiIcon
 } from "@/components/icons/ProviderIcons";
-import { Box } from "@/components/ui/box";
-import { Text as GluestackText } from "@/components/ui/text";
 import { ActionsheetOptionRow } from "@/components/reusable/ActionsheetOptionRow";
 import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
-  ActionsheetScrollView,
+    Actionsheet,
+    ActionsheetBackdrop,
+    ActionsheetContent,
+    ActionsheetDragIndicator,
+    ActionsheetDragIndicatorWrapper,
+    ActionsheetScrollView
 } from "@/components/ui/actionsheet";
+import { Box } from "@/components/ui/box";
+import { Text as GluestackText } from "@/components/ui/text";
+import { type Provider } from "@/constants/modelOptions";
+import { triggerHaptic } from "@/design-system";
+import { getTheme } from "@/theme/index";
+import { BlurView } from "expo-blur";
+import React from "react";
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ModelOption = { value: string; label: string };
 

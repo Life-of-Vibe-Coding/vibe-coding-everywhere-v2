@@ -1,11 +1,11 @@
-import React from "react";
-import { type LayoutChangeEvent, ActivityIndicator } from "react-native";
 import { AppHeaderBar } from "@/components/components/AppHeaderBar";
 import { ChatInputDock } from "@/components/components/ChatInputDock";
 import { ChatMessageList } from "@/components/components/ChatMessageList";
+import type { ChatPageContext, ChatPageConversation, ChatPageInputDock, ChatPageRuntime } from "@/components/pages/ChatPage";
 import { Box } from "@/components/ui/box";
-import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import type { getTheme } from "@/theme/index";
+import React from "react";
+import { ActivityIndicator, type LayoutChangeEvent } from "react-native";
 
 export type ChatHeaderSectionProps = {
   theme: ReturnType<typeof getTheme>;

@@ -1,8 +1,8 @@
 import React from "react";
 
+import type { SidebarTab } from "@/components/hooks/useSidebarState";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Text } from "@/components/ui/text";
-import type { SidebarTab } from "@/components/hooks/useSidebarState";
 
 type GitPaneStyles = {
   scroll: any;

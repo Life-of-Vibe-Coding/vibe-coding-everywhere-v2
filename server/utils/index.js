@@ -116,4 +116,4 @@ export function buildWorkspaceTree(dirPath, basePath = "") {
 export const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"]);
 export const MAX_TEXT_FILE_BYTES = 512 * 1024; // 500 KB - prevents huge files like package-lock.json from freezing the viewer
 
-export { normalizeRelativePath, resolveWithinRoot, getMimeForFile } from "./pathHelpers.js";
+export { getMimeForFile, normalizeRelativePath, resolveWithinRoot } from "./pathHelpers.js";

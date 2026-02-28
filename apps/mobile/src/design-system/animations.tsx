@@ -5,19 +5,12 @@
  * Provides the same component interfaces using RN's built-in Animated API.
  */
 
-import React, { useEffect, useCallback, useRef, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  ViewStyle,
-  DimensionValue,
-  Animated,
-  Pressable,
-  Easing,
-  type StyleProp,
-} from "react-native";
+import { motion, useTheme } from "@/design-system/theme";
 import * as Haptics from "expo-haptics";
-import { useTheme, motion } from "@/design-system/theme";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+    Animated, DimensionValue, Easing, Pressable, StyleSheet, View, ViewStyle, type StyleProp
+} from "react-native";
 
 // ============================================================================
 // Types

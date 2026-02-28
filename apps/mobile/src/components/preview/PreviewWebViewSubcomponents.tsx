@@ -1,13 +1,13 @@
-import React from "react";
-import { Platform, StyleSheet, useWindowDimensions, Keyboard } from "react-native";
-import { Pressable } from "@/components/ui/pressable";
 import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
+import { Input, InputField } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
-import { Input, InputField } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import type { DesignTheme } from "@/theme/index";
-import Svg, { Path, Rect, Circle, Line, Polyline, Polygon } from "react-native-svg";
+import React from "react";
+import { Platform, StyleSheet } from "react-native";
+import Svg, { Circle, Line, Path, Polygon, Polyline, Rect } from "react-native-svg";
 
 const Icons = {
   Lock: ({ color, size }: { color: string; size: number }) => (

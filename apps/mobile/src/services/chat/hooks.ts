@@ -7,27 +7,25 @@
  * - Session state (idle, running)
  * - Permission handling
  */
-import { useRef, useState, useCallback } from "react";
+import type { CodeReference, LastRunOptions, Message, PendingAskUserQuestion, PermissionDenial } from "@/core/types";
+import { getDefaultServerConfig } from "@/services/server/config";
+import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import { useCallback, useRef, useState } from "react";
+import { resolveDefaultModel } from "./chatHookHelpers";
+import type { EventSourceLike, SessionLiveState, SessionRuntimeState, UseChatOptions } from "./hooks-types";
 import {
-  deduplicateDenials,
-  deduplicateMessageIds as deduplicateMessageIdsUtil,
-  getMaxMessageId,
+    deduplicateDenials,
+    deduplicateMessageIds as deduplicateMessageIdsUtil,
+    getMaxMessageId
 } from "./hooks-utils";
 import {
-  getOrCreateSessionState as getOrCreateSessionStateFromCache,
-  getOrCreateSessionMessages as getOrCreateSessionMessagesFromCache,
-  getSessionDraft as getSessionDraftFromCache,
-  setSessionDraft as setSessionDraftFromCache,
-  setSessionMessages as setSessionMessagesFromCache,
+    getOrCreateSessionMessages as getOrCreateSessionMessagesFromCache, getOrCreateSessionState as getOrCreateSessionStateFromCache, getSessionDraft as getSessionDraftFromCache,
+    setSessionDraft as setSessionDraftFromCache,
+    setSessionMessages as setSessionMessagesFromCache
 } from "./sessionCacheHelpers";
-import type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions } from "@/core/types";
-import { getDefaultServerConfig } from "@/services/server/config";
-import type { EventSourceLike, SessionLiveState, SessionRuntimeState, UseChatOptions } from "./hooks-types";
-import { resolveDefaultModel } from "./chatHookHelpers";
-import { useSessionManagementStore } from "@/state/sessionManagementStore";
+import { useChatActions } from "./useChatActions";
 import { useChatExternalCallbacks } from "./useChatExternalCallbacks";
 import { useChatStreamingLifecycle } from "./useChatStreamingLifecycle";
-import { useChatActions } from "./useChatActions";
 
 // Re-export hook types for consumers.
 export type { Message, CodeReference, PermissionDenial, PendingAskUserQuestion, LastRunOptions };

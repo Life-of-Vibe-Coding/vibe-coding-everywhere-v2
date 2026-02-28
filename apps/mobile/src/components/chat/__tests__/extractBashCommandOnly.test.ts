@@ -1,7 +1,7 @@
 import {
-  collapseIdenticalCommandSteps,
-  extractBashCommandOnly,
-  fillEmptyBashBlocks,
+    collapseIdenticalCommandSteps,
+    extractBashCommandOnly,
+    fillEmptyBashBlocks
 } from "@/utils/bashContent";
 
 describe("fillEmptyBashBlocks", () => {

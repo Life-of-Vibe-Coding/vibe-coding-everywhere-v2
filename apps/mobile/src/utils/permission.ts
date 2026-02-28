@@ -1,4 +1,3 @@
-import type { Provider as BrandProvider } from "@/constants/modelOptions";
 
 export type PermissionModeUI = "always_ask" | "ask_once_per_session" | "yolo";
 

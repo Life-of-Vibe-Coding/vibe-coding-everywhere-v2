@@ -3,7 +3,7 @@
  * Designed to match each brand’s visual identity.
  */
 import React from "react";
-import Svg, { Path, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 const size = 24;
 const viewBox = "0 0 24 24";

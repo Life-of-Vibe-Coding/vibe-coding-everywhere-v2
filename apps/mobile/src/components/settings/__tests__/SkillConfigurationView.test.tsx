@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
+import React from 'react';
 
 jest.mock('@/components/settings/SkillDetailSheet', () => ({
   SkillDetailSheet: () => null,

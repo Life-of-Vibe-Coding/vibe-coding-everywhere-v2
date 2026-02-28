@@ -1,6 +1,6 @@
 import type { IServerConfig } from "@/core/types";
-import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 /**
  * Connection mode for the mobile app.

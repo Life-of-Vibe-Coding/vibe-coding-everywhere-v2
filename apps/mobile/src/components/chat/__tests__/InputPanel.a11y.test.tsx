@@ -1,5 +1,5 @@
-import React from "react";
 import { render } from "@testing-library/react-native";
+import React from "react";
 import { AccessibilityInfo } from "react-native";
 
 jest.mock('react-native-safe-area-context', () => ({

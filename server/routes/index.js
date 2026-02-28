@@ -10,14 +10,14 @@
  * - Docker API (when enabled)
  */
 import { registerConfigRoutes } from "./config.js";
+import { registerDockerRoutes } from "./docker.js";
+import { registerGitRoutes } from "./git.js";
+import { registerHealthPageRoutes } from "./health-page.js";
+import { registerProcessesRoutes } from "./processes.js";
+import { registerSessionManagementStoreRoutes } from "./session-management-store.js";
 import { registerSessionsRoutes } from "./sessions.js";
 import { registerSkillsRoutes } from "./skills.js";
-import { registerWorkspaceRoutes, createServeWorkspaceFileMiddleware } from "./workspace.js";
-import { registerGitRoutes } from "./git.js";
-import { registerProcessesRoutes } from "./processes.js";
-import { registerDockerRoutes } from "./docker.js";
-import { registerHealthPageRoutes } from "./health-page.js";
-import { registerSessionManagementStoreRoutes } from "./session-management-store.js";
+import { createServeWorkspaceFileMiddleware, registerWorkspaceRoutes } from "./workspace.js";
 
 /**
  * Configure all Express routes on the given app instance.

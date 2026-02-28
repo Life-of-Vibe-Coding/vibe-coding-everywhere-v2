@@ -5,11 +5,9 @@ import fs from "fs";
 import path from "path";
 import { getWorkspaceCwd, WORKSPACE_ALLOWED_ROOT } from "../config/index.js";
 import {
-  buildWorkspaceTree,
-  IMAGE_EXT,
-  MAX_TEXT_FILE_BYTES,
-  resolveWithinRoot,
-  getMimeForFile,
+    buildWorkspaceTree, getMimeForFile, IMAGE_EXT,
+    MAX_TEXT_FILE_BYTES,
+    resolveWithinRoot
 } from "../utils/index.js";
 
 export function registerWorkspaceRoutes(app) {

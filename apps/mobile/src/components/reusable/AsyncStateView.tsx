@@ -1,10 +1,10 @@
-import React from "react";
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useTheme } from "@/theme/index";
+import React from "react";
 
 type AsyncStateViewProps = {
   isLoading?: boolean;

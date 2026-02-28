@@ -1,10 +1,10 @@
-import React, { memo, useMemo } from "react";
-import { ScrollView, type StyleProp, type ViewStyle } from "react-native";
-import type { PermissionDenial, Message } from "@/services/chat/hooks";
-import { EntranceAnimation } from "@/design-system";
 import { hasCodeBlockContent, hasFileActivityContent, MessageBubble } from "@/components/chat/MessageBubble";
 import { PermissionDenialBanner } from "@/components/common/PermissionDenialBanner";
 import type { Provider as BrandProvider } from "@/constants/modelOptions";
+import { EntranceAnimation } from "@/design-system";
+import type { Message, PermissionDenial } from "@/services/chat/hooks";
+import React, { memo, useMemo } from "react";
+import { ScrollView, type StyleProp, type ViewStyle } from "react-native";
 
 type ChatMessageListProps = {
   messages: Message[];

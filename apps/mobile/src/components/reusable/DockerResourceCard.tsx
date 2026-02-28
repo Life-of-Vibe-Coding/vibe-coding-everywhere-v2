@@ -1,9 +1,9 @@
-import React, { memo } from "react";
-import { StyleSheet, type ViewStyle } from "react-native";
-import { Box } from "@/components/ui/box";
 import { ListSectionCard } from "@/components/reusable/ListSectionCard";
+import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/theme/index";
+import React, { memo } from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 
 export type DockerResourceRow = {
   label: string;

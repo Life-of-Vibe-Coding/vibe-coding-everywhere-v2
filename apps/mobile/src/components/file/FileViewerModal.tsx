@@ -1,34 +1,28 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
-  StyleSheet,
-  FlatList,
-  type TextStyle,
-} from "react-native";
-import { WebView } from "react-native-webview";
-import { useTheme } from "@/theme/index";
+    FileViewerCodeLine, FileViewerHeader, FileViewerImageViewer, FileViewerSelectionFooter, type CodeLineRecord
+} from "@/components/file/FileViewerSubcomponents";
+import { MarkdownContent } from "@/components/reusable/MarkdownContent";
+import { ModalScaffold } from "@/components/reusable/ModalScaffold";
 import { Box } from "@/components/ui/box";
-import { Text } from "@/components/ui/text";
 import { ScrollView } from "@/components/ui/scroll-view";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusBar } from "@/components/ui/status-bar";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/theme/index";
 import { wrapBareUrlsInMarkdown } from "@/utils/markdown";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MarkdownContent } from "@/components/reusable/MarkdownContent";
-import { ModalScaffold } from "@/components/reusable/ModalScaffold";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FileViewerHeader,
-  FileViewerCodeLine,
-  FileViewerSelectionFooter,
-  FileViewerImageViewer,
-  type CodeLineRecord,
-} from "@/components/file/FileViewerSubcomponents";
+    FlatList, StyleSheet, type TextStyle
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 const LINE_HEIGHT = 22;
 const FONT_SIZE = 13;
 const MAX_DISPLAY_LINES = 3000; // Avoid render freeze for very large files that slip through
 
-import { BlurView } from "expo-blur";
 import clsx from "clsx";
+import { BlurView } from "expo-blur";
 
 /** Map file extension to Prism language (prism-react-renderer built-in set). */
 function getLanguage(path: string | null): string {

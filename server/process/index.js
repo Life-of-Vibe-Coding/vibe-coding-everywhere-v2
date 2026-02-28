@@ -3,10 +3,9 @@
  * Supports Claude, Gemini, and Codex through the unified Pi coding agent.
  */
 import {
-  getWorkspaceCwd,
-  projectRoot,
-  DEFAULT_PERMISSION_MODE,
-  DEFAULT_PROVIDER,
+    DEFAULT_PERMISSION_MODE,
+    DEFAULT_PROVIDER, getWorkspaceCwd,
+    projectRoot
 } from "../config/index.js";
 
 import { createPiRpcSession } from "./piRpcSession.js";

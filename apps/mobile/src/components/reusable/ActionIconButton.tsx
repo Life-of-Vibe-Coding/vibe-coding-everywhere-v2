@@ -1,7 +1,7 @@
-import React from "react";
+import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { HStack } from "@/components/ui/hstack";
+import React from "react";
 
 type Tone = "default" | "primary" | "danger";
 

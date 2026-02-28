@@ -1,12 +1,12 @@
 /**
- * Theme System - Cocoa Edition
+ * Theme System
  * 
  * Consistent design system with multi-provider state support.
  */
 
-import React, { createContext, useContext, useMemo, useCallback } from "react";
-import { Dimensions, PixelRatio, useColorScheme } from "react-native";
 import { buildTypographyScale, type TypographyScaleRecord } from "@/theme/typography";
+import React, { createContext, useContext, useMemo } from "react";
+import { Dimensions, useColorScheme } from "react-native";
 
 export type Provider = "claude" | "gemini" | "codex";
 export type ColorMode = "dark" | "light";
@@ -47,15 +47,11 @@ export type DesignTheme = {
     shadow: string;
     skeleton: string;
     skeletonHighlight: string;
-    cocoaCream?: string;
-    cocoaTan?: string;
-    cocoaBrown?: string;
-    cocoaDark?: string;
   };
   typography: TypographyScaleRecord;
-  spacing: any;
-  radii: any;
-  motion: any;
+  spacing: typeof spacing;
+  radii: typeof radii;
+  motion: typeof motion;
   grid: number;
 };
 
@@ -82,10 +78,6 @@ function getNeutrals(mode: ColorMode = "light") {
       shadow: "rgba(0, 100, 200, 0.05)",
       skeleton: "rgba(135, 206, 235, 0.1)",
       skeletonHighlight: "rgba(135, 206, 235, 0.3)",
-      cocoaCream: "rgba(255, 255, 255, 0.8)",
-      cocoaTan: "rgba(240, 248, 255, 0.8)",
-      cocoaBrown: "#4A90E2",
-      cocoaDark: "#0F172A",
     };
   }
 
@@ -106,11 +98,6 @@ function getNeutrals(mode: ColorMode = "light") {
     shadow: "rgba(0, 229, 255, 0.3)",
     skeleton: "rgba(0, 229, 255, 0.1)",
     skeletonHighlight: "rgba(0, 229, 255, 0.3)",
-    // Dark mode cocoa colors (for consistency with light mode)
-    cocoaCream: "#1a1a2e",
-    cocoaTan: "#16213e",
-    cocoaBrown: "#A5F5F5",
-    cocoaDark: "#FFFFFF",
   };
 }
 
@@ -133,7 +120,7 @@ export function buildTheme(provider: Provider = "codex", mode: ColorMode = "ligh
       danger: "#f87171",
       warning: "#fbbf24",
       info: "#60a5fa",
-    } as any,
+    },
     typography: buildTypographyScale(),
     spacing,
     radii,

@@ -1,13 +1,13 @@
-import React, { useCallback, useState } from "react";
-import { StyleSheet, Platform, ImageBackground } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { Box } from "@/components/ui/box";
-import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
 import type { ChatPageContext, ChatPageConversation, ChatPageFileViewer, ChatPageHeader, ChatPageInputDock, ChatPageRuntime, ChatPageSidebar } from "@/components/pages/ChatPage";
 import { ChatConversationSection, ChatHeaderSection, ChatInputDockSection } from "@/components/pages/ChatPageSections";
-import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
 import { layoutOuterStyle, SHELL_HORIZONTAL_PADDING } from "@/components/styles/appStyles";
+import type { ChatModalOpenHandlers } from "@/components/types/chatModalTypes";
+import { Box } from "@/components/ui/box";
+import { KeyboardAvoidingView } from "@/components/ui/keyboard-avoiding-view";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useState } from "react";
+import { Platform } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Re-export for backward compatibility
 export { SHELL_HORIZONTAL_PADDING };

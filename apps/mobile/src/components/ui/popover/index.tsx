@@ -1,20 +1,13 @@
 'use client';
-import React from 'react';
-import { View, Pressable, ScrollView, ViewStyle } from 'react-native';
-import {
-  Motion,
-  createMotionAnimatedComponent,
-  AnimatePresence,
-  MotionComponentProps,
-} from '@legendapp/motion';
 import { createPopover } from '@gluestack-ui/core/popover/creator';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  withStyleContext,
-  useStyleContext,
-} from '@gluestack-ui/utils/nativewind-utils';
-import { cssInterop } from 'nativewind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
+import { tva, useStyleContext, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
+import {
+    AnimatePresence, createMotionAnimatedComponent, Motion, MotionComponentProps
+} from '@legendapp/motion';
+import { cssInterop } from 'nativewind';
+import React from 'react';
+import { Pressable, ScrollView, View, ViewStyle } from 'react-native';
 
 type IAnimatedPressableProps = React.ComponentProps<typeof Pressable> &
   MotionComponentProps<typeof Pressable, ViewStyle, unknown, unknown, unknown>;
@@ -341,12 +334,12 @@ PopoverBody.displayName = 'PopoverBody';
 PopoverCloseButton.displayName = 'PopoverCloseButton';
 
 export {
-  Popover,
-  PopoverBackdrop,
-  PopoverArrow,
-  PopoverCloseButton,
-  PopoverFooter,
-  PopoverHeader,
-  PopoverBody,
-  PopoverContent,
+    Popover,
+    PopoverBackdrop,
+    PopoverArrow,
+    PopoverCloseButton,
+    PopoverFooter,
+    PopoverHeader,
+    PopoverBody,
+    PopoverContent,
 };
